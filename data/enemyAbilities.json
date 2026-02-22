@@ -1,0 +1,16 @@
+{
+  "enemyAbilities": [
+    {
+      "name": "Lightning: Army of One",
+      "maxLevel": 5,
+      "maxScore": 100,
+      "notes": "Provides PATK increase and MATK increase"
+    },
+    {
+      "name": "Whirling Ravanger",
+      "maxLevel": 5,
+      "maxScore": 50,
+      "notes": "Provides Stun ability to machine enemy types"
+    }
+  ]
+}

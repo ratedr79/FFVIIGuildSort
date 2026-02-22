@@ -1,0 +1,15 @@
+{
+  "summons": [
+    { "name": "Ifrit", "element": "Fire", "maxLevel": 12, "type": "Single" },
+    { "name": "Shiva", "element": "Ice", "maxLevel": 12, "type": "Single" },
+    { "name": "Ramuh", "element": "Lightning", "maxLevel": 12, "type": "Single" },
+    { "name": "Bahamut", "element": "None", "maxLevel": 12, "type": "Single" },
+    { "name": "Leviathan", "element": "Water", "maxLevel": 12, "type": "Single" },
+    { "name": "Titan", "element": "Earth", "maxLevel": 12, "type": "Single" },
+    { "name": "Odin", "element": "Wind", "maxLevel": 12, "type": "Single" },
+
+    { "name": "Ifrit & Bahamut", "element": "Fire", "maxLevel": 10, "type": "Dual" },
+    { "name": "Shiva & Ramuh", "element": "Ice", "elements": [ "Ice", "Lightning" ], "maxLevel": 10, "type": "Dual" },
+    { "name": "Leviathan & Bahamut", "element": "Water", "maxLevel": 10, "type": "Dual" }
+  ]
+}

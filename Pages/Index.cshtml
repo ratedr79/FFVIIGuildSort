@@ -1,0 +1,702 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "FFVII Ever Crisis Power Level Analyzer";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">
+                <i class="fas fa-sword"></i> FFVII Ever Crisis Power Level Analyzer
+            </h1>
+            <p class="text-center text-muted">Upload your player data CSV to calculate and analyze power levels</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-upload"></i> Upload gb20.csv</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="UploadedFile" class="form-label">Select CSV File</label>
+                            <input type="file" class="form-control" id="UploadedFile" name="UploadedFile" accept=".csv" />
+                            <div class="form-text">Upload the monthly guild form export (wide format) with an "In-Game Name" column</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="EnemyWeakness">Enemy Weakness</label>
+                                <select class="form-select" id="EnemyWeakness" name="EnemyWeakness">
+                                    <option value="None">None</option>
+                                    <option value="Earth">Earth</option>
+                                    <option value="Fire">Fire</option>
+                                    <option value="Water">Water</option>
+                                    <option value="Ice">Ice</option>
+                                    <option value="Lightning">Lightning</option>
+                                    <option value="Wind">Wind</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="PreferredDamageType">Preferred Damage Type</label>
+                                <select class="form-select" id="PreferredDamageType" name="PreferredDamageType">
+                                    <option value="Any">Any</option>
+                                    <option value="Physical">Physical</option>
+                                    <option value="Magical">Magical</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="TargetScenario">Enemy Count Weighting</label>
+                                <select class="form-select" id="TargetScenario" name="TargetScenario">
+                                    <option value="Unknown">Unknown (assume single enemy)</option>
+                                    <option value="SingleEnemy">Single Enemy</option>
+                                    <option value="MultipleEnemies">Multiple Enemies</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="ShowDebug" name="ShowDebug" value="true" />
+                                    <label class="form-check-label" for="ShowDebug">Show debug details</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calculator"></i> Find Best Teams
+                        </button>
+                        <button type="submit" class="btn btn-outline-secondary ms-2" asp-page-handler="ExportGuilds">
+                            <i class="fas fa-file-export"></i> Export guilds CSV
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle"></i> Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <div><strong>Weapons</strong> are detected via <code>data/weaponData.tsv</code> by matching the column name to the weapon name.</div>
+                        <div><strong>OB breakpoints</strong> (OB1/OB6/OB10) are weighted more heavily.</div>
+                        <div><strong>Role weights</strong> reduce Healer/Support/Tank weapon contribution when optimizing a "best damage team".</div>
+                        <div><strong>Constraint</strong>: Sephiroth and Sephiroth (Original) cannot be on the same team.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.RankedTeams != null && Model.RankedTeams.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-users"></i> Best Teams (Ranked)</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.GuildWarnings != null && Model.GuildWarnings.Count > 0)
+                        {
+                            <div class="alert alert-warning" role="alert">
+                                <div><strong>Guild Assignment Warnings</strong></div>
+                                <div class="text-muted">@string.Join(" | ", Model.GuildWarnings)</div>
+                            </div>
+                        }
+
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Guild</th>
+                                        <th>In-Game Name</th>
+                                        <th>Best Team</th>
+                                        <th>Score</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var displayTeams = Model.RankedTeams
+                                            .OrderBy(t => t.GuildNumber)
+                                            .ThenByDescending(t => t.Score)
+                                            .ThenBy(t => t.InGameName, StringComparer.OrdinalIgnoreCase)
+                                            .ToList();
+
+                                        var currentGuild = -1;
+
+                                        for (int i = 0; i < displayTeams.Count; i++)
+                                        {
+                                            var team = displayTeams[i];
+                                            var collapseId = $"details_{i}";
+                                            var altCollapseId = $"alt_{i}";
+
+                                            if (team.GuildNumber != currentGuild)
+                                            {
+                                                currentGuild = team.GuildNumber;
+                                            <tr class="table-secondary">
+                                                <td colspan="6"><strong>Guild @currentGuild</strong></td>
+                                            </tr>
+                                            }
+
+                                            <tr>
+                                                <td><span class="badge @(i < 3 ? "bg-warning" : "bg-secondary")">@(i + 1)</span></td>
+                                                <td>@team.GuildNumber</td>
+                                                <td>@team.InGameName</td>
+                                                <td>@string.Join(", ", team.Characters)</td>
+                                                <td><strong class="text-primary">@team.Score.ToString("N0")</strong></td>
+                                                <td>
+                                                    @if (team.Breakdown != null)
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-secondary js-view-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="false" aria-controls="@collapseId" data-view-text="View details" data-hide-text="Hide details">
+                                                            View details
+                                                        </button>
+
+                                                        @if (team.AlternateTeams != null && team.AlternateTeams.Count > 0)
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-secondary ms-1 js-view-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#@altCollapseId" aria-expanded="false" aria-controls="@altCollapseId" data-view-text="Other teams" data-hide-text="Hide other teams">
+                                                                Other teams
+                                                            </button>
+                                                        }
+                                                    }
+                                                </td>
+                                            </tr>
+                                            <tr class="collapse" id="@collapseId">
+                                                <td colspan="6">
+                                                @if (team.Breakdown == null)
+                                                {
+                                                    <div class="text-muted">No breakdown available.</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="row">
+                                                        <div class="col-12 mb-2">
+                                                            <div><strong>Applied Rules</strong></div>
+                                                            <div class="text-muted">@string.Join(" | ", team.Breakdown.AppliedRules)</div>
+                                                        </div>
+
+                                                        <div class="col-12 mb-3">
+                                                            <div><strong>Battle Context</strong></div>
+                                                            <div class="text-muted">Weakness: @team.Breakdown.EnemyWeakness | Preferred Damage: @team.Breakdown.PreferredDamageType | Max DPS: @team.Breakdown.MaxDpsAllowed</div>
+                                                        </div>
+
+                                                        <div class="mb-2">
+                                                            <strong>Team Score</strong>: @team.Breakdown.TeamScore.ToString("N0")
+                                                        </div>
+
+                                                        @if (team.Breakdown.SelectedMemoria != null && team.Breakdown.MemoriaScore > 0)
+                                                        {
+                                                            <div class="mb-2">
+                                                                <strong>Memoria Bonus</strong>: @team.Breakdown.MemoriaScore.ToString("N0")
+                                                                <span class="text-muted">(@team.Breakdown.SelectedMemoria.MemoriaName - Level @team.Breakdown.SelectedMemoria.Level/@team.Breakdown.SelectedMemoria.MaxLevel)</span>
+                                                            </div>
+                                                        }
+
+                                                        @if (team.Breakdown.Materia != null && team.Breakdown.Materia.Count > 0 && team.Breakdown.MateriaScore > 0)
+                                                        {
+                                                            <div class="mb-2">
+                                                                <strong>Materia Bonus</strong>: @team.Breakdown.MateriaScore.ToString("N0")
+                                                            </div>
+
+                                                            <div class="table-responsive mb-2">
+                                                                <table class="table table-sm">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Materia</th>
+                                                                            <th>11%+</th>
+                                                                            <th>8-10%</th>
+                                                                            <th>0-7%</th>
+                                                                            <th class="text-end">Score</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @foreach (var m in team.Breakdown.Materia)
+                                                                        {
+                                                                            if (m.Score <= 0) continue;
+                                                                            <tr>
+                                                                                <td>@m.MateriaName</td>
+                                                                                <td>@m.CountPot11Plus</td>
+                                                                                <td>@m.CountPot8To10</td>
+                                                                                <td>@m.CountPot0To7</td>
+                                                                                <td class="text-end">@m.Score.ToString("N0")</td>
+                                                                            </tr>
+                                                                        }
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        }
+
+                                                        @if (team.Breakdown.SelectedUtilityItems != null && team.Breakdown.SelectedUtilityItems.Count > 0)
+                                                        {
+                                                            <div class="mb-2">
+                                                                <strong>Utility Items Bonus</strong>: @team.Breakdown.UtilityScore.ToString("N0")
+                                                            </div>
+
+                                                            <div class="table-responsive mb-2">
+                                                                <table class="table table-sm">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Kind</th>
+                                                                            <th>Name</th>
+                                                                            <th>Level</th>
+                                                                            <th>Score</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @foreach (var u in team.Breakdown.SelectedUtilityItems)
+                                                                        {
+                                                                            <tr>
+                                                                                <td>@u.Kind</td>
+                                                                                <td>@u.Name</td>
+                                                                                <td>@u.Level/@u.MaxLevel</td>
+                                                                                <td><strong>@u.Score.ToString("N0")</strong></td>
+                                                                            </tr>
+                                                                            @if (!string.IsNullOrWhiteSpace(u.Notes))
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="4" class="text-muted">
+                                                                                        <small>@u.Notes</small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
+                                                                        }
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        }
+
+                                                        @if (team.Breakdown.MissingCatalogItems != null && team.Breakdown.MissingCatalogItems.Count > 0)
+                                                        {
+                                                            var missingId = $"missing-{i}";
+                                                            <div class="mb-3">
+                                                                <button class="btn btn-sm btn-outline-warning" type="button" data-bs-toggle="collapse" data-bs-target="#@missingId" aria-expanded="false" aria-controls="@missingId">
+                                                                    Missing weaponData.tsv items (@team.Breakdown.MissingCatalogItems.Count)
+                                                                </button>
+
+                                                                <div class="collapse mt-2" id="@missingId">
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-sm table-bordered">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Item</th>
+                                                                                    <th>Raw Value</th>
+                                                                                    <th>Kind</th>
+                                                                                    <th>Notes</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                @foreach (var m in team.Breakdown.MissingCatalogItems)
+                                                                                {
+                                                                                    <tr>
+                                                                                        <td>@m.ColumnName</td>
+                                                                                        <td>@m.RawValue</td>
+                                                                                        <td>@m.InferredKind</td>
+                                                                                        <td>@m.Notes</td>
+                                                                                    </tr>
+                                                                                }
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        }
+
+                                                        @foreach (var ch in team.Breakdown.Characters)
+                                                        {
+                                                            var charDebugId = $"chdbg_{i}_{ch.CharacterName.Replace(" ", "-").Replace("(", "").Replace(")", "")}";
+                                                            <div class="mb-2">
+                                                                <strong>@ch.CharacterName</strong>
+                                                                <span class="text-muted">(@ch.Role)</span>
+                                                                @if (Model.ShowDebug)
+                                                                {
+                                                                    <button class="btn btn-sm btn-outline-secondary ms-2 js-view-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#@charDebugId" aria-expanded="false" aria-controls="@charDebugId" data-view-text="Debug" data-hide-text="Hide debug">
+                                                                        Debug
+                                                                    </button>
+                                                                }
+                                                            </div>
+
+                                                            <div class="row mb-2">
+                                                                <div class="col-md-3"><strong>Role Weight</strong>: @ch.RoleWeight</div>
+                                                                <div class="col-md-3"><strong>Raw Weapon Sum</strong>: @ch.RawWeaponScoreSum.ToString("N0")</div>
+                                                                <div class="col-md-3"><strong>Outfit Score</strong>: @ch.CostumeScoreSum.ToString("N0")</div>
+                                                                <div class="col-md-3"><strong>Final Character Score</strong>: @ch.FinalCharacterScore.ToString("N0")</div>
+                                                            </div>
+
+                                                            @if (Model.ShowDebug)
+                                                            {
+                                                                <div class="collapse mb-3" id="@charDebugId">
+                                                                    <div class="card card-body">
+                                                                        <div class="row mb-2">
+                                                                            <div class="col-md-3"><strong>Weapons (selected)</strong>: @ch.RawWeaponScoreSum.ToString("N2")</div>
+                                                                            <div class="col-md-3"><strong>Outfits (selected)</strong>: @ch.CostumeScoreSum.ToString("N2")</div>
+                                                                            <div class="col-md-3"><strong>Base + Gear</strong>: @ch.BasePlusGearScore.ToString("N2")</div>
+                                                                            <div class="col-md-3"><strong>Role Weight</strong>: @ch.RoleWeight</div>
+                                                                        </div>
+
+                                                                        <div class="mb-2"><strong>Weapons Used</strong></div>
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-sm mb-2">
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th>Slot</th>
+                                                                                        <th>Weapon</th>
+                                                                                        <th>OB</th>
+                                                                                        <th>Final</th>
+                                                                                        <th>PotUsed%</th>
+                                                                                        <th>Mult%</th>
+                                                                                        <th>EffPot%</th>
+                                                                                        <th>PotWt</th>
+                                                                                        <th>Pot?</th>
+                                                                                        <th>Weak</th>
+                                                                                        <th>Type</th>
+                                                                                        <th>Synergy</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    @foreach (var w in ch.SelectedWeapons)
+                                                                                    {
+                                                                                        <tr>
+                                                                                            <td>@w.Slot</td>
+                                                                                            <td>@w.WeaponName</td>
+                                                                                            <td>@w.OverboostLevel</td>
+                                                                                            <td>@w.FinalWeaponScore.ToString("N2")</td>
+                                                                                            <td>@(w.AbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                            <td>@(w.PotencyApplied ? w.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                                            <td>@(w.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                            <td>@(w.PotencyApplied ? w.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                                            <td>@(w.PotencyApplied ? "Y" : "N")</td>
+                                                                                            <td>@(w.WeaknessMatch ? "Y" : "N")</td>
+                                                                                            <td>@(w.PreferredDamageTypeMatch ? "Y" : "N")</td>
+                                                                                            <td>@(string.IsNullOrWhiteSpace(w.SynergyReason) ? "-" : w.SynergyReason)</td>
+                                                                                        </tr>
+                                                                                    }
+                                                                                    @if (ch.UltimateWeapon != null && ch.UltimateWeapon.WeaponName != "(Not owned)")
+                                                                                    {
+                                                                                        <tr>
+                                                                                            <td>Ultimate</td>
+                                                                                            <td>@ch.UltimateWeapon.WeaponName</td>
+                                                                                            <td>@ch.UltimateWeapon.OverboostLevel</td>
+                                                                                            <td>@ch.UltimateWeapon.FinalWeaponScore.ToString("N2")</td>
+                                                                                            <td>@(ch.UltimateWeapon.AbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                            <td>@(ch.UltimateWeapon.PotencyApplied ? ch.UltimateWeapon.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                                            <td>@(ch.UltimateWeapon.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                            <td>@(ch.UltimateWeapon.PotencyApplied ? ch.UltimateWeapon.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                                            <td>@(ch.UltimateWeapon.PotencyApplied ? "Y" : "N")</td>
+                                                                                            <td>@(ch.UltimateWeapon.WeaknessMatch ? "Y" : "N")</td>
+                                                                                            <td>@(ch.UltimateWeapon.PreferredDamageTypeMatch ? "Y" : "N")</td>
+                                                                                            <td>@(string.IsNullOrWhiteSpace(ch.UltimateWeapon.SynergyReason) ? "-" : ch.UltimateWeapon.SynergyReason)</td>
+                                                                                        </tr>
+                                                                                    }
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+
+                                                                        @if (ch.SelectedCostumes != null && ch.SelectedCostumes.Count > 0)
+                                                                        {
+                                                                            <div class="mb-2"><strong>Outfits Used</strong></div>
+                                                                            <div class="table-responsive">
+                                                                                <table class="table table-sm mb-0">
+                                                                                    <thead>
+                                                                                        <tr>
+                                                                                            <th>Slot</th>
+                                                                                            <th>Outfit</th>
+                                                                                            <th>Final</th>
+                                                                                            <th>Synergy</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        @foreach (var c in ch.SelectedCostumes)
+                                                                                        {
+                                                                                            <tr>
+                                                                                                <td>@c.Slot</td>
+                                                                                                <td>@c.CostumeName</td>
+                                                                                                <td>@c.FinalCostumeScore.ToString("N2")</td>
+                                                                                                <td>@(string.IsNullOrWhiteSpace(c.SynergyReason) ? "-" : c.SynergyReason)</td>
+                                                                                            </tr>
+                                                                                        }
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </div>
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            }
+
+                                                            <div class="mb-3">
+                                                                @if (ch.SelectedCostumes != null && ch.SelectedCostumes.Count > 0)
+                                                                {
+                                                                    <div><strong>Outfits</strong></div>
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-sm">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Outfit</th>
+                                                                                    <th>Slot</th>
+                                                                                    <th>Base</th>
+                                                                                    <th>Synergy Matches</th>
+                                                                                    <th>Synergy Points</th>
+                                                                                    <th>Slot Mult</th>
+                                                                                    <th>Final</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                @foreach (var c in ch.SelectedCostumes)
+                                                                                {
+                                                                                    <tr>
+                                                                                        <td>@c.CostumeName</td>
+                                                                                        <td>@c.Slot</td>
+                                                                                        <td>@c.BasePoints</td>
+                                                                                        <td>@c.SynergyMatchCount</td>
+                                                                                        <td>@c.SynergyPoints</td>
+                                                                                        <td>@c.SlotMultiplier</td>
+                                                                                        <td><strong>@c.FinalCostumeScore.ToString("N0")</strong></td>
+                                                                                    </tr>
+                                                                                    @if (!string.IsNullOrWhiteSpace(c.SynergyReason))
+                                                                                    {
+                                                                                        <tr>
+                                                                                            <td colspan="7" class="text-muted">
+                                                                                                <small><strong>Synergy</strong>: @c.SynergyReason</small>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    }
+                                                                                }
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                }
+                                                            </div>
+
+                                                            <div class="table-responsive">
+                                                                @if (ch.UltimateWeapon != null)
+                                                                {
+                                                                    <div class="mb-1"><strong>Ultimate Weapon</strong></div>
+                                                                    <table class="table table-sm mb-3">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>Weapon</th>
+                                                                                <th>Slot</th>
+                                                                                <th>OB</th>
+                                                                                <th>Pot OB10%</th>
+                                                                                <th>Pot Used%</th>
+                                                                                <th>Mult Dmg%</th>
+                                                                                <th>Eff Pot%</th>
+                                                                                <th>Pot Wt</th>
+                                                                                <th>Weak Match</th>
+                                                                                <th>Dmg Match</th>
+                                                                                <th>Pot Applied</th>
+                                                                                <th>Base</th>
+                                                                                <th>OB1</th>
+                                                                                <th>OB6</th>
+                                                                                <th>OB10</th>
+                                                                                <th>OB*10</th>
+                                                                                <th>Ultimate Mult</th>
+                                                                                <th>Final</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            @if (ch.UltimateWeapon.WeaponName == "(Not owned)" || ch.UltimateWeapon.FinalWeaponScore <= 0)
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="18" class="text-muted">
+                                                                                        <small>@(ch.UltimateWeapon.SelectionReason ?? "Ultimate weapon")</small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                            <tr>
+                                                                                <td>@ch.UltimateWeapon.WeaponName</td>
+                                                                                <td>@(ch.UltimateWeapon.Slot ?? "-")</td>
+                                                                                <td>@ch.UltimateWeapon.OverboostLevel</td>
+                                                                                <td>@(ch.UltimateWeapon.AbilityPotPercentAtOb10?.ToString("N1") ?? "-")</td>
+                                                                                <td>@(ch.UltimateWeapon.AbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                <td>@(ch.UltimateWeapon.PotencyApplied ? ch.UltimateWeapon.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                                <td>@(ch.UltimateWeapon.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                <td>@(ch.UltimateWeapon.PotencyApplied ? ch.UltimateWeapon.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                                <td>@(ch.UltimateWeapon.WeaknessMatch ? "Yes" : "No")</td>
+                                                                                <td>@(ch.UltimateWeapon.PreferredDamageTypeMatch ? "Yes" : "No")</td>
+                                                                                <td>@(ch.UltimateWeapon.PotencyApplied ? "Yes" : "No")</td>
+                                                                                <td>@ch.UltimateWeapon.BaseOwnedPoints</td>
+                                                                                <td>@ch.UltimateWeapon.Ob1Points</td>
+                                                                                <td>@ch.UltimateWeapon.Ob6Points</td>
+                                                                                <td>@ch.UltimateWeapon.Ob10Points</td>
+                                                                                <td>@ch.UltimateWeapon.IntermediateObPoints</td>
+                                                                                <td>@ch.UltimateWeapon.UltimateMultiplier</td>
+                                                                                <td><strong>@ch.UltimateWeapon.FinalWeaponScore.ToString("N0")</strong></td>
+                                                                            </tr>
+                                                                            @if (!string.IsNullOrWhiteSpace(ch.UltimateWeapon.SelectionReason))
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="18" class="text-muted">
+                                                                                        <small><strong>Selected</strong>: @ch.UltimateWeapon.SelectionReason</small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
+
+                                                                            @if (!string.IsNullOrWhiteSpace(ch.UltimateWeapon.SynergyReason))
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="18" class="text-muted">
+                                                                                        <small><strong>Synergy</strong>: @ch.UltimateWeapon.SynergyReason</small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
+                                                                            }
+                                                                        </tbody>
+                                                                    </table>
+                                                                }
+
+                                                                <div class="mb-1"><strong>Main / Off-hand Weapons</strong></div>
+                                                                <table class="table table-sm">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Weapon</th>
+                                                                            <th>Slot</th>
+                                                                            <th>OB</th>
+                                                                            <th>Pot OB10%</th>
+                                                                            <th>Pot Used%</th>
+                                                                            <th>Mult Dmg%</th>
+                                                                            <th>Eff Pot%</th>
+                                                                            <th>Pot Wt</th>
+                                                                            <th>Weak Match</th>
+                                                                            <th>Dmg Match</th>
+                                                                            <th>Pot Applied</th>
+                                                                            <th>Base</th>
+                                                                            <th>OB1</th>
+                                                                            <th>OB6</th>
+                                                                            <th>OB10</th>
+                                                                            <th>OB*10</th>
+                                                                            <th>Ultimate Mult</th>
+                                                                            <th>Final</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @foreach (var w in ch.SelectedWeapons)
+                                                                        {
+                                                                            <tr>
+                                                                                <td>@w.WeaponName</td>
+                                                                                <td>@(w.Slot ?? "-")</td>
+                                                                                <td>@w.OverboostLevel</td>
+                                                                                <td>@(w.AbilityPotPercentAtOb10?.ToString("N1") ?? "-")</td>
+                                                                                <td>@(w.AbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                <td>@(w.PotencyApplied ? w.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                                <td>@(w.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                                <td>@(w.PotencyApplied ? w.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                                <td>@(w.WeaknessMatch ? "Yes" : "No")</td>
+                                                                                <td>@(w.PreferredDamageTypeMatch ? "Yes" : "No")</td>
+                                                                                <td>@(w.PotencyApplied ? "Yes" : "No")</td>
+                                                                                <td>@w.BaseOwnedPoints</td>
+                                                                                <td>@w.Ob1Points</td>
+                                                                                <td>@w.Ob6Points</td>
+                                                                                <td>@w.Ob10Points</td>
+                                                                                <td>@w.IntermediateObPoints</td>
+                                                                                <td>@w.UltimateMultiplier</td>
+                                                                                <td><strong>@w.FinalWeaponScore.ToString("N0")</strong></td>
+                                                                            </tr>
+                                                                            @if (!string.IsNullOrWhiteSpace(w.SelectionReason))
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="18" class="text-muted">
+                                                                                        <small><strong>Selected</strong>: @w.SelectionReason</small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
+
+                                                                            @if (!string.IsNullOrWhiteSpace(w.SynergyReason))
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="18" class="text-muted">
+                                                                                        <small><strong>Synergy</strong>: @w.SynergyReason</small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
+                                                                        }
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+
+                                        @if (team.AlternateTeams != null && team.AlternateTeams.Count > 0)
+                                        {
+                                            <tr class="collapse" id="@altCollapseId">
+                                                <td colspan="6">
+                                                    <div class="card card-body">
+                                                        <div class="mb-1"><strong>Other Teams (Top 5)</strong></div>
+                                                        <table class="table table-sm mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>#</th>
+                                                                    <th>Team</th>
+                                                                    <th>Total</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @for (int a = 0; a < team.AlternateTeams.Count; a++)
+                                                                {
+                                                                    var alt = team.AlternateTeams[a];
+                                                                    <tr>
+                                                                        <td>@(a + 1)</td>
+                                                                        <td>@string.Join(", ", alt.Characters)</td>
+                                                                        <td>@alt.Score.ToString("N0")</td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <script>
+                            (function () {
+                                function wireCollapseToggleText() {
+                                    var toggles = document.querySelectorAll('button.js-view-toggle[data-bs-toggle="collapse"][data-bs-target]');
+                                    toggles.forEach(function (btn) {
+                                        var targetSel = btn.getAttribute('data-bs-target');
+                                        if (!targetSel) return;
+
+                                        var target = document.querySelector(targetSel);
+                                        if (!target) return;
+
+                                        var viewText = btn.getAttribute('data-view-text') || 'View';
+                                        var hideText = btn.getAttribute('data-hide-text') || 'Hide';
+
+                                        target.addEventListener('shown.bs.collapse', function () { btn.textContent = hideText; });
+                                        target.addEventListener('hidden.bs.collapse', function () { btn.textContent = viewText; });
+                                    });
+                                }
+
+                                if (document.readyState === 'loading') {
+                                    document.addEventListener('DOMContentLoaded', wireCollapseToggleText);
+                                } else {
+                                    wireCollapseToggleText();
+                                }
+                            })();
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

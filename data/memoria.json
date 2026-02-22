@@ -1,0 +1,119 @@
+{
+  "memoria": [
+    {
+      "name": "Memoria of the 2nd Anniversary",
+      "maxLevel": 1,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Phys. & Mag. Ability Pot. Up +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Bahamut SIN",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Ice Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Summons +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of the Church Two Years Later",
+      "maxLevel": 1,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Magic Ability Pot. Up +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Three Ex-SOLDIERs",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Earth Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Quadrupeds +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Eligor",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Fire Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Terrestrials +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Lightning",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Ice Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Humanoids +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Stilva",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Ice Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Terrestrials +15"
+      ]
+    },
+    {
+      "name": "Memoria of 2B",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Earth Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Machines +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Master Tonberry",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Water Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Humanoids +15"
+      ]
+    },
+    {
+      "name": "Memoria of the Stallion of Good Fortune",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Wind Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Summons +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Rufus",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Lightning Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Humanoids +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of DC Ep. 1",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Wind Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Quadrupeds +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Masamune",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Fire Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Humanoids +15 pts"
+      ]
+    }
+  ]
+}

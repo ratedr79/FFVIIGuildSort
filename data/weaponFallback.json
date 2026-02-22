@@ -1,0 +1,57 @@
+{
+  "weapons": [],
+  "costumes": [
+    {
+      "name": "AC Style",
+      "character": "Tifa"
+    },
+    {
+      "name": "Cape of the Worthy",
+      "character": "Sephiroth"
+    },
+    {
+      "name": "Celebratory Garb",
+      "character": "Sephiroth"
+    },
+    {
+      "name": "Classic Coney",
+      "character": "Aerith"
+    },
+    {
+      "name": "Corruptor of the Planet",
+      "character": "Sephiroth (Original)"
+    },
+    {
+      "name": "Festive Blue Daffodil Attire",
+      "character": "Tifa"
+    },
+    {
+      "name": "Guardian Corps Uniform",
+      "character": "Aerith"
+    },
+    {
+      "name": "Guardian Style",
+      "character": "Zack"
+    },
+    {
+      "name": "Passion Mermaid",
+      "character": "Tifa"
+    },
+    {
+      "name": "Pirate Navigator",
+      "character": "Red XIII"
+    },
+    {
+      "name": "Rabbit Butler",
+      "character": "Zack"
+    },
+    {
+      "name": "Shinra Ceremonial Uniform",
+      "character": "Zack"
+    },
+    {
+      "name": "Surfer Look",
+      "character": "Zack"
+    }
+  ]
+}
