@@ -1,0 +1,153 @@
+<table class="article-table sortable jquery-tablesorter">
+<thead><tr>
+<th style="width:135px" class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Weapon
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">PATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">MATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">HEAL
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Command Ability
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">ATB
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Reinforcement Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Support Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Obtain
+</th></tr></thead><tbody>
+<tr>
+<th><a href="/wiki/Masamune_(Final_Fantasy_VII)" title="Masamune (Final Fantasy VII)"><span id="Masamune" class="attach">Masamune</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/5d/Masamune_from_FFVIIEC.png/revision/latest?cb=20250908202943" class="mw-file-description image"><img alt="Masamune from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/5d/Masamune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908202943" decoding="async" loading="lazy" width="100" height="200" class="thumbimage ls-is-cached lazyloaded" data-image-name="Masamune from FFVIIEC.png" data-image-key="Masamune_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/5d/Masamune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908202943"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/5d/Masamune_from_FFVIIEC.png/revision/latest?cb=20250908202943" class="mw-file-description image"><img alt="Masamune from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/5d/Masamune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908202943" decoding="async" loading="lazy" width="100" height="200" class="thumbimage" data-image-name="Masamune from FFVIIEC.png" data-image-key="Masamune_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/5d/Masamune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908202943" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>652
+</td>
+<td>578
+</td>
+<td>240
+</td>
+<td><b>Telluric Fury++</b>:<br>Deal 800% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, deals 60000 additional Non-elem. Phys. pot. damage [Rng.: Single Enemy].<br>PDEF is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>MDEF is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost ATK +62 pt<br>Boost Ability Pot. +42 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element ls-is-cached lazyloaded" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>Default
+</td></tr>
+<tr>
+<th><a href="/wiki/Osafune" title="Osafune"><span id="Osafune" class="attach">Osafune</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/2/22/Osafune_from_FFVIIEC.png/revision/latest?cb=20250908203044" class="mw-file-description image"><img alt="Osafune from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/22/Osafune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203044" decoding="async" loading="lazy" width="100" height="201" class="thumbimage ls-is-cached lazyloaded" data-image-name="Osafune from FFVIIEC.png" data-image-key="Osafune_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/22/Osafune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203044"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/2/22/Osafune_from_FFVIIEC.png/revision/latest?cb=20250908203044" class="mw-file-description image"><img alt="Osafune from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/22/Osafune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203044" decoding="async" loading="lazy" width="100" height="201" class="thumbimage" data-image-name="Osafune from FFVIIEC.png" data-image-key="Osafune_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/22/Osafune_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203044" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>552
+</td>
+<td>717
+</td>
+<td>222
+</td>
+<td><b>White Horses++</b>:<br>Deal 1,340% Mag. Water damage [Rng.: Single Enemy].<br>Also, MATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost MATK +46 pt<br>Boost Mag. Ability Pot. +42 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element ls-is-cached lazyloaded" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Kotetsu_(weapon)" title="Kotetsu (weapon)"><span id="Kotetsu" class="attach">Kotetsu</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/0/0a/Kotetsu_from_FFVIIEC.png/revision/latest?cb=20250908203111" class="mw-file-description image"><img alt="Kotetsu from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/0a/Kotetsu_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203111" decoding="async" loading="lazy" width="100" height="204" class="thumbimage ls-is-cached lazyloaded" data-image-name="Kotetsu from FFVIIEC.png" data-image-key="Kotetsu_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/0a/Kotetsu_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203111"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/0/0a/Kotetsu_from_FFVIIEC.png/revision/latest?cb=20250908203111" class="mw-file-description image"><img alt="Kotetsu from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/0a/Kotetsu_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203111" decoding="async" loading="lazy" width="100" height="204" class="thumbimage" data-image-name="Kotetsu from FFVIIEC.png" data-image-key="Kotetsu_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/0a/Kotetsu_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203111" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>631
+</td>
+<td>604
+</td>
+<td>238
+</td>
+<td><b>Hell's Dominion++</b>:<br>Deal 540% Phys. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, PATK is decreased. [Pot.: High] [Rng.: All Enemies] [Dur.: 40s]. [Ext.: +13s] [Max. pot.: High]<br>MATK is decreased. [Pot.: High] [Rng.: All Enemies] [Dur.: 40s]. [Ext.: +13s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Ability Pot. +42 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element ls-is-cached lazyloaded" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Shiranui_(weapon)" title="Shiranui (weapon)"><span id="Shiranui" class="attach">Shiranui</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Shiranui_from_FFVIIEC.png/revision/latest?cb=20250908203016" class="mw-file-description image"><img alt="Shiranui from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="210" class="thumbimage lazyload" data-image-name="Shiranui from FFVIIEC.png" data-image-key="Shiranui_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Shiranui_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203016"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Shiranui_from_FFVIIEC.png/revision/latest?cb=20250908203016" class="mw-file-description image"><img alt="Shiranui from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Shiranui_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203016" decoding="async" loading="lazy" width="100" height="210" class="thumbimage" data-image-name="Shiranui from FFVIIEC.png" data-image-key="Shiranui_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Shiranui_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203016" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>573
+</td>
+<td>698
+</td>
+<td>219
+</td>
+<td><b>Scarlet Inferno++</b>:<br>Deal 1,340% Mag. Fire damage [Rng.: Single Enemy].<br>Also, Applies Fire Damage Bonus [Effect: When using Fire ability, deal bonus damage equal to 30% of damage dealt] [Rng.: All Allies] [Dur.: 25s] [Ext.: +8s]
+</td>
+<td>4
+</td>
+<td>Boost MATK (All Allies) +46 pt<br>Boost Fire Pot. +42 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>Stamp Card (2nd Anniversary/<a href="/wiki/Final_Fantasy_VII_Advent_Children_EC_Edition" title="Final Fantasy VII Advent Children EC Edition">FFVII Advent Children EC Edition</a>/Vol. 1)
+</td></tr>
+<tr>
+<th><a href="/wiki/Kikuichimonji" title="Kikuichimonji"><span id="Kikuichimonji" class="attach">Kikuichimonji</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d4/Kikuichimonji_from_FFVIIEC.png/revision/latest?cb=20250908203028" class="mw-file-description image"><img alt="Kikuichimonji from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="197" class="thumbimage lazyload" data-image-name="Kikuichimonji from FFVIIEC.png" data-image-key="Kikuichimonji_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d4/Kikuichimonji_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203028"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d4/Kikuichimonji_from_FFVIIEC.png/revision/latest?cb=20250908203028" class="mw-file-description image"><img alt="Kikuichimonji from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/d4/Kikuichimonji_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203028" decoding="async" loading="lazy" width="100" height="197" class="thumbimage" data-image-name="Kikuichimonji from FFVIIEC.png" data-image-key="Kikuichimonji_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d4/Kikuichimonji_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250908203028" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>487
+</td>
+<td>732
+</td>
+<td>245
+</td>
+<td><b>Shadow Disaster++</b>:<br>Deal 1,340% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, Applies Phys. Damage Bonus [Effect: When using Phys. ability, deal bonus damage equal to 30% of damage dealt] [Rng.: All Allies] [Dur.: 60s] [Ext.: +20s]<br>Applies Mag. Damage Bonus [Effect: When using Mag. ability, deal bonus damage equal to 30% of damage dealt] [Rng.: All Allies] [Dur.: 60s] [Ext.: +20s]<br>[Condition: First use]Haste is applied [Rng.: Self]. [Dur.: 30s] [Ext.: +10s]
+</td>
+<td>4
+</td>
+<td>Boost ATK (All Allies) +46 pt<br>Boost Ability Pot. +42 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>Stamp Card (2nd Anniversary/<a href="/wiki/Final_Fantasy_VII_Advent_Children_EC_Edition" title="Final Fantasy VII Advent Children EC Edition">FFVII Advent Children EC Edition</a>/Vol. 1)
+</td></tr>
+<tr>
+<th><span id="Divine_Steed_Blade" class="attach">Divine Steed Blade</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Divine_Steed_Blade_from_FFVIIEC.png/revision/latest?cb=20251231180526" class="mw-file-description image"><img alt="Divine Steed Blade from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="183" class="thumbimage lazyload" data-image-name="Divine Steed Blade from FFVIIEC.png" data-image-key="Divine_Steed_Blade_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Divine_Steed_Blade_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251231180526"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Divine_Steed_Blade_from_FFVIIEC.png/revision/latest?cb=20251231180526" class="mw-file-description image"><img alt="Divine Steed Blade from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Divine_Steed_Blade_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251231180526" decoding="async" loading="lazy" width="100" height="183" class="thumbimage" data-image-name="Divine Steed Blade from FFVIIEC.png" data-image-key="Divine_Steed_Blade_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Divine_Steed_Blade_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251231180526" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>532
+</td>
+<td>564
+</td>
+<td>229
+</td>
+<td><b>Quakera Surge A++</b>:<br>Deal 290% Mag. Earth damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +46 pts<br>Boost Mag. Ability Pot. +42 pts
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>Event rewards (<a href="/wiki/The_Stallion_of_Good_Fortune" title="The Stallion of Good Fortune">The Stallion of Good Fortune</a>)
+</td></tr>
+<tr>
+<th><a href="/wiki/Muramasa_(weapon)" title="Muramasa (weapon)"><span id="Muramasa" class="attach">Muramasa</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/6/69/Muramasa_from_FFVIIEC.png/revision/latest?cb=20251231174321" class="mw-file-description image"><img alt="Muramasa from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="207" class="thumbimage lazyload" data-image-name="Muramasa from FFVIIEC.png" data-image-key="Muramasa_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/69/Muramasa_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251231174321"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/6/69/Muramasa_from_FFVIIEC.png/revision/latest?cb=20251231174321" class="mw-file-description image"><img alt="Muramasa from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/69/Muramasa_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251231174321" decoding="async" loading="lazy" width="100" height="207" class="thumbimage" data-image-name="Muramasa from FFVIIEC.png" data-image-key="Muramasa_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/69/Muramasa_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251231174321" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>657
+</td>
+<td>657
+</td>
+<td>200
+</td>
+<td><b>Flash of Ruin++</b>:<br>Deal 1,340% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, Applies Ailment: [Single-Tgt. Phys. Dmg. Rcvd. Up] [Rng.: All Enemies] [Pot.: 50%] [Dur.: 60s] [Ext.: +20s].<br>Applies Ailment: [Single-Tgt. Mag. Dmg. Rcvd. Up] [Rng.: All Enemies] [Pot.: 50%] [Dur.: 60s] [Ext.: +20s].<br>[Condition: First use] Applies HP Gain [Rng.: All Allies] [Dur.: 60s] [Ext.: +0s] [When triggered: restores 8% of target's max HP].
+</td>
+<td>4
+</td>
+<td>Boost ATK (All Allies) +46 pts<br>Boost Ability Pot. +42 pts
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>Stamp Card (<a href="/wiki/The_Stallion_of_Good_Fortune" title="The Stallion of Good Fortune">The Stallion of Good Fortune</a>/Vol.1)
+</td></tr></tbody><tfoot></tfoot></table>

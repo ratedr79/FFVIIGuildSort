@@ -375,12 +375,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             // weaponData uses Ability Type: Phys/Mag/Both
+            var abilityType = (weapon.AbilityType ?? string.Empty).Trim();
             return preferred switch
             {
-                DamageType.Physical => weapon.AbilityType.Equals("Phys", StringComparison.OrdinalIgnoreCase) ||
-                                       weapon.AbilityType.Equals("Both", StringComparison.OrdinalIgnoreCase),
-                DamageType.Magical => weapon.AbilityType.Equals("Mag", StringComparison.OrdinalIgnoreCase) ||
-                                      weapon.AbilityType.Equals("Both", StringComparison.OrdinalIgnoreCase),
+                DamageType.Physical => abilityType.Equals("Phys", StringComparison.OrdinalIgnoreCase) ||
+                                       abilityType.Equals("Phys.", StringComparison.OrdinalIgnoreCase) ||
+                                       abilityType.Equals("Both", StringComparison.OrdinalIgnoreCase) ||
+                                       abilityType.Equals("Phys./Mag.", StringComparison.OrdinalIgnoreCase),
+                DamageType.Magical => abilityType.Equals("Mag", StringComparison.OrdinalIgnoreCase) ||
+                                      abilityType.Equals("Mag.", StringComparison.OrdinalIgnoreCase) ||
+                                      abilityType.Equals("Both", StringComparison.OrdinalIgnoreCase) ||
+                                      abilityType.Equals("Phys./Mag.", StringComparison.OrdinalIgnoreCase),
                 _ => true
             };
         }
@@ -393,7 +398,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             // weaponData uses Ability Element field.
-            if (string.IsNullOrWhiteSpace(weapon.AbilityElement) || weapon.AbilityElement.Equals("None", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(weapon.AbilityElement) ||
+                weapon.AbilityElement.Equals("None", StringComparison.OrdinalIgnoreCase) ||
+                weapon.AbilityElement.Equals("Non-Elemental", StringComparison.OrdinalIgnoreCase) ||
+                weapon.AbilityElement.Equals("Non Elemental", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }

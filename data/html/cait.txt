@@ -1,0 +1,438 @@
+<table class="article-table sortable jquery-tablesorter">
+<thead><tr>
+<th style="width:135px" class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Weapon
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">PATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">MATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">HEAL
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Command Ability
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">ATB
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Reinforcement Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Support Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Obtain
+</th></tr></thead><tbody>
+<tr>
+<th><a href="/wiki/Yellow_Megaphone" title="Yellow Megaphone"><span id="Yellow_Megaphone" class="attach">Yellow Megaphone</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Yellow_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155519" class="mw-file-description image"><img alt="Yellow Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Yellow_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155519" decoding="async" loading="lazy" width="120" height="139" class="thumbimage lazyloaded" data-image-name="Yellow Megaphone from FFVIIEC.png" data-image-key="Yellow_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Yellow_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155519"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Yellow_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155519" class="mw-file-description image"><img alt="Yellow Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Yellow_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155519" decoding="async" loading="lazy" width="120" height="139" class="thumbimage" data-image-name="Yellow Megaphone from FFVIIEC.png" data-image-key="Yellow_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Yellow_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155519" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>660
+</td>
+<td>516
+</td>
+<td>231
+</td>
+<td><b>Sonic Meow++</b>:<br>Deal 700% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 30%]).<br>Also, When hitting critical, x3 damage.
+</td>
+<td>5
+</td>
+<td>Boost ATK +46 pt<br>Boost Ability Pot. +39 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>Default
+</td></tr>
+<tr>
+<th><a href="/wiki/Green_Megaphone" title="Green Megaphone"><span id="Green_Megaphone" class="attach">Green Megaphone</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/51/Green_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155549" class="mw-file-description image"><img alt="Green Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/51/Green_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155549" decoding="async" loading="lazy" width="120" height="140" class="thumbimage lazyloaded" data-image-name="Green Megaphone from FFVIIEC.png" data-image-key="Green_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/51/Green_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155549"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/51/Green_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155549" class="mw-file-description image"><img alt="Green Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/51/Green_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155549" decoding="async" loading="lazy" width="120" height="140" class="thumbimage" data-image-name="Green Megaphone from FFVIIEC.png" data-image-key="Green_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/51/Green_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155549" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>532
+</td>
+<td>664
+</td>
+<td>221
+</td>
+<td><b>Bloomin' Spray++</b>:<br>Deal 620% Mag. Water damage [Rng.: Single Enemy].<br>Also, When [Rng.: Self]'s HP is 50% or more, Water Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost MATK +46 pt<br>Boost Water Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element ls-is-cached lazyloaded" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Blue_Megaphone" class="attach">Blue Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a8/Blue_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155610" class="mw-file-description image"><img alt="Blue Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/a8/Blue_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155610" decoding="async" loading="lazy" width="120" height="140" class="thumbimage lazyloaded" data-image-name="Blue Megaphone from FFVIIEC.png" data-image-key="Blue_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a8/Blue_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155610"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a8/Blue_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155610" class="mw-file-description image"><img alt="Blue Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/a8/Blue_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155610" decoding="async" loading="lazy" width="120" height="140" class="thumbimage" data-image-name="Blue Megaphone from FFVIIEC.png" data-image-key="Blue_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a8/Blue_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155610" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>513
+</td>
+<td>640
+</td>
+<td>243
+</td>
+<td><b>Blizzaga A++</b>:<br>Deal 520% Mag. Ice damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Ice Pot. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Red_Megaphone" class="attach">Red Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Red_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155628" class="mw-file-description image"><img alt="Red Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Red_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155628" decoding="async" loading="lazy" width="120" height="140" class="thumbimage lazyloaded" data-image-name="Red Megaphone from FFVIIEC.png" data-image-key="Red_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Red_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155628"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Red_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155628" class="mw-file-description image"><img alt="Red Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Red_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155628" decoding="async" loading="lazy" width="120" height="140" class="thumbimage" data-image-name="Red Megaphone from FFVIIEC.png" data-image-key="Red_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Red_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155628" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>516
+</td>
+<td>628
+</td>
+<td>245
+</td>
+<td><b>Firaga A++</b>:<br>Deal 520% Mag. Fire damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Fire Pot. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Crystal_Megaphone" title="Crystal Megaphone"><span id="Crystal_Megaphone" class="attach">Crystal Megaphone</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/2/27/Crystal_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155647" class="mw-file-description image"><img alt="Crystal Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/27/Crystal_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155647" decoding="async" loading="lazy" width="120" height="140" class="thumbimage lazyloaded" data-image-name="Crystal Megaphone from FFVIIEC.png" data-image-key="Crystal_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/27/Crystal_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155647"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/2/27/Crystal_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155647" class="mw-file-description image"><img alt="Crystal Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/27/Crystal_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155647" decoding="async" loading="lazy" width="120" height="140" class="thumbimage" data-image-name="Crystal Megaphone from FFVIIEC.png" data-image-key="Crystal_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/27/Crystal_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155647" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>496
+</td>
+<td>523
+</td>
+<td>306
+</td>
+<td><b>Instant Barrier++</b>:<br>PDEF is increased. [Pot.: High] [Rng.: Single Ally] [Dur.: 38s]. [Ext.: +12s] [Max. pot.: High]<br>Also, Regen is applied [Rng.: Single Ally]. [Dur.: 15s] [Ext.: +3s]<br>Mag. heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>4
+</td>
+<td>Boost ATK +46 pt<br>Boost Mag. Ability Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Silver_Megaphone" title="Silver Megaphone"><span id="Silver_Megaphone" class="attach">Silver Megaphone</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/7/75/Silver_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155710" class="mw-file-description image"><img alt="Silver Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="137" class="thumbimage lazyload" data-image-name="Silver Megaphone from FFVIIEC.png" data-image-key="Silver_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/75/Silver_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155710"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/7/75/Silver_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155710" class="mw-file-description image"><img alt="Silver Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/7/75/Silver_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155710" decoding="async" loading="lazy" width="120" height="137" class="thumbimage" data-image-name="Silver Megaphone from FFVIIEC.png" data-image-key="Silver_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/75/Silver_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155710" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>559
+</td>
+<td>547
+</td>
+<td>264
+</td>
+<td><b>Spinning Punch++</b>:<br>Deal 510% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 20%]).<br>Also, PDEF is decreased. [Pot.: Low] [Rng.: Single Enemy] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: Low]<br>When hitting critical, PDEF is decreased. [Pot.: High][Rng.: Affected Targets] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Ability Pot. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>ATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Gold_Megaphone" title="Gold Megaphone"><span id="Gold_Megaphone" class="attach">Gold Megaphone</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/4/45/Gold_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155727" class="mw-file-description image"><img alt="Gold Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="139" class="thumbimage lazyload" data-image-name="Gold Megaphone from FFVIIEC.png" data-image-key="Gold_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/45/Gold_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155727"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/4/45/Gold_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155727" class="mw-file-description image"><img alt="Gold Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/4/45/Gold_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155727" decoding="async" loading="lazy" width="120" height="139" class="thumbimage" data-image-name="Gold Megaphone from FFVIIEC.png" data-image-key="Gold_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/45/Gold_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155727" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>566
+</td>
+<td>554
+</td>
+<td>257
+</td>
+<td><b>Fat Cat Attack++</b>:<br>Deal 510% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 20%]).<br>Also, Fire Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>When hitting critical, MATK is decreased. [Pot.: High][Rng.: Affected Targets] [Dur.: 60s]. [Ext.: +20s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost PATK +46 pt<br>Boost Fire Pot. +39 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Battle_Trumpet" title="Battle Trumpet"><span id="Battle_Trumpet" class="attach">Battle Trumpet</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Battle_Trumpet_from_FFVIIEC.png/revision/latest?cb=20250117155800" class="mw-file-description image"><img alt="Battle Trumpet from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="136" class="thumbimage lazyload" data-image-name="Battle Trumpet from FFVIIEC.png" data-image-key="Battle_Trumpet_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Battle_Trumpet_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155800"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Battle_Trumpet_from_FFVIIEC.png/revision/latest?cb=20250117155800" class="mw-file-description image"><img alt="Battle Trumpet from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Battle_Trumpet_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155800" decoding="async" loading="lazy" width="120" height="136" class="thumbimage" data-image-name="Battle Trumpet from FFVIIEC.png" data-image-key="Battle_Trumpet_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Battle_Trumpet_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155800" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>590
+</td>
+<td>547
+</td>
+<td>249
+</td>
+<td><b>Battle Drum++</b>:<br>Deal 350% Phys. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 20%]).<br>Also, MATK is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: Mid]<br>When hitting critical, PATK is decreased. [Pot.: High][Rng.: Affected Targets] [Dur.: 60s]. [Ext.: +20s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost PATK +46 pt<br>Boost Ability Pot. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Marching_Horn" class="attach">Marching Horn</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/f/f1/Marching_Horn_from_FFVIIEC.png/revision/latest?cb=20250117155818" class="mw-file-description image"><img alt="Marching Horn from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="138" class="thumbimage lazyload" data-image-name="Marching Horn from FFVIIEC.png" data-image-key="Marching_Horn_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/f1/Marching_Horn_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155818"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/f/f1/Marching_Horn_from_FFVIIEC.png/revision/latest?cb=20250117155818" class="mw-file-description image"><img alt="Marching Horn from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/f/f1/Marching_Horn_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155818" decoding="async" loading="lazy" width="120" height="138" class="thumbimage" data-image-name="Marching Horn from FFVIIEC.png" data-image-key="Marching_Horn_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/f1/Marching_Horn_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155818" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>592
+</td>
+<td>508
+</td>
+<td>267
+</td>
+<td><b>Stalwart Bravery++</b>:<br>PATK is increased. [Pot.: High] [Rng.: Single Ally] [Dur.: 38s]. [Ext.: +12s] [Max. pot.: High]<br>Also, Regen is applied [Rng.: Single Ally]. [Dur.: 15s] [Ext.: +3s]<br>Mag. heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>4
+</td>
+<td>Boost HEAL +62 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +26 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Trumpet_Shell" class="mw-disambig" title="Trumpet Shell"><span id="Trumpet_Shell" class="attach">Trumpet Shell</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/9/99/Trumpet_Shell_from_FFVIIEC.png/revision/latest?cb=20250117155838" class="mw-file-description image"><img alt="Trumpet Shell from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="114" class="thumbimage lazyload" data-image-name="Trumpet Shell from FFVIIEC.png" data-image-key="Trumpet_Shell_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/99/Trumpet_Shell_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155838"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/9/99/Trumpet_Shell_from_FFVIIEC.png/revision/latest?cb=20250117155838" class="mw-file-description image"><img alt="Trumpet Shell from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/9/99/Trumpet_Shell_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155838" decoding="async" loading="lazy" width="120" height="114" class="thumbimage" data-image-name="Trumpet Shell from FFVIIEC.png" data-image-key="Trumpet_Shell_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/99/Trumpet_Shell_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155838" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>542
+</td>
+<td>472
+</td>
+<td>235
+</td>
+<td><b>Shellmanship++</b>:<br>PATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 20s]. [Ext.: +6s] [Max. pot.: Mid]<br>Also, Mag. heal is cast. [Pot.: 7% of Healing Pot.] [Rng.: All Allies]<br>MATK is increased. [Pot.: Mid] [Rng.: All Allies] [Rate: 20%] [Dur.: 20s]. [Ext.: +6s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost Ice Resist. +31 pt<br>Boost MDEF (All Allies) +39 pt
+</td>
+<td>PATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Flower_Vase" class="attach">Flower Vase</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/f/f4/Flower_Vase_from_FFVIIEC.png/revision/latest?cb=20250117155859" class="mw-file-description image"><img alt="Flower Vase from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="145" class="thumbimage lazyload" data-image-name="Flower Vase from FFVIIEC.png" data-image-key="Flower_Vase_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/f4/Flower_Vase_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155859"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/f/f4/Flower_Vase_from_FFVIIEC.png/revision/latest?cb=20250117155859" class="mw-file-description image"><img alt="Flower Vase from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/f/f4/Flower_Vase_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155859" decoding="async" loading="lazy" width="120" height="145" class="thumbimage" data-image-name="Flower Vase from FFVIIEC.png" data-image-key="Flower_Vase_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/f4/Flower_Vase_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155859" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>508
+</td>
+<td>523
+</td>
+<td>301
+</td>
+<td><b>Hang in There++</b>:<br>MATK is increased. [Pot.: High] [Rng.: Single Ally] [Dur.: 38s]. [Ext.: +12s] [Max. pot.: High]<br>Also, Regen is applied [Rng.: Single Ally]. [Dur.: 15s] [Ext.: +3s]<br>Mag. heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Single Ally]<br>Haste is applied [Rng.: Single Ally] [Rate: 20%]. [Dur.: 20s] [Ext.: +5s]
+</td>
+<td>4
+</td>
+<td>Boost MATK +62 pt<br>Boost Mag. Ability Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Humus_Megaphone" class="attach">Humus Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/8/85/Humus_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155917" class="mw-file-description image"><img alt="Humus Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="108" class="thumbimage lazyload" data-image-name="Humus Megaphone from FFVIIEC.png" data-image-key="Humus_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/85/Humus_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155917"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/8/85/Humus_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155917" class="mw-file-description image"><img alt="Humus Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/85/Humus_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155917" decoding="async" loading="lazy" width="120" height="108" class="thumbimage" data-image-name="Humus Megaphone from FFVIIEC.png" data-image-key="Humus_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/85/Humus_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155917" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>489
+</td>
+<td>532
+</td>
+<td>233
+</td>
+<td><b>Aerora Surge A++</b>:<br>Deal 290% Mag. Wind damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Wind Pot. +26 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Catsmegaphone" class="attach">Catsmegaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/9/90/Catsmegaphone_from_FFVIIEC.png/revision/latest?cb=20250117155936" class="mw-file-description image"><img alt="Catsmegaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="124" class="thumbimage lazyload" data-image-name="Catsmegaphone from FFVIIEC.png" data-image-key="Catsmegaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/90/Catsmegaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155936"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/9/90/Catsmegaphone_from_FFVIIEC.png/revision/latest?cb=20250117155936" class="mw-file-description image"><img alt="Catsmegaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/9/90/Catsmegaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155936" decoding="async" loading="lazy" width="120" height="124" class="thumbimage" data-image-name="Catsmegaphone from FFVIIEC.png" data-image-key="Catsmegaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/90/Catsmegaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155936" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>516
+</td>
+<td>482
+</td>
+<td>243
+</td>
+<td><b>Solid Bravery++</b>:<br>PATK is increased. [Pot.: Low] [Rng.: Single Ally] [Dur.: 44s]. [Ext.: +14s] [Max. pot.: Mid]<br>Also, Regen is applied [Rng.: Single Ally]. [Dur.: 15s] [Ext.: +3s]<br>Mag. heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>4
+</td>
+<td>Boost PATK +31 pt<br>Boost Ability Pot. +26 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Fireworks_Megaphone" class="attach">Fireworks Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Fireworks_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155953" class="mw-file-description image"><img alt="Fireworks Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="139" class="thumbimage lazyload" data-image-name="Fireworks Megaphone from FFVIIEC.png" data-image-key="Fireworks_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Fireworks_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155953"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Fireworks_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117155953" class="mw-file-description image"><img alt="Fireworks Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Fireworks_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155953" decoding="async" loading="lazy" width="120" height="139" class="thumbimage" data-image-name="Fireworks Megaphone from FFVIIEC.png" data-image-key="Fireworks_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Fireworks_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117155953" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>492
+</td>
+<td>547
+</td>
+<td>224
+</td>
+<td><b>Blizzara Surge A++</b>:<br>Deal 290% Mag. Ice damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Ability Pot. +26 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Quina_Megaphone" class="attach">Quina Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/d/db/Quina_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117160015" class="mw-file-description image"><img alt="Quina Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="144" class="thumbimage lazyload" data-image-name="Quina Megaphone from FFVIIEC.png" data-image-key="Quina_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/db/Quina_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160015"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/d/db/Quina_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117160015" class="mw-file-description image"><img alt="Quina Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/db/Quina_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160015" decoding="async" loading="lazy" width="120" height="144" class="thumbimage" data-image-name="Quina Megaphone from FFVIIEC.png" data-image-key="Quina_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/db/Quina_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160015" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>609
+</td>
+<td>489
+</td>
+<td>268
+</td>
+<td><b>Comforting Cuisine++</b>:<br>PATK is increased. [Pot.: High] [Rng.: All Allies] [Dur.: 20s]. [Ext.: +6s] [Max. pot.: High]<br>Also, heal is cast. [Pot.: 7% of Healing Pot.]<br>When [Rng.: Self]'s HP is 70% or more, PDEF is increased. [Pot.: High] [Rng.: All Allies] [Dur.: 20s]. [Ext.: +6s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost ATK +62 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +26 pt
+</td>
+<td>PATK Boost I<br>ATK Boost (Wind) I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Alba_Megaphone" class="attach">Alba Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Alba_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117160036" class="mw-file-description image"><img alt="Alba Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="144" class="thumbimage lazyload" data-image-name="Alba Megaphone from FFVIIEC.png" data-image-key="Alba_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Alba_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160036"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Alba_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117160036" class="mw-file-description image"><img alt="Alba Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Alba_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160036" decoding="async" loading="lazy" width="120" height="144" class="thumbimage" data-image-name="Alba Megaphone from FFVIIEC.png" data-image-key="Alba_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/ad/Alba_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160036" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>528
+</td>
+<td>492
+</td>
+<td>233
+</td>
+<td><b>Ruinra Impact A++</b>:<br>Deal 390% Phys. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).
+</td>
+<td>4
+</td>
+<td>Boost PATK +31 pt<br>Boost Ability Pot. +26 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Icebolt_Megaphone" class="attach">Icebolt Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/3/35/Icebolt_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117160058" class="mw-file-description image"><img alt="Icebolt Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="131" class="thumbimage lazyload" data-image-name="Icebolt Megaphone from FFVIIEC.png" data-image-key="Icebolt_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/35/Icebolt_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160058"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/3/35/Icebolt_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250117160058" class="mw-file-description image"><img alt="Icebolt Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/35/Icebolt_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160058" decoding="async" loading="lazy" width="120" height="131" class="thumbimage" data-image-name="Icebolt Megaphone from FFVIIEC.png" data-image-key="Icebolt_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/35/Icebolt_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160058" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>472
+</td>
+<td>516
+</td>
+<td>247
+</td>
+<td><b>Deblizzara &amp; Dethundara Surge++</b>:<br>Deal 340% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Ice Resist. is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: Mid]<br>Lightning Resist. is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost Fire Resist. +46 pt<br>Boost HP +26 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Witch's_Broom" class="attach">Witch's Broom</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/d/de/Witch%27s_Broom_from_FFVIIEC.png/revision/latest?cb=20250117160119" class="mw-file-description image"><img alt="Witch's Broom from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="136" class="thumbimage lazyload" data-image-name="Witch's Broom from FFVIIEC.png" data-image-key="Witch%27s_Broom_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/de/Witch%27s_Broom_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160119"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/d/de/Witch%27s_Broom_from_FFVIIEC.png/revision/latest?cb=20250117160119" class="mw-file-description image"><img alt="Witch&#39;s Broom from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/de/Witch%27s_Broom_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160119" decoding="async" loading="lazy" width="120" height="136" class="thumbimage" data-image-name="Witch&#39;s Broom from FFVIIEC.png" data-image-key="Witch%27s_Broom_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/de/Witch%27s_Broom_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250117160119" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>614
+</td>
+<td>583
+</td>
+<td>221
+</td>
+<td><b>Tumbling Tackle++</b>:<br>Deal 420% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, MDEF is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: Mid]<br>When [Rng.: Self]'s HP is 50% or more, Lightning Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>3
+</td>
+<td>Boost ATK +62 pt<br>Boost Lightning Pot. +39 pt
+</td>
+<td>PATK Boost I<br>ATK Boost (Lightning) I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Stilva_Megaphone" class="attach">Stilva Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 120px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Stilva_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250116125902" class="mw-file-description image"><img alt="Stilva Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="120" height="138" class="thumbimage lazyload" data-image-name="Stilva Megaphone from FFVIIEC.png" data-image-key="Stilva_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Stilva_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250116125902"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Stilva_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250116125902" class="mw-file-description image"><img alt="Stilva Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Stilva_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250116125902" decoding="async" loading="lazy" width="120" height="138" class="thumbimage" data-image-name="Stilva Megaphone from FFVIIEC.png" data-image-key="Stilva_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Stilva_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/120?cb=20250116125902" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>513
+</td>
+<td>566
+</td>
+<td>235
+</td>
+<td><b>Deblizzara Surge A++</b>:<br>Deal 250% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, Ice Resist. is decreased. [Pot.: Low] [Rng.: All Enemies] [Dur.: 35s]. [Ext.: +8s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Ice Pot. +42 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Spirit_Demon_Megaphone" class="attach">Spirit Demon Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/4/40/Spirit_Demon_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250514094917" class="mw-file-description image"><img alt="Spirit Demon Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="106" class="thumbimage lazyload" data-image-name="Spirit Demon Megaphone from FFVIIEC.png" data-image-key="Spirit_Demon_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/40/Spirit_Demon_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250514094917"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/4/40/Spirit_Demon_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250514094917" class="mw-file-description image"><img alt="Spirit Demon Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/4/40/Spirit_Demon_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250514094917" decoding="async" loading="lazy" width="100" height="106" class="thumbimage" data-image-name="Spirit Demon Megaphone from FFVIIEC.png" data-image-key="Spirit_Demon_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/40/Spirit_Demon_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250514094917" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>537
+</td>
+<td>547
+</td>
+<td>235
+</td>
+<td><b>Debravera Surge A++</b>:<br>Deal 250% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, PATK is decreased. [Pot.: Low] [Rng.: All Enemies] [Dur.: 35s]. [Ext.: +8s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Mag. Ability Pot. +42 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Cool_Cat's_Megaphone" class="attach">Cool Cat's Megaphone</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b2/Cool_Cat%27s_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250514094825" class="mw-file-description image"><img alt="Cool Cat's Megaphone from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="115" class="thumbimage lazyload" data-image-name="Cool Cat's Megaphone from FFVIIEC.png" data-image-key="Cool_Cat%27s_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b2/Cool_Cat%27s_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250514094825"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b2/Cool_Cat%27s_Megaphone_from_FFVIIEC.png/revision/latest?cb=20250514094825" class="mw-file-description image"><img alt="Cool Cat&#39;s Megaphone from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b2/Cool_Cat%27s_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250514094825" decoding="async" loading="lazy" width="100" height="115" class="thumbimage" data-image-name="Cool Cat&#39;s Megaphone from FFVIIEC.png" data-image-key="Cool_Cat%27s_Megaphone_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b2/Cool_Cat%27s_Megaphone_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250514094825" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>696
+</td>
+<td>559
+</td>
+<td>229
+</td>
+<td><b>Maiming Upper Cut++:</b><br>Deal 710% Phys. Lightning damage [Rng.: Single Enemy].<br>Also, Status Ailment: Enfeeble is applied [Rng.: Single Enemy]. [Dur.: 60s] [Ext.: +12s]<br>When [Rng.: Self]'s HP is 50% or more, PATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 20s]. [Ext.: +6s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost PATK (All Allies) +46 pts<br>Boost Lightning Pot. +42 pts
+</td>
+<td>ATK Boost I<br>PATK Boost I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Nocturne_Horn" class="attach">Nocturne Horn</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Nocturne_Horn_from_FFVIIEC.png/revision/latest?cb=20260116180113" class="mw-file-description image"><img alt="Nocturne Horn from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="108" class="thumbimage lazyload" data-image-name="Nocturne Horn from FFVIIEC.png" data-image-key="Nocturne_Horn_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Nocturne_Horn_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260116180113"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Nocturne_Horn_from_FFVIIEC.png/revision/latest?cb=20260116180113" class="mw-file-description image"><img alt="Nocturne Horn from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Nocturne_Horn_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260116180113" decoding="async" loading="lazy" width="100" height="108" class="thumbimage" data-image-name="Nocturne Horn from FFVIIEC.png" data-image-key="Nocturne_Horn_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Nocturne_Horn_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260116180113" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>537
+</td>
+<td>705
+</td>
+<td>235
+</td>
+<td><b>Meow Meow Typhoon++:</b><br>Deal 780% Mag. Wind damage [Rng.: All Enemies].<br>Also, Wind Resist. is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>MDEF is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost MATK +62 pts<br>Boost Wind Pot. +42 pts
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost II
+</td>
+<td>
+</td></tr></tbody><tfoot></tfoot></table>

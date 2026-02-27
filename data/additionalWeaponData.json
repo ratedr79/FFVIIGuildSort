@@ -1,0 +1,3362 @@
+[
+  {
+    "character": "Cloud",
+    "weapon": "Buster Sword",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost ATK +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Iron Blade",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Hardedge",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mythril Saber",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Butterfly Edge",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Organics",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crystal Sword",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Earth Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Enhance Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Apocalypse",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Nail Bat",
+    "ability1": "Boost Fire Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Shiva's Blade",
+    "ability1": "Boost Fire Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Murasame",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Maritime Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bandaged Sword",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Zidane's Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Cheer",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Skysplitter",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Igneous Saber",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Stream Saber",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Rune Blade",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Glavenus Sword",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Burning Oar",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bahamut Greatsword",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Locke's Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +52 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Blade",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Chocobo Paddle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Sleek Saber",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mystic Sword",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Umbral Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Radblade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Full Throttle",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Erdrick's Sword",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Fusion Sword",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crimson Blitz",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +56 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Cruel Successor",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Buster Sword",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost ATK +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Iron Blade",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Hardedge",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mythril Saber",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Butterfly Edge",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Organics",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crystal Sword",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Earth Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Enhance Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Apocalypse",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Nail Bat",
+    "ability1": "Boost Fire Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Shiva's Blade",
+    "ability1": "Boost Fire Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Murasame",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Maritime Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bandaged Sword",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Zidane's Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Cheer",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Skysplitter",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Igneous Saber",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Stream Saber",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Rune Blade",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Glavenus Sword",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Burning Oar",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bahamut Greatsword",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Locke's Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +52 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Blade",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Chocobo Paddle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Sleek Saber",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mystic Sword",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Umbral Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Radblade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Full Throttle",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Erdrick's Sword",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Fusion Sword",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crimson Blitz",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +56 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Cruel Successor",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Buster Sword",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost ATK +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Iron Blade",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Hardedge",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mythril Saber",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Butterfly Edge",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Organics",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crystal Sword",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Earth Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Enhance Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Apocalypse",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Nail Bat",
+    "ability1": "Boost Fire Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Shiva's Blade",
+    "ability1": "Boost Fire Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Murasame",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Maritime Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bandaged Sword",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Zidane's Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Cheer",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Skysplitter",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Igneous Saber",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Stream Saber",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Rune Blade",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Glavenus Sword",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Burning Oar",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bahamut Greatsword",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Locke's Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +52 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Blade",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Chocobo Paddle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Sleek Saber",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mystic Sword",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Umbral Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Radblade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Full Throttle",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Erdrick's Sword",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Fusion Sword",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crimson Blitz",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +56 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Cruel Successor",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Buster Sword",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost ATK +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Iron Blade",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Hardedge",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mythril Saber",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Butterfly Edge",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Organics",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crystal Sword",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Earth Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Enhance Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Apocalypse",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Nail Bat",
+    "ability1": "Boost Fire Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Shiva's Blade",
+    "ability1": "Boost Fire Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Murasame",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Maritime Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bandaged Sword",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Zidane's Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Cheer",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Skysplitter",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Igneous Saber",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Stream Saber",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Rune Blade",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Glavenus Sword",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Burning Oar",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bahamut Greatsword",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Locke's Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +52 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Blade",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Chocobo Paddle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Sleek Saber",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mystic Sword",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Umbral Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Radblade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Full Throttle",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Erdrick's Sword",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Fusion Sword",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crimson Blitz",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +56 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Cruel Successor",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Buster Sword",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost ATK +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Iron Blade",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Hardedge",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mythril Saber",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Butterfly Edge",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Organics",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crystal Sword",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Earth Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Enhance Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Apocalypse",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Nail Bat",
+    "ability1": "Boost Fire Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Shiva's Blade",
+    "ability1": "Boost Fire Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Murasame",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Maritime Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bandaged Sword",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Zidane's Sword",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Cheer",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Skysplitter",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Igneous Saber",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Stream Saber",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Rune Blade",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Glavenus Sword",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Burning Oar",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Bahamut Greatsword",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Locke's Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +52 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Holiday Blade",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Chocobo Paddle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Sleek Saber",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Mystic Sword",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Umbral Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Radblade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Full Throttle",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Erdrick's Sword",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Fusion Sword",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Crimson Blitz",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +56 pt"
+  },
+  {
+    "character": "Cloud",
+    "weapon": "Cruel Successor",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Gatling Gun",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost Water Resist. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Assault Gun",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Heavy Vulcan",
+    "ability1": "Boost MDEF +62 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "W Machine",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Lightning Resist. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Solid Bazooka",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Crit. Pot. +26 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Enemy Launcher",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Phys. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Max Ray",
+    "ability1": "Boost PDEF +46 pt",
+    "ability2": "Boost Crit. Pot. +26 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Flame Projector",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Rocket Punch",
+    "ability1": "Boost Earth Resist. +31 pt",
+    "ability2": "Boost PDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Shiva Cannon",
+    "ability1": "Boost Fire Resist. +46 pt",
+    "ability2": "Boost ATK +26 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Heavy Hauser",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Lefko Kypseli",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Microlaser",
+    "ability1": "Boost HEAL +46 pt",
+    "ability2": "Boost Fire Resist. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Hell House Cannon",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Siege Cannon",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Water Pot. +26 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Electrocannon",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Leviathan Buster",
+    "ability1": "Boost Lightning Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Sharkslayer",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +52 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Escutcheon Cannon",
+    "ability1": "Boost MDEF +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Rhad Cannon",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ability Pot. +28 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Fafnir Rifle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost PDEF +52 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Teacher's Paper Fan",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Hook Launcher",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Quad Gatling Gun",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Barret",
+    "weapon": "Sunrise Cannon",
+    "ability1": "Boost HP +62 pts",
+    "ability2": "Boost PDEF +42 pts"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Leather Gloves",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Lightning Resist. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Grand Gloves",
+    "ability1": "Boost HEAL +46 pt",
+    "ability2": "Boost Water Pot. +52 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Sonic Striker",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Water Resist. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Tiger Fangs",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Crystal Gloves",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Motor Drive",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Wind Pot. +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Kaiser Knuckles",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Powersoul",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Work Gloves",
+    "ability1": "Boost Ice Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Lifeguard Wraps",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Fire Resist. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Amarant's Claws",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Holy Flame Gloves",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Bahamut Knuckles",
+    "ability1": "Boost MDEF +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Oven Mitts",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Guide Gloves",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Phys. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Bunny Gloves",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Water Pot. +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Turks' Gloves",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Feathered Gloves",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Kirin Gloves",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Shell Knuckles",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Steward Gloves",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Bahamut Fangs",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Black Cat's Paws",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Lightning Pot. +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Sabin's Claws",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Blue Daffodil Gloves",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Járngreipr",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Gauntlets of the Worthy",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Odin Gloves",
+    "ability1": "Boost Earth Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Class President's Bracelet",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Penance Gloves",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Shining Gloves",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +42 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Striped Moogle Gloves",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Leather Combat Gloves",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Lightning's Gloves",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Demon's Impetus",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Guard Stick",
+    "ability1": "Boost HEAL +62 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Silver Staff",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Striking Staff",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Limit Break Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Mythril Rod",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Lightning Resist. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Full Metal Staff",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Fairy Tale",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Earth Resist. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Wizard Staff",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Wizer Staff",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Umbrella",
+    "ability1": "Boost Lightning Resist. +31 pt",
+    "ability2": "Boost MDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Ramuh's Staff",
+    "ability1": "Boost Water Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Sun Umbrella",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Prism Rod",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Chocobo Staff",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Garnet's Rod",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Snowflake",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Dawn's Prayers",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Floral Wand",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Egg Staff",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Kamura Wand",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Radrod",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Water Pot. +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Hell House Rod",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Citric Wand",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +52 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Bahamut Rod",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Boost HEAL +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Terra's Rod",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Titan Rod",
+    "ability1": "Boost Wind Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Crimson Staff",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Gambanteinn",
+    "ability1": "Boost HEAL +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Noblesse Rod",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Team Leader's Bamboo Sword",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Mermaid Rod",
+    "ability1": "Boost HEAL +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Sea Dragon Staff",
+    "ability1": "Boost Lightning Resist. +46 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Supreme Sage's Staff",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost HEAL +56 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Magatsuchi Rod",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Rousing Wizer Staff",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Lightning's Rod",
+    "ability1": "Boost HEAL +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Staff of the Possessed",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost HEAL +42 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Sleek Collar",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Gold Collar",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Earth Resist. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Platinum Collar",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Noble Collar",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Rage Collar",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Leather Collar",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Rubber Collar",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Limit Break Pot. +52 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Junk Collar",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Fire Resist. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Headphones",
+    "ability1": "Boost Ice Resist. +31 pt",
+    "ability2": "Boost MDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Seaside Collar",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Iron Collar",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Crit. Pot. +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Hell House Collar",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Canyon Collar",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Flame Dragon's Band",
+    "ability1": "Boost Ice Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Egg Collar",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Ivy Collar",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Amethyst Collar",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Silver Collar",
+    "ability1": "Boost HEAL +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Steward Collar",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Pilot's Collar",
+    "ability1": "Boost HEAL +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Kefka's Collar",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Brilliant Collar",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost HEAL +39 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Great Sabrecat Collar",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Pirate Collar",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Tsviet Collar",
+    "ability1": "Boost MATK +46 pts",
+    "ability2": "Boost Wind Pot. +42 pts"
+  },
+  {
+    "character": "Red XIII",
+    "weapon": "Patissier's Collar",
+    "ability1": "Boost HEAL +46 pts",
+    "ability2": "Boost PDEF +42 pts"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "4-Point Shuriken",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Boomerang",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Pinwheel",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Razor Ring",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Earth Pot. +52 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Crystal Cross",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Wind Slash",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Twin Viper",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Limit Break Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Spiral Shuriken",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Magic Shuriken",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Bamboo Ring",
+    "ability1": "Boost Wind Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Arctic Star",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Diner Tray",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Chariot Wheel",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Water Pot. +26 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Leviathan Cutter",
+    "ability1": "Boost Lightning Resist. +46 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Hawkeye",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Striped Moogle Float",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Cactuar Fan",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Bahamut Cutter",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Little Red Wreath",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Holiday Bell",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Mallet of Luck",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Bird of Prey",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Risanautr",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Watch of the Hunt",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Rocker's Guitar",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Striped Moogle Flag",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Uber 4-Point Shuriken",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Fatum Ex Machina",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Heirloom Brush",
+    "ability1": "Boost ATK (All Allies) +46 pts",
+    "ability2": "Boost Ability Pot. +42 pts"
+  },
+  {
+    "character": "Yuffie",
+    "weapon": "Winged Chakram",
+    "ability1": "Boost PATK +46 pts",
+    "ability2": "Boost Lightning Pot. +42 pts"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Yellow Megaphone",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Green Megaphone",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Blue Megaphone",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Red Megaphone",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Crystal Megaphone",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Silver Megaphone",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Gold Megaphone",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Battle Trumpet",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Marching Horn",
+    "ability1": "Boost HEAL +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +26 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Trumpet Shell",
+    "ability1": "Boost Ice Resist. +31 pt",
+    "ability2": "Boost MDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Flower Vase",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Humus Megaphone",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Wind Pot. +26 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Catsmegaphone",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Fireworks Megaphone",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Quina Megaphone",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +26 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Alba Megaphone",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Icebolt Megaphone",
+    "ability1": "Boost Fire Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Witch's Broom",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Stilva Megaphone",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Spirit Demon Megaphone",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Cool Cat's Megaphone",
+    "ability1": "Boost PATK (All Allies) +46 pts",
+    "ability2": "Boost Lightning Pot. +42 pts"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Nocturne Horn",
+    "ability1": "Boost MATK +62 pts",
+    "ability2": "Boost Wind Pot. +42 pts"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Cath Palug",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ice Pot. +52 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Gilded Age",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "S1976C",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Shortbarrel",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Wind Pot. +52 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "T03 Model N",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +26 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Sawed-Off GS",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Mag. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Chiron",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Double Stem E",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Mag. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Quicksilver",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Limit Break Pot. +52 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Silver Rifle",
+    "ability1": "Boost Water Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "White Dog",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Hugin & Munin",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Mag. Ability Pot. +26 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Icebolt Shooter",
+    "ability1": "Boost Water Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Crow Familiar",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Rhad Gun",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ability Pot. +28 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Eligor Gun",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Holiday Garm",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Kugelblitz",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Gun of the Worthy",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Noblesse Automatic",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Electro Peashooter",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Galian Roar",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Vincent",
+    "weapon": "Transgressor",
+    "ability1": "Boost PATK +46 pts",
+    "ability2": "Boost Wind Pot. +42 pts"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Spear",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Slash Lance",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +52 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Trident",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +26 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Pole Axe",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Partisan",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Wind Pot. +52 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Viper Halberd",
+    "ability1": "Boost PDEF +46 pt",
+    "ability2": "Boost MDEF +39 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Radiant Lance",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Ability Pot. +52 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Scimitar",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +52 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Flayer",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Mop",
+    "ability1": "Boost Earth Resist. +31 pt",
+    "ability2": "Boost PDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Rocket Lance",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Odin Spear",
+    "ability1": "Boost Earth Resist. +46 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Lance of the Hunt",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Dragoon Lance",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Captain's Spear",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Antler Pike",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Lightning Pot. +42 pt"
+  },
+  {
+    "character": "Cid",
+    "weapon": "Patissier's Spear",
+    "ability1": "Boost PATK +62 pts",
+    "ability2": "Boost Phys. Ability Pot. +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Type-99 Longsword",
+    "ability1": "Boost ATK +31 pts",
+    "ability2": "Boost Crit. Pot. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Enhance Sword (Z)",
+    "ability1": "Boost HEAL +31 pts",
+    "ability2": "Boost Ability Pot. +52 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Defender",
+    "ability1": "Boost HEAL +31 pts",
+    "ability2": "Boost Ice Pot. +52 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Crystal Sword (Z)",
+    "ability1": "Boost ATK +31 pts",
+    "ability2": "Boost Fire Pot. +56 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Falchion",
+    "ability1": "Boost PATK +46 pts",
+    "ability2": "Boost Wind Pot. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Zweihander",
+    "ability1": "Boost ATK +46 pts",
+    "ability2": "Boost Fire Resist. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Arc Sword",
+    "ability1": "Boost MATK +31 pts",
+    "ability2": "Boost Water Resist. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Cutlass",
+    "ability1": "Boost PDEF +31 pts",
+    "ability2": "Boost Ability Pot. +52 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Bouquet",
+    "ability1": "Boost Fire Resist. +31 pts",
+    "ability2": "Boost PDEF (All Allies) +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Ifrit's Sword",
+    "ability1": "Boost Ice Resist. +46 pts",
+    "ability2": "Boost HP +26 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Beach Parasol",
+    "ability1": "Boost HP +31 pts",
+    "ability2": "Boost MDEF +26 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Black Whiskers",
+    "ability1": "Boost PATK +62 pts",
+    "ability2": "Boost Water Pot. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Iron Greatsword",
+    "ability1": "Boost ATK +27 pts",
+    "ability2": "Boost Crit. Pot. +24 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Twinkling Star",
+    "ability1": "Boost HP +46 pts",
+    "ability2": "Boost Phys. Ability Pot. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Ceremonial Sword (Z)",
+    "ability1": "Boost PATK +46 pts",
+    "ability2": "Boost Phys. Ability Pot. +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Stream Guard",
+    "ability1": "Boost MATK (All Allies) +46 pts",
+    "ability2": "Boost Fire Pot. +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Carrot Sword",
+    "ability1": "Boost MATK +31 pts",
+    "ability2": "Boost Fire Pot. +26 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Pressure Ridge",
+    "ability1": "Boost PATK +62 pts",
+    "ability2": "Boost Ice Pot. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Zinogre Blade",
+    "ability1": "Boost PATK +31 pts",
+    "ability2": "Boost Lightning Pot. +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Beatrix Sword",
+    "ability1": "Boost PATK +31 pts",
+    "ability2": "Boost Wind Pot. +52 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Alba Blade",
+    "ability1": "Boost PATK +31 pts",
+    "ability2": "Boost Ability Pot. +26 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Buster Sword Origin",
+    "ability1": "Boost PDEF +46 pts",
+    "ability2": "Boost HP +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "White Tree",
+    "ability1": "Boost HP +46 pts",
+    "ability2": "Boost Wind Pot. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Sword of the Hunt",
+    "ability1": "Boost ATK +62 pts",
+    "ability2": "Boost Ability Pot. +39 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Surfer Blade",
+    "ability1": "Boost PATK +46 pts",
+    "ability2": "Boost Phys. Ability Pot. +56 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Zenithian Sword",
+    "ability1": "Boost PATK +46 pts",
+    "ability2": "Boost Fire Pot. +56 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Magatsuchi Blade",
+    "ability1": "Boost MATK +46 pts",
+    "ability2": "Boost Mag. Ability Pot. +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Rousing Arc Sword",
+    "ability1": "Boost PATK +31 pts",
+    "ability2": "Boost Lightning Pot. +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Virtuous Contract",
+    "ability1": "Boost ATK +46 pts",
+    "ability2": "Boost Ability Pot. +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Battering Sword",
+    "ability1": "Boost MATK +62 pts",
+    "ability2": "Boost Wind Pot. +42 pts"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Nameless",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Lightning Resist. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Glaireid",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Limit Break Pot. +52 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Aonibi",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Northern Lights",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Fire Resist. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Prototype Crimson Blade",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "CC Alloy Sword",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Lightning Pot. +56 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Mythril Type-0 Katana",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Shinra Blade: Model I",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "World Tree Bough",
+    "ability1": "Boost Earth Resist. +31 pt",
+    "ability2": "ATB Boost +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Edged Wings",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Torn Wing",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Dark Heavens",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Kuja's Spirit Blade",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Radiant Edge",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Ashura",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Flame Dragon Blade",
+    "ability1": "Boost Ice Resist. +46 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Protector's Blade",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Shinra Military Sword",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Wind Pot. +52 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Shinra Wyvern Blade",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Tempest",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Blue Bramble",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Edgar's Coiled Blade",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Wintercrest Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Withering Blaze",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Humus Saber",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Blade of the Worthy",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Folding Ruler",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Serrated Remiges",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Wind Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Pandemonic Sword",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Lightning Pot. +56 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Sōba",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Overture",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Phoenix Odachi",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Personal Style",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Crewkicker",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Jiggy Fam",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Hardcore Squad",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Rest in Peace",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Piece of Cake",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Shockbuster",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Apology in Hell",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ice Resist. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Squeaky Hammer",
+    "ability1": "Boost Water Resist. +31 pt",
+    "ability2": "Boost PDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Inferno Grave",
+    "ability1": "Boost Ice Resist. +46 pt",
+    "ability2": "Boost ATK +26 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Thousand Waves",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Pumpkin Lamppost",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Steiner's Blade",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Best Wishes",
+    "ability1": "Boost PDEF +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Ultimatic",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Stream Slasher",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Water Pot. +42 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Silver Sol Buster",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Slay the Day",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Radglaive",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Water Pot. +26 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Stilva Glaive",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Blade of Ruin",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Set Square",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Pirate's Glaive",
+    "ability1": "Boost PDEF +46 pt",
+    "ability2": "Boost MDEF +42 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Desperado Glaive",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost PDEF +42 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Snow's Bardiche",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost MDEF +42 pt"
+  },
+  {
+    "character": "Glenn",
+    "weapon": "Patissier's Glaive",
+    "ability1": "Boost MATK +62 pts",
+    "ability2": "Boost Fire Pot. +42 pts"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Broadsword: Axis",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Orthodox Raven",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Absolute Royal",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Prime Number",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost Lightning Resist. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Espee Rapiere Next-G",
+    "ability1": "Boost MDEF +31 pt",
+    "ability2": "Boost Mag. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Core Defender",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Water Resist. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Stingray",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Wind Resist. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Slick Beetle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Crit. Pot. +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Foam Sword",
+    "ability1": "Boost Lightning Resist. +31 pt",
+    "ability2": "Boost MDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Killer Hornet",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Holiday Cane",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Bahamut Rapier",
+    "ability1": "Boost MDEF +46 pt",
+    "ability2": "Boost MATK +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Bramble Spine",
+    "ability1": "Boost HEAL +46 pt",
+    "ability2": "Boost MDEF +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Giant Fork",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Centipede",
+    "ability1": "Boost HEAL +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Syringe Rapier",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Humus Rapier",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Wind Pot. +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Firefish",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Fire Pot. +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Candle Rapier",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Lightning Pot. +26 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Luminary Sword",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +52 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Nautilus Spiral",
+    "ability1": "Boost HEAL +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Hrotti",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Deroplatys",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Buff/Debuff Extension (Stas/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Dragontail Sword",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Matt",
+    "weapon": "Desperado Rapier",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Boost HEAL +42 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "V39",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Fire Resist. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Pulse Gun",
+    "ability1": "Boost ATK +46 pt",
+    "ability2": "Boost Wind Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Serpent Eater",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Tranquilizer Gun",
+    "ability1": "Boost HEAL +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "SSR1976",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost Lightning Pot. +52 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Mad Minute",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost Phys. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Black Rifle",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Crit. Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Barn Swallow",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Lightning Resist. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Rubber Band Gun",
+    "ability1": "Boost Wind Resist. +31 pt",
+    "ability2": "Boost PDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Rifle of Levin",
+    "ability1": "Boost Water Resist. +46 pt",
+    "ability2": "Boost ATK +26 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Bald Eagle",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Pumpkin Blaster",
+    "ability1": "Boost HEAL +31 pt",
+    "ability2": "Boost MDEF +26 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Vivi's Magical Gun",
+    "ability1": "Boost ATK +31 pt",
+    "ability2": "Boost Limit Break Pot. +26 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Holiday Revolver",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Earth Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Featherscatter",
+    "ability1": "Boost HP +31 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Thunderbird",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Lightning Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Rose Musket",
+    "ability1": "Boost Mag. Ability Pot. +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Turks' Rifle",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Ability Pot. +26 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Marine Shooter",
+    "ability1": "Boost Phys. Ability Pot. +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Nightjar",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Earth Pot. +26 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Eligor Rifle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +42 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Rifle of the Hunt",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Spirit Demon Rifle",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Shinra Ceremonial Rifle",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Buff/Debuff Extension (Stas/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Desperado Rifle",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Ice Pot. +56 pt"
+  },
+  {
+    "character": "Lucia",
+    "weapon": "Killer Falcon",
+    "ability1": "Boost MATK +62 pts",
+    "ability2": "Boost Fire Pot. +42 pts"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Type-90 Longsword",
+    "ability1": "Boost PDEF +62 pt",
+    "ability2": "Boost Phys. Ability Pot. +26 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Greatsword (A)",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Phys. Ability Pot. +52 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Type-91 Two-Hander",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ability Pot. +39 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Shinra Greatsword: Model I",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +39 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "CC Alloy Greatsword",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Lightning Pot. +26 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Stalwart Integrity",
+    "ability1": "Boost HP +62 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +26 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Innocent Warrior",
+    "ability1": "Boost MATK +31 pt",
+    "ability2": "Boost Fire Pot. +52 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Gargantuan Monolith",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost MDEF +52 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Sequoiadendron",
+    "ability1": "Boost PATK +31 pt",
+    "ability2": "Boost Earth Pot. +52 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Orchard Shovel",
+    "ability1": "Boost Earth Resist. +31 pt",
+    "ability2": "Boost PDEF (All Allies) +39 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Tranquility",
+    "ability1": "Boost PATK (All Allies) +46 pt",
+    "ability2": "Boost Water Pot. +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Cyan's Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Turks' Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +39 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Volcanic Heat",
+    "ability1": "Boost PATK +62 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Titan Blade",
+    "ability1": "Boost Wind Resist. +46 pt",
+    "ability2": "Boost PDEF +26 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Greatsword of the Worthy",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost PDEF +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Blade of the Hunt",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ice Pot. +39 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Mythril Slasher",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Water Pot. +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Penance Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Fire Pot. +39 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Sea Dragon Greatsword",
+    "ability1": "Boost Lightning Resist. +46 pt",
+    "ability2": "Boost HP +26 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Inflatable Buster Sword",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Buff/Debuff Extension (Stats/Pot./Res.) +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Rhad Blade",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Water Pot. +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Ghost Ensis",
+    "ability1": "Boost MATK +62 pt",
+    "ability2": "Boost Earth Pot. +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Lightning's Sword",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost PDEF +42 pt"
+  },
+  {
+    "character": "Angeal",
+    "weapon": "Master Tonberry's Blade",
+    "ability1": "Boost PATK +46 pt",
+    "ability2": "Boost Phys. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Masamune",
+    "ability1": "Boost ATK +62 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Osafune",
+    "ability1": "Boost MATK +46 pt",
+    "ability2": "Boost Mag. Ability Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Kotetsu",
+    "ability1": "Boost HP +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Shiranui",
+    "ability1": "Boost MATK (All Allies) +46 pt",
+    "ability2": "Boost Fire Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Kikuichimonji",
+    "ability1": "Boost ATK (All Allies) +46 pt",
+    "ability2": "Boost Ability Pot. +42 pt"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Divine Steed Blade",
+    "ability1": "Boost MATK +46 pts",
+    "ability2": "Boost Mag. Ability Pot. +42 pts"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Muramasa",
+    "ability1": "Boost ATK (All Allies) +46 pts",
+    "ability2": "Boost Ability Pot. +42 pts"
+  }
+]

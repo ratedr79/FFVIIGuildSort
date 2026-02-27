@@ -1,0 +1,514 @@
+<table class="article-table sortable jquery-tablesorter">
+<thead><tr>
+<th style="width:135px" class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Weapon
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">PATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">MATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">HEAL
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Command Ability
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">ATB
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Reinforcement Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Support Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Obtain
+</th></tr></thead><tbody>
+<tr>
+<th><span id="Sleek_Collar" class="attach">Sleek Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/6/66/Sleek_Collar_from_FFVIIEC.png/revision/latest?cb=20241020010928" class="mw-file-description image"><img alt="Sleek Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/66/Sleek_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010928" decoding="async" loading="lazy" width="100" height="53" class="thumbimage lazyloaded" data-image-name="Sleek Collar from FFVIIEC.png" data-image-key="Sleek_Collar_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/66/Sleek_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010928"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/6/66/Sleek_Collar_from_FFVIIEC.png/revision/latest?cb=20241020010928" class="mw-file-description image"><img alt="Sleek Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/66/Sleek_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010928" decoding="async" loading="lazy" width="100" height="53" class="thumbimage" data-image-name="Sleek Collar from FFVIIEC.png" data-image-key="Sleek_Collar_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/66/Sleek_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010928" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>477
+</td>
+<td>604
+</td>
+<td>277
+</td>
+<td><b>Manaward A++</b>:<br>MDEF is increased. [Pot.: High] [Rng.: All Allies] [Dur.: 14s]. [Ext.: +4s] [Max. pot.: High]<br>Also, Mag. heal is cast. [Pot.: 6% of Healing Pot.] [Rng.: All Allies]
+</td>
+<td>4
+</td>
+<td>Boost MDEF +31 pt<br>Boost Wind Resist. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>Buff/Debuff Extension I
+</td>
+<td>Default
+</td></tr>
+<tr>
+<th><span id="Gold_Collar" class="attach">Gold Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Gold_Collar_from_FFVIIEC.png/revision/latest?cb=20241020010957" class="mw-file-description image"><img alt="Gold Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Gold_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010957" decoding="async" loading="lazy" width="100" height="116" class="thumbimage lazyloaded" data-image-name="Gold Collar from FFVIIEC.png" data-image-key="Gold_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Gold_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010957"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Gold_Collar_from_FFVIIEC.png/revision/latest?cb=20241020010957" class="mw-file-description image"><img alt="Gold Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Gold_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010957" decoding="async" loading="lazy" width="100" height="116" class="thumbimage" data-image-name="Gold Collar from FFVIIEC.png" data-image-key="Gold_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/6b/Gold_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020010957" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>482
+</td>
+<td>532
+</td>
+<td>308
+</td>
+<td><b>Eternal Storm++</b>:<br>Deal 350% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, MDEF is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Earth Resist. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Platinum_Collar" class="attach">Platinum Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/3/34/Platinum_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011010" class="mw-file-description image"><img alt="Platinum Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/34/Platinum_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011010" decoding="async" loading="lazy" width="100" height="118" class="thumbimage lazyloaded" data-image-name="Platinum Collar from FFVIIEC.png" data-image-key="Platinum_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/34/Platinum_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011010"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/3/34/Platinum_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011010" class="mw-file-description image"><img alt="Platinum Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/34/Platinum_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011010" decoding="async" loading="lazy" width="100" height="118" class="thumbimage" data-image-name="Platinum Collar from FFVIIEC.png" data-image-key="Platinum_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/34/Platinum_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011010" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>463
+</td>
+<td>679
+</td>
+<td>247
+</td>
+<td><b>Therapeutic Touch++</b>:<br>Mag. heal is cast. [Pot.: 11% of Healing Pot.] [Rng.: All Allies]<br>Also, Regen is applied [Rng.: All Allies]. [Dur.: 18s] [Ext.: +6s]
+</td>
+<td>5
+</td>
+<td>Boost HEAL +31 pt<br>Boost Crit. Pot. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>Buff/Debuff Extension I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Noble_Collar" class="attach">Noble Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/8/82/Noble_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011022" class="mw-file-description image"><img alt="Noble Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/82/Noble_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011022" decoding="async" loading="lazy" width="100" height="113" class="thumbimage lazyloaded" data-image-name="Noble Collar from FFVIIEC.png" data-image-key="Noble_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/82/Noble_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011022"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/8/82/Noble_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011022" class="mw-file-description image"><img alt="Noble Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/82/Noble_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011022" decoding="async" loading="lazy" width="100" height="113" class="thumbimage" data-image-name="Noble Collar from FFVIIEC.png" data-image-key="Noble_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/82/Noble_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011022" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>453
+</td>
+<td>643
+</td>
+<td>268
+</td>
+<td><b>Waterga A++</b>:<br>Deal 520% Mag. Water damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost ATK +46 pt<br>Boost Water Pot. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element ls-is-cached lazyloaded" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Rage_Collar" class="attach">Rage Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/54/Rage_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011032" class="mw-file-description image"><img alt="Rage Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/54/Rage_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011032" decoding="async" loading="lazy" width="100" height="111" class="thumbimage lazyloaded" data-image-name="Rage Collar from FFVIIEC.png" data-image-key="Rage_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/54/Rage_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011032"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/54/Rage_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011032" class="mw-file-description image"><img alt="Rage Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/54/Rage_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011032" decoding="async" loading="lazy" width="100" height="111" class="thumbimage" data-image-name="Rage Collar from FFVIIEC.png" data-image-key="Rage_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/54/Rage_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011032" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>472
+</td>
+<td>616
+</td>
+<td>273
+</td>
+<td><b>Blaze Rush++</b>:<br>Deal 750% Phys. Fire damage [Rng.: Single Enemy].
+</td>
+<td>4
+</td>
+<td>Boost ATK +62 pt<br>Boost Fire Pot. +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>ATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Leather_Collar" class="attach">Leather Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d2/Leather_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011124" class="mw-file-description image"><img alt="Leather Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/d2/Leather_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011124" decoding="async" loading="lazy" width="100" height="111" class="thumbimage lazyloaded" data-image-name="Leather Collar from FFVIIEC.png" data-image-key="Leather_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d2/Leather_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011124"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d2/Leather_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011124" class="mw-file-description image"><img alt="Leather Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/d2/Leather_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011124" decoding="async" loading="lazy" width="100" height="111" class="thumbimage" data-image-name="Leather Collar from FFVIIEC.png" data-image-key="Leather_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d2/Leather_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011124" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>604
+</td>
+<td>532
+</td>
+<td>249
+</td>
+<td><b>Sonic Fangs++</b>:<br>Deal 940% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Earth Pot. +39 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>HEAL Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Rubber_Collar" class="attach">Rubber Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Rubber_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011133" class="mw-file-description image"><img alt="Rubber Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="101" class="thumbimage lazyload" data-image-name="Rubber Collar from FFVIIEC.png" data-image-key="Rubber_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Rubber_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011133"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Rubber_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011133" class="mw-file-description image"><img alt="Rubber Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Rubber_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011133" decoding="async" loading="lazy" width="100" height="101" class="thumbimage" data-image-name="Rubber Collar from FFVIIEC.png" data-image-key="Rubber_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Rubber_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011133" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>465
+</td>
+<td>540
+</td>
+<td>312
+</td>
+<td><b>Mystic Flow++</b>:<br>Mag. heal is cast. [Pot.: 113% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>5
+</td>
+<td>Boost PDEF +31 pt<br>Boost Limit Break Pot. +52 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Junk_Collar" class="attach">Junk Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Junk_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011143" class="mw-file-description image"><img alt="Junk Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="110" class="thumbimage lazyload" data-image-name="Junk Collar from FFVIIEC.png" data-image-key="Junk_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Junk_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011143"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Junk_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011143" class="mw-file-description image"><img alt="Junk Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Junk_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011143" decoding="async" loading="lazy" width="100" height="110" class="thumbimage" data-image-name="Junk Collar from FFVIIEC.png" data-image-key="Junk_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Junk_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011143" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>590
+</td>
+<td>540
+</td>
+<td>254
+</td>
+<td><b>Frenzied Fang++</b>:<br>Deal 510% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, MATK is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost PDEF +31 pt<br>Boost Fire Resist. +39 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Headphones" class="attach">Headphones</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Headphones_from_FFVIIEC.png/revision/latest?cb=20241020011259" class="mw-file-description image"><img alt="Headphones from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="139" class="thumbimage lazyload" data-image-name="Headphones from FFVIIEC.png" data-image-key="Headphones_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Headphones_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011259"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Headphones_from_FFVIIEC.png/revision/latest?cb=20241020011259" class="mw-file-description image"><img alt="Headphones from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Headphones_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011259" decoding="async" loading="lazy" width="100" height="139" class="thumbimage" data-image-name="Headphones from FFVIIEC.png" data-image-key="Headphones_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/02/Headphones_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011259" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>453
+</td>
+<td>578
+</td>
+<td>229
+</td>
+<td><b>Wild Howling++</b>:<br>Deal 540% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, Removes Mag. Defense Up [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost Ice Resist. +31 pt<br>Boost MDEF (All Allies) +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Seaside_Collar" class="attach">Seaside Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Seaside_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011309" class="mw-file-description image"><img alt="Seaside Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="106" class="thumbimage lazyload" data-image-name="Seaside Collar from FFVIIEC.png" data-image-key="Seaside_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Seaside_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011309"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Seaside_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011309" class="mw-file-description image"><img alt="Seaside Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Seaside_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011309" decoding="async" loading="lazy" width="100" height="106" class="thumbimage" data-image-name="Seaside Collar from FFVIIEC.png" data-image-key="Seaside_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Seaside_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011309" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>590
+</td>
+<td>542
+</td>
+<td>253
+</td>
+<td><b>Power Fang++</b>:<br>Deal 510% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Lightning Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 21s]. [Ext.: +7s] [Max. pot.: High]<br>Regen is applied [Rng.: Self]. [Dur.: 4s] [Ext.: +3s]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Lightning Pot. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br><span typeof="mw:File"><span title="Cross sigil"><img alt="Cross sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Cross sigil from FFVIIEC.png" data-image-key="Cross_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/1d/Cross_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042343"></span></span> Sigil Boost I
+</td>
+<td>Stamp Card (<a href="/wiki/Beach_Festival_Fun!" title="Beach Festival Fun!">Beach Festival Fun!</a>)
+</td></tr>
+<tr>
+<th><span id="Iron_Collar" class="attach">Iron Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/be/Iron_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011201" class="mw-file-description image"><img alt="Iron Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="98" class="thumbimage lazyload" data-image-name="Iron Collar from FFVIIEC.png" data-image-key="Iron_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/be/Iron_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011201"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/be/Iron_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011201" class="mw-file-description image"><img alt="Iron Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/be/Iron_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011201" decoding="async" loading="lazy" width="100" height="98" class="thumbimage" data-image-name="Iron Collar from FFVIIEC.png" data-image-key="Iron_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/be/Iron_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011201" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>492
+</td>
+<td>516
+</td>
+<td>238
+</td>
+<td><b>Spiral Swing++</b>:<br>Deal 360% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, PDEF is decreased. [Pot.: Low] [Rng.: Single Enemy] [Dur.: 28s]. [Ext.: +9s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost ATK +31 pt<br>Boost Crit. Pot. +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Hell_House_Collar" class="attach">Hell House Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/d/dc/Hell_House_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011320" class="mw-file-description image"><img alt="Hell House Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="88" class="thumbimage lazyload" data-image-name="Hell House Collar from FFVIIEC.png" data-image-key="Hell_House_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/dc/Hell_House_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011320"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/d/dc/Hell_House_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011320" class="mw-file-description image"><img alt="Hell House Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/dc/Hell_House_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011320" decoding="async" loading="lazy" width="100" height="88" class="thumbimage" data-image-name="Hell House Collar from FFVIIEC.png" data-image-key="Hell_House_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/dc/Hell_House_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011320" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>489
+</td>
+<td>528
+</td>
+<td>235
+</td>
+<td><b>Manara Breach Surge++</b>:<br>Deal 360% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, MDEF is decreased. [Pot.: Low] [Rng.: Single Enemy] [Dur.: 28s]. [Ext.: +9s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost HP +31 pt<br>Boost PDEF +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Canyon_Collar" class="attach">Canyon Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/53/Canyon_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011152" class="mw-file-description image"><img alt="Canyon Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="95" class="thumbimage lazyload" data-image-name="Canyon Collar from FFVIIEC.png" data-image-key="Canyon_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/53/Canyon_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011152"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/53/Canyon_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011152" class="mw-file-description image"><img alt="Canyon Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/53/Canyon_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011152" decoding="async" loading="lazy" width="100" height="95" class="thumbimage" data-image-name="Canyon Collar from FFVIIEC.png" data-image-key="Canyon_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/53/Canyon_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011152" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>489
+</td>
+<td>674
+</td>
+<td>238
+</td>
+<td><b>Canyon Gale++</b>:<br>Deal 500% Mag. Wind damage [Rng.: All Enemies].<br>Also, When [Rng.: Self]'s HP is 50% or more, MDEF is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost MATK +62 pt<br>Boost Wind Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Flame_Dragon's_Band" class="attach">Flame Dragon's Band</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/1/14/Flame_Dragon%27s_Band_from_FFVIIEC.png/revision/latest?cb=20241020011329" class="mw-file-description image"><img alt="Flame Dragon's Band from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="105" class="thumbimage lazyload" data-image-name="Flame Dragon's Band from FFVIIEC.png" data-image-key="Flame_Dragon%27s_Band_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/14/Flame_Dragon%27s_Band_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011329"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/1/14/Flame_Dragon%27s_Band_from_FFVIIEC.png/revision/latest?cb=20241020011329" class="mw-file-description image"><img alt="Flame Dragon&#39;s Band from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/14/Flame_Dragon%27s_Band_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011329" decoding="async" loading="lazy" width="100" height="105" class="thumbimage" data-image-name="Flame Dragon&#39;s Band from FFVIIEC.png" data-image-key="Flame_Dragon%27s_Band_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/14/Flame_Dragon%27s_Band_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011329" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>465
+</td>
+<td>564
+</td>
+<td>229
+</td>
+<td><b>Defira Surge++</b>:<br>Deal 360% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Fire Resist. is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 28s]. [Ext.: +9s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost Ice Resist. +46 pt<br>Boost HP +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Egg_Collar" class="attach">Egg Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/5f/Egg_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011338" class="mw-file-description image"><img alt="Egg Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="95" class="thumbimage lazyload" data-image-name="Egg Collar from FFVIIEC.png" data-image-key="Egg_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/5f/Egg_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011338"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/5f/Egg_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011338" class="mw-file-description image"><img alt="Egg Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/5f/Egg_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011338" decoding="async" loading="lazy" width="100" height="95" class="thumbimage" data-image-name="Egg Collar from FFVIIEC.png" data-image-key="Egg_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/5f/Egg_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011338" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>465
+</td>
+<td>523
+</td>
+<td>247
+</td>
+<td><b>Fira Surge A++</b>:<br>Deal 290% Mag. Fire damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Fire Pot. +26 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Ivy_Collar" class="attach">Ivy Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Ivy_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011459" class="mw-file-description image"><img alt="Ivy Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="116" class="thumbimage lazyload" data-image-name="Ivy Collar from FFVIIEC.png" data-image-key="Ivy_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Ivy_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011459"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Ivy_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011459" class="mw-file-description image"><img alt="Ivy Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Ivy_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011459" decoding="async" loading="lazy" width="100" height="116" class="thumbimage" data-image-name="Ivy Collar from FFVIIEC.png" data-image-key="Ivy_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Ivy_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011459" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>583
+</td>
+<td>564
+</td>
+<td>245
+</td>
+<td><b>Growing Ivy++</b>:<br>Deal 420% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Fire Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: High]<br>Ice Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>3
+</td>
+<td>Boost ATK +62 pt<br>Boost Ability Pot. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost (Ice) I<br>ATK Boost (Fire) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Amethyst_Collar" class="attach">Amethyst Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e1/Amethyst_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011539" class="mw-file-description image"><img alt="Amethyst Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="56" class="thumbimage lazyload" data-image-name="Amethyst Collar from FFVIIEC.png" data-image-key="Amethyst_Collar_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e1/Amethyst_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011539"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e1/Amethyst_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011539" class="mw-file-description image"><img alt="Amethyst Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e1/Amethyst_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011539" decoding="async" loading="lazy" width="100" height="56" class="thumbimage" data-image-name="Amethyst Collar from FFVIIEC.png" data-image-key="Amethyst_Collar_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e1/Amethyst_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011539" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>458
+</td>
+<td>532
+</td>
+<td>247
+</td>
+<td><b>Blizzara Surge A++</b>:<br>Deal 290% Mag. Ice damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Ice Pot. +26 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Silver_Collar" class="attach">Silver Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Silver_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011548" class="mw-file-description image"><img alt="Silver Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="110" class="thumbimage lazyload" data-image-name="Silver Collar from FFVIIEC.png" data-image-key="Silver_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Silver_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011548"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Silver_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011548" class="mw-file-description image"><img alt="Silver Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Silver_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011548" decoding="async" loading="lazy" width="100" height="110" class="thumbimage" data-image-name="Silver Collar from FFVIIEC.png" data-image-key="Silver_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Silver_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011548" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>477
+</td>
+<td>554
+</td>
+<td>301
+</td>
+<td><b>Rolling Claw++</b>:<br>Deal 320% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Wind Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 50% or more, Water Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>3
+</td>
+<td>Boost HEAL +62 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost (Wind) I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Steward_Collar" class="attach">Steward Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/c/cb/Steward_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011558" class="mw-file-description image"><img alt="Steward Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="122" class="thumbimage lazyload" data-image-name="Steward Collar from FFVIIEC.png" data-image-key="Steward_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/cb/Steward_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011558"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/c/cb/Steward_Collar_from_FFVIIEC.png/revision/latest?cb=20241020011558" class="mw-file-description image"><img alt="Steward Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/c/cb/Steward_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011558" decoding="async" loading="lazy" width="100" height="122" class="thumbimage" data-image-name="Steward Collar from FFVIIEC.png" data-image-key="Steward_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/cb/Steward_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20241020011558" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>508
+</td>
+<td>528
+</td>
+<td>225
+</td>
+<td><b>Debravera Surge++</b>:<br>Deal 360% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, PATK is decreased. [Pot.: Low] [Rng.: Single Enemy] [Dur.: 28s]. [Ext.: +9s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Ability Pot. +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Pilot's_Collar" class="attach">Pilot's Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/3/30/Pilot%27s_Collar_from_FFVIIEC.png/revision/latest?cb=20250117152456" class="mw-file-description image"><img alt="Pilot's Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="124" class="thumbimage lazyload" data-image-name="Pilot's Collar from FFVIIEC.png" data-image-key="Pilot%27s_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/30/Pilot%27s_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117152456"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/3/30/Pilot%27s_Collar_from_FFVIIEC.png/revision/latest?cb=20250117152456" class="mw-file-description image"><img alt="Pilot&#39;s Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/30/Pilot%27s_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117152456" decoding="async" loading="lazy" width="100" height="124" class="thumbimage" data-image-name="Pilot&#39;s Collar from FFVIIEC.png" data-image-key="Pilot%27s_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/30/Pilot%27s_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117152456" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>463
+</td>
+<td>516
+</td>
+<td>324
+</td>
+<td><b>Healing Howl++</b>:<br>Mag. heal is cast. [Pot.: 59% of Healing Pot.] [Rng.: All Allies]<br>Also, MDEF is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 14s]. [Ext.: +4s] [Max. pot.: High]
+</td>
+<td>5
+</td>
+<td>Boost HEAL +46 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>HEAL Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Kefka's_Collar" class="attach">Kefka's Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Kefka%27s_Collar_from_FFVIIEC.png/revision/latest?cb=20250117152514" class="mw-file-description image"><img alt="Kefka's Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="76" class="thumbimage lazyload" data-image-name="Kefka's Collar from FFVIIEC.png" data-image-key="Kefka%27s_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Kefka%27s_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117152514"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Kefka%27s_Collar_from_FFVIIEC.png/revision/latest?cb=20250117152514" class="mw-file-description image"><img alt="Kefka&#39;s Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Kefka%27s_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117152514" decoding="async" loading="lazy" width="100" height="76" class="thumbimage" data-image-name="Kefka&#39;s Collar from FFVIIEC.png" data-image-key="Kefka%27s_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/0e/Kefka%27s_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117152514" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>508
+</td>
+<td>547
+</td>
+<td>215
+</td>
+<td><b>Thundara Surge A++</b>:<br>Deal 290% Mag. Lightning damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Mag. Ability Pot. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Brilliant_Collar" class="attach">Brilliant Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/57/Brilliant_Collar_from_FFVIIEC.png/revision/latest?cb=20250304183758" class="mw-file-description image"><img alt="Brilliant Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="76" class="thumbimage lazyload" data-image-name="Brilliant Collar from FFVIIEC.png" data-image-key="Brilliant_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/57/Brilliant_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183758"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/57/Brilliant_Collar_from_FFVIIEC.png/revision/latest?cb=20250304183758" class="mw-file-description image"><img alt="Brilliant Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/57/Brilliant_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183758" decoding="async" loading="lazy" width="100" height="76" class="thumbimage" data-image-name="Brilliant Collar from FFVIIEC.png" data-image-key="Brilliant_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/57/Brilliant_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183758" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>463
+</td>
+<td>566
+</td>
+<td>301
+</td>
+<td><b>Brilliant Sault++</b>:<br>MATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>Also, When [Rng.: Self]'s HP is 70% or more, Wind Damage is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>Mag. heal is cast. [Pot.: 7% of Healing Pot.] [Rng.: All Allies]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost HEAL +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Great_Sabrecat_Collar" class="attach">Great Sabrecat Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/8/8f/Great_Sabrecat_Collar_from_FFVIIEC.png/revision/latest?cb=20250731113804" class="mw-file-description image"><img alt="Great Sabrecat Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="110" class="thumbimage lazyload" data-image-name="Great Sabrecat Collar from FFVIIEC.png" data-image-key="Great_Sabrecat_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/8f/Great_Sabrecat_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250731113804"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/8/8f/Great_Sabrecat_Collar_from_FFVIIEC.png/revision/latest?cb=20250731113804" class="mw-file-description image"><img alt="Great Sabrecat Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/8f/Great_Sabrecat_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250731113804" decoding="async" loading="lazy" width="100" height="110" class="thumbimage" data-image-name="Great Sabrecat Collar from FFVIIEC.png" data-image-key="Great_Sabrecat_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/8f/Great_Sabrecat_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250731113804" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>472
+</td>
+<td>590
+</td>
+<td>245
+</td>
+<td><b>Wild Lightning++</b>:<br>Deal 440% Mag. Lightning damage [Rng.: All Enemies].<br>Also, PDEF is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: Mid]<br>MDEF is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: Mid]
+</td>
+<td>3
+</td>
+<td>Boost HP +46 pt<br>Boost Lightning Pot. +42 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Pirate_Collar" class="attach">Pirate Collar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Pirate_Collar_from_FFVIIEC.png/revision/latest?cb=20251129004945" class="mw-file-description image"><img alt="Pirate Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="112" class="thumbimage lazyload" data-image-name="Pirate Collar from FFVIIEC.png" data-image-key="Pirate_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Pirate_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251129004945"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Pirate_Collar_from_FFVIIEC.png/revision/latest?cb=20251129004945" class="mw-file-description image"><img alt="Pirate Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Pirate_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251129004945" decoding="async" loading="lazy" width="100" height="112" class="thumbimage" data-image-name="Pirate Collar from FFVIIEC.png" data-image-key="Pirate_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/6/60/Pirate_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251129004945" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>458
+</td>
+<td>578
+</td>
+<td>333
+</td>
+<td><b>Energy Wave++</b>:<br>Mag. heal is cast. [Pot.: 59% of Healing Pot.] [Rng.: All Allies]<br>Also, MATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 70% or more, Lightning Damage is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 90% or less, +1 ATB Gauge [Rng.: Ally (Excluding Self)].
+</td>
+<td>5
+</td>
+<td>Boost MATK (All Allies) +46 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +42 pt
+</td>
+<td>MATK Boost I<br>HEAL Boost I<br>All (Esuna) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Tsviet_Collar" class="mw-redirect" title="Tsviet Collar"><span id="Tsviet_Collar" class="attach">Tsviet Collar</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/f/f7/Tsviet_Collar_from_FFVIIEC.png/revision/latest?cb=20260129181353" class="mw-file-description image"><img alt="Tsviet Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="106" class="thumbimage lazyload" data-image-name="Tsviet Collar from FFVIIEC.png" data-image-key="Tsviet_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/f7/Tsviet_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260129181353"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/f/f7/Tsviet_Collar_from_FFVIIEC.png/revision/latest?cb=20260129181353" class="mw-file-description image"><img alt="Tsviet Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/f/f7/Tsviet_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260129181353" decoding="async" loading="lazy" width="100" height="106" class="thumbimage" data-image-name="Tsviet Collar from FFVIIEC.png" data-image-key="Tsviet_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/f7/Tsviet_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260129181353" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>511
+</td>
+<td>564
+</td>
+<td>240
+</td>
+<td><b>Deaerora Surge A++</b>:<br>Deal 240% Mag. Non-elem. damage [Rng.: All Enemies]( [Crit rate: 10%]).<br>Also, Wind Resist. is decreased. [Pot.: Low] [Rng.: All Enemies] [Dur.: 35s]. [Ext.: +8s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost MATK +46 pts<br>Boost Wind Pot. +42 pts
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span class="new" title="Patissier's Collar (page does not exist)" data-uncrawlable-url="L3dpa2kvUGF0aXNzaWVyJTI3c19Db2xsYXI/YWN0aW9uPWVkaXQmcmVkbGluaz0x"><span id="Patissier's_Collar" class="attach">Patissier's Collar</span></span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/c/c1/Patissier_Collar_from_FFVIIEC.png/revision/latest?cb=20260212180848" class="mw-file-description image"><img alt="Patissier Collar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="74" class="thumbimage lazyload" data-image-name="Patissier Collar from FFVIIEC.png" data-image-key="Patissier_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/c1/Patissier_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260212180848"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/c/c1/Patissier_Collar_from_FFVIIEC.png/revision/latest?cb=20260212180848" class="mw-file-description image"><img alt="Patissier Collar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/c/c1/Patissier_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260212180848" decoding="async" loading="lazy" width="100" height="74" class="thumbimage" data-image-name="Patissier Collar from FFVIIEC.png" data-image-key="Patissier_Collar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/c1/Patissier_Collar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260212180848" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>468
+</td>
+<td>578
+</td>
+<td>329
+</td>
+<td><b>Whisking Claw++</b>:<br>Deal 920% Phys. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, Status Ailment: Enfeeble is applied [Rng.: All Enemies]. [Dur.: 40s] [Ext.: +13s]<br>When [Rng.: Self]'s HP is 70% or more, Applies Mag. weapon boost: C./U.C. ability damage + 35% [Rng.: All Allies] [Dur.: 40s] [Ext.: +13s]
+</td>
+<td>4
+</td>
+<td>Boost HEAL +46 pts<br>Boost PDEF +42 pts
+</td>
+<td>PATK Boost I<br>HEAL Boost I<br><span typeof="mw:File"><span title="Cross sigil"><img alt="Cross sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Cross sigil from FFVIIEC.png" data-image-key="Cross_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/1d/Cross_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042343"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr></tbody><tfoot></tfoot></table>

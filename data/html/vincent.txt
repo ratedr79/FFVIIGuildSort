@@ -1,0 +1,457 @@
+<table class="article-table sortable jquery-tablesorter">
+<thead><tr>
+<th style="width:135px" class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Weapon
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">PATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">MATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">HEAL
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Command Ability
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">ATB
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Reinforcement Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Support Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Obtain
+</th></tr></thead><tbody>
+<tr>
+<th><span id="Cath_Palug" class="attach">Cath Palug</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Cath_Palug_from_FFVIIEC.png/revision/latest?cb=20250420095649" class="mw-file-description image"><img alt="Cath Palug from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Cath_Palug_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095649" decoding="async" loading="lazy" width="100" height="129" class="thumbimage lazyloaded" data-image-name="Cath Palug from FFVIIEC.png" data-image-key="Cath_Palug_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Cath_Palug_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095649"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Cath_Palug_from_FFVIIEC.png/revision/latest?cb=20250420095649" class="mw-file-description image"><img alt="Cath Palug from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Cath_Palug_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095649" decoding="async" loading="lazy" width="100" height="129" class="thumbimage" data-image-name="Cath Palug from FFVIIEC.png" data-image-key="Cath_Palug_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Cath_Palug_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095649" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>540
+</td>
+<td>643
+</td>
+<td>229
+</td>
+<td><b>Blizzaga A++</b>:<br>Deal 520% Mag. Ice damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Ice Pot. +52 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>Default
+</td></tr>
+<tr>
+<th><span id="Gilded_Age" class="attach">Gilded Age</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/3/37/Gilded_Age_from_FFVIIEC.png/revision/latest?cb=20250420095714" class="mw-file-description image"><img alt="Gilded Age from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/37/Gilded_Age_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095714" decoding="async" loading="lazy" width="100" height="128" class="thumbimage lazyloaded" data-image-name="Gilded Age from FFVIIEC.png" data-image-key="Gilded_Age_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/37/Gilded_Age_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095714"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/3/37/Gilded_Age_from_FFVIIEC.png/revision/latest?cb=20250420095714" class="mw-file-description image"><img alt="Gilded Age from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/37/Gilded_Age_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095714" decoding="async" loading="lazy" width="100" height="128" class="thumbimage" data-image-name="Gilded Age from FFVIIEC.png" data-image-key="Gilded_Age_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/37/Gilded_Age_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095714" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>528
+</td>
+<td>528
+</td>
+<td>288
+</td>
+<td><b>Gilded Spirit++</b>:<br>Increases Limit Gauge [Pot.: 10%] [Rng.: Self].<br>Also, Mag heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Self]<br>Regen is applied [Rng.: Self]. [Dur.: 15s] [Ext.: +3s]
+</td>
+<td>4
+</td>
+<td>Boost HP +62 pt<br>Boost Ability Pot. +26 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="S1976C" class="attach">S1976C</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/S1976C_from_FFVIIEC.png/revision/latest?cb=20250420095750" class="mw-file-description image"><img alt="S1976C from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/S1976C_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095750" decoding="async" loading="lazy" width="100" height="97" class="thumbimage lazyloaded" data-image-name="S1976C from FFVIIEC.png" data-image-key="S1976C_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/S1976C_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095750"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/S1976C_from_FFVIIEC.png/revision/latest?cb=20250420095750" class="mw-file-description image"><img alt="S1976C from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/S1976C_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095750" decoding="async" loading="lazy" width="100" height="97" class="thumbimage" data-image-name="S1976C from FFVIIEC.png" data-image-key="S1976C_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/S1976C_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095750" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>554
+</td>
+<td>624
+</td>
+<td>231
+</td>
+<td><b>Spellgun Shower++</b>:<br>Deal 540% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, PATK is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>MATK is decreased. [Pot.: Mid] [Rng.: All Enemies] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]<br>Increases Limit Gauge [Pot.: 3%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost MATK +46 pt<br>Boost Ability Pot. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Shortbarrel" title="Shortbarrel"><span id="Shortbarrel" class="attach">Shortbarrel</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/0/04/Shortbarrel_from_FFVIIEC.png/revision/latest?cb=20250420095759" class="mw-file-description image"><img alt="Shortbarrel from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/04/Shortbarrel_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095759" decoding="async" loading="lazy" width="100" height="112" class="thumbimage lazyloaded" data-image-name="Shortbarrel from FFVIIEC.png" data-image-key="Shortbarrel_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/04/Shortbarrel_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095759"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/0/04/Shortbarrel_from_FFVIIEC.png/revision/latest?cb=20250420095759" class="mw-file-description image"><img alt="Shortbarrel from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/04/Shortbarrel_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095759" decoding="async" loading="lazy" width="100" height="112" class="thumbimage" data-image-name="Shortbarrel from FFVIIEC.png" data-image-key="Shortbarrel_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/04/Shortbarrel_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095759" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>643
+</td>
+<td>542
+</td>
+<td>225
+</td>
+<td><b>Stormround++</b>:<br>Deal 400% Phys. Wind damage [Rng.: Single Enemy].<br>The higher your HP, the higher the ability pot. (max: x3).<br>Also, Increases Limit Gauge [Pot.: 4%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost PATK +31 pt<br>Boost Wind Pot. +52 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="T03_Model_N" class="attach">T03 Model N</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/f/fd/T03_Model_N_from_FFVIIEC.png/revision/latest?cb=20250420095816" class="mw-file-description image"><img alt="T03 Model N from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/f/fd/T03_Model_N_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095816" decoding="async" loading="lazy" width="100" height="122" class="thumbimage lazyloaded" data-image-name="T03 Model N from FFVIIEC.png" data-image-key="T03_Model_N_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/fd/T03_Model_N_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095816"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/f/fd/T03_Model_N_from_FFVIIEC.png/revision/latest?cb=20250420095816" class="mw-file-description image"><img alt="T03 Model N from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/f/fd/T03_Model_N_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095816" decoding="async" loading="lazy" width="100" height="122" class="thumbimage" data-image-name="T03 Model N from FFVIIEC.png" data-image-key="T03_Model_N_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/f/fd/T03_Model_N_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095816" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>633
+</td>
+<td>566
+</td>
+<td>219
+</td>
+<td><b>Quick Draw++</b>:<br>Deal 300% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>The lower your HP, the higher the ability pot. (max: x3).<br>Also, Increases Limit Gauge [Pot.: 2%] [Rng.: Self].
+</td>
+<td>2
+</td>
+<td>Boost PATK +62 pt<br>Boost Phys. Ability Pot. +26 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Sawed-Off_GS" class="attach">Sawed-Off GS</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/8/86/Sawed-Off_GS_from_FFVIIEC.png/revision/latest?cb=20250420095755" class="mw-file-description image"><img alt="Sawed-Off GS from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="128" class="thumbimage lazyload" data-image-name="Sawed-Off GS from FFVIIEC.png" data-image-key="Sawed-Off_GS_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/86/Sawed-Off_GS_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095755"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/8/86/Sawed-Off_GS_from_FFVIIEC.png/revision/latest?cb=20250420095755" class="mw-file-description image"><img alt="Sawed-Off GS from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/86/Sawed-Off_GS_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095755" decoding="async" loading="lazy" width="100" height="128" class="thumbimage" data-image-name="Sawed-Off GS from FFVIIEC.png" data-image-key="Sawed-Off_GS_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/86/Sawed-Off_GS_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095755" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>528
+</td>
+<td>540
+</td>
+<td>284
+</td>
+<td><b>Wardshot++</b>:<br>MATK is increased. [Pot.: High] [Rng.: Self] [Dur.: 38s]. [Ext.: +12s] [Max. pot.: High]<br>Also, MDEF is increased [Pot.: High] [Rng.: Self] [Dur.: 38s]. [Ext.: +12s] [Max. pot.: High]<br>Increases Limit Gauge [Pot.: 3%] [Rng.: Self].<br>Mag. heal is cast. [Pot.: 15% of Healing Pot.] [Rng.: Self]
+</td>
+<td>4
+</td>
+<td>Boost ATK +31 pt<br>Boost Mag. Ability Pot. +52 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Chiron" class="attach">Chiron</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e6/Chiron_from_FFVIIEC.png/revision/latest?cb=20250420095654" class="mw-file-description image"><img alt="Chiron from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="133" class="thumbimage lazyload" data-image-name="Chiron from FFVIIEC.png" data-image-key="Chiron_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e6/Chiron_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095654"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e6/Chiron_from_FFVIIEC.png/revision/latest?cb=20250420095654" class="mw-file-description image"><img alt="Chiron from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e6/Chiron_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095654" decoding="async" loading="lazy" width="100" height="133" class="thumbimage" data-image-name="Chiron from FFVIIEC.png" data-image-key="Chiron_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e6/Chiron_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095654" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>583
+</td>
+<td>583
+</td>
+<td>235
+</td>
+<td><b>Sageshot++</b>:<br>Deal 510% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, When [Rng.: Self]'s HP is 50% or more, Earth Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 35s]. [Ext.: +11s] [Max. pot.: High]<br>Increases Limit Gauge [Pot.: 3%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost MATK +46 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +39 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Double_Stem_E" class="attach">Double Stem E</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Double_Stem_E_from_FFVIIEC.png/revision/latest?cb=20250420095703" class="mw-file-description image"><img alt="Double Stem E from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="131" class="thumbimage lazyload" data-image-name="Double Stem E from FFVIIEC.png" data-image-key="Double_Stem_E_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Double_Stem_E_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095703"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Double_Stem_E_from_FFVIIEC.png/revision/latest?cb=20250420095703" class="mw-file-description image"><img alt="Double Stem E from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Double_Stem_E_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095703" decoding="async" loading="lazy" width="100" height="131" class="thumbimage" data-image-name="Double Stem E from FFVIIEC.png" data-image-key="Double_Stem_E_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Double_Stem_E_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095703" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>542
+</td>
+<td>655
+</td>
+<td>221
+</td>
+<td><b>Poison Sphere++</b>:<br>Deal 520% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, Increases Limit Gauge [Pot.: 3%] [Rng.: Self].<br>When [Rng.: Self]'s HP is 30% or less, Ailment: Poison is applied [Rng.: All Enemies]. [Dur.: 25s] [Ext.: +6s]
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Mag. Ability Pot. +52 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Quicksilver" class="mw-disambig" title="Quicksilver"><span id="Quicksilver" class="attach">Quicksilver</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Quicksilver_from_FFVIIEC.png/revision/latest?cb=20250420095740" class="mw-file-description image"><img alt="Quicksilver from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="112" class="thumbimage lazyload" data-image-name="Quicksilver from FFVIIEC.png" data-image-key="Quicksilver_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Quicksilver_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095740"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Quicksilver_from_FFVIIEC.png/revision/latest?cb=20250420095740" class="mw-file-description image"><img alt="Quicksilver from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Quicksilver_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095740" decoding="async" loading="lazy" width="100" height="112" class="thumbimage" data-image-name="Quicksilver from FFVIIEC.png" data-image-key="Quicksilver_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Quicksilver_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095740" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>628
+</td>
+<td>547
+</td>
+<td>231
+</td>
+<td><b>Spinning Pentashot++</b>:<br>Deal 750% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>The lower your HP, the higher the ability pot. (max: x1.5).<br>Also, Increases Limit Gauge [Pot.: 5%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost ATK +46 pt<br>Boost Limit Break Pot. +52 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Silver_Rifle" class="attach">Silver Rifle</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/1/17/Silver_Rifle_from_FFVIIEC.png/revision/latest?cb=20250420095803" class="mw-file-description image"><img alt="Silver Rifle from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="103" class="thumbimage lazyload" data-image-name="Silver Rifle from FFVIIEC.png" data-image-key="Silver_Rifle_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/17/Silver_Rifle_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095803"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/1/17/Silver_Rifle_from_FFVIIEC.png/revision/latest?cb=20250420095803" class="mw-file-description image"><img alt="Silver Rifle from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/17/Silver_Rifle_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095803" decoding="async" loading="lazy" width="100" height="103" class="thumbimage" data-image-name="Silver Rifle from FFVIIEC.png" data-image-key="Silver_Rifle_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/17/Silver_Rifle_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095803" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>564
+</td>
+<td>492
+</td>
+<td>215
+</td>
+<td><b>Gunspinner Shot++</b>:<br>Deal 700% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, When Debuff is granted to Target, x1.5 damage.<br>Increases Limit Gauge [Pot.: 3%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost Water Resist. +31 pt<br>ATB Boost +39 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="White_Dog" class="attach">White Dog</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/be/White_Dog_from_FFVIIEC.png/revision/latest?cb=20250420095824" class="mw-file-description image"><img alt="White Dog from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="114" class="thumbimage lazyload" data-image-name="White Dog from FFVIIEC.png" data-image-key="White_Dog_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/be/White_Dog_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095824"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/be/White_Dog_from_FFVIIEC.png/revision/latest?cb=20250420095824" class="mw-file-description image"><img alt="White Dog from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/be/White_Dog_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095824" decoding="async" loading="lazy" width="100" height="114" class="thumbimage" data-image-name="White Dog from FFVIIEC.png" data-image-key="White_Dog_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/be/White_Dog_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095824" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>532
+</td>
+<td>698
+</td>
+<td>240
+</td>
+<td><b>Sludge Shot++</b>:<br>Deal 940% Mag. Earth damage [Rng.: Single Enemy].<br>Also, When Debuff is granted to Target, x1.2 damage.<br>Increases Limit Gauge [Pot.: 5%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost MATK (All Allies) +46 pt<br>Boost Earth Pot. +42 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Hugin_&amp;_Munin" class="attach">Hugin &amp; Munin</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a7/Hugin_%26_Munin_from_FFVIIEC.png/revision/latest?cb=20250420095728" class="mw-file-description image"><img alt="Hugin &amp; Munin from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="118" class="thumbimage lazyload" data-image-name="Hugin &amp; Munin from FFVIIEC.png" data-image-key="Hugin_%26_Munin_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a7/Hugin_%26_Munin_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095728"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a7/Hugin_%26_Munin_from_FFVIIEC.png/revision/latest?cb=20250420095728" class="mw-file-description image"><img alt="Hugin &amp; Munin from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/a7/Hugin_%26_Munin_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095728" decoding="async" loading="lazy" width="100" height="118" class="thumbimage" data-image-name="Hugin &amp; Munin from FFVIIEC.png" data-image-key="Hugin_%26_Munin_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a7/Hugin_%26_Munin_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095728" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>496
+</td>
+<td>684
+</td>
+<td>229
+</td>
+<td><b>Pentaburst Shot++</b>:<br>Deal 1,300% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Increases Limit Gauge [Pot.: 5%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost MATK +62 pt<br>Boost Mag. Ability Pot. +26 pt
+</td>
+<td>MATK Boost I<br>ATK Boost (Ice) I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Icebolt_Shooter" class="attach">Icebolt Shooter</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Icebolt_Shooter_from_FFVIIEC.png/revision/latest?cb=20250420095733" class="mw-file-description image"><img alt="Icebolt Shooter from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="137" class="thumbimage lazyload" data-image-name="Icebolt Shooter from FFVIIEC.png" data-image-key="Icebolt_Shooter_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Icebolt_Shooter_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095733"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Icebolt_Shooter_from_FFVIIEC.png/revision/latest?cb=20250420095733" class="mw-file-description image"><img alt="Icebolt Shooter from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Icebolt_Shooter_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095733" decoding="async" loading="lazy" width="100" height="137" class="thumbimage" data-image-name="Icebolt Shooter from FFVIIEC.png" data-image-key="Icebolt_Shooter_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Icebolt_Shooter_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095733" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>496
+</td>
+<td>528
+</td>
+<td>231
+</td>
+<td><b>Deblizzara &amp; Dethundara Surge++</b>:<br>Deal 340% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Ice Resist. is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: Mid]<br>Lightning Resist. is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost Water Resist. +46 pt<br>Boost HP +26 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Crow_Familiar" class="attach">Crow Familiar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/c/c4/Crow_Familiar_from_FFVIIEC.png/revision/latest?cb=20250420095659" class="mw-file-description image"><img alt="Crow Familiar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="118" class="thumbimage lazyload" data-image-name="Crow Familiar from FFVIIEC.png" data-image-key="Crow_Familiar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/c4/Crow_Familiar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095659"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/c/c4/Crow_Familiar_from_FFVIIEC.png/revision/latest?cb=20250420095659" class="mw-file-description image"><img alt="Crow Familiar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/c/c4/Crow_Familiar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095659" decoding="async" loading="lazy" width="100" height="118" class="thumbimage" data-image-name="Crow Familiar from FFVIIEC.png" data-image-key="Crow_Familiar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/c4/Crow_Familiar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095659" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>508
+</td>
+<td>664
+</td>
+<td>233
+</td>
+<td><b>Shadow Swoop++</b>:<br>Deal 940% Mag. Lightning damage [Rng.: Single Enemy].<br>Also, When Buff is granted to [Rng.: Self], x1.2 damage.<br>Increases Limit Gauge [Pot.: 5%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Lightning Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Rhad_Gun" class="attach">Rhad Gun</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Rhad_Gun_from_FFVIIEC.png/revision/latest?cb=20250420095745" class="mw-file-description image"><img alt="Rhad Gun from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="112" class="thumbimage lazyload" data-image-name="Rhad Gun from FFVIIEC.png" data-image-key="Rhad_Gun_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Rhad_Gun_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095745"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Rhad_Gun_from_FFVIIEC.png/revision/latest?cb=20250420095745" class="mw-file-description image"><img alt="Rhad Gun from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Rhad_Gun_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095745" decoding="async" loading="lazy" width="100" height="112" class="thumbimage" data-image-name="Rhad Gun from FFVIIEC.png" data-image-key="Rhad_Gun_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Rhad_Gun_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095745" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>564
+</td>
+<td>494
+</td>
+<td>247
+</td>
+<td><b>Solid Bravery++</b>:<br>PATK is increased. [Pot.: Low] [Rng.: Single Ally] [Dur.: 44s]. [Ext.: +14s] [Max. pot.: Mid]<br>Also, Regen is applied [Rng.: Single Ally]. [Dur.: 15s] [Ext.: +3s]<br>Mag. heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>4
+</td>
+<td>Boost PATK +31 pt<br>Boost Ability Pot. +28 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Eligor_Gun" class="attach">Eligor Gun</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/7/7e/Eligor_Gun_from_FFVIIEC.png/revision/latest?cb=20250420095708" class="mw-file-description image"><img alt="Eligor Gun from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="95" class="thumbimage lazyload" data-image-name="Eligor Gun from FFVIIEC.png" data-image-key="Eligor_Gun_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/7e/Eligor_Gun_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095708"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/7/7e/Eligor_Gun_from_FFVIIEC.png/revision/latest?cb=20250420095708" class="mw-file-description image"><img alt="Eligor Gun from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/7/7e/Eligor_Gun_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095708" decoding="async" loading="lazy" width="100" height="95" class="thumbimage" data-image-name="Eligor Gun from FFVIIEC.png" data-image-key="Eligor_Gun_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/7e/Eligor_Gun_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095708" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>487
+</td>
+<td>566
+</td>
+<td>247
+</td>
+<td><b>Blizzara Surge A++</b>:<br>Deal 290% Mag. Ice damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Ice Pot. +42 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Holiday_Garm" class="attach">Holiday Garm</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/2/29/Holiday_Garm_from_FFVIIEC.png/revision/latest?cb=20250420095723" class="mw-file-description image"><img alt="Holiday Garm from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="111" class="thumbimage lazyload" data-image-name="Holiday Garm from FFVIIEC.png" data-image-key="Holiday_Garm_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/29/Holiday_Garm_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095723"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/2/29/Holiday_Garm_from_FFVIIEC.png/revision/latest?cb=20250420095723" class="mw-file-description image"><img alt="Holiday Garm from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/29/Holiday_Garm_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095723" decoding="async" loading="lazy" width="100" height="111" class="thumbimage" data-image-name="Holiday Garm from FFVIIEC.png" data-image-key="Holiday_Garm_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/29/Holiday_Garm_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095723" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>691
+</td>
+<td>489
+</td>
+<td>231
+</td>
+<td><b>Hellhound Shot++</b>:<br>Deal 940% Phys. Fire damage [Rng.: Single Enemy].<br>Also, When Debuff is granted to Target, x1.2 damage.<br>Increases Limit Gauge [Pot.: 5%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost PATK +46 pt<br>Boost Fire Pot. +39 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Kugelblitz" class="attach">Kugelblitz</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Kugelblitz_from_FFVIIEC.png/revision/latest?cb=20250117111746" class="mw-file-description image"><img alt="Kugelblitz from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="123" class="thumbimage lazyload" data-image-name="Kugelblitz from FFVIIEC.png" data-image-key="Kugelblitz_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Kugelblitz_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117111746"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Kugelblitz_from_FFVIIEC.png/revision/latest?cb=20250117111746" class="mw-file-description image"><img alt="Kugelblitz from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Kugelblitz_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117111746" decoding="async" loading="lazy" width="100" height="123" class="thumbimage" data-image-name="Kugelblitz from FFVIIEC.png" data-image-key="Kugelblitz_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Kugelblitz_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250117111746" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>513
+</td>
+<td>674
+</td>
+<td>225
+</td>
+<td><b>Lightblast++</b>:<br>Deal 750% Mag. Non-elem. damage [Rng.: All Enemies] ([Crit rate: 10%]).<br>Also, MDEF is decreased. [Pot.: High] [Rng.: All Enemies] [Dur.: 35s]. [Ext.: +11s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 70% or more, Earth Damage is increased. [Pot.: High] [Rng.: Self] [Dur.: 45s]. [Ext.: +9s] [Max. pot.: High]<br>Increases Limit Gauge [Pot.: 5%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost MATK +62 pt<br>Boost Earth Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Gun_of_the_Worthy" class="attach">Gun of the Worthy</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Gun_of_the_Worthy_from_FFVIIEC.png/revision/latest?cb=20250420095718" class="mw-file-description image"><img alt="Gun of the Worthy from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="126" class="thumbimage lazyload" data-image-name="Gun of the Worthy from FFVIIEC.png" data-image-key="Gun_of_the_Worthy_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Gun_of_the_Worthy_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095718"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Gun_of_the_Worthy_from_FFVIIEC.png/revision/latest?cb=20250420095718" class="mw-file-description image"><img alt="Gun of the Worthy from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Gun_of_the_Worthy_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095718" decoding="async" loading="lazy" width="100" height="126" class="thumbimage" data-image-name="Gun of the Worthy from FFVIIEC.png" data-image-key="Gun_of_the_Worthy_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/89/Gun_of_the_Worthy_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250420095718" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>710
+</td>
+<td>585
+</td>
+<td>210
+</td>
+<td><b>Frozen Strike++</b>:<br>Deal 1,120% Phys. Ice damage [Rng.: Single Enemy].<br>Also, Applies Ailment: Ice Weakness +50% [Rng.: Single Enemy] [Dur.: 150s] [Ext.: +0s] [Condition: First use] (Cannot be applied to target's weak/resistant to ice)<br>Increases Limit Gauge [Pot.: 5%] [Rng.: Self].
+</td>
+<td>4
+</td>
+<td>Boost PATK (All Allies) +46 pt<br>Boost Ice Pot. +42 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Noblesse_Automatic" class="mw-redirect" title="Noblesse Automatic"><span id="Noblesse_Automatic" class="attach">Noblesse Automatic</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Noblesse_Automatic_from_FFVIIEC.png/revision/latest?cb=20250417172319" class="mw-file-description image"><img alt="Noblesse Automatic from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="99" class="thumbimage lazyload" data-image-name="Noblesse Automatic from FFVIIEC.png" data-image-key="Noblesse_Automatic_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Noblesse_Automatic_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250417172319"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Noblesse_Automatic_from_FFVIIEC.png/revision/latest?cb=20250417172319" class="mw-file-description image"><img alt="Noblesse Automatic from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Noblesse_Automatic_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250417172319" decoding="async" loading="lazy" width="100" height="99" class="thumbimage" data-image-name="Noblesse Automatic from FFVIIEC.png" data-image-key="Noblesse_Automatic_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/12/Noblesse_Automatic_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250417172319" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>559
+</td>
+<td>513
+</td>
+<td>240
+</td>
+<td><b>Debravera Surge++</b>:<br>Deal 360% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, PATK is decreased. [Pot.: Low] [Rng.: Single Enemy] [Dur.: 28s]. [Ext.: +9s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Phys. Ability Pot. +42 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Electro_Peashooter" class="attach">Electro Peashooter</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/3/36/Electro_Peashooter_from_FFVIIEC.png/revision/latest?cb=20250626223652" class="mw-file-description image"><img alt="Electro Peashooter from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="115" class="thumbimage lazyload" data-image-name="Electro Peashooter from FFVIIEC.png" data-image-key="Electro_Peashooter_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/36/Electro_Peashooter_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250626223652"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/3/36/Electro_Peashooter_from_FFVIIEC.png/revision/latest?cb=20250626223652" class="mw-file-description image"><img alt="Electro Peashooter from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/3/36/Electro_Peashooter_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250626223652" decoding="async" loading="lazy" width="100" height="115" class="thumbimage" data-image-name="Electro Peashooter from FFVIIEC.png" data-image-key="Electro_Peashooter_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/3/36/Electro_Peashooter_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250626223652" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>458
+</td>
+<td>554
+</td>
+<td>238
+</td>
+<td><b>Thundara Surge A++</b>:<br>Deal 290% Mag. Lightning damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Lightning Pot. +39 pt
+</td>
+<td>ATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Galian_Roar" class="attach">Galian Roar</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/2/21/Galian_Roar_from_FFVIIEC.png/revision/latest?cb=20250925182322" class="mw-file-description image"><img alt="Galian Roar from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="104" class="thumbimage lazyload" data-image-name="Galian Roar from FFVIIEC.png" data-image-key="Galian_Roar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/21/Galian_Roar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250925182322"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/2/21/Galian_Roar_from_FFVIIEC.png/revision/latest?cb=20250925182322" class="mw-file-description image"><img alt="Galian Roar from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/21/Galian_Roar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250925182322" decoding="async" loading="lazy" width="100" height="104" class="thumbimage" data-image-name="Galian Roar from FFVIIEC.png" data-image-key="Galian_Roar_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/21/Galian_Roar_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250925182322" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>540
+</td>
+<td>698
+</td>
+<td>235
+</td>
+<td><b>Chaos Claw++</b>:<br>Deal 800% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Status Ailment: Enfeeble is applied [Rng.: Single Enemy]. [Dur.: 60s] [Ext.: +12s]<br>MDEF is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 35s]. [Ext.: +11s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 70% or more, MATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 35s]. [Ext.: +11s] [Max. pot.: High]
+</td>
+<td>3
+</td>
+<td>Boost MATK +62 pt<br>Boost Mag. Ability Pot. +42 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>Stamp Card (Guild Battle #15/Sep 2025 Event Update)
+</td></tr>
+<tr>
+<th><span id="Transgressor" class="attach">Transgressor</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Transgressor_from_FFVIIEC.png/revision/latest?cb=20260129192210" class="mw-file-description image"><img alt="Transgressor from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="104" class="thumbimage lazyload" data-image-name="Transgressor from FFVIIEC.png" data-image-key="Transgressor_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Transgressor_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260129192210"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Transgressor_from_FFVIIEC.png/revision/latest?cb=20260129192210" class="mw-file-description image"><img alt="Transgressor from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Transgressor_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260129192210" decoding="async" loading="lazy" width="100" height="104" class="thumbimage" data-image-name="Transgressor from FFVIIEC.png" data-image-key="Transgressor_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/47/Transgressor_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20260129192210" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>698
+</td>
+<td>564
+</td>
+<td>225
+</td>
+<td><b>Turbulent Dharma++</b>:<br>Deal 1,340% Phys. Wind damage [Rng.: Single Enemy].<br>Also, Applies Phys. weapon boost: C./U.C. ability damage + 30% [Rng.: Self] [Dur.: 40s] [Ext.: +13s]<br>When [Rng.: Self]'s HP is 70% or more, Applies Exploit Weakness [Rng.: Self] [Pot.: 30%] [Dur.: 40s] [Ext.: +13s].
+</td>
+<td>4
+</td>
+<td>Boost PATK +46 pts<br>Boost Wind Pot. +42 pts
+</td>
+<td>PATK Boost I<br>PATK Boost I<br><span typeof="mw:File"><span title="Triangle sigil"><img alt="Triangle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Triangle sigil from FFVIIEC.png" data-image-key="Triangle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Triangle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042316"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr></tbody><tfoot></tfoot></table>

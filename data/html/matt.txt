@@ -1,0 +1,495 @@
+<table class="article-table sortable jquery-tablesorter">
+<thead><tr>
+<th style="width:135px" class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Weapon
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">PATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">MATK
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">HEAL
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Command Ability
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">ATB
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Reinforcement Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Support Abilities
+</th>
+<th class="headerSort" tabindex="0" role="columnheader button" title="Sort ascending">Obtain
+</th></tr></thead><tbody>
+<tr>
+<th><span id="Broadsword:_Axis" class="attach">Broadsword: Axis</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/1/10/Broadsword_Axis_from_FFVIIEC.png/revision/latest?cb=20250208105258" class="mw-file-description image"><img alt="Broadsword Axis from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/10/Broadsword_Axis_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105258" decoding="async" loading="lazy" width="100" height="168" class="thumbimage lazyloaded" data-image-name="Broadsword Axis from FFVIIEC.png" data-image-key="Broadsword_Axis_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/10/Broadsword_Axis_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105258"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/1/10/Broadsword_Axis_from_FFVIIEC.png/revision/latest?cb=20250208105258" class="mw-file-description image"><img alt="Broadsword Axis from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/10/Broadsword_Axis_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105258" decoding="async" loading="lazy" width="100" height="168" class="thumbimage" data-image-name="Broadsword Axis from FFVIIEC.png" data-image-key="Broadsword_Axis_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/10/Broadsword_Axis_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105258" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>477
+</td>
+<td>583
+</td>
+<td>287
+</td>
+<td><b>Shoot &amp; Slash++</b>:<br>Deal 900% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).
+</td>
+<td>4
+</td>
+<td>Boost PATK +46 pt<br>Boost Lightning Pot. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>ATK Boost I
+</td>
+<td>Default
+</td></tr>
+<tr>
+<th><span id="Orthodox_Raven" class="attach">Orthodox Raven</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d0/Orthodox_Raven_from_FFVIIEC.png/revision/latest?cb=20250304183706" class="mw-file-description image"><img alt="Orthodox Raven from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/d0/Orthodox_Raven_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183706" decoding="async" loading="lazy" width="100" height="167" class="thumbimage lazyloaded" data-image-name="Orthodox Raven from FFVIIEC.png" data-image-key="Orthodox_Raven_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d0/Orthodox_Raven_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183706"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d0/Orthodox_Raven_from_FFVIIEC.png/revision/latest?cb=20250304183706" class="mw-file-description image"><img alt="Orthodox Raven from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/d0/Orthodox_Raven_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183706" decoding="async" loading="lazy" width="100" height="167" class="thumbimage" data-image-name="Orthodox Raven from FFVIIEC.png" data-image-key="Orthodox_Raven_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d0/Orthodox_Raven_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183706" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>492
+</td>
+<td>609
+</td>
+<td>267
+</td>
+<td><b>Waterga A++</b>:<br>Deal 540% Mag. Water damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Water Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Absolute_Royal" class="attach">Absolute Royal</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/2/26/Absolute_Royal_from_FFVIIEC.png/revision/latest?cb=20250208105315" class="mw-file-description image"><img alt="Absolute Royal from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/26/Absolute_Royal_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105315" decoding="async" loading="lazy" width="100" height="170" class="thumbimage lazyloaded" data-image-name="Absolute Royal from FFVIIEC.png" data-image-key="Absolute_Royal_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/26/Absolute_Royal_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105315"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/2/26/Absolute_Royal_from_FFVIIEC.png/revision/latest?cb=20250208105315" class="mw-file-description image"><img alt="Absolute Royal from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/26/Absolute_Royal_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105315" decoding="async" loading="lazy" width="100" height="170" class="thumbimage" data-image-name="Absolute Royal from FFVIIEC.png" data-image-key="Absolute_Royal_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/26/Absolute_Royal_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105315" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>504
+</td>
+<td>590
+</td>
+<td>273
+</td>
+<td><b>Snowstorm++</b>:<br>Deal 540% Mag. Ice damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +46 pt<br>Boost Ice Pot. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br><span typeof="mw:File"><span title="Cross sigil"><img alt="Cross sigil" src="https://static.wikia.nocookie.net/finalfantasy/images/1/1d/Cross_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042343" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element ls-is-cached lazyloaded" data-image-name="Cross sigil from FFVIIEC.png" data-image-key="Cross_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/1d/Cross_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042343"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Prime_Number" class="attach">Prime Number</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/c/ca/Prime_Number_from_FFVIIEC.png/revision/latest?cb=20250304183652" class="mw-file-description image"><img alt="Prime Number from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/c/ca/Prime_Number_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183652" decoding="async" loading="lazy" width="100" height="173" class="thumbimage lazyloaded" data-image-name="Prime Number from FFVIIEC.png" data-image-key="Prime_Number_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/ca/Prime_Number_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183652"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/c/ca/Prime_Number_from_FFVIIEC.png/revision/latest?cb=20250304183652" class="mw-file-description image"><img alt="Prime Number from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/c/ca/Prime_Number_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183652" decoding="async" loading="lazy" width="100" height="173" class="thumbimage" data-image-name="Prime Number from FFVIIEC.png" data-image-key="Prime_Number_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/c/ca/Prime_Number_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183652" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>496
+</td>
+<td>516
+</td>
+<td>308
+</td>
+<td><b>Healing Showers++</b>:<br>Mag. heal is cast. [Pot.: 74% of Healing Pot.] [Rng.: All Allies]
+</td>
+<td>5
+</td>
+<td>Boost HEAL +31 pt<br>Boost Lightning Resist. +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>Buff/Debuff Extension I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Espee_Rapiere_Next-G" class="attach">Espee Rapiere Next-G</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Espee_Rapiere_Next-G_from_FFVIIEC.png/revision/latest?cb=20250208105330" class="mw-file-description image"><img alt="Espee Rapiere Next-G from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Espee_Rapiere_Next-G_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105330" decoding="async" loading="lazy" width="100" height="168" class="thumbimage lazyloaded" data-image-name="Espee Rapiere Next-G from FFVIIEC.png" data-image-key="Espee_Rapiere_Next-G_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Espee_Rapiere_Next-G_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105330"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Espee_Rapiere_Next-G_from_FFVIIEC.png/revision/latest?cb=20250208105330" class="mw-file-description image"><img alt="Espee Rapiere Next-G from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Espee_Rapiere_Next-G_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105330" decoding="async" loading="lazy" width="100" height="168" class="thumbimage" data-image-name="Espee Rapiere Next-G from FFVIIEC.png" data-image-key="Espee_Rapiere_Next-G_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Espee_Rapiere_Next-G_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105330" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>477
+</td>
+<td>504
+</td>
+<td>324
+</td>
+<td><b>First Aid++</b>:<br>Mag. heal is cast. [Pot.: 148% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>5
+</td>
+<td>Boost MDEF +31 pt<br>Boost Mag. Ability Pot. +52 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>ATK Boost (Fire) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Core_Defender" class="attach">Core Defender</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b6/Core_Defender_from_FFVIIEC.png/revision/latest?cb=20250208105344" class="mw-file-description image"><img alt="Core Defender from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b6/Core_Defender_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105344" decoding="async" loading="lazy" width="100" height="165" class="thumbimage lazyloaded" data-image-name="Core Defender from FFVIIEC.png" data-image-key="Core_Defender_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b6/Core_Defender_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105344"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b6/Core_Defender_from_FFVIIEC.png/revision/latest?cb=20250208105344" class="mw-file-description image"><img alt="Core Defender from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b6/Core_Defender_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105344" decoding="async" loading="lazy" width="100" height="165" class="thumbimage" data-image-name="Core Defender from FFVIIEC.png" data-image-key="Core_Defender_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b6/Core_Defender_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105344" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>472
+</td>
+<td>655
+</td>
+<td>254
+</td>
+<td><b>Amulet Tribute++</b>:<br>MDEF is increased. [Pot.: High] [Rng.: All Allies] [Dur.: 14s]. [Ext.: +4s] [Max. pot.: High]<br>Also, Mag. heal is cast. [Pot.: 7% of Healing Pot.] [Rng.: All Allies]
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Water Resist. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>ATK Boost (Wind) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Stingray" class="attach">Stingray</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/ac/Stingray_from_FFVIIEC.png/revision/latest?cb=20250304183641" class="mw-file-description image"><img alt="Stingray from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="168" class="thumbimage lazyload" data-image-name="Stingray from FFVIIEC.png" data-image-key="Stingray_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/ac/Stingray_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183641"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/ac/Stingray_from_FFVIIEC.png/revision/latest?cb=20250304183641" class="mw-file-description image"><img alt="Stingray from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/ac/Stingray_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183641" decoding="async" loading="lazy" width="100" height="168" class="thumbimage" data-image-name="Stingray from FFVIIEC.png" data-image-key="Stingray_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/ac/Stingray_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183641" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>463
+</td>
+<td>640
+</td>
+<td>267
+</td>
+<td><b>Core Sting++</b>:<br>Deal 540% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, MDEF is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost PATK +31 pt<br>Boost Wind Resist. +39 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>ATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Slick_Beetle" class="attach">Slick Beetle</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/7/79/Slick_Beetle_from_FFVIIEC.png/revision/latest?cb=20250304183631" class="mw-file-description image"><img alt="Slick Beetle from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="170" class="thumbimage lazyload" data-image-name="Slick Beetle from FFVIIEC.png" data-image-key="Slick_Beetle_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/79/Slick_Beetle_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183631"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/7/79/Slick_Beetle_from_FFVIIEC.png/revision/latest?cb=20250304183631" class="mw-file-description image"><img alt="Slick Beetle from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/7/79/Slick_Beetle_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183631" decoding="async" loading="lazy" width="100" height="170" class="thumbimage" data-image-name="Slick Beetle from FFVIIEC.png" data-image-key="Slick_Beetle_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/79/Slick_Beetle_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183631" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>609
+</td>
+<td>508
+</td>
+<td>259
+</td>
+<td><b>X-Shot++</b>:<br>Deal 480% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, PATK is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 25s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Boost Crit. Pot. +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>ATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Foam_Sword" class="attach">Foam Sword</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/9/9f/Foam_Sword_from_FFVIIEC.png/revision/latest?cb=20250208105402" class="mw-file-description image"><img alt="Foam Sword from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="169" class="thumbimage lazyload" data-image-name="Foam Sword from FFVIIEC.png" data-image-key="Foam_Sword_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/9f/Foam_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105402"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/9/9f/Foam_Sword_from_FFVIIEC.png/revision/latest?cb=20250208105402" class="mw-file-description image"><img alt="Foam Sword from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/9/9f/Foam_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105402" decoding="async" loading="lazy" width="100" height="169" class="thumbimage" data-image-name="Foam Sword from FFVIIEC.png" data-image-key="Foam_Sword_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/9f/Foam_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105402" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>542
+</td>
+<td>453
+</td>
+<td>245
+</td>
+<td><b>Swing++</b>:<br>Deal 620% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Removes Phys. Defense Up [Rng.: Single Enemy].
+</td>
+<td>4
+</td>
+<td>Boost Lightning Resist. +31 pt<br>Boost MDEF (All Allies) +39 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Killer_Hornet" class="attach">Killer Hornet</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Killer_Hornet_from_FFVIIEC.png/revision/latest?cb=20250208105417" class="mw-file-description image"><img alt="Killer Hornet from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="168" class="thumbimage lazyload" data-image-name="Killer Hornet from FFVIIEC.png" data-image-key="Killer_Hornet_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Killer_Hornet_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105417"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Killer_Hornet_from_FFVIIEC.png/revision/latest?cb=20250208105417" class="mw-file-description image"><img alt="Killer Hornet from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Killer_Hornet_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105417" decoding="async" loading="lazy" width="100" height="168" class="thumbimage" data-image-name="Killer Hornet from FFVIIEC.png" data-image-key="Killer_Hornet_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Killer_Hornet_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105417" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>640
+</td>
+<td>540
+</td>
+<td>231
+</td>
+<td><b>Killing Slash++</b>:<br>Deal 720% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).
+</td>
+<td>4
+</td>
+<td>Boost PATK +46 pt<br>Boost Phys. Ability Pot. +39 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Holiday_Cane" class="attach">Holiday Cane</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/7/72/Holiday_Cane_from_FFVIIEC.png/revision/latest?cb=20250208105426" class="mw-file-description image"><img alt="Holiday Cane from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="163" class="thumbimage lazyload" data-image-name="Holiday Cane from FFVIIEC.png" data-image-key="Holiday_Cane_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/72/Holiday_Cane_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105426"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/7/72/Holiday_Cane_from_FFVIIEC.png/revision/latest?cb=20250208105426" class="mw-file-description image"><img alt="Holiday Cane from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/7/72/Holiday_Cane_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105426" decoding="async" loading="lazy" width="100" height="163" class="thumbimage" data-image-name="Holiday Cane from FFVIIEC.png" data-image-key="Holiday_Cane_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/72/Holiday_Cane_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105426" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>477
+</td>
+<td>516
+</td>
+<td>245
+</td>
+<td><b>Quakera Surge A++</b>:<br>Deal 290% Mag. Earth damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost PDEF +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Bahamut_Rapier" class="attach">Bahamut Rapier</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d5/Bahamut_Rapier_from_FFVIIEC.png/revision/latest?cb=20250208105439" class="mw-file-description image"><img alt="Bahamut Rapier from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="146" class="thumbimage lazyload" data-image-name="Bahamut Rapier from FFVIIEC.png" data-image-key="Bahamut_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d5/Bahamut_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105439"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/d/d5/Bahamut_Rapier_from_FFVIIEC.png/revision/latest?cb=20250208105439" class="mw-file-description image"><img alt="Bahamut Rapier from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/d/d5/Bahamut_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105439" decoding="async" loading="lazy" width="100" height="146" class="thumbimage" data-image-name="Bahamut Rapier from FFVIIEC.png" data-image-key="Bahamut_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/d/d5/Bahamut_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105439" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>453
+</td>
+<td>542
+</td>
+<td>245
+</td>
+<td><b>Ruinra Surge++</b>:<br>Deal 450% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).
+</td>
+<td>4
+</td>
+<td>Boost MDEF +46 pt<br>Boost MATK +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Bramble_Spine" class="attach">Bramble Spine</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/2/2e/Bramble_Spine_from_FFVIIEC.png/revision/latest?cb=20250208105450" class="mw-file-description image"><img alt="Bramble Spine from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="169" class="thumbimage lazyload" data-image-name="Bramble Spine from FFVIIEC.png" data-image-key="Bramble_Spine_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/2e/Bramble_Spine_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105450"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/2/2e/Bramble_Spine_from_FFVIIEC.png/revision/latest?cb=20250208105450" class="mw-file-description image"><img alt="Bramble Spine from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/2/2e/Bramble_Spine_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105450" decoding="async" loading="lazy" width="100" height="169" class="thumbimage" data-image-name="Bramble Spine from FFVIIEC.png" data-image-key="Bramble_Spine_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/2/2e/Bramble_Spine_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105450" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>477
+</td>
+<td>624
+</td>
+<td>267
+</td>
+<td><b>Stalwart Bravery++</b>:<br>PATK is increased. [Pot.: High] [Rng.: Single Ally] [Dur.: 38s]. [Ext.: +12s] [Max. pot.: High]<br>Also, Regen is applied [Rng.: Single Ally]. [Dur.: 15s] [Ext.: +3s]<br>Mag. heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>4
+</td>
+<td>Boost HEAL +46 pt<br>Boost MDEF +39 pt
+</td>
+<td>PATK Boost I<br>PATK Boost I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Giant_Fork" class="attach">Giant Fork</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Giant_Fork_from_FFVIIEC.png/revision/latest?cb=20250208105459" class="mw-file-description image"><img alt="Giant Fork from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="153" class="thumbimage lazyload" data-image-name="Giant Fork from FFVIIEC.png" data-image-key="Giant_Fork_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Giant_Fork_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105459"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Giant_Fork_from_FFVIIEC.png/revision/latest?cb=20250208105459" class="mw-file-description image"><img alt="Giant Fork from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Giant_Fork_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105459" decoding="async" loading="lazy" width="100" height="153" class="thumbimage" data-image-name="Giant Fork from FFVIIEC.png" data-image-key="Giant_Fork_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/56/Giant_Fork_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105459" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>513
+</td>
+<td>496
+</td>
+<td>238
+</td>
+<td><b>Solid Bravery++</b>:<br>PATK is increased. [Pot.: Low] [Rng.: Single Ally] [Dur.: 44s]. [Ext.: +14s] [Max. pot.: Mid]<br>Also, Regen is applied [Rng.: Single Ally]. [Dur.: 15s] [Ext.: +3s]<br>Mag. heal is cast. [Pot.: 13% of Healing Pot.] [Rng.: Single Ally]
+</td>
+<td>4
+</td>
+<td>Boost HP +31 pt<br>Boost PDEF +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Centipede" class="attach">Centipede</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/Centipede_from_FFVIIEC.png/revision/latest?cb=20250208105513" class="mw-file-description image"><img alt="Centipede from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="159" class="thumbimage lazyload" data-image-name="Centipede from FFVIIEC.png" data-image-key="Centipede_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/Centipede_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105513"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/Centipede_from_FFVIIEC.png/revision/latest?cb=20250208105513" class="mw-file-description image"><img alt="Centipede from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/Centipede_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105513" decoding="async" loading="lazy" width="100" height="159" class="thumbimage" data-image-name="Centipede from FFVIIEC.png" data-image-key="Centipede_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e0/Centipede_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105513" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>492
+</td>
+<td>496
+</td>
+<td>320
+</td>
+<td><b>Recovery Circle++</b>:<br>Mag. heal is cast. [Pot.: 59% of Healing Pot.] [Rng.: All Allies]<br>Also, PDEF is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 14s]. [Ext.: +4s] [Max. pot.: High]
+</td>
+<td>5
+</td>
+<td>Boost HEAL +62 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +26 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>HEAL Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Syringe_Rapier" class="attach">Syringe Rapier</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/4/46/Syringe_Rapier_from_FFVIIEC.png/revision/latest?cb=20250304183539" class="mw-file-description image"><img alt="Syringe Rapier from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="160" class="thumbimage lazyload" data-image-name="Syringe Rapier from FFVIIEC.png" data-image-key="Syringe_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/46/Syringe_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183539"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/4/46/Syringe_Rapier_from_FFVIIEC.png/revision/latest?cb=20250304183539" class="mw-file-description image"><img alt="Syringe Rapier from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/4/46/Syringe_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183539" decoding="async" loading="lazy" width="100" height="160" class="thumbimage" data-image-name="Syringe Rapier from FFVIIEC.png" data-image-key="Syringe_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/4/46/Syringe_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250304183539" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>496
+</td>
+<td>513
+</td>
+<td>310
+</td>
+<td><b>Defending Jab++</b>:<br>MDEF is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 14s]. [Ext.: +4s] [Max. pot.: High]<br> Also, Mag. heal is cast. [Pot.: 7% of Healing Pot.] [Rng.: All Allies]<br>When [Rng.: Self]'s HP is 50% or more, PDEF is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 14s]. [Ext.: +4s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost HP +46 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +39 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Humus_Rapier" class="attach">Humus Rapier</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Humus_Rapier_from_FFVIIEC.png/revision/latest?cb=20250208105526" class="mw-file-description image"><img alt="Humus Rapier from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="155" class="thumbimage lazyload" data-image-name="Humus Rapier from FFVIIEC.png" data-image-key="Humus_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Humus_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105526"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Humus_Rapier_from_FFVIIEC.png/revision/latest?cb=20250208105526" class="mw-file-description image"><img alt="Humus Rapier from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Humus_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105526" decoding="async" loading="lazy" width="100" height="155" class="thumbimage" data-image-name="Humus Rapier from FFVIIEC.png" data-image-key="Humus_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/1/15/Humus_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105526" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>477
+</td>
+<td>528
+</td>
+<td>240
+</td>
+<td><b>Aerora Surge A++</b>:<br>Deal 290% Mag. Wind damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Wind Pot. +26 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Firefish" class="attach">Firefish</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Firefish_from_FFVIIEC.png/revision/latest?cb=20250208105535" class="mw-file-description image"><img alt="Firefish from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="141" class="thumbimage lazyload" data-image-name="Firefish from FFVIIEC.png" data-image-key="Firefish_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Firefish_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105535"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Firefish_from_FFVIIEC.png/revision/latest?cb=20250208105535" class="mw-file-description image"><img alt="Firefish from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Firefish_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105535" decoding="async" loading="lazy" width="100" height="141" class="thumbimage" data-image-name="Firefish from FFVIIEC.png" data-image-key="Firefish_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Firefish_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105535" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>516
+</td>
+<td>477
+</td>
+<td>245
+</td>
+<td><b>Fira Impact++</b>:<br>Deal 450% Phys. Fire damage [Rng.: Single Enemy].
+</td>
+<td>4
+</td>
+<td>Boost PATK +31 pt<br>Boost Fire Pot. +26 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>PATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Candle_Rapier" class="attach">Candle Rapier</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/8/84/Candle_Rapier_from_FFVIIEC.png/revision/latest?cb=20250208105551" class="mw-file-description image"><img alt="Candle Rapier from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="163" class="thumbimage lazyload" data-image-name="Candle Rapier from FFVIIEC.png" data-image-key="Candle_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/84/Candle_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105551"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/8/84/Candle_Rapier_from_FFVIIEC.png/revision/latest?cb=20250208105551" class="mw-file-description image"><img alt="Candle Rapier from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/8/84/Candle_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105551" decoding="async" loading="lazy" width="100" height="163" class="thumbimage" data-image-name="Candle Rapier from FFVIIEC.png" data-image-key="Candle_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/8/84/Candle_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105551" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>463
+</td>
+<td>547
+</td>
+<td>238
+</td>
+<td><b>Thundara Surge A++</b>:<br>Deal 290% Mag. Lightning damage [Rng.: All Enemies].
+</td>
+<td>4
+</td>
+<td>Boost MATK +31 pt<br>Boost Lightning Pot. +26 pt
+</td>
+<td>ATK Boost I<br>ATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Luminary_Sword" class="attach">Luminary Sword</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/9/94/Luminary_Sword_from_FFVIIEC.png/revision/latest?cb=20250208105604" class="mw-file-description image"><img alt="Luminary Sword from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="162" class="thumbimage lazyload" data-image-name="Luminary Sword from FFVIIEC.png" data-image-key="Luminary_Sword_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/94/Luminary_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105604"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/9/94/Luminary_Sword_from_FFVIIEC.png/revision/latest?cb=20250208105604" class="mw-file-description image"><img alt="Luminary Sword from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/9/94/Luminary_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105604" decoding="async" loading="lazy" width="100" height="162" class="thumbimage" data-image-name="Luminary Sword from FFVIIEC.png" data-image-key="Luminary_Sword_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/9/94/Luminary_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105604" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>489
+</td>
+<td>513
+</td>
+<td>316
+</td>
+<td><b>Luminary Glow++</b>:<br>MATK is increased. [Pot.: Low] [Rng.: All Allies] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]<br>Also, Mag. heal is cast. [Pot.: 7% of Healing Pot.] [Rng.: All Allies]<br>When [Rng.: Self]'s HP is 70% or more, Fire Damage is increased. [Pot.: Low] [Rng.: All Allies] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost HEAL +31 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +52 pt
+</td>
+<td>MATK Boost I<br>MATK Boost I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Nautilus_Spiral" class="attach">Nautilus Spiral</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e3/Nautilus_Spiral_from_FFVIIEC.png/revision/latest?cb=20250208105722" class="mw-file-description image"><img alt="Nautilus Spiral from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="127" class="thumbimage lazyload" data-image-name="Nautilus Spiral from FFVIIEC.png" data-image-key="Nautilus_Spiral_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e3/Nautilus_Spiral_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105722"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/e/e3/Nautilus_Spiral_from_FFVIIEC.png/revision/latest?cb=20250208105722" class="mw-file-description image"><img alt="Nautilus Spiral from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/e/e3/Nautilus_Spiral_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105722" decoding="async" loading="lazy" width="100" height="127" class="thumbimage" data-image-name="Nautilus Spiral from FFVIIEC.png" data-image-key="Nautilus_Spiral_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/e/e3/Nautilus_Spiral_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250208105722" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>532
+</td>
+<td>540
+</td>
+<td>315
+</td>
+<td><b>Spiral Edge++</b>:<br>Deal 420% Phys. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Ice Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 50% or more, Lightning Resist. is decreased. [Pot.: High] [Rng.: Single Enemy] [Dur.: 24s]. [Ext.: +8s] [Max. pot.: High]
+</td>
+<td>3
+</td>
+<td>Boost HEAL +62 pt<br>Buff/Debuff Extension (Stats/Pot./Res.) +42 pt
+</td>
+<td>PATK Boost I<br>HEAL Boost I<br>All (Cure Spells) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Hrotti" class="attach">Hrotti</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/7/74/Hrotti_from_FFVIIEC.png/revision/latest?cb=20250417172317" class="mw-file-description image"><img alt="Hrotti from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="162" class="thumbimage lazyload" data-image-name="Hrotti from FFVIIEC.png" data-image-key="Hrotti_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/74/Hrotti_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250417172317"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/7/74/Hrotti_from_FFVIIEC.png/revision/latest?cb=20250417172317" class="mw-file-description image"><img alt="Hrotti from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/7/74/Hrotti_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250417172317" decoding="async" loading="lazy" width="100" height="162" class="thumbimage" data-image-name="Hrotti from FFVIIEC.png" data-image-key="Hrotti_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/7/74/Hrotti_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20250417172317" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>465
+</td>
+<td>532
+</td>
+<td>243
+</td>
+<td><b>Dequakera Surge++</b>:<br>Deal 360% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, Earth Resist. is decreased. [Pot.: Mid] [Rng.: Single Enemy] [Dur.: 28s]. [Ext.: +9s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost PATK +46 pt<br>Boost Earth Pot. +39 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>MATK Boost I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><span id="Deroplatys" class="attach">Deroplatys</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/0/05/Deroplatys_from_FFVIIEC.png/revision/latest?cb=20251227141032" class="mw-file-description image"><img alt="Deroplatys from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="160" class="thumbimage lazyload" data-image-name="Deroplatys from FFVIIEC.png" data-image-key="Deroplatys_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/05/Deroplatys_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251227141032"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/0/05/Deroplatys_from_FFVIIEC.png/revision/latest?cb=20251227141032" class="mw-file-description image"><img alt="Deroplatys from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/0/05/Deroplatys_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251227141032" decoding="async" loading="lazy" width="100" height="160" class="thumbimage" data-image-name="Deroplatys from FFVIIEC.png" data-image-key="Deroplatys_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/0/05/Deroplatys_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251227141032" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>511
+</td>
+<td>513
+</td>
+<td>338
+</td>
+<td><b>Mending Wave++</b>:<br>Mag. heal is cast. [Pot.: 47% of Healing Pot.] [Rng.: All Allies]<br>Also, PATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 20s]. [Ext.: +6s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 70% or more, MDEF is increased. [Pot.: High] [Rng.: All Allies] [Dur.: 20s]. [Ext.: +6s] [Max. pot.: High]
+</td>
+<td>4
+</td>
+<td>Boost PATK (All Allies) +46 pt<br>Buff/Debuff Extension (Stas/Pot./Res.) +42 pt
+</td>
+<td>PATK Boost I<br>HEAL Boost I<br>All (Esuna) I
+</td>
+<td>
+</td></tr>
+<tr>
+<th><a href="/wiki/Dragontail_Sword" class="mw-redirect" title="Dragontail Sword"><span id="Dragontail_Sword" class="attach">Dragontail Sword</span></a><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/5/58/Dragontail_Sword_from_FFVIIEC.png/revision/latest?cb=20251030104046" class="mw-file-description image"><img alt="Dragontail Sword from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="173" class="thumbimage lazyload" data-image-name="Dragontail Sword from FFVIIEC.png" data-image-key="Dragontail_Sword_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/58/Dragontail_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251030104046"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/5/58/Dragontail_Sword_from_FFVIIEC.png/revision/latest?cb=20251030104046" class="mw-file-description image"><img alt="Dragontail Sword from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/5/58/Dragontail_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251030104046" decoding="async" loading="lazy" width="100" height="173" class="thumbimage" data-image-name="Dragontail Sword from FFVIIEC.png" data-image-key="Dragontail_Sword_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/5/58/Dragontail_Sword_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251030104046" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>532
+</td>
+<td>537
+</td>
+<td>243
+</td>
+<td><b>Debravera Surge++</b>:<br>Deal 360% Mag. Non-elem. damage [Rng.: Single Enemy] ([Crit rate: 10%]).<br>Also, PATK is decreased. [Pot.: Low] [Rng.: Single Enemy] [Dur.: 28s]. [Ext.: +9s] [Max. pot.: Mid]
+</td>
+<td>4
+</td>
+<td>Boost ATK +46 pt<br>Boost Ability Pot. +42 pt
+</td>
+<td>ATK Boost I<br>PATK Boost I<br>MATK Boost I
+</td>
+<td>Event Rewards (<a href="/wiki/THE_FIRST_SOLDIER:_Episode_-_Three_Ex-SOLDIERs" title="THE FIRST SOLDIER: Episode - Three Ex-SOLDIERs">THE FIRST SOLDIER: Episode - Three Ex-SOLDIERs</a>)
+</td></tr>
+<tr>
+<th><span id="Desperado_Rapier" class="attach">Desperado Rapier</span><br><figure class="thumb mw-halign-center show-info-icon" typeof="mw:File/Thumb" style="width: 100px"> 	<a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b9/Desperado_Rapier_from_FFVIIEC.png/revision/latest?cb=20251018151107" class="mw-file-description image"><img alt="Desperado Rapier from FFVIIEC" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="100" height="171" class="thumbimage lazyload" data-image-name="Desperado Rapier from FFVIIEC.png" data-image-key="Desperado_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b9/Desperado_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251018151107"></a> 	<noscript><a href="https://static.wikia.nocookie.net/finalfantasy/images/b/b9/Desperado_Rapier_from_FFVIIEC.png/revision/latest?cb=20251018151107" class="mw-file-description image"><img alt="Desperado Rapier from FFVIIEC" src="https://static.wikia.nocookie.net/finalfantasy/images/b/b9/Desperado_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251018151107" decoding="async" loading="lazy" width="100" height="171" class="thumbimage" data-image-name="Desperado Rapier from FFVIIEC.png" data-image-key="Desperado_Rapier_from_FFVIIEC.png" data-relevant="1" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/b9/Desperado_Rapier_from_FFVIIEC.png/revision/latest/scale-to-width-down/100?cb=20251018151107" /></a></noscript> 	<figcaption class="thumbcaption"> 		 			 		 		 		 	</figcaption> </figure>
+</th>
+<td>499
+</td>
+<td>537
+</td>
+<td>333
+</td>
+<td><b>Green Repose++</b>:<br>Mag. heal is cast. [Pot.: 59% of Healing Pot.] [Rng.: All Allies]<br>Also, Lightning Resist. is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]<br>Wind Resist. is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]<br>When [Rng.: Self]'s HP is 70% or more, PATK is increased. [Pot.: Mid] [Rng.: All Allies] [Dur.: 30s]. [Ext.: +10s] [Max. pot.: High]
+</td>
+<td>5
+</td>
+<td>Boost HP +62 pt<br>Boost HEAL +42 pt
+</td>
+<td>ATK Boost I<br>HEAL Boost I<br><span typeof="mw:File"><span title="Circle sigil"><img alt="Circle sigil" src="data:image/gif;base64,R0lGODlhAQABAIABAAAAAP///yH5BAEAAAEALAAAAAABAAEAQAICTAEAOw%3D%3D" decoding="async" loading="lazy" width="14" height="14" class="mw-file-element lazyload" data-image-name="Circle sigil from FFVIIEC.png" data-image-key="Circle_sigil_from_FFVIIEC.png" data-relevant="0" data-src="https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Circle_sigil_from_FFVIIEC.png/revision/latest/scale-to-width-down/14?cb=20260112042142"></span></span> Sigil Boost I
+</td>
+<td>Stamp Card (<a href="/wiki/THE_FIRST_SOLDIER:_Episode_-_Three_Ex-SOLDIERs" title="THE FIRST SOLDIER: Episode - Three Ex-SOLDIERs">THE FIRST SOLDIER: Episode - Three Ex-SOLDIERs</a>/Vol. 3)
+</td></tr></tbody><tfoot></tfoot></table>

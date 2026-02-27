@@ -7,6 +7,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
 {
     public sealed class WeaponCatalog
     {
+        private sealed record AdditionalWeaponRow(string? Character, string? Weapon, string? Ability1, string? Ability2);
+        private sealed record AdditionalOutfitRow(
+            string? Character,
+            string? Outfit,
+            string? Command,
+            string? Ability1,
+            string? Ability2,
+            string? Ability3,
+            string? Ability4,
+            string? Ability5,
+            string? Ability6,
+            string? Ability7,
+            string? Ability8,
+            string? Ability9,
+            string? Ability10);
+
         private readonly Dictionary<string, WeaponInfo> _byWeaponName = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, WeaponInfo> _byWeaponNameNormalized = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, CostumeInfo> _byCostumeName = new(StringComparer.OrdinalIgnoreCase);
@@ -17,6 +33,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         public WeaponCatalog(IWebHostEnvironment env)
         {
+            var additionalWeapons = LoadAdditionalWeaponData(env);
+            var additionalOutfits = LoadAdditionalOutfitData(env);
+            var additionalUltimateWeapons = LoadAdditionalUltimateWeaponData(env);
+
             var dataPath = Path.Combine(env.ContentRootPath, "data", "weaponData.tsv");
             if (File.Exists(dataPath))
             {
@@ -49,6 +69,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     var abilityElement = (csv.GetField("Ability Element") ?? string.Empty).Trim();
                     var abilityType = (csv.GetField("Ability Type") ?? string.Empty).Trim();
                     var abilityRange = (csv.GetField("Ability Range") ?? string.Empty).Trim();
+                    var abilityText = (csv.GetField("Ability Text") ?? string.Empty).Trim();
                     var abilityPotRaw = (csv.GetField("Ability Pot. %") ?? string.Empty).Trim();
 
                     double? abilityPotPercent = null;
@@ -89,6 +110,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         .Where(v => !string.IsNullOrWhiteSpace(v))
                     );
 
+                    if (!string.IsNullOrWhiteSpace(abilityText))
+                    {
+                        effectText = string.Join(" | ", new[] { effectText, abilityText }
+                            .Where(s => !string.IsNullOrWhiteSpace(s)));
+                    }
+
                     // Include effect metadata (potency + count) so we can score limited-use effects like Amp abilities.
                     var metaParts = new List<string>();
                     for (int i = 0; i <= 3; i++)
@@ -123,10 +150,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
 
                     AddWeaponOrCostume(name, character, gachaType, abilityElement, abilityType, abilityRange, abilityPotPercent, multiplyDamageBonusPercent, effectText);
+                    if (gachaType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase))
+                    {
+                        TryEnrichWeaponFromAdditional(additionalUltimateWeapons, name, _byWeaponName[name]);
+                    }
+                    else
+                    {
+                        TryEnrichWeaponFromAdditional(additionalWeapons, name, _byWeaponName[name]);
+                    }
+                    if (gachaType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
+                    {
+                        TryEnrichCostumeFromAdditional(additionalOutfits, name, _byCostumeName);
+                    }
                 }
             }
 
-            LoadFallbackJson(env);
+            LoadAdditionalJsonFallbacks(additionalWeapons, additionalOutfits, additionalUltimateWeapons);
         }
 
         private void AddWeaponOrCostume(
@@ -184,141 +223,226 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
         }
 
-        private void LoadFallbackJson(IWebHostEnvironment env)
+        private static Dictionary<string, AdditionalWeaponRow> LoadAdditionalWeaponData(IWebHostEnvironment env)
         {
-            var path = Path.Combine(env.ContentRootPath, "data", "weaponFallback.json");
+            var path = Path.Combine(env.ContentRootPath, "data", "additionalWeaponData.json");
             if (!File.Exists(path))
             {
-                return;
+                return new Dictionary<string, AdditionalWeaponRow>(StringComparer.OrdinalIgnoreCase);
             }
 
             try
             {
                 var json = File.ReadAllText(path);
-                var doc = JsonSerializer.Deserialize<FallbackDoc>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (doc == null)
-                {
-                    return;
-                }
-
-                if (doc.Weapons != null)
-                {
-                    foreach (var w in doc.Weapons)
-                    {
-                        if (string.IsNullOrWhiteSpace(w.Name))
-                        {
-                            continue;
-                        }
-
-                        if (_byWeaponName.ContainsKey(w.Name))
-                        {
-                            continue; // TSV wins
-                        }
-
-                        var effectText = BuildFallbackEffectText(w);
-                        AddWeaponOrCostume(
-                            w.Name.Trim(),
-                            (w.Character ?? string.Empty).Trim(),
-                            (w.GachaType ?? string.Empty).Trim(),
-                            (w.AbilityElement ?? string.Empty).Trim(),
-                            (w.AbilityType ?? string.Empty).Trim(),
-                            (w.AbilityRange ?? string.Empty).Trim(),
-                            w.AbilityPotPercentAtOb10,
-                            w.MultiplyDamageBonusPercent ?? 0,
-                            effectText);
-                    }
-                }
-
-                if (doc.Costumes != null)
-                {
-                    foreach (var c in doc.Costumes)
-                    {
-                        if (string.IsNullOrWhiteSpace(c.Name))
-                        {
-                            continue;
-                        }
-
-                        if (_byCostumeName.ContainsKey(c.Name))
-                        {
-                            continue; // TSV wins
-                        }
-
-                        var effectText = BuildFallbackEffectText(c);
-                        AddWeaponOrCostume(
-                            c.Name.Trim(),
-                            (c.Character ?? string.Empty).Trim(),
-                            "Costume",
-                            (c.AbilityElement ?? string.Empty).Trim(),
-                            (c.AbilityType ?? string.Empty).Trim(),
-                            (c.AbilityRange ?? string.Empty).Trim(),
-                            null,
-                            0,
-                            effectText);
-                    }
-                }
+                var rows = JsonSerializer.Deserialize<List<AdditionalWeaponRow>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return rows == null
+                    ? new Dictionary<string, AdditionalWeaponRow>(StringComparer.OrdinalIgnoreCase)
+                    : rows
+                        .Where(r => !string.IsNullOrWhiteSpace(r.Weapon))
+                        .GroupBy(r => r.Weapon!.Trim(), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
             }
             catch
             {
-                // Swallow: fallback file is optional.
+                return new Dictionary<string, AdditionalWeaponRow>(StringComparer.OrdinalIgnoreCase);
             }
         }
 
-        private static string BuildFallbackEffectText(FallbackEntry entry)
+        private static Dictionary<string, AdditionalOutfitRow> LoadAdditionalOutfitData(IWebHostEnvironment env)
         {
-            if (!string.IsNullOrWhiteSpace(entry.EffectTextBlob))
+            var path = Path.Combine(env.ContentRootPath, "data", "additionalOutfitData.json");
+            if (!File.Exists(path))
             {
-                return entry.EffectTextBlob.Trim();
+                return new Dictionary<string, AdditionalOutfitRow>(StringComparer.OrdinalIgnoreCase);
             }
 
-            if (string.IsNullOrWhiteSpace(entry.Effect))
+            try
             {
-                return string.Empty;
+                var json = File.ReadAllText(path);
+                var rows = JsonSerializer.Deserialize<List<AdditionalOutfitRow>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return rows == null
+                    ? new Dictionary<string, AdditionalOutfitRow>(StringComparer.OrdinalIgnoreCase)
+                    : rows
+                        .Where(r => !string.IsNullOrWhiteSpace(r.Outfit))
+                        .GroupBy(r => r.Outfit!.Trim(), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return new Dictionary<string, AdditionalOutfitRow>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private static Dictionary<string, AdditionalWeaponRow> LoadAdditionalUltimateWeaponData(IWebHostEnvironment env)
+        {
+            var path = Path.Combine(env.ContentRootPath, "data", "additionalUltimateWeaponData.json");
+            if (!File.Exists(path))
+            {
+                return new Dictionary<string, AdditionalWeaponRow>(StringComparer.OrdinalIgnoreCase);
             }
 
-            var parts = new List<string> { entry.Effect.Trim() };
-            if (!string.IsNullOrWhiteSpace(entry.EffectType)) parts.Add(entry.EffectType.Trim());
-            if (!string.IsNullOrWhiteSpace(entry.EffectPot)) parts.Add($"{entry.Effect.Trim()} Pot={entry.EffectPot.Trim()}");
-            if (!string.IsNullOrWhiteSpace(entry.EffectPotMax)) parts.Add($"{entry.Effect.Trim()} PotMax={entry.EffectPotMax.Trim()}");
-            if (!string.IsNullOrWhiteSpace(entry.EffectCount)) parts.Add($"{entry.Effect.Trim()} Count={entry.EffectCount.Trim()}");
-
-            return string.Join(" | ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+            try
+            {
+                var json = File.ReadAllText(path);
+                var rows = JsonSerializer.Deserialize<List<AdditionalWeaponRow>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return rows == null
+                    ? new Dictionary<string, AdditionalWeaponRow>(StringComparer.OrdinalIgnoreCase)
+                    : rows
+                        .Where(r => !string.IsNullOrWhiteSpace(r.Weapon))
+                        .GroupBy(r => r.Weapon!.Trim(), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return new Dictionary<string, AdditionalWeaponRow>(StringComparer.OrdinalIgnoreCase);
+            }
         }
 
-        private sealed class FallbackDoc
+        private static string BuildAdditionalWeaponEffectText(AdditionalWeaponRow row)
         {
-            public List<FallbackWeaponEntry>? Weapons { get; set; }
-            public List<FallbackCostumeEntry>? Costumes { get; set; }
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(row.Ability1)) parts.Add(row.Ability1!.Trim());
+            if (!string.IsNullOrWhiteSpace(row.Ability2)) parts.Add(row.Ability2!.Trim());
+            return string.Join(" | ", parts);
         }
 
-        private abstract class FallbackEntry
+        private static string BuildAdditionalOutfitEffectText(AdditionalOutfitRow row)
         {
-            public string Name { get; set; } = string.Empty;
-            public string? Character { get; set; }
-            public string? AbilityElement { get; set; }
-            public string? AbilityType { get; set; }
-            public string? AbilityRange { get; set; }
-            public string? EffectTextBlob { get; set; }
-
-            public string? Effect { get; set; }
-            public string? EffectType { get; set; }
-            public string? EffectPot { get; set; }
-            public string? EffectPotMax { get; set; }
-            public string? EffectCount { get; set; }
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(row.Command)) parts.Add(row.Command!.Trim());
+            var abilities = new[] { row.Ability1, row.Ability2, row.Ability3, row.Ability4, row.Ability5, row.Ability6, row.Ability7, row.Ability8, row.Ability9, row.Ability10 };
+            foreach (var a in abilities)
+            {
+                if (!string.IsNullOrWhiteSpace(a)) parts.Add(a!.Trim());
+            }
+            return string.Join(" | ", parts);
         }
 
-        private sealed class FallbackWeaponEntry : FallbackEntry
+        private static void AppendEffectText(ref string target, string? extra)
         {
-            public string? GachaType { get; set; }
-            public double? AbilityPotPercentAtOb10 { get; set; }
-            public double? MultiplyDamageBonusPercent { get; set; }
+            if (string.IsNullOrWhiteSpace(extra))
+            {
+                return;
+            }
+
+            target = string.Join(" | ", new[] { target, extra }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
         }
 
-        private sealed class FallbackCostumeEntry : FallbackEntry
+        private static void TryEnrichWeaponFromAdditional(Dictionary<string, AdditionalWeaponRow> additionalWeapons, string weaponName, WeaponInfo weapon)
         {
+            if (!additionalWeapons.TryGetValue(weaponName, out var row))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(weapon.Character) && !string.IsNullOrWhiteSpace(row.Character))
+            {
+                weapon.Character = row.Character!.Trim();
+            }
+
+            var extra = BuildAdditionalWeaponEffectText(row);
+            var blob = weapon.EffectTextBlob;
+            AppendEffectText(ref blob, extra);
+            weapon.EffectTextBlob = blob;
+        }
+
+        private static void TryEnrichCostumeFromAdditional(Dictionary<string, AdditionalOutfitRow> additionalOutfits, string name, Dictionary<string, CostumeInfo> costumesByName)
+        {
+            if (!costumesByName.TryGetValue(name, out var costume))
+            {
+                return;
+            }
+
+            if (!additionalOutfits.TryGetValue(name, out var row))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(costume.Character) && !string.IsNullOrWhiteSpace(row.Character))
+            {
+                costume.Character = row.Character!.Trim();
+            }
+
+            var extra = BuildAdditionalOutfitEffectText(row);
+            var blob = costume.EffectTextBlob;
+            AppendEffectText(ref blob, extra);
+            costume.EffectTextBlob = blob;
+        }
+
+        private void LoadAdditionalJsonFallbacks(Dictionary<string, AdditionalWeaponRow> additionalWeapons, Dictionary<string, AdditionalOutfitRow> additionalOutfits, Dictionary<string, AdditionalWeaponRow> additionalUltimateWeapons)
+        {
+            // Weapons: add any missing weapons from additionalWeaponData.
+            foreach (var kvp in additionalWeapons)
+            {
+                var weaponName = kvp.Key;
+                var row = kvp.Value;
+                if (_byWeaponName.ContainsKey(weaponName))
+                {
+                    continue;
+                }
+
+                var character = (row.Character ?? string.Empty).Trim();
+                var effectText = BuildAdditionalWeaponEffectText(row);
+                AddWeaponOrCostume(
+                    weaponName.Trim(),
+                    character,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    null,
+                    0,
+                    effectText);
+            }
+
+            // Ultimate Weapons: add any missing ultimate weapons from additionalUltimateWeaponData.
+            foreach (var kvp in additionalUltimateWeapons)
+            {
+                var weaponName = kvp.Key;
+                var row = kvp.Value;
+                if (_byWeaponName.ContainsKey(weaponName))
+                {
+                    continue;
+                }
+
+                var character = (row.Character ?? string.Empty).Trim();
+                var effectText = BuildAdditionalWeaponEffectText(row);
+                AddWeaponOrCostume(
+                    weaponName.Trim(),
+                    character,
+                    "Ultimate",
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    null,
+                    0,
+                    effectText);
+            }
+
+            // Outfits: add any missing costumes from additionalOutfitData.
+            foreach (var kvp in additionalOutfits)
+            {
+                var outfitName = kvp.Key;
+                var row = kvp.Value;
+                if (_byCostumeName.ContainsKey(outfitName))
+                {
+                    continue;
+                }
+
+                var character = (row.Character ?? string.Empty).Trim();
+                var effectText = BuildAdditionalOutfitEffectText(row);
+                AddWeaponOrCostume(
+                    outfitName.Trim(),
+                    character,
+                    "Costume",
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    null,
+                    0,
+                    effectText);
+            }
         }
 
         public bool TryGetWeapon(string weaponName, out WeaponInfo info)
