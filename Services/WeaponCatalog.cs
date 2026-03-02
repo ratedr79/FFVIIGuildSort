@@ -129,6 +129,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         var pot = (csv.GetField($"Effect{i}_Pot") ?? string.Empty).Trim();
                         var potMax = (csv.GetField($"Effect{i}_PotMax") ?? string.Empty).Trim();
                         var count = (csv.GetField($"Effect{i}_EffectCount") ?? string.Empty).Trim();
+                        var custom = (csv.GetField($"Effect{i}_Custom") ?? string.Empty).Trim();
                         if (!string.IsNullOrWhiteSpace(pot))
                         {
                             metaParts.Add($"{eff} Pot={pot}");
