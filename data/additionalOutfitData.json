@@ -2758,5 +2758,35 @@
     "ability8": null,
     "ability9": null,
     "ability10": null
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "outfit": "Conqueror of the Planet",
+    "command": "Deal 2000.0% Mag. Lightning damage [Rng: Single Enemy] Increases Overspeed Gauge [Pot: 25.0%] [Rng: Self]",
+    "ability1": "Boost Ability Pot. (All Allies) +15 pts",
+    "ability2": "Fire/Ice/Lightning/Earth/Water/Wind Ability Dmg. +30%;",
+    "ability3": "HP +15%",
+    "ability4": null,
+    "ability5": null,
+    "ability6": null,
+    "ability7": null,
+    "ability8": null,
+    "ability9": null,
+    "ability10": null
+  },
+  {
+    "character": "Tifa",
+    "outfit": "Festive Style",
+    "command": "Deal 2000.0% Phys. Fire damage [Rng: Single Enemy] \nApplies Status Ailment: Torpor [Rng: Single Enemy] [Pot: 50.0%] [Dur: 8s] [Ext: 0s]",
+    "ability1": "Boost Ability Pot. (All Allies) +15 pts",
+    "ability2": "Fire/Ice/Lightning/Earth/Water/Wind Ability Dmg. +30%;",
+    "ability3": "HP +15%",
+    "ability4": null,
+    "ability5": null,
+    "ability6": null,
+    "ability7": null,
+    "ability8": null,
+    "ability9": null,
+    "ability10": null
   }
 ]

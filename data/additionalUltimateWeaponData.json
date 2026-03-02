@@ -208,5 +208,17 @@
     "weapon": "Heaven's Cloud",
     "ability1": "Boost Ability Pot. +22 pt",
     "ability2": "Mass Interruption (All Allies) +25 pt"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Dragon Claw",
+    "ability1": "Boost Elem. Pot. Arcanum (All Allies) +45 pts",
+    "ability2": "Inturruption for ATB Conservation +25 pt"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Divine Emissary",
+    "ability1": "Boost Elem. Pot. Arcanum (All Allies) +45 pts",
+    "ability2": "Fortunate Interruption +25 pt"
   }
 ]

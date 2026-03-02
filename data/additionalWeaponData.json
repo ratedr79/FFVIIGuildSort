@@ -3358,5 +3358,17 @@
     "weapon": "Muramasa",
     "ability1": "Boost ATK (All Allies) +46 pts",
     "ability2": "Boost Ability Pot. +42 pts"
+  },
+  {
+    "character": "Tifa",
+    "weapon": "Festive Gloves",
+    "ability1": "Boost PATK (All Allies) +46 pts",
+    "ability2": "Boost Phys. Ability Pot. +42 pts"
+  },
+  {
+    "character": "Sephiroth (Original)",
+    "weapon": "Starsoul Blade",
+    "ability1": "Boost MATK (All Allies) +46 pts",
+    "ability2": "Boost Mag. Ability Pot. +42 pts"
   }
 ]
