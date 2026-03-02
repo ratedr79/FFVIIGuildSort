@@ -342,6 +342,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 weapon.Character = row.Character!.Trim();
             }
 
+            if (string.IsNullOrWhiteSpace(weapon.AdditionalAbility1) && !string.IsNullOrWhiteSpace(row.Ability1))
+            {
+                weapon.AdditionalAbility1 = row.Ability1!.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(weapon.AdditionalAbility2) && !string.IsNullOrWhiteSpace(row.Ability2))
+            {
+                weapon.AdditionalAbility2 = row.Ability2!.Trim();
+            }
+
             var extra = BuildAdditionalWeaponEffectText(row);
             var blob = weapon.EffectTextBlob;
             AppendEffectText(ref blob, extra);
@@ -363,6 +373,29 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (string.IsNullOrWhiteSpace(costume.Character) && !string.IsNullOrWhiteSpace(row.Character))
             {
                 costume.Character = row.Character!.Trim();
+            }
+
+            var newAbilities = new[]
+                {
+                    row.Command,
+                    row.Ability1,
+                    row.Ability2,
+                    row.Ability3,
+                    row.Ability4,
+                    row.Ability5,
+                    row.Ability6,
+                    row.Ability7,
+                    row.Ability8,
+                    row.Ability9,
+                    row.Ability10
+                }
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s!.Trim())
+                .ToList();
+
+            if (newAbilities.Count > 0)
+            {
+                costume.AdditionalAbilities = newAbilities;
             }
 
             var extra = BuildAdditionalOutfitEffectText(row);
@@ -395,6 +428,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     null,
                     0,
                     effectText);
+
+                if (_byWeaponName.TryGetValue(weaponName, out var w))
+                {
+                    w.AdditionalAbility1 = string.IsNullOrWhiteSpace(row.Ability1) ? null : row.Ability1!.Trim();
+                    w.AdditionalAbility2 = string.IsNullOrWhiteSpace(row.Ability2) ? null : row.Ability2!.Trim();
+                }
             }
 
             // Ultimate Weapons: add any missing ultimate weapons from additionalUltimateWeaponData.
@@ -419,6 +458,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     null,
                     0,
                     effectText);
+
+                if (_byWeaponName.TryGetValue(weaponName, out var w))
+                {
+                    w.AdditionalAbility1 = string.IsNullOrWhiteSpace(row.Ability1) ? null : row.Ability1!.Trim();
+                    w.AdditionalAbility2 = string.IsNullOrWhiteSpace(row.Ability2) ? null : row.Ability2!.Trim();
+                }
             }
 
             // Outfits: add any missing costumes from additionalOutfitData.
@@ -443,6 +488,27 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     null,
                     0,
                     effectText);
+
+                if (_byCostumeName.TryGetValue(outfitName, out var c))
+                {
+                    c.AdditionalAbilities = new[]
+                        {
+                            row.Command,
+                            row.Ability1,
+                            row.Ability2,
+                            row.Ability3,
+                            row.Ability4,
+                            row.Ability5,
+                            row.Ability6,
+                            row.Ability7,
+                            row.Ability8,
+                            row.Ability9,
+                            row.Ability10
+                        }
+                        .Where(s => !string.IsNullOrWhiteSpace(s))
+                        .Select(s => s!.Trim())
+                        .ToList();
+                }
             }
         }
 
@@ -495,6 +561,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public double? AbilityPotPercentAtOb10 { get; set; }
         public double MultiplyDamageBonusPercent { get; set; }
         public string EffectTextBlob { get; set; } = string.Empty;
+        public string? AdditionalAbility1 { get; set; }
+        public string? AdditionalAbility2 { get; set; }
     }
 
     public sealed class CostumeInfo
@@ -505,5 +573,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public string AbilityType { get; set; } = string.Empty;
         public string AbilityRange { get; set; } = string.Empty;
         public string EffectTextBlob { get; set; } = string.Empty;
+        public List<string> AdditionalAbilities { get; set; } = new();
     }
 }

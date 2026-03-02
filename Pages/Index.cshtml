@@ -368,6 +368,8 @@
                                                                                 <tbody>
                                                                                     @foreach (var w in ch.SelectedWeapons)
                                                                                     {
+                                                                                        var weaponInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                                                        Model.WeaponCatalog.TryGetWeapon(w.WeaponName, out weaponInfo!);
                                                                                         <tr>
                                                                                             <td>@w.Slot</td>
                                                                                             <td>@w.WeaponName</td>
@@ -382,9 +384,29 @@
                                                                                             <td>@(w.PreferredDamageTypeMatch ? "Y" : "N")</td>
                                                                                             <td>@(string.IsNullOrWhiteSpace(w.SynergyReason) ? "-" : w.SynergyReason)</td>
                                                                                         </tr>
+                                                                                        @if (weaponInfo != null && (!string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility1) || !string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility2)))
+                                                                                        {
+                                                                                            <tr>
+                                                                                                <td colspan="12" class="text-muted">
+                                                                                                    <small>
+                                                                                                        <strong>Additional</strong>:
+                                                                                                        @if (!string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility1))
+                                                                                                        {
+                                                                                                            <span>@weaponInfo.AdditionalAbility1</span>
+                                                                                                        }
+                                                                                                        @if (!string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility2))
+                                                                                                        {
+                                                                                                            <span>@(string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility1) ? string.Empty : " | ")@weaponInfo.AdditionalAbility2</span>
+                                                                                                        }
+                                                                                                    </small>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        }
                                                                                     }
                                                                                     @if (ch.UltimateWeapon != null && ch.UltimateWeapon.WeaponName != "(Not owned)")
                                                                                     {
+                                                                                        var ultInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                                                        Model.WeaponCatalog.TryGetWeapon(ch.UltimateWeapon.WeaponName, out ultInfo!);
                                                                                         <tr>
                                                                                             <td>Ultimate</td>
                                                                                             <td>@ch.UltimateWeapon.WeaponName</td>
@@ -399,6 +421,24 @@
                                                                                             <td>@(ch.UltimateWeapon.PreferredDamageTypeMatch ? "Y" : "N")</td>
                                                                                             <td>@(string.IsNullOrWhiteSpace(ch.UltimateWeapon.SynergyReason) ? "-" : ch.UltimateWeapon.SynergyReason)</td>
                                                                                         </tr>
+                                                                                        @if (ultInfo != null && (!string.IsNullOrWhiteSpace(ultInfo.AdditionalAbility1) || !string.IsNullOrWhiteSpace(ultInfo.AdditionalAbility2)))
+                                                                                        {
+                                                                                            <tr>
+                                                                                                <td colspan="12" class="text-muted">
+                                                                                                    <small>
+                                                                                                        <strong>Additional</strong>:
+                                                                                                        @if (!string.IsNullOrWhiteSpace(ultInfo.AdditionalAbility1))
+                                                                                                        {
+                                                                                                            <span>@ultInfo.AdditionalAbility1</span>
+                                                                                                        }
+                                                                                                        @if (!string.IsNullOrWhiteSpace(ultInfo.AdditionalAbility2))
+                                                                                                        {
+                                                                                                            <span>@(string.IsNullOrWhiteSpace(ultInfo.AdditionalAbility1) ? string.Empty : " | ")@ultInfo.AdditionalAbility2</span>
+                                                                                                        }
+                                                                                                    </small>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        }
                                                                                     }
                                                                                 </tbody>
                                                                             </table>
@@ -420,12 +460,22 @@
                                                                                     <tbody>
                                                                                         @foreach (var c in ch.SelectedCostumes)
                                                                                         {
+                                                                                            var costumeInfo = default(FFVIIEverCrisisAnalyzer.Services.CostumeInfo);
+                                                                                            Model.WeaponCatalog.TryGetCostume(c.CostumeName, out costumeInfo!);
                                                                                             <tr>
                                                                                                 <td>@c.Slot</td>
                                                                                                 <td>@c.CostumeName</td>
                                                                                                 <td>@c.FinalCostumeScore.ToString("N2")</td>
                                                                                                 <td>@(string.IsNullOrWhiteSpace(c.SynergyReason) ? "-" : c.SynergyReason)</td>
                                                                                             </tr>
+                                                                                            @if (costumeInfo != null && costumeInfo.AdditionalAbilities != null && costumeInfo.AdditionalAbilities.Count > 0)
+                                                                                            {
+                                                                                                <tr>
+                                                                                                    <td colspan="4" class="text-muted">
+                                                                                                        <small><strong>Additional</strong>: @string.Join(" | ", costumeInfo.AdditionalAbilities)</small>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                            }
                                                                                         }
                                                                                     </tbody>
                                                                                 </table>
@@ -455,6 +505,8 @@
                                                                             <tbody>
                                                                                 @foreach (var c in ch.SelectedCostumes)
                                                                                 {
+                                                                                    var costumeInfo = default(FFVIIEverCrisisAnalyzer.Services.CostumeInfo);
+                                                                                    Model.WeaponCatalog.TryGetCostume(c.CostumeName, out costumeInfo!);
                                                                                     <tr>
                                                                                         <td>@c.CostumeName</td>
                                                                                         <td>@c.Slot</td>
@@ -464,6 +516,14 @@
                                                                                         <td>@c.SlotMultiplier</td>
                                                                                         <td><strong>@c.FinalCostumeScore.ToString("N0")</strong></td>
                                                                                     </tr>
+                                                                                    @if (costumeInfo != null && costumeInfo.AdditionalAbilities != null && costumeInfo.AdditionalAbilities.Count > 0)
+                                                                                    {
+                                                                                        <tr>
+                                                                                            <td colspan="7" class="text-muted">
+                                                                                                <small><strong>Additional</strong>: @string.Join(" | ", costumeInfo.AdditionalAbilities)</small>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    }
                                                                                     @if (!string.IsNullOrWhiteSpace(c.SynergyReason))
                                                                                     {
                                                                                         <tr>
@@ -517,6 +577,8 @@
                                                                             }
                                                                             else
                                                                             {
+                                                                            var ultimateInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                                            Model.WeaponCatalog.TryGetWeapon(ch.UltimateWeapon.WeaponName, out ultimateInfo!);
                                                                             <tr>
                                                                                 <td>@ch.UltimateWeapon.WeaponName</td>
                                                                                 <td>@(ch.UltimateWeapon.Slot ?? "-")</td>
@@ -537,6 +599,24 @@
                                                                                 <td>@ch.UltimateWeapon.UltimateMultiplier</td>
                                                                                 <td><strong>@ch.UltimateWeapon.FinalWeaponScore.ToString("N0")</strong></td>
                                                                             </tr>
+                                                                            @if (ultimateInfo != null && (!string.IsNullOrWhiteSpace(ultimateInfo.AdditionalAbility1) || !string.IsNullOrWhiteSpace(ultimateInfo.AdditionalAbility2)))
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="18" class="text-muted">
+                                                                                        <small>
+                                                                                            <strong>Additional</strong>:
+                                                                                            @if (!string.IsNullOrWhiteSpace(ultimateInfo.AdditionalAbility1))
+                                                                                            {
+                                                                                                <span>@ultimateInfo.AdditionalAbility1</span>
+                                                                                            }
+                                                                                            @if (!string.IsNullOrWhiteSpace(ultimateInfo.AdditionalAbility2))
+                                                                                            {
+                                                                                                <span>@(string.IsNullOrWhiteSpace(ultimateInfo.AdditionalAbility1) ? string.Empty : " | ")@ultimateInfo.AdditionalAbility2</span>
+                                                                                            }
+                                                                                        </small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
                                                                             @if (!string.IsNullOrWhiteSpace(ch.UltimateWeapon.SelectionReason))
                                                                             {
                                                                                 <tr>
@@ -586,6 +666,8 @@
                                                                     <tbody>
                                                                         @foreach (var w in ch.SelectedWeapons)
                                                                         {
+                                                                            var weaponInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                                            Model.WeaponCatalog.TryGetWeapon(w.WeaponName, out weaponInfo!);
                                                                             <tr>
                                                                                 <td>@w.WeaponName</td>
                                                                                 <td>@(w.Slot ?? "-")</td>
@@ -606,6 +688,24 @@
                                                                                 <td>@w.UltimateMultiplier</td>
                                                                                 <td><strong>@w.FinalWeaponScore.ToString("N0")</strong></td>
                                                                             </tr>
+                                                                            @if (weaponInfo != null && (!string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility1) || !string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility2)))
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="18" class="text-muted">
+                                                                                        <small>
+                                                                                            <strong>Additional</strong>:
+                                                                                            @if (!string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility1))
+                                                                                            {
+                                                                                                <span>@weaponInfo.AdditionalAbility1</span>
+                                                                                            }
+                                                                                            @if (!string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility2))
+                                                                                            {
+                                                                                                <span>@(string.IsNullOrWhiteSpace(weaponInfo.AdditionalAbility1) ? string.Empty : " | ")@weaponInfo.AdditionalAbility2</span>
+                                                                                            }
+                                                                                        </small>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
                                                                             @if (!string.IsNullOrWhiteSpace(w.SelectionReason))
                                                                             {
                                                                                 <tr>

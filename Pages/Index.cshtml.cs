@@ -11,13 +11,17 @@ public class IndexModel : PageModel
     private readonly ILogger<IndexModel> _logger;
     private readonly Gb20Analyzer _gb20Analyzer;
     private readonly GuildAssigner _guildAssigner;
+    private readonly WeaponCatalog _weaponCatalog;
 
-    public IndexModel(ILogger<IndexModel> logger, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner)
+    public IndexModel(ILogger<IndexModel> logger, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog)
     {
         _logger = logger;
         _gb20Analyzer = gb20Analyzer;
         _guildAssigner = guildAssigner;
+        _weaponCatalog = weaponCatalog;
     }
+
+    public WeaponCatalog WeaponCatalog => _weaponCatalog;
 
     [BindProperty]
     public IFormFile? UploadedFile { get; set; }

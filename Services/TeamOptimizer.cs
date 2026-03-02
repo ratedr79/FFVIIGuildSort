@@ -1138,22 +1138,44 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return new List<WeaponOwnership> { allowed[0] };
             }
 
-            // Main-hand: best potency weapon that matches weakness + preferred damage type (fallback to best potency overall).
-            var matching = weapons
-                .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) &&
-                            SynergyDetection.WeaponMatchesEnemyWeakness(info, context.EnemyWeakness) &&
-                            SynergyDetection.WeaponMatchesPreferredDamageType(info, context.PreferredDamageType))
-                .ToList();
+            WeaponOwnership mainHand;
 
-            matching = matching
-                .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) && IsAllowedForMainOrOffHand(info))
-                .ToList();
+            if (role == CharacterRole.DPS)
+            {
+                // Main-hand (DPS): best potency weapon that matches weakness + preferred damage type (fallback to best potency overall).
+                var matching = weapons
+                    .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) &&
+                                SynergyDetection.WeaponMatchesEnemyWeakness(info, context.EnemyWeakness) &&
+                                SynergyDetection.WeaponMatchesPreferredDamageType(info, context.PreferredDamageType))
+                    .ToList();
 
-            var mainHandPool = matching.Count > 0 ? matching : allowed;
-            var mainHand = mainHandPool
-                .OrderByDescending(ScoreWeaponPotencyForDps)
-                .ThenByDescending(w => ScoreWeapon(w, context, slot: "Main-hand").FinalWeaponScore)
-                .First();
+                matching = matching
+                    .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) && IsAllowedForMainOrOffHand(info))
+                    .ToList();
+
+                var mainHandPool = matching.Count > 0 ? matching : allowed;
+                mainHand = mainHandPool
+                    .OrderByDescending(ScoreWeaponPotencyForDps)
+                    .ThenByDescending(w => ScoreWeapon(w, context, slot: "Main-hand").FinalWeaponScore)
+                    .First();
+            }
+            else
+            {
+                // Main-hand (non-DPS): prioritize utility; down-weight preferred damage type matching.
+                // We still prefer weakness match when relevant, but allow strong utility to win.
+                var bestProvidersForMainHand = FindBestSynergyProviders(allowed, context);
+
+                var weaknessRelevant = context.EnemyWeakness != Element.None;
+                var weaknessMatching = weaknessRelevant
+                    ? allowed.Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) && SynergyDetection.WeaponMatchesEnemyWeakness(info, context.EnemyWeakness)).ToList()
+                    : new List<WeaponOwnership>();
+
+                var mainHandPool = weaknessMatching.Count > 0 ? weaknessMatching : allowed;
+                mainHand = mainHandPool
+                    .OrderByDescending(w => ScoreWeaponSynergyUtilityWithDedupe(w, context, bestProvidersForMainHand))
+                    .ThenByDescending(w => ScoreWeapon(w, context, slot: "Main-hand").FinalWeaponScore)
+                    .First();
+            }
 
             // Off-hand: best remaining utility (synergy score first, then general weapon score).
             var remaining = allowed.Where(w => !w.WeaponName.Equals(mainHand.WeaponName, StringComparison.OrdinalIgnoreCase)).ToList();
