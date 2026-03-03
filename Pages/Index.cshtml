@@ -147,8 +147,22 @@
                                             if (team.GuildNumber != currentGuild)
                                             {
                                                 currentGuild = team.GuildNumber;
+                                                var tzSummary = Model.GuildTimeZoneSummaries.TryGetValue(currentGuild, out var tz) ? tz : "N/A";
                                             <tr class="table-secondary">
-                                                <td colspan="6"><strong>Guild @currentGuild</strong></td>
+                                                <td colspan="6">
+                                                    <strong>Guild @currentGuild</strong>
+                                                    <details class="d-inline-block ms-2">
+                                                        <summary class="text-muted">Time zones</summary>
+                                                        <div class="text-muted mt-1">
+                                                            <ul class="mb-0">
+                                                                @foreach (var item in tzSummary.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                                                                {
+                                                                    <li><small>@item</small></li>
+                                                                }
+                                                            </ul>
+                                                        </div>
+                                                    </details>
+                                                </td>
                                             </tr>
                                             }
 

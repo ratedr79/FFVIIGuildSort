@@ -42,6 +42,7 @@ public class IndexModel : PageModel
     public List<BestTeamResult> RankedTeams { get; set; } = new();
     public List<PlayerGuildAssignment> GuildAssignments { get; set; } = new();
     public List<string> GuildWarnings { get; set; } = new();
+    public Dictionary<int, string> GuildTimeZoneSummaries { get; set; } = new();
 
     public void OnGet()
     {
@@ -64,7 +65,8 @@ public class IndexModel : PageModel
         try
         {
             using var stream = UploadedFile.OpenReadStream();
-            RankedTeams = await _gb20Analyzer.AnalyzeAsync(stream, new BattleContext
+            var accounts = await _gb20Analyzer.ReadAccountsAsync(stream);
+            RankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, new BattleContext
             {
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
@@ -102,6 +104,28 @@ public class IndexModel : PageModel
                     t.GuildNumber = g;
                 }
             }
+
+            var tzByPlayer = accounts
+                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
+                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Your Time Zone", out var tz) ? tz : string.Empty).Trim(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            GuildTimeZoneSummaries = GuildAssignments
+                .GroupBy(a => a.Guild)
+                .ToDictionary(
+                    g => g.Key,
+                    g => string.Join(
+                        ", ",
+                        g
+                            .Select(a => tzByPlayer.TryGetValue(a.Player, out var tz) && !string.IsNullOrWhiteSpace(tz) ? tz : "N/A")
+                            .GroupBy(tz => tz, StringComparer.OrdinalIgnoreCase)
+                            .OrderByDescending(x => x.Count())
+                            .ThenBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+                            .Select(x => $"{x.Key} ({x.Count()})")
+                    ));
 
             RankedTeams = RankedTeams
                 .OrderByDescending(t => t.Score)
