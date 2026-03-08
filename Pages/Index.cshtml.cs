@@ -38,6 +38,9 @@ public class IndexModel : PageModel
     [BindProperty]
     public bool ShowDebug { get; set; } = false;
 
+    [BindProperty]
+    public Dictionary<string, int> SynergyEffectBonusPercents { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     public string? ErrorMessage { get; set; }
     public List<BestTeamResult> RankedTeams { get; set; } = new();
     public List<PlayerGuildAssignment> GuildAssignments { get; set; } = new();
@@ -70,7 +73,8 @@ public class IndexModel : PageModel
             {
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
-                TargetScenario = TargetScenario
+                TargetScenario = TargetScenario,
+                SynergyEffectBonusPercents = SynergyEffectBonusPercents
             });
 
             var rules = _guildAssigner.LoadRulesOrDefault();

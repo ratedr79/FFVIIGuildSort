@@ -26,7 +26,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5><i class="fas fa-upload"></i> Upload gb20.csv</h5>
+                    <h5><i class="fas fa-upload"></i> Upload Survey Results CSV</h5>
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
@@ -71,6 +71,67 @@
                                 </div>
                             </div>
                         </div>
+
+                        <details class="mb-3">
+                            <summary class="form-label">Advanced stats</summary>
+                            <div class="row mt-2">
+                                @{
+                                    var effects = new (string Key, string Label)[]
+                                    {
+                                        ("ElementalResistanceDown", "Elemental resistance down"),
+                                        ("AtbPlus", "ATB +N"),
+                                        ("ElementalDamageBonus", "Elemental damage bonus"),
+                                        ("ElementalDamageUp", "Elemental damage up"),
+                                        ("WeaponBoost", "Phys/Mag weapon boost"),
+                                        ("ElementalWeaponBoost", "Elemental weapon boost"),
+                                        ("SingleTargetDamageReceivedUp", "Single-target damage received up"),
+                                        ("DamageReceivedUp", "Damage received up"),
+                                        ("DamageTypeDamageBonus", "Phys/Mag damage bonus"),
+                                        ("DamageTypeAtkUp", "PATK/MATK up"),
+                                        ("ExploitWeakness", "Exploit weakness"),
+                                        ("Haste", "Haste"),
+                                        ("AtbConservationEffect", "ATB conservation effect"),
+                                        ("Enfeeble", "Enfeeble"),
+                                        ("AppliedStatsDebuffTierIncreased", "Applied debuff tier increased"),
+                                        ("AppliedStatsBuffTierIncreased", "Applied buff tier increased"),
+                                        ("AmpAbilities", "Amp abilities"),
+                                        ("DefenseDown", "Defense down (PDEF/MDEF)"),
+                                    };
+
+                                    var weightOptions = new (int Value, string Text)[]
+                                    {
+                                        (0, "None"),
+                                        (100, "+100%"),
+                                        (200, "+200%"),
+                                        (300, "+300%"),
+                                        (400, "+400%"),
+                                        (500, "+500%"),
+                                    };
+                                }
+
+                                @foreach (var e in effects)
+                                {
+                                    var selected = Model.SynergyEffectBonusPercents.TryGetValue(e.Key, out var v) ? v : 0;
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">@e.Label</label>
+                                        <select class="form-select form-select-sm" name="SynergyEffectBonusPercents[@e.Key]">
+                                            @foreach (var opt in weightOptions)
+                                            {
+                                                if (opt.Value == selected)
+                                                {
+                                                    <option value="@opt.Value" selected>@opt.Text</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@opt.Value">@opt.Text</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                            </div>
+                        </details>
+
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-calculator"></i> Find Best Teams
                         </button>

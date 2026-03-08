@@ -456,18 +456,43 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             double score = 0;
 
+            static double ApplyBonus(BattleContext ctx, string key, double basePoints)
+            {
+                if (basePoints == 0)
+                {
+                    return 0;
+                }
+
+                if (ctx.SynergyEffectBonusPercents == null)
+                {
+                    return basePoints;
+                }
+
+                if (!ctx.SynergyEffectBonusPercents.TryGetValue(key, out var bonusPct))
+                {
+                    return basePoints;
+                }
+
+                if (bonusPct <= 0)
+                {
+                    return basePoints;
+                }
+
+                return basePoints * (1.0 + (bonusPct / 100.0));
+            }
+
             // Highest value: element resistance down / weakness infliction.
             if (ProvidesElementalResistanceDown(weapon, ctx.EnemyWeakness))
             {
                 var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, ctx.EnemyWeakness != Element.None ? $"{ctx.EnemyWeakness} Resistance Down" : null, overboostLevel);
-                score += tier switch
+                score += ApplyBonus(ctx, "ElementalResistanceDown", tier switch
                 {
                     Tier.ExtraHigh => 320,
                     Tier.High => 290,
                     Tier.Mid => 260,
                     Tier.Low => 230,
                     _ => 250
-                };
+                });
             }
 
             // ATB+N: tempo buff. Usually conditional, so score it below Haste but scale with N.
@@ -483,7 +508,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var baseTempo = 41.25; // reduced 25%
                 var perN = 15.0;
-                score += (baseTempo + (perN * n)) * obMult;
+                score += ApplyBonus(ctx, "AtbPlus", (baseTempo + (perN * n)) * obMult);
             }
 
             // Next: element buffs. "Damage Bonus" is stronger/more specific than generic "Damage Up".
@@ -493,19 +518,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var pot = TryGetEffectPotScaled(weapon.EffectTextBlob, token, overboostLevel);
                 if (pot.HasValue)
                 {
-                    score += Math.Min(300, 9.0 * pot.Value);
+                    score += ApplyBonus(ctx, "ElementalDamageBonus", Math.Min(300, 9.0 * pot.Value));
                 }
                 else
                 {
                     var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, token, overboostLevel);
-                    score += tier switch
+                    score += ApplyBonus(ctx, "ElementalDamageBonus", tier switch
                     {
                         Tier.ExtraHigh => 250,
                         Tier.High => 230,
                         Tier.Mid => 210,
                         Tier.Low => 185,
                         _ => 210
-                    };
+                    });
                 }
             }
 
@@ -515,25 +540,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var pot = TryGetEffectPotScaled(weapon.EffectTextBlob, token, overboostLevel);
                 if (pot.HasValue)
                 {
-                    score += Math.Min(260, 8.0 * pot.Value);
+                    score += ApplyBonus(ctx, "ElementalDamageUp", Math.Min(260, 8.0 * pot.Value));
                 }
                 else
                 {
                     var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, token, overboostLevel);
-                    score += tier switch
+                    score += ApplyBonus(ctx, "ElementalDamageUp", tier switch
                     {
                         Tier.ExtraHigh => 215,
                         Tier.High => 195,
                         Tier.Mid => 170,
                         Tier.Low => 145,
                         _ => 170
-                    };
+                    });
                 }
             }
 
             // High: weapon boosts and damage received up.
-            if (ProvidesWeaponBoost(weapon, ctx.PreferredDamageType)) score += 180;
-            if (ProvidesElementalWeaponBoost(weapon, ctx.EnemyWeakness)) score += 180;
+            if (ProvidesWeaponBoost(weapon, ctx.PreferredDamageType)) score += ApplyBonus(ctx, "WeaponBoost", 180);
+            if (ProvidesElementalWeaponBoost(weapon, ctx.EnemyWeakness)) score += ApplyBonus(ctx, "ElementalWeaponBoost", 180);
 
             // Higher than generic: single-target damage received up is ideal for boss fights.
             if (ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
@@ -552,11 +577,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 if (pot.HasValue)
                 {
                     // Scale slightly above the generic received-up curve.
-                    score += Math.Min(360, 14.5 * pot.Value);
+                    score += ApplyBonus(ctx, "SingleTargetDamageReceivedUp", Math.Min(360, 14.5 * pot.Value));
                 }
                 else
                 {
-                    score += 260;
+                    score += ApplyBonus(ctx, "SingleTargetDamageReceivedUp", 260);
                 }
             }
 
@@ -575,11 +600,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (pot.HasValue)
                 {
-                    score += Math.Min(320, 13.0 * pot.Value);
+                    score += ApplyBonus(ctx, "DamageReceivedUp", Math.Min(320, 13.0 * pot.Value));
                 }
                 else
                 {
-                    score += 235;
+                    score += ApplyBonus(ctx, "DamageReceivedUp", 235);
                 }
             }
 
@@ -599,42 +624,42 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (pot.HasValue)
                 {
-                    score += Math.Min(200, 8.0 * pot.Value);
+                    score += ApplyBonus(ctx, "DamageTypeDamageBonus", Math.Min(200, 8.0 * pot.Value));
                 }
                 else
                 {
-                    score += 140;
+                    score += ApplyBonus(ctx, "DamageTypeDamageBonus", 140);
                 }
             }
             if (ProvidesDamageTypeAtkUp(weapon, ctx.PreferredDamageType))
             {
                 var token = ctx.PreferredDamageType == DamageType.Physical ? "PATK Up" : "MATK Up";
                 var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, token, overboostLevel);
-                score += tier switch
+                score += ApplyBonus(ctx, "DamageTypeAtkUp", tier switch
                 {
                     Tier.ExtraHigh => 150,
                     Tier.High => 130,
                     Tier.Mid => 110,
                     Tier.Low => 95,
                     _ => 110
-                };
+                });
             }
 
             // Additional: exploit weakness is a strong self/party damage modifier.
-            if (ProvidesExploitWeakness(weapon)) score += 220;
+            if (ProvidesExploitWeakness(weapon)) score += ApplyBonus(ctx, "ExploitWeakness", 220);
 
             // Haste: team tempo buff (more actions over time). Treat as a high-value buff.
             if (ProvidesHaste(weapon))
             {
                 var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, "Haste", overboostLevel);
-                score += tier switch
+                score += ApplyBonus(ctx, "Haste", tier switch
                 {
                     Tier.ExtraHigh => 220,
                     Tier.High => 195,
                     Tier.Mid => 170,
                     Tier.Low => 145,
                     _ => 170
-                };
+                });
             }
 
             // ATB conservation: similar to Haste (more attacks over time), but narrower (phys-only or mag-only).
@@ -651,32 +676,32 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     ? GetEffectiveTierFromPotMax(weapon.EffectTextBlob, token, overboostLevel)
                     : Tier.None;
 
-                score += tier switch
+                score += ApplyBonus(ctx, "AtbConservationEffect", tier switch
                 {
                     Tier.ExtraHigh => 185,
                     Tier.High => 165,
                     Tier.Mid => 145,
                     Tier.Low => 125,
                     _ => 145
-                };
+                });
             }
 
             // Medium-high: Enfeeble (boss resistance exists).
-            if (ProvidesEnfeeble(weapon)) score += 140;
+            if (ProvidesEnfeeble(weapon)) score += ApplyBonus(ctx, "Enfeeble", 140);
 
             // Debuff amplifier: increases existing applied debuffs toward their max tier.
             // This is particularly valuable when the team is already applying multiple debuffs.
             if (ProvidesAppliedStatsDebuffTierIncreased(weapon))
             {
                 var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, "Applied Stats Debuff Tier Increased", overboostLevel);
-                score += tier switch
+                score += ApplyBonus(ctx, "AppliedStatsDebuffTierIncreased", tier switch
                 {
                     Tier.ExtraHigh => 210,
                     Tier.High => 185,
                     Tier.Mid => 160,
                     Tier.Low => 135,
                     _ => 160
-                };
+                });
             }
 
             // Buff amplifier: increases existing applied buffs toward their max tier.
@@ -684,14 +709,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (ProvidesAppliedStatsBuffTierIncreased(weapon))
             {
                 var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, "Applied Stats Buff Tier Increased", overboostLevel);
-                score += tier switch
+                score += ApplyBonus(ctx, "AppliedStatsBuffTierIncreased", tier switch
                 {
                     Tier.ExtraHigh => 195,
                     Tier.High => 170,
                     Tier.Mid => 150,
                     Tier.Low => 125,
                     _ => 150
-                };
+                });
             }
 
             // Medium: limited-use Amp abilities. Slightly lower weight than other top-tier buffs.
@@ -705,11 +730,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     // Keep it bounded so odd data doesn't blow up the score.
                     var potScore = Math.Min(60, meta.Value.Pot);
                     var countScore = Math.Min(6, meta.Value.Count) * 10;
-                    score += (potScore + countScore) * 0.75;
+                    score += ApplyBonus(ctx, "AmpAbilities", (potScore + countScore) * 0.75);
                 }
                 else
                 {
-                    score += 90 * 0.75;
+                    score += ApplyBonus(ctx, "AmpAbilities", 90 * 0.75);
                 }
             }
 
@@ -718,14 +743,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 var token = ctx.PreferredDamageType == DamageType.Physical ? "PDEF Down" : "MDEF Down";
                 var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, token, overboostLevel);
-                score += tier switch
+                score += ApplyBonus(ctx, "DefenseDown", tier switch
                 {
                     Tier.ExtraHigh => 125,
                     Tier.High => 110,
                     Tier.Mid => 95,
                     Tier.Low => 80,
                     _ => 90
-                };
+                });
             }
 
             // Apply ability range weighting: broader targeting is generally more valuable.
