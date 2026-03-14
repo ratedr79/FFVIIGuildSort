@@ -11,6 +11,12 @@
       "maxLevel": 5,
       "maxScore": 50,
       "notes": "Provides Stun ability to machine enemy types"
+    },
+    {
+      "name": "Shadow Flare",
+      "maxLevel": 5,
+      "maxScore": 50,
+      "notes": "Inflicts silence to quadruped enemy types"
     }
   ]
 }

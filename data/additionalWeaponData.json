@@ -3376,5 +3376,17 @@
     "weapon": "Festive Spear",
     "ability1": "Boost MATK +46 pts",
     "ability2": "Boost Mag. Ability Pot. +42 pts"
+  },
+  {
+    "character": "Aerith",
+    "weapon": "Festive Rod",
+    "ability1": "Boost ATK (All Allies) +46 pts",
+    "ability2": "Boost HEAL +42 pts"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Festive Sword",
+    "ability1": "Boost ATK (All Allies) +46 pts",
+    "ability2": "Boost Ability Pot. +42 pts"
   }
 ]

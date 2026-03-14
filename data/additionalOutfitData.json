@@ -2788,5 +2788,35 @@
     "ability8": null,
     "ability9": null,
     "ability10": null
+  },
+  {
+    "character": "Zack",
+    "outfit": "Festive Jacket",
+    "command": "Deal 2,000% Mag. Non-elem. damage [Rng.: All Enemies]. Also, Applied Stats Debuff Tier is increased. [Pot.: Low] [Rng.: All Enemies] [Dur.: +10s] [Max. Tier: Extra High]; Uses: 1;ATB: 4",
+    "ability1": "Reprieve +15 pts",
+    "ability2": "Fire/Ice/Lightning/Earth/Water/Wind Ability Dmg. +30%;",
+    "ability3": "HP +15%",
+    "ability4": null,
+    "ability5": null,
+    "ability6": null,
+    "ability7": null,
+    "ability8": null,
+    "ability9": null,
+    "ability10": null
+  },
+  {
+    "character": "Aerith",
+    "outfit": "Festive Dress",
+    "command": "Mag. heal is cast. [Pot.: 50% of Healing Pot.] [Rng.: All Allies] Also, Applies Phys. ATB Conservation Effect [Rng.: All Allies] [Phys. Weapon/Gear C. Ability ATB Cost: -1] [Dur.: 10s] [Ext.: +3s] Applies Mag. ATB Conservation Effect [Rng.: All Allies] [Mag. Weapon/Gear C. Ability ATB Cost: -1] [Dur.: 10s] [Ext.: +3s]; Uses: 1; ATB: 5",
+    "ability1": "Boost Ability Pot. (All Allies) +15 pts",
+    "ability2": "Mag. Defense (All Allies) +20%;",
+    "ability3": "Healing Pot. +35%",
+    "ability4": null,
+    "ability5": null,
+    "ability6": null,
+    "ability7": null,
+    "ability8": null,
+    "ability9": null,
+    "ability10": null
   }
 ]

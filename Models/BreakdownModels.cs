@@ -17,6 +17,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public double BasePoints { get; set; }
         public int SynergyMatchCount { get; set; }
         public double SynergyPoints { get; set; }
+        public double ElementalAbilityPoints { get; set; }
         public double SlotMultiplier { get; set; } = 1.0;
         public double FinalCostumeScore { get; set; }
         public string? SynergyReason { get; set; }

@@ -169,7 +169,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var selectedOwnership = SelectTwoWeapons(character, role, weapons, context);
 
-                var ultimateOwnership = SelectUltimateWeapon(character, weapons);
+                var ultimateOwnership = SelectUltimateWeapon(character, weapons, context);
                 WeaponScoreBreakdown? ultimateBreakdown = null;
                 if (ultimateOwnership != null)
                 {
@@ -367,9 +367,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return new List<CostumeScoreBreakdown>();
             }
 
+            // When character has more than 3 outfits, check elemental ability matches
+            var useElementalScoring = owned.Count > 3;
+
             var scored = owned
-                .Select(o => ScoreCostume(o, context))
-                .OrderByDescending(s => s.BasePoints + s.SynergyPoints)
+                .Select(o => ScoreCostume(o, context, useElementalScoring))
+                .OrderByDescending(s => s.BasePoints + s.SynergyPoints + s.ElementalAbilityPoints)
                 .ToList();
 
             var selected = scored.Take(3).ToList();
@@ -381,20 +384,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // Main outfit full value.
             selected[0].Slot = "Main";
             selected[0].SlotMultiplier = 1.0;
-            selected[0].FinalCostumeScore = Math.Round((selected[0].BasePoints + selected[0].SynergyPoints) * selected[0].SlotMultiplier, 2);
+            selected[0].FinalCostumeScore = Math.Round((selected[0].BasePoints + selected[0].SynergyPoints + selected[0].ElementalAbilityPoints) * selected[0].SlotMultiplier, 2);
 
             // Sub outfits half value.
             for (int i = 1; i < selected.Count; i++)
             {
                 selected[i].Slot = "Sub";
                 selected[i].SlotMultiplier = 0.5;
-                selected[i].FinalCostumeScore = Math.Round((selected[i].BasePoints + selected[i].SynergyPoints) * selected[i].SlotMultiplier, 2);
+                selected[i].FinalCostumeScore = Math.Round((selected[i].BasePoints + selected[i].SynergyPoints + selected[i].ElementalAbilityPoints) * selected[i].SlotMultiplier, 2);
             }
 
             return selected;
         }
 
-        private CostumeScoreBreakdown ScoreCostume(CostumeOwnership ownership, BattleContext context)
+        private CostumeScoreBreakdown ScoreCostume(CostumeOwnership ownership, BattleContext context, bool checkElementalAbilities = false)
         {
             if (!_weaponCatalog.TryGetCostume(ownership.CostumeName, out var info))
             {
@@ -404,6 +407,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var matchCount = SynergyDetection.CountSynergyMatches(info.EffectTextBlob, context);
             var synergyPoints = matchCount * 50;
 
+            var elementalAbilityPoints = 0.0;
+            if (checkElementalAbilities && context.EnemyWeakness != Element.None)
+            {
+                elementalAbilityPoints = ScoreElementalAbilities(info, context.EnemyWeakness);
+            }
+
             return new CostumeScoreBreakdown
             {
                 CostumeName = info.Name,
@@ -411,9 +420,81 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 BasePoints = 100,
                 SynergyMatchCount = matchCount,
                 SynergyPoints = synergyPoints,
+                ElementalAbilityPoints = elementalAbilityPoints,
                 SynergyReason = matchCount > 0 ? SynergyDetection.DescribeSynergyMatches(info.EffectTextBlob, context) : null,
                 FinalCostumeScore = 0
             };
+        }
+
+        private double ScoreElementalAbilities(CostumeInfo costume, Element weakness)
+        {
+            if (costume.AdditionalAbilities == null || costume.AdditionalAbilities.Count == 0)
+            {
+                return 0;
+            }
+
+            var elementName = weakness.ToString();
+            double score = 0;
+
+            foreach (var ability in costume.AdditionalAbilities)
+            {
+                if (string.IsNullOrWhiteSpace(ability))
+                {
+                    continue;
+                }
+
+                var abilityText = ability.Trim();
+
+                // Check for multi-element patterns like "Fire/Ice/Lightning/Earth/Water/Wind Ability Dmg. +30%"
+                if (abilityText.Contains("Ability Dmg", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Split on '/' to get individual elements
+                    var parts = abilityText.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    var hasMatchingElement = false;
+
+                    foreach (var part in parts)
+                    {
+                        if (part.Contains(elementName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            hasMatchingElement = true;
+                            break;
+                        }
+                    }
+
+                    if (hasMatchingElement)
+                    {
+                        // Parse the percentage if present
+                        var percentMatch = System.Text.RegularExpressions.Regex.Match(abilityText, @"\+(\d+)%");
+                        if (percentMatch.Success && int.TryParse(percentMatch.Groups[1].Value, out var pct))
+                        {
+                            // Award points based on percentage: 30% = 30 points, etc.
+                            score += pct;
+                        }
+                        else
+                        {
+                            // Default bonus if no percentage found
+                            score += 25;
+                        }
+                    }
+                }
+
+                // Check for single-element patterns like "Fire Ability Dmg. +30%"
+                else if (abilityText.Contains(elementName, StringComparison.OrdinalIgnoreCase) &&
+                         abilityText.Contains("Ability Dmg", StringComparison.OrdinalIgnoreCase))
+                {
+                    var percentMatch = System.Text.RegularExpressions.Regex.Match(abilityText, @"\+(\d+)%");
+                    if (percentMatch.Success && int.TryParse(percentMatch.Groups[1].Value, out var pct))
+                    {
+                        score += pct;
+                    }
+                    else
+                    {
+                        score += 25;
+                    }
+                }
+            }
+
+            return score;
         }
 
         private static bool IsValidTeam(IEnumerable<string> characters, BattleContext context)
@@ -1269,7 +1350,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return baseScore;
         }
 
-        private WeaponOwnership? SelectUltimateWeapon(string characterName, List<WeaponOwnership> weapons)
+        private WeaponOwnership? SelectUltimateWeapon(string characterName, List<WeaponOwnership> weapons, BattleContext context)
         {
             if (weapons.Count == 0)
             {
@@ -1277,14 +1358,89 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             // Determine ultimates by consulting weaponData.tsv (GachaType == Ultimate), not by the ownership flag.
-            // This makes the selection robust even if IsUltimate wasn't set correctly during ingestion.
             var ultimates = weapons
                 .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) && info.IsUltimate)
-                .OrderByDescending(w => w.OverboostLevel ?? 0)
-                .ThenBy(w => w.WeaponName, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            return ultimates.Count > 0 ? ultimates[0] : null;
+            if (ultimates.Count == 0)
+            {
+                return null;
+            }
+
+            if (ultimates.Count == 1)
+            {
+                return ultimates[0];
+            }
+
+            // Multiple ultimates: score by synergy first, then by ability matching
+            var scored = ultimates
+                .Select(u => new
+                {
+                    Weapon = u,
+                    SynergyScore = ScoreWeaponSynergyUtility(u, context),
+                    AbilityScore = ScoreUltimateWeaponAbilities(u, context)
+                })
+                .OrderByDescending(x => x.SynergyScore)
+                .ThenByDescending(x => x.AbilityScore)
+                .ThenBy(x => x.Weapon.WeaponName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return scored[0].Weapon;
+        }
+
+        private double ScoreUltimateWeaponAbilities(WeaponOwnership weapon, BattleContext context)
+        {
+            if (!_weaponCatalog.TryGetWeapon(weapon.WeaponName, out var info))
+            {
+                return 0;
+            }
+
+            if (context.EnemyWeakness == Element.None)
+            {
+                return 0;
+            }
+
+            var elementName = context.EnemyWeakness.ToString();
+            double score = 0;
+
+            // Check AdditionalAbility1 and AdditionalAbility2 from additionalUltimateWeaponData.json
+            var abilities = new[] { info.AdditionalAbility1, info.AdditionalAbility2 }
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .Select(a => a!.Trim())
+                .ToList();
+
+            foreach (var ability in abilities)
+            {
+                // "Boost Elem. Pot. Arcanum" matches all elements
+                if (ability.Contains("Boost Elem. Pot. Arcanum", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Parse the points value if present
+                    var pointsMatch = System.Text.RegularExpressions.Regex.Match(ability, @"\+(\d+)\s*pts?");
+                    if (pointsMatch.Success && int.TryParse(pointsMatch.Groups[1].Value, out var pts))
+                    {
+                        score += pts;
+                    }
+                    else
+                    {
+                        score += 30; // Default bonus
+                    }
+                }
+                // Check for specific element mentions in abilities
+                else if (ability.Contains(elementName, StringComparison.OrdinalIgnoreCase))
+                {
+                    var pointsMatch = System.Text.RegularExpressions.Regex.Match(ability, @"\+(\d+)\s*pts?");
+                    if (pointsMatch.Success && int.TryParse(pointsMatch.Groups[1].Value, out var pts))
+                    {
+                        score += pts;
+                    }
+                    else
+                    {
+                        score += 20;
+                    }
+                }
+            }
+
+            return score;
         }
 
         private double ScoreWeaponSynergyUtility(WeaponOwnership weapon, BattleContext context)

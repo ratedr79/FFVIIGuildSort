@@ -164,6 +164,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return HasToken(weapon, "Applied Stats Buff Tier Increased");
         }
 
+        public static bool ProvidesEnliven(WeaponInfo weapon)
+        {
+            // Enliven raises any existing damage buffs on a character by two levels.
+            // Does not add buffs, only amplifies existing ones, so requires team synergy.
+            return HasAnyToken(weapon, "Enliven", "Status Ailment: Enliven");
+        }
+
         public static bool ProvidesWeaponBoost(WeaponInfo weapon, DamageType preferred)
         {
             return preferred switch
@@ -719,6 +726,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 });
             }
 
+            // Enliven: raises existing damage buffs by 2 tiers. Requires team synergy to provide buffs.
+            // Weighted slightly below damage buffs themselves.
+            if (ProvidesEnliven(weapon))
+            {
+                var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, "Enliven", overboostLevel);
+                score += ApplyBonus(ctx, "Enliven", tier switch
+                {
+                    Tier.ExtraHigh => 150,
+                    Tier.High => 135,
+                    Tier.Mid => 120,
+                    Tier.Low => 105,
+                    _ => 120
+                });
+            }
+
             // Medium: limited-use Amp abilities. Slightly lower weight than other top-tier buffs.
             // Base amp score is derived from Pot and Count, then scaled by 0.75.
             if (ProvidesAmpAbilities(weapon, ctx.PreferredDamageType))
@@ -868,7 +890,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 ? EnemyTargetScenario.SingleEnemy
                 : ctx.TargetScenario;
 
-            var isBuffLike = ProvidesElementalDamageBoost(weapon, ctx.EnemyWeakness) ||
+            var isBuffLike = ProvidesHaste(weapon) ||
                              ProvidesWeaponBoost(weapon, ctx.PreferredDamageType) ||
                              ProvidesElementalWeaponBoost(weapon, ctx.EnemyWeakness) ||
                              ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
@@ -878,6 +900,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                              ProvidesDamageTypeAtkUp(weapon, ctx.PreferredDamageType) ||
                              ProvidesExploitWeakness(weapon) ||
                              ProvidesEnfeeble(weapon) ||
+                             ProvidesEnliven(weapon) ||
                              ProvidesAtbConservationEffect(weapon, ctx.PreferredDamageType) ||
                              (ctx.PreferredDamageType != DamageType.Any && ProvidesAmpAbilities(weapon, ctx.PreferredDamageType));
 
@@ -991,6 +1014,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (ProvidesEnfeeble(weapon))
             {
                 reasons.Add("Enfeeble (lower weight)");
+            }
+
+            if (ProvidesEnliven(weapon))
+            {
+                reasons.Add("Enliven (raises damage buffs)");
             }
 
             return string.Join(", ", reasons);
