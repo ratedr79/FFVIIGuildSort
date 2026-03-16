@@ -249,7 +249,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 characterScores.Add((character, basePlusGear * roleWeight));
             }
 
-            // 3) Brute force best 3-character team using these character scores + constraint.
+            // 3) Build best 3-character team using prioritized composition templates.
             var chars = characterScores
                 .OrderByDescending(c => c.Score)
                 .Select(c => c.Character)
@@ -265,9 +265,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var selectedUtilityItems = SelectTopUtilityItems(ownedSummons, ownedEnemyAbilities, context);
             var utilityScore = selectedUtilityItems.Sum(u => u.Score);
 
-            BestTeamResult best = new BestTeamResult { InGameName = account.InGameName, Score = double.MinValue };
+            BestTeamResult best = new BestTeamResult { InGameName = account.InGameName, DiscordName = account.DiscordName, Score = double.MinValue };
             var altCandidates = new List<AlternateTeamResult>();
 
+            // Evaluate all valid team combinations
+            var teamsToEvaluate = new List<string[]>();
             for (int i = 0; i < chars.Count; i++)
             {
                 for (int j = i + 1; j < chars.Count; j++)
@@ -275,70 +277,120 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     for (int k = j + 1; k < chars.Count; k++)
                     {
                         var team = new[] { chars[i], chars[j], chars[k] };
-                        if (!IsValidTeam(team, context))
+                        if (IsValidTeam(team, context))
                         {
-                            continue;
-                        }
-
-                        // Team score = sum of character scores + synergy bonus for the non-DPS slot.
-                        var baseScore = team.Sum(ch => characterScores.First(x => x.Character.Equals(ch, StringComparison.OrdinalIgnoreCase)).Score);
-                        var synergyBonus = CalculateSupportSynergyBonus(team, weaponsByCharacter, context);
-                        var score = baseScore + synergyBonus + utilityScore + memoriaScore + materiaScore;
-
-                        // Track candidates for alternate teams (exclude the final best team later).
-                        altCandidates.Add(new AlternateTeamResult
-                        {
-                            Characters = team.ToList(),
-                            Score = Math.Round(score, 2)
-                        });
-
-                        if (score > best.Score)
-                        {
-                            var breakdown = new TeamScoreBreakdown
-                            {
-                                InGameName = account.InGameName,
-                                TeamScore = Math.Round(score, 2),
-                                EnemyWeakness = context.EnemyWeakness,
-                                PreferredDamageType = context.PreferredDamageType,
-                                MaxDpsAllowed = MaxDpsAllowed,
-                                SelectedMemoria = selectedMemoria,
-                                MemoriaScore = memoriaScore,
-                                Materia = materiaBreakdown,
-                                MateriaScore = materiaScore,
-                                SelectedUtilityItems = selectedUtilityItems,
-                                UtilityScore = utilityScore,
-                                Characters = team
-                                    .Where(ch => characterBreakdowns.ContainsKey(ch))
-                                    .Select(ch => characterBreakdowns[ch])
-                                    .ToList(),
-                                MissingCatalogItems = missingCatalogItems
-                                    .OrderBy(m => m.InferredKind)
-                                    .ThenBy(m => m.ColumnName, StringComparer.OrdinalIgnoreCase)
-                                    .ToList(),
-                                AppliedRules = new List<string>
-                                {
-                                    "TeamSize=3",
-                                    $"MaxDpsAllowed={MaxDpsAllowed}",
-                                    "Constraint: Sephiroth and Sephiroth (Original) cannot be on same team",
-                                    "Role weights applied (DPS > Tank/Support/Healer)",
-                                    "Weapon scoring emphasizes OB1/OB6/OB10",
-                                    "Synergy bonus favors non-DPS utility matching weakness or preferred damage type",
-                                    "Utility items (Summons + Enemy Abilities) add up to top 3 bonuses",
-                                    "Memoria adds up to +150 scaled by level (max 1 per team)",
-                                    "Materia adds a small capped bonus based on tiered counts"
-                                }
-                            };
-
-                            best = new BestTeamResult
-                            {
-                                InGameName = account.InGameName,
-                                Score = Math.Round(score, 2),
-                                Characters = team.ToList(),
-                                WeaponsByCharacter = weaponsByCharacter,
-                                Breakdown = breakdown
-                            };
+                            teamsToEvaluate.Add(team);
                         }
                     }
+                }
+            }
+
+            // Identify which teams match enabled templates from context
+            var enabledTemplates = context.EnabledTeamTemplates ?? GetDefaultEnabledTemplates();
+            var teamTemplateMatches = teamsToEvaluate
+                .Select(team => new { Team = team, MatchesTemplate = DoesTeamMatchAnyTemplate(team, enabledTemplates) })
+                .ToList();
+
+            var anyTemplateMatched = teamTemplateMatches.Any(t => t.MatchesTemplate);
+
+            foreach (var teamMatch in teamTemplateMatches)
+            {
+                var team = teamMatch.Team;
+                var matchesTemplate = teamMatch.MatchesTemplate;
+
+                // Post-process: re-evaluate weapon selections for non-DPS characters to avoid duplicate synergies
+                var updatedCharacters = OptimizeNonDpsWeaponSelections(team, weaponsByCharacter, characterBreakdowns, context);
+
+                // Update characterScores for any characters whose weapons were re-optimized
+                foreach (var ch in updatedCharacters)
+                {
+                    if (characterBreakdowns.TryGetValue(ch, out var breakdown))
+                    {
+                        var index = characterScores.FindIndex(x => x.Character.Equals(ch, StringComparison.OrdinalIgnoreCase));
+                        if (index >= 0)
+                        {
+                            characterScores[index] = (ch, breakdown.FinalCharacterScore);
+                        }
+                    }
+                }
+
+                // Team score = sum of character scores + synergy bonus for the non-DPS slot.
+                var baseScore = team.Sum(ch => characterScores.First(x => x.Character.Equals(ch, StringComparison.OrdinalIgnoreCase)).Score);
+                var synergyBonus = CalculateSupportSynergyBonus(team, weaponsByCharacter, context);
+                var score = baseScore + synergyBonus + utilityScore + memoriaScore + materiaScore;
+
+                // Apply 50% penalty if team doesn't match any enabled template
+                if (!matchesTemplate)
+                {
+                    score *= 0.5;
+                }
+
+                // Track candidates for alternate teams (exclude the final best team later).
+                altCandidates.Add(new AlternateTeamResult
+                {
+                    Characters = team.ToList(),
+                    Score = Math.Round(score, 2)
+                });
+
+                if (score > best.Score)
+                {
+                    var appliedRules = new List<string>
+                    {
+                        "TeamSize=3",
+                        $"MaxDpsAllowed={MaxDpsAllowed}",
+                        "Constraint: Sephiroth and Sephiroth (Original) cannot be on same team",
+                        "Role weights applied (DPS > Tank/Support/Healer)",
+                        "Weapon scoring emphasizes OB1/OB6/OB10",
+                        "Synergy bonus favors non-DPS utility matching weakness or preferred damage type",
+                        "Utility items (Summons + Enemy Abilities) add up to top 3 bonuses",
+                        "Memoria adds up to +150 scaled by level (max 1 per team)",
+                        "Materia adds a small capped bonus based on tiered counts"
+                    };
+
+                    if (matchesTemplate)
+                    {
+                        var templateName = GetMatchingTemplateName(team, enabledTemplates);
+                        appliedRules.Insert(0, $"Valid team template: {templateName}");
+                    }
+                    else
+                    {
+                        appliedRules.Insert(0, "Non-template team (50% penalty applied)");
+                    }
+
+                    var breakdown = new TeamScoreBreakdown
+                    {
+                        InGameName = account.InGameName,
+                        TeamScore = Math.Round(score, 2),
+                        EnemyWeakness = context.EnemyWeakness,
+                        PreferredDamageType = context.PreferredDamageType,
+                        MaxDpsAllowed = MaxDpsAllowed,
+                        SelectedMemoria = selectedMemoria,
+                        MemoriaScore = memoriaScore,
+                        Materia = materiaBreakdown,
+                        MateriaScore = materiaScore,
+                        SelectedUtilityItems = selectedUtilityItems,
+                        UtilityScore = utilityScore,
+                        SynergyBonus = Math.Round(synergyBonus, 2),
+                        Characters = team
+                            .Where(ch => characterBreakdowns.ContainsKey(ch))
+                            .Select(ch => characterBreakdowns[ch])
+                            .ToList(),
+                        MissingCatalogItems = missingCatalogItems
+                            .OrderBy(m => m.InferredKind)
+                            .ThenBy(m => m.ColumnName, StringComparer.OrdinalIgnoreCase)
+                            .ToList(),
+                        AppliedRules = appliedRules
+                    };
+
+                    best = new BestTeamResult
+                    {
+                        InGameName = account.InGameName,
+                        DiscordName = account.DiscordName,
+                        Score = Math.Round(score, 2),
+                        Characters = team.ToList(),
+                        WeaponsByCharacter = weaponsByCharacter,
+                        Breakdown = breakdown
+                    };
                 }
             }
 
@@ -495,6 +547,55 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return score;
+        }
+
+        private static List<string> GetDefaultEnabledTemplates()
+        {
+            return new List<string>
+            {
+                "DPS/Support/Healer",
+                "DPS/Tank/Healer",
+                "DPS/Support/Tank",
+                "DPS/DPS/Healer"
+            };
+        }
+
+        private static bool DoesTeamMatchAnyTemplate(string[] team, List<string> enabledTemplates)
+        {
+            var teamRoles = team.Select(ch => CharacterRoleRegistry.GetRoleOrDefault(ch).ToString()).OrderBy(r => r).ToList();
+            var teamRoleKey = string.Join("/", teamRoles);
+
+            foreach (var templateName in enabledTemplates)
+            {
+                var templateRoles = templateName.Split('/').OrderBy(r => r).ToList();
+                var templateRoleKey = string.Join("/", templateRoles);
+
+                if (teamRoleKey.Equals(templateRoleKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string GetMatchingTemplateName(string[] team, List<string> enabledTemplates)
+        {
+            var teamRoles = team.Select(ch => CharacterRoleRegistry.GetRoleOrDefault(ch).ToString()).OrderBy(r => r).ToList();
+            var teamRoleKey = string.Join("/", teamRoles);
+
+            foreach (var templateName in enabledTemplates)
+            {
+                var templateRoles = templateName.Split('/').OrderBy(r => r).ToList();
+                var templateRoleKey = string.Join("/", templateRoles);
+
+                if (teamRoleKey.Equals(templateRoleKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    return templateName;
+                }
+            }
+
+            return "Unknown";
         }
 
         private static bool IsValidTeam(IEnumerable<string> characters, BattleContext context)
@@ -1571,7 +1672,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            var dedupedBonus = bestByCategory.Values.Sum(v => v.Score);
+            // Sum unique weapon scores (each weapon counted only once, even if it provides multiple categories)
+            var uniqueWeapons = bestByCategory.Values
+                .GroupBy(v => v.WeaponName, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+            
+            var dedupedBonus = uniqueWeapons.Sum(v => v.Score);
             return dedupedBonus + stackingAtbBonus;
         }
 
@@ -1631,6 +1738,211 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return cats;
+        }
+
+        private List<string> OptimizeNonDpsWeaponSelections(
+            IEnumerable<string> team,
+            Dictionary<string, List<WeaponOwnership>> weaponsByCharacter,
+            Dictionary<string, CharacterScoreBreakdown> characterBreakdowns,
+            BattleContext context)
+        {
+            var updatedCharacters = new List<string>();
+            // Collect all synergy categories currently provided by the team
+            var teamSynergyCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var weaponsByCharacterName = new Dictionary<string, List<WeaponOwnership>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var ch in team)
+            {
+                if (!weaponsByCharacter.TryGetValue(ch, out var owned) || owned.Count == 0)
+                {
+                    continue;
+                }
+
+                var role = CharacterRoleRegistry.GetRoleOrDefault(ch);
+                var selectedWeapons = SelectTwoWeapons(ch, role, owned, context);
+                weaponsByCharacterName[ch] = selectedWeapons;
+
+                foreach (var w in selectedWeapons)
+                {
+                    if (_weaponCatalog.TryGetWeapon(w.WeaponName, out var info))
+                    {
+                        var categories = GetSynergyCategories(info, context);
+                        foreach (var cat in categories)
+                        {
+                            teamSynergyCategories.Add(cat);
+                        }
+                    }
+                }
+            }
+
+            // Re-evaluate non-DPS characters to find weapons with unique synergies
+            foreach (var ch in team)
+            {
+                var role = CharacterRoleRegistry.GetRoleOrDefault(ch);
+                
+                // Only re-evaluate non-DPS characters
+                if (role == CharacterRole.DPS)
+                {
+                    continue;
+                }
+
+                if (!weaponsByCharacter.TryGetValue(ch, out var owned) || owned.Count == 0)
+                {
+                    continue;
+                }
+
+                if (!weaponsByCharacterName.TryGetValue(ch, out var currentSelection) || currentSelection.Count == 0)
+                {
+                    continue;
+                }
+
+                // Collect synergies provided by OTHER team members (not this character)
+                var otherTeamCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var otherCh in team)
+                {
+                    if (otherCh.Equals(ch, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue; // Skip current character
+                    }
+
+                    if (!weaponsByCharacterName.TryGetValue(otherCh, out var otherWeapons))
+                    {
+                        continue;
+                    }
+
+                    foreach (var w in otherWeapons)
+                    {
+                        if (_weaponCatalog.TryGetWeapon(w.WeaponName, out var info))
+                        {
+                            var categories = GetSynergyCategories(info, context);
+                            foreach (var cat in categories)
+                            {
+                                otherTeamCategories.Add(cat);
+                            }
+                        }
+                    }
+                }
+
+                // Try to find alternative weapons with more unique synergies
+                var allowed = owned
+                    .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) && IsAllowedForMainOrOffHand(info))
+                    .ToList();
+
+                if (allowed.Count <= currentSelection.Count)
+                {
+                    continue; // No alternatives available
+                }
+
+                // Score each weapon by how many unique synergies it provides
+                var alternativeScores = new List<(WeaponOwnership Weapon, int UniqueCount, double SynergyScore)>();
+                
+                foreach (var w in allowed)
+                {
+                    if (_weaponCatalog.TryGetWeapon(w.WeaponName, out var info))
+                    {
+                        var categories = GetSynergyCategories(info, context);
+                        var uniqueCount = categories.Count(cat => !otherTeamCategories.Contains(cat));
+                        var synergyScore = SynergyDetection.CalculateSynergyScore(info, w.OverboostLevel ?? 0, context);
+                        alternativeScores.Add((w, uniqueCount, synergyScore));
+                    }
+                }
+
+                // Find the best main-hand alternative (prioritize unique synergies, then synergy score)
+                var bestMainHand = alternativeScores
+                    .OrderByDescending(x => x.UniqueCount)
+                    .ThenByDescending(x => x.SynergyScore)
+                    .FirstOrDefault();
+
+                if (bestMainHand.Weapon == null)
+                {
+                    continue;
+                }
+
+                // Find the best off-hand alternative (excluding the main-hand)
+                var bestOffHand = alternativeScores
+                    .Where(x => !x.Weapon.WeaponName.Equals(bestMainHand.Weapon.WeaponName, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(x => x.UniqueCount)
+                    .ThenByDescending(x => x.SynergyScore)
+                    .FirstOrDefault();
+
+                // Calculate unique synergy count for current selection
+                var currentCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var w in currentSelection)
+                {
+                    if (_weaponCatalog.TryGetWeapon(w.WeaponName, out var info))
+                    {
+                        var categories = GetSynergyCategories(info, context);
+                        foreach (var cat in categories)
+                        {
+                            currentCategories.Add(cat);
+                        }
+                    }
+                }
+                var currentUniqueCount = currentCategories.Count(cat => !otherTeamCategories.Contains(cat));
+                
+                // Calculate unique synergy count for new selection
+                var newCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (_weaponCatalog.TryGetWeapon(bestMainHand.Weapon.WeaponName, out var mainInfo))
+                {
+                    foreach (var cat in GetSynergyCategories(mainInfo, context))
+                    {
+                        newCategories.Add(cat);
+                    }
+                }
+                if (bestOffHand.Weapon != null && _weaponCatalog.TryGetWeapon(bestOffHand.Weapon.WeaponName, out var offInfo))
+                {
+                    foreach (var cat in GetSynergyCategories(offInfo, context))
+                    {
+                        newCategories.Add(cat);
+                    }
+                }
+                var newUniqueCount = newCategories.Count(cat => !otherTeamCategories.Contains(cat));
+
+                // Only swap if the new selection provides more unique synergies
+                if (newUniqueCount > currentUniqueCount)
+                {
+                    var newSelection = new List<WeaponOwnership> { bestMainHand.Weapon };
+                    if (bestOffHand.Weapon != null)
+                    {
+                        newSelection.Add(bestOffHand.Weapon);
+                    }
+
+                    // Update the character breakdown with new weapon selection
+                    if (characterBreakdowns.TryGetValue(ch, out var breakdown))
+                    {
+                        var newWeaponBreakdowns = new List<WeaponScoreBreakdown>();
+                        
+                        var mainBreakdown = ScoreWeapon(bestMainHand.Weapon, context, slot: "Main-hand");
+                        mainBreakdown.Slot = "Main-hand";
+                        mainBreakdown.SelectionReason = $"Re-optimized for unique synergies ({newUniqueCount} unique vs {currentUniqueCount})";
+                        newWeaponBreakdowns.Add(mainBreakdown);
+
+                        if (bestOffHand.Weapon != null)
+                        {
+                            var offBreakdown = ScoreWeapon(bestOffHand.Weapon, context, slot: "Off-hand");
+                            offBreakdown.Slot = "Off-hand";
+                            offBreakdown.SelectionReason = $"Re-optimized for unique synergies";
+                            newWeaponBreakdowns.Add(offBreakdown);
+                        }
+
+                        var newWeaponScore = newWeaponBreakdowns.Sum(w => w.FinalWeaponScore);
+                        var newBasePlusGear = newWeaponScore + breakdown.CostumeScoreSum;
+
+                        breakdown.SelectedWeapons = newWeaponBreakdowns;
+                        breakdown.RawWeaponScoreSum = newWeaponScore;
+                        breakdown.BasePlusGearScore = newBasePlusGear;
+                        breakdown.FinalCharacterScore = newBasePlusGear * breakdown.RoleWeight;
+
+                        // Update the original weaponsByCharacter dictionary for team synergy calculation
+                        weaponsByCharacter[ch] = newSelection;
+                        
+                        // Track that this character was updated
+                        updatedCharacters.Add(ch);
+                    }
+                }
+            }
+
+            return updatedCharacters;
         }
     }
 }

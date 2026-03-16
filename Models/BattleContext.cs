@@ -34,5 +34,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         // Optional: additional multiplier for specific synergy effects.
         // Value is a percent bonus (0, 10, 20, 30, 40, 50). When null or missing keys, behaves as 0%.
         public Dictionary<string, int>? SynergyEffectBonusPercents { get; set; }
+
+        // List of enabled team template names (e.g., "DPS/Support/Healer")
+        public List<string>? EnabledTeamTemplates { get; set; }
     }
 }

@@ -74,62 +74,90 @@
 
                         <details class="mb-3">
                             <summary class="form-label">Advanced stats</summary>
-                            <div class="row mt-2">
-                                @{
-                                    var effects = new (string Key, string Label)[]
+                            
+                            <div class="mb-4 mt-3">
+                                <h6 class="mb-2"><i class="fas fa-users"></i> Valid Team Compositions</h6>
+                                <p class="text-muted small">Teams not matching selected templates will have their score reduced by 50%</p>
+                                <div class="row">
+                                    @foreach (var template in Model.AvailableTeamTemplates.OrderBy(t => t.Priority))
                                     {
-                                        ("ElementalResistanceDown", "Elemental resistance down"),
-                                        ("AtbPlus", "ATB +N"),
-                                        ("ElementalDamageBonus", "Elemental damage bonus"),
-                                        ("ElementalDamageUp", "Elemental damage up"),
-                                        ("WeaponBoost", "Phys/Mag weapon boost"),
-                                        ("ElementalWeaponBoost", "Elemental weapon boost"),
-                                        ("SingleTargetDamageReceivedUp", "Single-target damage received up"),
-                                        ("DamageReceivedUp", "Damage received up"),
-                                        ("DamageTypeDamageBonus", "Phys/Mag damage bonus"),
-                                        ("DamageTypeAtkUp", "PATK/MATK up"),
-                                        ("ExploitWeakness", "Exploit weakness"),
-                                        ("Haste", "Haste"),
-                                        ("AtbConservationEffect", "ATB conservation effect"),
-                                        ("Enfeeble", "Enfeeble"),
-                                        ("Enliven", "Enliven (raises damage buffs)"),
-                                        ("AppliedStatsDebuffTierIncreased", "Applied debuff tier increased"),
-                                        ("AppliedStatsBuffTierIncreased", "Applied buff tier increased"),
-                                        ("AmpAbilities", "Amp abilities"),
-                                        ("DefenseDown", "Defense down (PDEF/MDEF)"),
-                                    };
+                                        var isChecked = Model.EnabledTeamTemplates.TryGetValue(template.Name, out var enabled) ? enabled : template.Enabled;
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="EnabledTeamTemplates[@template.Name]"
+                                                       value="true"
+                                                       id="template_@template.Name.Replace("/", "_")"
+                                                       @(isChecked ? "checked" : "")>
+                                                <label class="form-check-label" for="template_@template.Name.Replace("/", "_")">
+                                                    @template.Name
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
 
-                                    var weightOptions = new (int Value, string Text)[]
+                            <hr />
+
+                            <div>
+                                <h6 class="mb-2"><i class="fas fa-bolt"></i> Synergy Effect Bonuses</h6>
+                                <div class="row mt-2">
+                                    @{
+                                        var effects = new (string Key, string Label)[]
+                                        {
+                                            ("ElementalResistanceDown", "Elemental resistance down"),
+                                            ("AtbPlus", "ATB +N"),
+                                            ("ElementalDamageBonus", "Elemental damage bonus"),
+                                            ("ElementalDamageUp", "Elemental damage up"),
+                                            ("WeaponBoost", "Phys/Mag weapon boost"),
+                                            ("ElementalWeaponBoost", "Elemental weapon boost"),
+                                            ("SingleTargetDamageReceivedUp", "Single-target damage received up"),
+                                            ("DamageReceivedUp", "Damage received up"),
+                                            ("DamageTypeDamageBonus", "Phys/Mag damage bonus"),
+                                            ("DamageTypeAtkUp", "PATK/MATK up"),
+                                            ("ExploitWeakness", "Exploit weakness"),
+                                            ("Haste", "Haste"),
+                                            ("AtbConservationEffect", "ATB conservation effect"),
+                                            ("Enfeeble", "Enfeeble"),
+                                            ("Enliven", "Enliven (raises damage buffs)"),
+                                            ("AppliedStatsDebuffTierIncreased", "Applied debuff tier increased"),
+                                            ("AppliedStatsBuffTierIncreased", "Applied buff tier increased"),
+                                            ("AmpAbilities", "Amp abilities"),
+                                            ("DefenseDown", "Defense down (PDEF/MDEF)")
+                                        };
+
+                                        var weightOptions = new (int Value, string Text)[]
+                                        {
+                                            (0, "None"),
+                                            (100, "+100%"),
+                                            (200, "+200%"),
+                                            (300, "+300%"),
+                                            (400, "+400%"),
+                                            (500, "+500%"),
+                                        };
+                                    }
+                                    @foreach (var e in effects)
                                     {
-                                        (0, "None"),
-                                        (100, "+100%"),
-                                        (200, "+200%"),
-                                        (300, "+300%"),
-                                        (400, "+400%"),
-                                        (500, "+500%"),
-                                    };
-                                }
-
-                                @foreach (var e in effects)
-                                {
-                                    var selected = Model.SynergyEffectBonusPercents.TryGetValue(e.Key, out var v) ? v : 0;
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label">@e.Label</label>
-                                        <select class="form-select form-select-sm" name="SynergyEffectBonusPercents[@e.Key]">
-                                            @foreach (var opt in weightOptions)
-                                            {
-                                                if (opt.Value == selected)
+                                        var selected = Model.SynergyEffectBonusPercents.TryGetValue(e.Key, out var v) ? v : 0;
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">@e.Label</label>
+                                            <select class="form-select form-select-sm" name="SynergyEffectBonusPercents[@e.Key]">
+                                                @foreach (var opt in weightOptions)
                                                 {
-                                                    <option value="@opt.Value" selected>@opt.Text</option>
+                                                    if (opt.Value == selected)
+                                                    {
+                                                        <option value="@opt.Value" selected>@opt.Text</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@opt.Value">@opt.Text</option>
+                                                    }
                                                 }
-                                                else
-                                                {
-                                                    <option value="@opt.Value">@opt.Text</option>
-                                                }
-                                            }
-                                        </select>
-                                    </div>
-                                }
+                                            </select>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </details>
 
@@ -163,6 +191,40 @@
 
     @if (Model.RankedTeams != null && Model.RankedTeams.Any())
     {
+        @if (Model.GuildSubmissionCounts != null && Model.GuildSubmissionCounts.Any())
+        {
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-bar"></i> Guild Submission Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                @foreach (var guild in Model.GuildSubmissionCounts.OrderBy(g => g.Key))
+                                {
+                                    <div class="col-md-3 col-sm-6 mb-2">
+                                        <strong>@guild.Key:</strong> @guild.Value
+                                    </div>
+                                }
+                            </div>
+                            
+                            @if (Model.DuplicateSubmitters != null && Model.DuplicateSubmitters.Any())
+                            {
+                                <hr class="my-3" />
+                                <div class="mt-3">
+                                    <strong class="text-warning"><i class="fas fa-exclamation-triangle"></i> Players who submitted multiple times:</strong>
+                                    <div class="mt-2 text-muted">
+                                        @string.Join(", ", Model.DuplicateSubmitters)
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <div class="row">
             <div class="col-12">
                 <div class="card">
@@ -231,7 +293,13 @@
                                             <tr>
                                                 <td><span class="badge @(i < 3 ? "bg-warning" : "bg-secondary")">@(i + 1)</span></td>
                                                 <td>@team.GuildNumber</td>
-                                                <td>@team.InGameName</td>
+                                                <td>
+                                                    @team.InGameName
+                                                    @if (!string.IsNullOrWhiteSpace(team.DiscordName))
+                                                    {
+                                                        <text> (@team.DiscordName)</text>
+                                                    }
+                                                </td>
                                                 <td>@string.Join(", ", team.Characters)</td>
                                                 <td><strong class="text-primary">@team.Score.ToString("N0")</strong></td>
                                                 <td>
@@ -272,6 +340,14 @@
                                                         <div class="mb-2">
                                                             <strong>Team Score</strong>: @team.Breakdown.TeamScore.ToString("N0")
                                                         </div>
+
+                                                        @if (team.Breakdown.SynergyBonus > 0)
+                                                        {
+                                                            <div class="mb-2">
+                                                                <strong>Team Synergy Bonus</strong>: @team.Breakdown.SynergyBonus.ToString("N0")
+                                                                <span class="text-muted">(from weapon synergy effects)</span>
+                                                            </div>
+                                                        }
 
                                                         @if (team.Breakdown.SelectedMemoria != null && team.Breakdown.MemoriaScore > 0)
                                                         {

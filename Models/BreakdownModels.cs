@@ -83,6 +83,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public double MateriaScore { get; set; }
         public List<UtilityItemScoreBreakdown> SelectedUtilityItems { get; set; } = new();
         public double UtilityScore { get; set; }
+        public double SynergyBonus { get; set; }
         public List<CharacterScoreBreakdown> Characters { get; set; } = new();
         public double TeamScore { get; set; }
         public List<string> AppliedRules { get; set; } = new();

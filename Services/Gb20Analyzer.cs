@@ -16,7 +16,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public async Task<List<BestTeamResult>> AnalyzeAsync(Stream gb20CsvStream)
             => await AnalyzeAsync(gb20CsvStream, new BattleContext());
 
-        public async Task<List<AccountRow>> ReadAccountsAsync(Stream gb20CsvStream)
+        public async Task<IngestionResult> ReadAccountsAsync(Stream gb20CsvStream)
             => await _ingestion.ReadAccountsAsync(gb20CsvStream);
 
         public async Task<List<BestTeamResult>> AnalyzeAsync(IReadOnlyList<AccountRow> accounts, BattleContext context)
@@ -36,7 +36,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         public async Task<List<BestTeamResult>> AnalyzeAsync(Stream gb20CsvStream, BattleContext context)
         {
-            var accounts = await _ingestion.ReadAccountsAsync(gb20CsvStream);
+            var ingestionResult = await _ingestion.ReadAccountsAsync(gb20CsvStream);
+            var accounts = ingestionResult.Accounts;
 
             var results = new List<BestTeamResult>();
             foreach (var account in accounts)

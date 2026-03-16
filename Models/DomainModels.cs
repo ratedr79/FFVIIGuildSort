@@ -27,6 +27,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
     public sealed class AccountRow
     {
         public string InGameName { get; set; } = string.Empty;
+        public string? DiscordName { get; set; }
         public Dictionary<string, string> ItemResponsesByColumnName { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
@@ -48,6 +49,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
     public sealed class BestTeamResult
     {
         public string InGameName { get; set; } = string.Empty;
+        public string? DiscordName { get; set; }
         public double Score { get; set; }
         public int GuildNumber { get; set; }
         public List<string> Characters { get; set; } = new();

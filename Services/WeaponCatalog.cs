@@ -27,12 +27,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private readonly Dictionary<string, WeaponInfo> _byWeaponNameNormalized = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, CostumeInfo> _byCostumeName = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, List<CostumeInfo>> _costumesByCharacter = new(StringComparer.OrdinalIgnoreCase);
+        private readonly NameCorrectionService _nameCorrectionService;
 
         public IReadOnlyDictionary<string, WeaponInfo> ByWeaponName => _byWeaponName;
         public IReadOnlyDictionary<string, CostumeInfo> ByCostumeName => _byCostumeName;
 
-        public WeaponCatalog(IWebHostEnvironment env)
+        public WeaponCatalog(IWebHostEnvironment env, NameCorrectionService nameCorrectionService)
         {
+            _nameCorrectionService = nameCorrectionService;
+            
             var additionalWeapons = LoadAdditionalWeaponData(env);
             var additionalOutfits = LoadAdditionalOutfitData(env);
             var additionalUltimateWeapons = LoadAdditionalUltimateWeaponData(env);
@@ -514,12 +517,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         public bool TryGetWeapon(string weaponName, out WeaponInfo info)
         {
-            if (_byWeaponName.TryGetValue(weaponName, out info!))
+            // Apply name corrections first
+            var correctedName = _nameCorrectionService.CorrectWeaponName(weaponName);
+            
+            if (_byWeaponName.TryGetValue(correctedName, out info!))
             {
                 return true;
             }
 
-            var normalized = NormalizeKey(weaponName);
+            var normalized = NormalizeKey(correctedName);
             return _byWeaponNameNormalized.TryGetValue(normalized, out info!);
         }
 
@@ -541,7 +547,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .ToLowerInvariant();
         }
 
-        public bool TryGetCostume(string costumeName, out CostumeInfo info) => _byCostumeName.TryGetValue(costumeName, out info!);
+        public bool TryGetCostume(string costumeName, out CostumeInfo info)
+        {
+            // Apply name corrections first
+            var correctedName = _nameCorrectionService.CorrectOutfitName(costumeName);
+            return _byCostumeName.TryGetValue(correctedName, out info!);
+        }
 
         public IReadOnlyList<CostumeInfo> GetCostumesForCharacter(string characterName)
         {

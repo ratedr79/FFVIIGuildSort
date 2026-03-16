@@ -12,13 +12,15 @@ public class IndexModel : PageModel
     private readonly Gb20Analyzer _gb20Analyzer;
     private readonly GuildAssigner _guildAssigner;
     private readonly WeaponCatalog _weaponCatalog;
+    private readonly TeamTemplateCatalog _teamTemplateCatalog;
 
-    public IndexModel(ILogger<IndexModel> logger, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog)
+    public IndexModel(ILogger<IndexModel> logger, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog)
     {
         _logger = logger;
         _gb20Analyzer = gb20Analyzer;
         _guildAssigner = guildAssigner;
         _weaponCatalog = weaponCatalog;
+        _teamTemplateCatalog = teamTemplateCatalog;
     }
 
     public WeaponCatalog WeaponCatalog => _weaponCatalog;
@@ -41,14 +43,26 @@ public class IndexModel : PageModel
     [BindProperty]
     public Dictionary<string, int> SynergyEffectBonusPercents { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    [BindProperty]
+    public Dictionary<string, bool> EnabledTeamTemplates { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public List<TeamTemplate> AvailableTeamTemplates { get; set; } = new();
     public string? ErrorMessage { get; set; }
     public List<BestTeamResult> RankedTeams { get; set; } = new();
     public List<PlayerGuildAssignment> GuildAssignments { get; set; } = new();
     public List<string> GuildWarnings { get; set; } = new();
     public Dictionary<int, string> GuildTimeZoneSummaries { get; set; } = new();
+    public Dictionary<string, int> GuildSubmissionCounts { get; set; } = new();
+    public List<string> DuplicateSubmitters { get; set; } = new();
 
     public void OnGet()
     {
+        // Load available templates and set all as enabled by default
+        AvailableTeamTemplates = _teamTemplateCatalog.GetAllTemplates();
+        foreach (var template in AvailableTeamTemplates)
+        {
+            EnabledTeamTemplates[template.Name] = template.Enabled;
+        }
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -68,14 +82,34 @@ public class IndexModel : PageModel
         try
         {
             using var stream = UploadedFile.OpenReadStream();
-            var accounts = await _gb20Analyzer.ReadAccountsAsync(stream);
+            var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);
+            var accounts = ingestionResult.Accounts;
+            DuplicateSubmitters = ingestionResult.DuplicateSubmitters;
+
+            // Build guild submission counts from deduplicated accounts
+            GuildSubmissionCounts = accounts
+                .Where(a => a.ItemResponsesByColumnName.ContainsKey("Your Guild"))
+                .GroupBy(a => a.ItemResponsesByColumnName["Your Guild"], StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            // Build list of enabled team templates
+            var enabledTemplateNames = EnabledTeamTemplates
+                .Where(kvp => kvp.Value)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
             RankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, new BattleContext
             {
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
                 TargetScenario = TargetScenario,
-                SynergyEffectBonusPercents = SynergyEffectBonusPercents
+                SynergyEffectBonusPercents = SynergyEffectBonusPercents,
+                EnabledTeamTemplates = enabledTemplateNames
             });
+
+            // Reload templates for display
+            AvailableTeamTemplates = _teamTemplateCatalog.GetAllTemplates();
 
             var rules = _guildAssigner.LoadRulesOrDefault();
             var assignmentResult = _guildAssigner.AssignGuilds(RankedTeams, rules);

@@ -7,6 +7,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         [Required]
         public string PlayerName { get; set; } = string.Empty;
 
+        public string? DiscordName { get; set; }
+
         [Required]
         public string CharacterName { get; set; } = string.Empty;
 

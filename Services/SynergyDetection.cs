@@ -1021,6 +1021,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 reasons.Add("Enliven (raises damage buffs)");
             }
 
+            if (ProvidesAppliedStatsDebuffTierIncreased(weapon))
+            {
+                reasons.Add("Applied debuff tier increased");
+            }
+
+            if (ProvidesAppliedStatsBuffTierIncreased(weapon))
+            {
+                reasons.Add("Applied buff tier increased");
+            }
+
+            if (ctx.PreferredDamageType != DamageType.Any && ProvidesAmpAbilities(weapon, ctx.PreferredDamageType))
+            {
+                reasons.Add("Amp abilities");
+            }
+
             return string.Join(", ", reasons);
         }
 
@@ -1079,6 +1094,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 matches.Add(new Match("phys_atb_conservation", "Physical ATB conservation"));
             if (ctx.PreferredDamageType == DamageType.Magical && HasToken(effectTextBlob, "Mag. ATB Conservation Effect"))
                 matches.Add(new Match("mag_atb_conservation", "Magical ATB conservation"));
+            if (HasToken(effectTextBlob, "Applied Stats Debuff Tier Increased"))
+                matches.Add(new Match("applied_debuff_tier", "Applied debuff tier increased"));
+            if (HasToken(effectTextBlob, "Applied Stats Buff Tier Increased"))
+                matches.Add(new Match("applied_buff_tier", "Applied buff tier increased"));
+            if (HasToken(effectTextBlob, "Amp Abilities"))
+                matches.Add(new Match("amp_abilities", "Amp abilities"));
 
             // Dedupe by key so repeated tokens don't inflate count.
             return matches

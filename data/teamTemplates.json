@@ -1,0 +1,28 @@
+{
+  "validTeamTemplates": [
+    {
+      "name": "DPS/Support/Healer",
+      "roles": ["DPS", "Support", "Healer"],
+      "enabled": true,
+      "priority": 1
+    },
+    {
+      "name": "DPS/Tank/Healer",
+      "roles": ["DPS", "Tank", "Healer"],
+      "enabled": true,
+      "priority": 2
+    },
+    {
+      "name": "DPS/Support/Tank",
+      "roles": ["DPS", "Support", "Tank"],
+      "enabled": true,
+      "priority": 3
+    },
+    {
+      "name": "DPS/DPS/Healer",
+      "roles": ["DPS", "DPS", "Healer"],
+      "enabled": true,
+      "priority": 4
+    }
+  ]
+}
