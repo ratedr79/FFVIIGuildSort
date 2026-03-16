@@ -20,7 +20,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         public BestTeamResult FindBestTeam(AccountRow account, BattleContext context)
         {
-            // 1) Extract all owned weapons and assign them to their character via weaponData.tsv.
             var weaponsByCharacter = new Dictionary<string, List<WeaponOwnership>>(StringComparer.OrdinalIgnoreCase);
             var costumesByCharacter = new Dictionary<string, List<CostumeOwnership>>(StringComparer.OrdinalIgnoreCase);
             var missingCatalogItems = new List<MissingCatalogItemBreakdown>();
@@ -74,7 +73,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                // Costumes (outfits): value is typically Own / Do Not Own
                 if (_weaponCatalog.TryGetCostume(columnName, out var costumeInfo))
                 {
                     var isOwned = rawValue.Equals("Own", StringComparison.OrdinalIgnoreCase) ||
@@ -127,13 +125,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         });
                     }
 
-                    continue; // not a weapon
+                    continue;
                 }
 
                 var ob = ParseWeaponOverboost(rawValue);
                 if (ob == null)
                 {
-                    continue; // not owned / unusable
+                    continue;
                 }
 
                 var ownership = new WeaponOwnership
@@ -153,7 +151,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 list.Add(ownership);
             }
 
-            // 2) Score each character based on their top weapons (simple initial model).
             var characterScores = new List<(string Character, double Score)>();
             var characterBreakdowns = new Dictionary<string, CharacterScoreBreakdown>(StringComparer.OrdinalIgnoreCase);
             var allCharacters = new HashSet<string>(weaponsByCharacter.Keys, StringComparer.OrdinalIgnoreCase);
@@ -249,7 +246,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 characterScores.Add((character, basePlusGear * roleWeight));
             }
 
-            // 3) Build best 3-character team using prioritized composition templates.
             var chars = characterScores
                 .OrderByDescending(c => c.Score)
                 .Select(c => c.Character)
@@ -268,7 +264,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             BestTeamResult best = new BestTeamResult { InGameName = account.InGameName, DiscordName = account.DiscordName, Score = double.MinValue };
             var altCandidates = new List<AlternateTeamResult>();
 
-            // Evaluate all valid team combinations
             var teamsToEvaluate = new List<string[]>();
             for (int i = 0; i < chars.Count; i++)
             {
@@ -285,7 +280,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            // Identify which teams match enabled templates from context
             var enabledTemplates = context.EnabledTeamTemplates ?? GetDefaultEnabledTemplates();
             var teamTemplateMatches = teamsToEvaluate
                 .Select(team => new { Team = team, MatchesTemplate = DoesTeamMatchAnyTemplate(team, enabledTemplates) })
@@ -298,34 +292,51 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var team = teamMatch.Team;
                 var matchesTemplate = teamMatch.MatchesTemplate;
 
-                // Post-process: re-evaluate weapon selections for non-DPS characters to avoid duplicate synergies
-                var updatedCharacters = OptimizeNonDpsWeaponSelections(team, weaponsByCharacter, characterBreakdowns, context);
+                var teamCharacterBreakdowns = new Dictionary<string, CharacterScoreBreakdown>(StringComparer.OrdinalIgnoreCase);
+                foreach (var kvp in characterBreakdowns)
+                {
+                    var original = kvp.Value;
+                    var copy = new CharacterScoreBreakdown
+                    {
+                        CharacterName = original.CharacterName,
+                        Role = original.Role,
+                        RoleWeight = original.RoleWeight,
+                        ConsideredWeapons = original.ConsideredWeapons.ToList(),
+                        SelectedWeapons = original.SelectedWeapons.ToList(),
+                        UltimateWeapon = original.UltimateWeapon,
+                        SelectedCostumes = original.SelectedCostumes.ToList(),
+                        CostumeScoreSum = original.CostumeScoreSum,
+                        RawWeaponScoreSum = original.RawWeaponScoreSum,
+                        BasePlusGearScore = original.BasePlusGearScore,
+                        FinalCharacterScore = original.FinalCharacterScore
+                    };
+                    teamCharacterBreakdowns[kvp.Key] = copy;
+                }
 
-                // Update characterScores for any characters whose weapons were re-optimized
+                var updatedCharacters = OptimizeNonDpsWeaponSelections(team, weaponsByCharacter, teamCharacterBreakdowns, context);
+
+                var teamCharacterScores = characterScores.ToList();
                 foreach (var ch in updatedCharacters)
                 {
-                    if (characterBreakdowns.TryGetValue(ch, out var breakdown))
+                    if (teamCharacterBreakdowns.TryGetValue(ch, out var breakdown))
                     {
-                        var index = characterScores.FindIndex(x => x.Character.Equals(ch, StringComparison.OrdinalIgnoreCase));
+                        var index = teamCharacterScores.FindIndex(x => x.Character.Equals(ch, StringComparison.OrdinalIgnoreCase));
                         if (index >= 0)
                         {
-                            characterScores[index] = (ch, breakdown.FinalCharacterScore);
+                            teamCharacterScores[index] = (ch, breakdown.FinalCharacterScore);
                         }
                     }
                 }
 
-                // Team score = sum of character scores + synergy bonus for the non-DPS slot.
-                var baseScore = team.Sum(ch => characterScores.First(x => x.Character.Equals(ch, StringComparison.OrdinalIgnoreCase)).Score);
+                var baseScore = team.Sum(ch => teamCharacterScores.First(x => x.Character.Equals(ch, StringComparison.OrdinalIgnoreCase)).Score);
                 var synergyBonus = CalculateSupportSynergyBonus(team, weaponsByCharacter, context);
                 var score = baseScore + synergyBonus + utilityScore + memoriaScore + materiaScore;
 
-                // Apply 50% penalty if team doesn't match any enabled template
                 if (!matchesTemplate)
                 {
                     score *= 0.5;
                 }
 
-                // Track candidates for alternate teams (exclude the final best team later).
                 altCandidates.Add(new AlternateTeamResult
                 {
                     Characters = team.ToList(),
@@ -372,8 +383,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         UtilityScore = utilityScore,
                         SynergyBonus = Math.Round(synergyBonus, 2),
                         Characters = team
-                            .Where(ch => characterBreakdowns.ContainsKey(ch))
-                            .Select(ch => characterBreakdowns[ch])
+                            .Where(ch => teamCharacterBreakdowns.ContainsKey(ch))
+                            .Select(ch => teamCharacterBreakdowns[ch])
                             .ToList(),
                         MissingCatalogItems = missingCatalogItems
                             .OrderBy(m => m.InferredKind)
@@ -419,12 +430,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return new List<CostumeScoreBreakdown>();
             }
 
-            // When character has more than 3 outfits, check elemental ability matches
-            var useElementalScoring = owned.Count > 3;
-
             var scored = owned
-                .Select(o => ScoreCostume(o, context, useElementalScoring))
-                .OrderByDescending(s => s.BasePoints + s.SynergyPoints + s.ElementalAbilityPoints)
+                .Select(o => ScoreCostume(o, context))
+                .OrderByDescending(s => s.BasePoints + s.SynergyPoints)
                 .ToList();
 
             var selected = scored.Take(3).ToList();
@@ -433,23 +441,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return selected;
             }
 
-            // Main outfit full value.
             selected[0].Slot = "Main";
             selected[0].SlotMultiplier = 1.0;
-            selected[0].FinalCostumeScore = Math.Round((selected[0].BasePoints + selected[0].SynergyPoints + selected[0].ElementalAbilityPoints) * selected[0].SlotMultiplier, 2);
+            selected[0].FinalCostumeScore = Math.Round((selected[0].BasePoints + selected[0].SynergyPoints) * selected[0].SlotMultiplier, 2);
 
-            // Sub outfits half value.
             for (int i = 1; i < selected.Count; i++)
             {
                 selected[i].Slot = "Sub";
                 selected[i].SlotMultiplier = 0.5;
-                selected[i].FinalCostumeScore = Math.Round((selected[i].BasePoints + selected[i].SynergyPoints + selected[i].ElementalAbilityPoints) * selected[i].SlotMultiplier, 2);
+                selected[i].FinalCostumeScore = Math.Round((selected[i].BasePoints + selected[i].SynergyPoints) * selected[i].SlotMultiplier, 2);
             }
 
             return selected;
         }
 
-        private CostumeScoreBreakdown ScoreCostume(CostumeOwnership ownership, BattleContext context, bool checkElementalAbilities = false)
+        private CostumeScoreBreakdown ScoreCostume(CostumeOwnership ownership, BattleContext context)
         {
             if (!_weaponCatalog.TryGetCostume(ownership.CostumeName, out var info))
             {
@@ -459,12 +465,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var matchCount = SynergyDetection.CountSynergyMatches(info.EffectTextBlob, context);
             var synergyPoints = matchCount * 50;
 
-            var elementalAbilityPoints = 0.0;
-            if (checkElementalAbilities && context.EnemyWeakness != Element.None)
-            {
-                elementalAbilityPoints = ScoreElementalAbilities(info, context.EnemyWeakness);
-            }
-
             return new CostumeScoreBreakdown
             {
                 CostumeName = info.Name,
@@ -472,81 +472,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 BasePoints = 100,
                 SynergyMatchCount = matchCount,
                 SynergyPoints = synergyPoints,
-                ElementalAbilityPoints = elementalAbilityPoints,
                 SynergyReason = matchCount > 0 ? SynergyDetection.DescribeSynergyMatches(info.EffectTextBlob, context) : null,
                 FinalCostumeScore = 0
             };
-        }
-
-        private double ScoreElementalAbilities(CostumeInfo costume, Element weakness)
-        {
-            if (costume.AdditionalAbilities == null || costume.AdditionalAbilities.Count == 0)
-            {
-                return 0;
-            }
-
-            var elementName = weakness.ToString();
-            double score = 0;
-
-            foreach (var ability in costume.AdditionalAbilities)
-            {
-                if (string.IsNullOrWhiteSpace(ability))
-                {
-                    continue;
-                }
-
-                var abilityText = ability.Trim();
-
-                // Check for multi-element patterns like "Fire/Ice/Lightning/Earth/Water/Wind Ability Dmg. +30%"
-                if (abilityText.Contains("Ability Dmg", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Split on '/' to get individual elements
-                    var parts = abilityText.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-                    var hasMatchingElement = false;
-
-                    foreach (var part in parts)
-                    {
-                        if (part.Contains(elementName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            hasMatchingElement = true;
-                            break;
-                        }
-                    }
-
-                    if (hasMatchingElement)
-                    {
-                        // Parse the percentage if present
-                        var percentMatch = System.Text.RegularExpressions.Regex.Match(abilityText, @"\+(\d+)%");
-                        if (percentMatch.Success && int.TryParse(percentMatch.Groups[1].Value, out var pct))
-                        {
-                            // Award points based on percentage: 30% = 30 points, etc.
-                            score += pct;
-                        }
-                        else
-                        {
-                            // Default bonus if no percentage found
-                            score += 25;
-                        }
-                    }
-                }
-
-                // Check for single-element patterns like "Fire Ability Dmg. +30%"
-                else if (abilityText.Contains(elementName, StringComparison.OrdinalIgnoreCase) &&
-                         abilityText.Contains("Ability Dmg", StringComparison.OrdinalIgnoreCase))
-                {
-                    var percentMatch = System.Text.RegularExpressions.Regex.Match(abilityText, @"\+(\d+)%");
-                    if (percentMatch.Success && int.TryParse(percentMatch.Groups[1].Value, out var pct))
-                    {
-                        score += pct;
-                    }
-                    else
-                    {
-                        score += 25;
-                    }
-                }
-            }
-
-            return score;
         }
 
         private static List<string> GetDefaultEnabledTemplates()
@@ -607,14 +535,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return false;
             }
 
-            // At most two DPS.
             var dpsCount = set.Count(ch => CharacterRoleRegistry.GetRoleOrDefault(ch) == CharacterRole.DPS);
             if (dpsCount > MaxDpsAllowed)
             {
                 return false;
             }
 
-            // Must include at least one DPS.
             if (dpsCount < 1)
             {
                 return false;
@@ -649,8 +575,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return null;
             }
 
-            // Some survey exports use "Own" / "Owned" for weapons instead of 5 Star/OB.
-            // Treat it as an owned weapon with OB0.
             if (raw.Equals("Own", StringComparison.OrdinalIgnoreCase) || raw.Equals("Owned", StringComparison.OrdinalIgnoreCase))
             {
                 return 0;
@@ -666,7 +590,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return ob;
             }
 
-            // Some columns might be "Own" for non-weapon items; treat unknown values as not-owned for weapons.
             return null;
         }
 
@@ -680,9 +603,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return false;
             }
 
-            // Example:
-            // "Fira/Refined Fira Materia (11% Pot. or higher) Owned"
-            // "Fira Blow/Refined Fira Blow Materia (8-10% Pot.) Owned"
             var ownedSuffix = " Owned";
             if (!columnName.EndsWith(ownedSuffix, StringComparison.OrdinalIgnoreCase))
             {
@@ -758,14 +678,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return new List<MateriaScoreBreakdown>();
             }
 
-            // Tiered buckets with separate caps. This keeps a player's materia contribution meaningful
-            // without letting it dominate the overall score.
             const double cap11 = 90;
             const double cap8 = 60;
             const double cap0 = 30;
 
-            // Weights chosen so that reaching each cap is plausible with a few owned materia,
-            // but still requires meaningful ownership.
             const double w11 = 12;
             const double w8 = 8;
             const double w0 = 4;
@@ -1047,11 +963,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         public WeaponScoreBreakdown ScoreWeapon(WeaponOwnership w, BattleContext context, string? slot = null)
         {
-            // Minimal viable weapon score model:
-            // - Base score for being owned
-            // - OB breakpoints matter: OB1 / OB6 / OB10 give bigger jumps
-            // - Ultimate weapons are powerful but limited use; we discount them slightly.
-
             var ob = w.OverboostLevel ?? 0;
             var role = CharacterRoleRegistry.GetRoleOrDefault(w.CharacterName);
 
@@ -1069,151 +980,91 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 UltimateMultiplier = w.IsUltimate ? 0.85 : 1.0
             };
 
-            // For DPS weapons, incorporate Ability Potency % (weaponData.tsv is OB10).
-            // For non-DPS, damage contribution is less important; we down-weight it.
-            double potencyContribution = 0;
-            if (_weaponCatalog.TryGetWeapon(w.WeaponName, out var weaponInfo))
+            if (!_weaponCatalog.TryGetWeapon(w.WeaponName, out var weaponInfo))
             {
-                breakdown.SynergyReason = SynergyDetection.DescribeSynergy(weaponInfo, context);
+                breakdown.FinalWeaponScore = Math.Round(breakdown.BaseOwnedPoints * breakdown.UltimateMultiplier, 2);
+                return breakdown;
+            }
 
-                breakdown.AbilityPotPercentAtOb10 = weaponInfo.AbilityPotPercentAtOb10;
+            breakdown.SynergyReason = SynergyDetection.DescribeSynergy(weaponInfo, context);
 
-                breakdown.WeaknessMatch = context.EnemyWeakness == Element.None ||
-                                         SynergyDetection.WeaponMatchesEnemyWeakness(weaponInfo, context.EnemyWeakness);
+            breakdown.WeaknessMatch = context.EnemyWeakness == Element.None ||
+                                     SynergyDetection.WeaponMatchesEnemyWeakness(weaponInfo, context.EnemyWeakness);
 
-                breakdown.PreferredDamageTypeMatch = context.PreferredDamageType == DamageType.Any ||
-                                                    SynergyDetection.WeaponMatchesPreferredDamageType(weaponInfo, context.PreferredDamageType);
+            breakdown.PreferredDamageTypeMatch = context.PreferredDamageType == DamageType.Any ||
+                                                SynergyDetection.WeaponMatchesPreferredDamageType(weaponInfo, context.PreferredDamageType);
 
-                if (!w.IsUltimate && role == CharacterRole.DPS && weaponInfo.AbilityPotPercentAtOb10.HasValue)
+            if (!w.IsUltimate && role == CharacterRole.DPS && weaponInfo.AbilityPotPercentAtOb10.HasValue)
+            {
+                breakdown.PotencyApplied = true;
+                breakdown.AbilityPotPercentUsed = CalculateAbilityPotencyAtOb(weaponInfo.AbilityPotPercentAtOb10.Value, ob);
+                breakdown.MultiplyDamageBonusPercent = weaponInfo.MultiplyDamageBonusPercent;
+                breakdown.EffectiveAbilityPotPercentUsed = breakdown.AbilityPotPercentUsed.Value + breakdown.MultiplyDamageBonusPercent;
+
+                var isElemental = !string.IsNullOrWhiteSpace(weaponInfo.AbilityElement) &&
+                                  !weaponInfo.AbilityElement.Equals("None", StringComparison.OrdinalIgnoreCase);
+
+                var isOffHand = string.Equals(breakdown.Slot, "Off-hand", StringComparison.OrdinalIgnoreCase);
+                if (isOffHand && (context.EnemyWeakness != Element.None || context.PreferredDamageType != DamageType.Any))
                 {
-                    breakdown.PotencyApplied = true;
-                    breakdown.AbilityPotPercentUsed = CalculateAbilityPotencyAtOb(weaponInfo.AbilityPotPercentAtOb10.Value, ob);
-                    breakdown.MultiplyDamageBonusPercent = weaponInfo.MultiplyDamageBonusPercent;
-                    breakdown.EffectiveAbilityPotPercentUsed = breakdown.AbilityPotPercentUsed.Value + breakdown.MultiplyDamageBonusPercent;
+                    var elementRelevant = context.EnemyWeakness != Element.None;
+                    var typeRelevant = context.PreferredDamageType != DamageType.Any;
 
-                    var isElemental = !string.IsNullOrWhiteSpace(weaponInfo.AbilityElement) &&
-                                      !weaponInfo.AbilityElement.Equals("None", StringComparison.OrdinalIgnoreCase);
+                    var elemOk = !elementRelevant || breakdown.WeaknessMatch;
+                    var typeOk = !typeRelevant || breakdown.PreferredDamageTypeMatch;
 
-                    // If the off-hand doesn't match weakness, reduce potency weight (keep synergy unaffected).
-                    var isOffHand = string.Equals(breakdown.Slot, "Off-hand", StringComparison.OrdinalIgnoreCase);
-                    if (isOffHand && (context.EnemyWeakness != Element.None || context.PreferredDamageType != DamageType.Any))
-                    {
-                        var elementRelevant = context.EnemyWeakness != Element.None;
-                        var typeRelevant = context.PreferredDamageType != DamageType.Any;
-
-                        var elemOk = !elementRelevant || breakdown.WeaknessMatch;
-                        var typeOk = !typeRelevant || breakdown.PreferredDamageTypeMatch;
-
-                        // New rule:
-                        // - If the weapon is elemental, its ability potency is only relevant when it matches the enemy weakness.
-                        // - If it does NOT match weakness, potency is zero (regardless of Phys/Mag matching).
-                        if (isElemental && elementRelevant && !breakdown.WeaknessMatch)
-                        {
-                            breakdown.PotencyWeightApplied = 0.0;
-                        }
-                        else if (isElemental && elementRelevant)
-                        {
-                            // Elemental + matches weakness: full potency (off-hand stays relevant).
-                            breakdown.PotencyWeightApplied = 1.0;
-                        }
-                        else
-                        {
-                            // Non-elemental: use the existing element+type weighting behavior.
-
-                            // Requested DPS off-hand potency weights:
-                            // - matches element + type => 100%
-                            // - matches element only => 50%
-                            // - matches type only => 25%
-                            // - matches neither => 0%
-                            if (elemOk && typeOk)
-                            {
-                                breakdown.PotencyWeightApplied = 1.0;
-                            }
-                            else if (elemOk && !typeOk)
-                            {
-                                breakdown.PotencyWeightApplied = 0.50;
-                            }
-                            else if (!elemOk && typeOk)
-                            {
-                                breakdown.PotencyWeightApplied = 0.25;
-                            }
-                            else
-                            {
-                                breakdown.PotencyWeightApplied = 0.0;
-                            }
-                        }
-                    }
-
-                    if (isElemental && context.EnemyWeakness != Element.None && !breakdown.WeaknessMatch)
+                    if (isElemental && elementRelevant && !breakdown.WeaknessMatch)
                     {
                         breakdown.PotencyWeightApplied = 0.0;
                     }
-
-                    potencyContribution = breakdown.EffectiveAbilityPotPercentUsed.Value * breakdown.PotencyWeightApplied;
+                    else if (isElemental && elementRelevant)
+                    {
+                        breakdown.PotencyWeightApplied = 1.0;
+                    }
+                    else
+                    {
+                        if (elemOk && typeOk)
+                        {
+                            breakdown.PotencyWeightApplied = 1.0;
+                        }
+                        else if (elemOk && !typeOk)
+                        {
+                            breakdown.PotencyWeightApplied = 0.50;
+                        }
+                        else if (!elemOk && typeOk)
+                        {
+                            breakdown.PotencyWeightApplied = 0.25;
+                        }
+                        else
+                        {
+                            breakdown.PotencyWeightApplied = 0.0;
+                        }
+                    }
                 }
 
-                // For non-DPS, allow a weaker potency contribution when the weapon matches weakness.
-                if (!w.IsUltimate && role != CharacterRole.DPS && weaponInfo.AbilityPotPercentAtOb10.HasValue && context.EnemyWeakness != Element.None && breakdown.WeaknessMatch)
+                if (isElemental && context.EnemyWeakness != Element.None && !breakdown.WeaknessMatch)
                 {
-                    breakdown.PotencyApplied = true;
-                    breakdown.AbilityPotPercentUsed = CalculateAbilityPotencyAtOb(weaponInfo.AbilityPotPercentAtOb10.Value, ob);
-                    breakdown.MultiplyDamageBonusPercent = weaponInfo.MultiplyDamageBonusPercent;
-                    breakdown.EffectiveAbilityPotPercentUsed = breakdown.AbilityPotPercentUsed.Value + breakdown.MultiplyDamageBonusPercent;
-                    breakdown.PotencyWeightApplied = 0.50;
-                    potencyContribution = breakdown.EffectiveAbilityPotPercentUsed.Value * breakdown.PotencyWeightApplied;
+                    breakdown.PotencyWeightApplied = 0.0;
                 }
 
-                if (w.IsUltimate)
-                {
-                    breakdown.PotencyApplied = false;
-                    breakdown.AbilityPotPercentUsed = null;
-                    breakdown.EffectiveAbilityPotPercentUsed = null;
-                    breakdown.MultiplyDamageBonusPercent = 0;
-                    breakdown.PotencyWeightApplied = 1.0;
-                }
+                var potencyContribution = breakdown.EffectiveAbilityPotPercentUsed.Value * breakdown.PotencyWeightApplied;
+                breakdown.FinalWeaponScore = Math.Round(breakdown.BaseOwnedPoints + breakdown.Ob1Points + breakdown.Ob6Points + breakdown.Ob10Points + breakdown.IntermediateObPoints + potencyContribution, 2);
             }
-
-            var raw = breakdown.BaseOwnedPoints + breakdown.Ob1Points + breakdown.Ob6Points + breakdown.Ob10Points + breakdown.IntermediateObPoints;
-
-            // Potency contribution is scaled down so it doesn't dwarf OB ownership scoring.
-            raw += potencyContribution;
-
-            // Non-DPS weapons: reduce raw damage weighting (utility comes via team synergy bonus instead).
-            var nonDpsMultiplier = role == CharacterRole.DPS ? 1.0 : 0.55;
-
-            var selfOnlyElementPenalty = 1.0;
-            if (!w.IsUltimate && _weaponCatalog.TryGetWeapon(w.WeaponName, out var wi))
+            else
             {
-                var isElemental = !string.IsNullOrWhiteSpace(wi.AbilityElement) &&
-                                  !wi.AbilityElement.Equals("None", StringComparison.OrdinalIgnoreCase);
-
-                var selfOnly = wi.AbilityRange.Equals("Self", StringComparison.OrdinalIgnoreCase) ||
-                               (!string.IsNullOrWhiteSpace(wi.EffectTextBlob) && wi.EffectTextBlob.Contains("| Self", StringComparison.OrdinalIgnoreCase));
-
-                if (isElemental && selfOnly)
-                {
-                    selfOnlyElementPenalty = 0.70;
-                }
-
-                if (isElemental && context.EnemyWeakness != Element.None &&
-                    !SynergyDetection.WeaponMatchesEnemyWeakness(wi, context.EnemyWeakness))
-                {
-                    // Elemental weapon that doesn't match weakness shouldn't dominate purely on OB.
-                    selfOnlyElementPenalty *= 0.70;
-                }
+                breakdown.PotencyApplied = false;
+                breakdown.AbilityPotPercentUsed = null;
+                breakdown.EffectiveAbilityPotPercentUsed = null;
+                breakdown.MultiplyDamageBonusPercent = 0;
+                breakdown.PotencyWeightApplied = 1.0;
+                breakdown.FinalWeaponScore = Math.Round(breakdown.BaseOwnedPoints * breakdown.UltimateMultiplier, 2);
             }
-
-            breakdown.FinalWeaponScore = Math.Round(raw * breakdown.UltimateMultiplier * nonDpsMultiplier * selfOnlyElementPenalty, 2);
 
             return breakdown;
         }
 
         private static double CalculateAbilityPotencyAtOb(double ob10PotencyPercent, int overboostLevel)
         {
-            // OB10 = baseline.
-            // OB6 is usually 25% lower than OB10.
-            // OB1 is usually 30% lower than OB6.
-            // OB0 is usually 20% lower than OB1.
             if (overboostLevel >= 10)
             {
                 return ob10PotencyPercent;
@@ -1234,8 +1085,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private List<WeaponOwnership> GetPreferredWeaponsForRole(List<WeaponOwnership> weapons, CharacterRole role, BattleContext context)
         {
-            // For DPS: prefer weapons whose ability element matches enemy weakness and ability type matches preferred damage type.
-            // For non-DPS: don't filter; utility comes from synergy scoring.
             if (role != CharacterRole.DPS)
             {
                 return new List<WeaponOwnership>();
@@ -1277,20 +1126,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static bool IsAllowedForMainOrOffHand(WeaponInfo info)
         {
-            // Ultimate weapons can ONLY appear in the Ultimate slot.
             if (info.IsUltimate || info.GachaType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            // Costumes are handled separately and should never be treated as weapons.
             if (info.GachaType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            // Allowed weapon sources for main/off-hand.
-            // Keep unknown/empty as allowed for backwards compatibility / incomplete TSV rows.
             if (string.IsNullOrWhiteSpace(info.GachaType))
             {
                 return true;
@@ -1324,7 +1169,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             if (role == CharacterRole.DPS)
             {
-                // Main-hand (DPS): best potency weapon that matches weakness + preferred damage type (fallback to best potency overall).
                 var matching = weapons
                     .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) &&
                                 SynergyDetection.WeaponMatchesEnemyWeakness(info, context.EnemyWeakness) &&
@@ -1343,8 +1187,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
             else
             {
-                // Main-hand (non-DPS): prioritize utility; down-weight preferred damage type matching.
-                // We still prefer weakness match when relevant, but allow strong utility to win.
                 var bestProvidersForMainHand = FindBestSynergyProviders(allowed, context);
 
                 var weaknessRelevant = context.EnemyWeakness != Element.None;
@@ -1359,7 +1201,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     .First();
             }
 
-            // Off-hand: best remaining utility (synergy score first, then general weapon score).
             var remaining = allowed.Where(w => !w.WeaponName.Equals(mainHand.WeaponName, StringComparison.OrdinalIgnoreCase)).ToList();
             var bestProviders = FindBestSynergyProviders(remaining, context);
             var offHand = remaining
@@ -1374,8 +1215,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private Dictionary<string, SynergyProvider> FindBestSynergyProviders(List<WeaponOwnership> weapons, BattleContext context)
         {
-            // Option A: only consider a small set of high-impact effects for de-dupe.
-            // Currently implemented: elemental resistance down (e.g., Fire Resistance Down).
             var best = new Dictionary<string, SynergyProvider>(StringComparer.OrdinalIgnoreCase);
 
             if (context.EnemyWeakness == Element.None)
@@ -1390,31 +1229,28 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                // Treat "Status Ailment: <Element> Weakness" as a different effect type.
-                // We only consider "<Element> Resistance Down" for de-dupe here.
+                var ob = w.OverboostLevel ?? 0;
+                var synergyScore = SynergyDetection.CalculateSynergyScore(info, ob, context);
+                var coverage = SynergyDetection.GetSynergyCoverageWeight(info, context);
+
                 var token = $"{context.EnemyWeakness} Resistance Down";
                 if (string.IsNullOrWhiteSpace(info.EffectTextBlob) || !info.EffectTextBlob.Contains(token, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                var ob = w.OverboostLevel ?? 0;
-                var score = SynergyDetection.CalculateSynergyScore(info, ob, context);
-                var coverage = SynergyDetection.GetSynergyCoverageWeight(info, context);
                 var key = $"elem_res_down:{context.EnemyWeakness}";
 
                 if (!best.TryGetValue(key, out var existing))
                 {
-                    best[key] = new SynergyProvider(w.WeaponName, score, coverage);
+                    best[key] = new SynergyProvider(w.WeaponName, synergyScore, coverage);
                     continue;
                 }
 
-                // Prefer better coverage first, then higher synergy score.
-                // Coverage should separate All > Single > Self.
                 if (coverage > existing.CoverageWeight + 0.0001 ||
-                    (Math.Abs(coverage - existing.CoverageWeight) < 0.0001 && score > existing.Score))
+                    (Math.Abs(coverage - existing.CoverageWeight) < 0.0001 && synergyScore > existing.Score))
                 {
-                    best[key] = new SynergyProvider(w.WeaponName, score, coverage);
+                    best[key] = new SynergyProvider(w.WeaponName, synergyScore, coverage);
                 }
             }
 
@@ -1439,8 +1275,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     if (bestProviders.TryGetValue(key, out var best) &&
                         !best.WeaponName.Equals(weapon.WeaponName, StringComparison.OrdinalIgnoreCase))
                     {
-                        // If another weapon is the chosen provider for this effect, down-rank redundant versions.
-                        // Further down-rank when this weapon has weaker coverage.
                         var coverage = SynergyDetection.GetSynergyCoverageWeight(info, context);
                         var coveragePenalty = coverage < best.CoverageWeight - 0.0001 ? 0.35 : 0.55;
                         baseScore *= coveragePenalty;
@@ -1453,12 +1287,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private WeaponOwnership? SelectUltimateWeapon(string characterName, List<WeaponOwnership> weapons, BattleContext context)
         {
-            if (weapons.Count == 0)
-            {
-                return null;
-            }
-
-            // Determine ultimates by consulting weaponData.tsv (GachaType == Ultimate), not by the ownership flag.
             var ultimates = weapons
                 .Where(w => _weaponCatalog.TryGetWeapon(w.WeaponName, out var info) && info.IsUltimate)
                 .ToList();
@@ -1473,7 +1301,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return ultimates[0];
             }
 
-            // Multiple ultimates: score by synergy first, then by ability matching
             var scored = ultimates
                 .Select(u => new
                 {
@@ -1504,7 +1331,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var elementName = context.EnemyWeakness.ToString();
             double score = 0;
 
-            // Check AdditionalAbility1 and AdditionalAbility2 from additionalUltimateWeaponData.json
             var abilities = new[] { info.AdditionalAbility1, info.AdditionalAbility2 }
                 .Where(a => !string.IsNullOrWhiteSpace(a))
                 .Select(a => a!.Trim())
@@ -1512,10 +1338,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             foreach (var ability in abilities)
             {
-                // "Boost Elem. Pot. Arcanum" matches all elements
                 if (ability.Contains("Boost Elem. Pot. Arcanum", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Parse the points value if present
                     var pointsMatch = System.Text.RegularExpressions.Regex.Match(ability, @"\+(\d+)\s*pts?");
                     if (pointsMatch.Success && int.TryParse(pointsMatch.Groups[1].Value, out var pts))
                     {
@@ -1523,10 +1347,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
                     else
                     {
-                        score += 30; // Default bonus
+                        score += 30;
                     }
                 }
-                // Check for specific element mentions in abilities
                 else if (ability.Contains(elementName, StringComparison.OrdinalIgnoreCase))
                 {
                     var pointsMatch = System.Text.RegularExpressions.Regex.Match(ability, @"\+(\d+)\s*pts?");
@@ -1610,12 +1433,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private double CalculateSupportSynergyBonus(IEnumerable<string> team, Dictionary<string, List<WeaponOwnership>> weaponsByCharacter, BattleContext context)
         {
-            // Team-level synergy de-dupe:
-            // - Build each character's selected main/off-hand weapons
-            // - Pick the best provider per synergy category using coverage + synergy score
-            // - Sum the best per category
-            // - Allow ATB+N stacking (handled by summing base synergy score contributions that include ATB)
-
             var selectedWeapons = new List<WeaponOwnership>();
             foreach (var ch in team)
             {
@@ -1648,8 +1465,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var synergyScore = SynergyDetection.CalculateSynergyScore(info, ob, context);
                 var coverage = SynergyDetection.GetSynergyCoverageWeight(info, context);
 
-                // Allow ATB+N stacking: if the weapon provides any ATB+N, keep the full synergy score contribution.
-                // (CalculateSynergyScore includes ATB+N as part of the total.)
                 if (!string.IsNullOrWhiteSpace(info.EffectTextBlob) && info.EffectTextBlob.Contains("ATB+", StringComparison.OrdinalIgnoreCase))
                 {
                     stackingAtbBonus += synergyScore;
@@ -1672,20 +1487,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            // Sum unique weapon scores (each weapon counted only once, even if it provides multiple categories)
             var uniqueWeapons = bestByCategory.Values
                 .GroupBy(v => v.WeaponName, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
                 .ToList();
-            
+
             var dedupedBonus = uniqueWeapons.Sum(v => v.Score);
             return dedupedBonus + stackingAtbBonus;
         }
 
         private IEnumerable<string> GetSynergyCategories(WeaponInfo weapon, BattleContext context)
         {
-            // This is an Option A+ list: only the most impactful categories.
-            // NOTE: "Status Ailment: <Element> Weakness" is intentionally NOT treated as the same as "<Element> Resistance Down".
             var cats = new List<string>();
 
             if (context.EnemyWeakness != Element.None && !string.IsNullOrWhiteSpace(weapon.EffectTextBlob))
@@ -1747,32 +1559,33 @@ namespace FFVIIEverCrisisAnalyzer.Services
             BattleContext context)
         {
             var updatedCharacters = new List<string>();
-            // Collect all synergy categories currently provided by the team
-            var teamSynergyCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             var weaponsByCharacterName = new Dictionary<string, List<WeaponOwnership>>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var ch in team)
             {
-                if (!weaponsByCharacter.TryGetValue(ch, out var owned) || owned.Count == 0)
+                if (!characterBreakdowns.TryGetValue(ch, out var breakdown))
                 {
                     continue;
                 }
 
-                var role = CharacterRoleRegistry.GetRoleOrDefault(ch);
-                var selectedWeapons = SelectTwoWeapons(ch, role, owned, context);
-                weaponsByCharacterName[ch] = selectedWeapons;
-
-                foreach (var w in selectedWeapons)
+                // Extract the actual selected weapons from the breakdown
+                var selectedWeapons = new List<WeaponOwnership>();
+                foreach (var weaponBreakdown in breakdown.SelectedWeapons)
                 {
-                    if (_weaponCatalog.TryGetWeapon(w.WeaponName, out var info))
+                    if (!weaponsByCharacter.TryGetValue(ch, out var owned))
                     {
-                        var categories = GetSynergyCategories(info, context);
-                        foreach (var cat in categories)
-                        {
-                            teamSynergyCategories.Add(cat);
-                        }
+                        continue;
+                    }
+
+                    var matchingWeapon = owned.FirstOrDefault(w => w.WeaponName.Equals(weaponBreakdown.WeaponName, StringComparison.OrdinalIgnoreCase));
+                    if (matchingWeapon != null)
+                    {
+                        selectedWeapons.Add(matchingWeapon);
                     }
                 }
+
+                weaponsByCharacterName[ch] = selectedWeapons;
             }
 
             // Re-evaluate non-DPS characters to find weapons with unique synergies
