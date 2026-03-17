@@ -6,6 +6,13 @@ using FFVIIEverCrisisAnalyzer.Models;
 
 namespace FFVIIEverCrisisAnalyzer.Pages;
 
+public class PlayerSubmissionInfo
+{
+    public string InGameName { get; set; } = string.Empty;
+    public string? DiscordName { get; set; }
+    public string Guild { get; set; } = string.Empty;
+}
+
 public class IndexModel : PageModel
 {
     private readonly ILogger<IndexModel> _logger;
@@ -55,6 +62,7 @@ public class IndexModel : PageModel
     public Dictionary<string, int> GuildSubmissionCounts { get; set; } = new();
     public int TotalDistinctPlayers { get; set; }
     public List<string> DuplicateSubmitters { get; set; } = new();
+    public List<PlayerSubmissionInfo> AllPlayerSubmissions { get; set; } = new();
 
     public void OnGet()
     {
@@ -96,6 +104,22 @@ public class IndexModel : PageModel
 
             // Calculate total distinct players
             TotalDistinctPlayers = accounts.Count;
+
+            // Build list of all player submissions sorted by guild and in-game name
+            AllPlayerSubmissions = accounts
+                .Select(a => new PlayerSubmissionInfo
+                {
+                    InGameName = a.InGameName?.Trim() ?? string.Empty,
+                    DiscordName = a.ItemResponsesByColumnName.TryGetValue("Discord Name (If different)", out var discord) && !string.IsNullOrWhiteSpace(discord) 
+                        ? discord.Trim() 
+                        : null,
+                    Guild = a.ItemResponsesByColumnName.TryGetValue("Your Guild", out var guild) && !string.IsNullOrWhiteSpace(guild)
+                        ? guild.Trim()
+                        : "Unknown"
+                })
+                .OrderBy(p => p.Guild, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(p => p.InGameName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             // Build list of enabled team templates
             var enabledTemplateNames = EnabledTeamTemplates
