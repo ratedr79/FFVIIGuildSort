@@ -7,7 +7,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 {
     public sealed class WeaponCatalog
     {
-        private sealed record AdditionalWeaponRow(string? Character, string? Weapon, string? Ability1, string? Ability2);
+        private sealed record AdditionalWeaponRow(string? Character, string? Weapon, string? Ability1, string? Ability2, string? Ability3);
         private sealed record AdditionalOutfitRow(
             string? Character,
             string? Outfit,
@@ -307,6 +307,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var parts = new List<string>();
             if (!string.IsNullOrWhiteSpace(row.Ability1)) parts.Add(row.Ability1!.Trim());
             if (!string.IsNullOrWhiteSpace(row.Ability2)) parts.Add(row.Ability2!.Trim());
+            if (!string.IsNullOrWhiteSpace(row.Ability3)) parts.Add(row.Ability3!.Trim());
             return string.Join(" | ", parts);
         }
 
@@ -353,6 +354,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (string.IsNullOrWhiteSpace(weapon.AdditionalAbility2) && !string.IsNullOrWhiteSpace(row.Ability2))
             {
                 weapon.AdditionalAbility2 = row.Ability2!.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(weapon.AdditionalAbility3) && !string.IsNullOrWhiteSpace(row.Ability3))
+            {
+                weapon.AdditionalAbility3 = row.Ability3!.Trim();
             }
 
             var extra = BuildAdditionalWeaponEffectText(row);
@@ -436,6 +442,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     w.AdditionalAbility1 = string.IsNullOrWhiteSpace(row.Ability1) ? null : row.Ability1!.Trim();
                     w.AdditionalAbility2 = string.IsNullOrWhiteSpace(row.Ability2) ? null : row.Ability2!.Trim();
+                    w.AdditionalAbility3 = string.IsNullOrWhiteSpace(row.Ability3) ? null : row.Ability3!.Trim();
                 }
             }
 
@@ -466,6 +473,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     w.AdditionalAbility1 = string.IsNullOrWhiteSpace(row.Ability1) ? null : row.Ability1!.Trim();
                     w.AdditionalAbility2 = string.IsNullOrWhiteSpace(row.Ability2) ? null : row.Ability2!.Trim();
+                    w.AdditionalAbility3 = string.IsNullOrWhiteSpace(row.Ability3) ? null : row.Ability3!.Trim();
                 }
             }
 
@@ -574,6 +582,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public string EffectTextBlob { get; set; } = string.Empty;
         public string? AdditionalAbility1 { get; set; }
         public string? AdditionalAbility2 { get; set; }
+        public string? AdditionalAbility3 { get; set; }
     }
 
     public sealed class CostumeInfo

@@ -53,6 +53,7 @@ public class IndexModel : PageModel
     public List<string> GuildWarnings { get; set; } = new();
     public Dictionary<int, string> GuildTimeZoneSummaries { get; set; } = new();
     public Dictionary<string, int> GuildSubmissionCounts { get; set; } = new();
+    public int TotalDistinctPlayers { get; set; }
     public List<string> DuplicateSubmitters { get; set; } = new();
 
     public void OnGet()
@@ -92,6 +93,9 @@ public class IndexModel : PageModel
                 .GroupBy(a => a.ItemResponsesByColumnName["Your Guild"], StringComparer.OrdinalIgnoreCase)
                 .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            // Calculate total distinct players
+            TotalDistinctPlayers = accounts.Count;
 
             // Build list of enabled team templates
             var enabledTemplateNames = EnabledTeamTemplates
