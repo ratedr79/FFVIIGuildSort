@@ -278,6 +278,14 @@
                             </div>
                         }
 
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <strong>Banner Response Key:</strong>
+                                <span class="badge bg-warning text-dark ms-2">⚠️</span> = Yes - Possibly To OB6
+                                <span class="badge bg-success ms-2">✓</span> = Yes - Possibly To OB10
+                            </small>
+                        </div>
+
                         <div class="table-responsive">
                             <table class="table table-striped table-hover">
                                 <thead class="table-dark">
@@ -336,6 +344,17 @@
                                                     @if (!string.IsNullOrWhiteSpace(team.DiscordName))
                                                     {
                                                         <text> (@team.DiscordName)</text>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(team.BannerResponse))
+                                                    {
+                                                        if (team.BannerResponse.Contains("OB6", StringComparison.OrdinalIgnoreCase))
+                                                        {
+                                                            <span class="badge bg-warning text-dark ms-1" title="Yes - Possibly To OB6">⚠️</span>
+                                                        }
+                                                        else if (team.BannerResponse.Contains("OB10", StringComparison.OrdinalIgnoreCase))
+                                                        {
+                                                            <span class="badge bg-success ms-1" title="Yes - Possibly To OB10">✓</span>
+                                                        }
                                                     }
                                                 </td>
                                                 <td>@string.Join(", ", team.Characters)</td>

@@ -179,6 +179,29 @@ public class IndexModel : PageModel
                     g => (g.First().ItemResponsesByColumnName.TryGetValue("Your Time Zone", out var tz) ? tz : string.Empty).Trim(),
                     StringComparer.OrdinalIgnoreCase);
 
+            var bannerByPlayer = accounts
+                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
+                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Battle release day banner?", out var banner) ? banner : string.Empty).Trim(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            _logger.LogInformation($"Banner responses found: {bannerByPlayer.Count(kvp => !string.IsNullOrWhiteSpace(kvp.Value))}");
+            foreach (var kvp in bannerByPlayer.Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value)))
+            {
+                _logger.LogInformation($"Player: {kvp.Key}, Banner Response: {kvp.Value}");
+            }
+
+            foreach (var t in RankedTeams)
+            {
+                if (bannerByPlayer.TryGetValue(t.InGameName, out var bannerResponse) && !string.IsNullOrWhiteSpace(bannerResponse))
+                {
+                    t.BannerResponse = bannerResponse;
+                    _logger.LogInformation($"Set banner response for {t.InGameName}: {bannerResponse}");
+                }
+            }
+
             GuildTimeZoneSummaries = GuildAssignments
                 .GroupBy(a => a.Guild)
                 .ToDictionary(
@@ -225,7 +248,10 @@ public class IndexModel : PageModel
         try
         {
             using var stream = UploadedFile.OpenReadStream();
-            var rankedTeams = await _gb20Analyzer.AnalyzeAsync(stream, new BattleContext
+            var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);
+            var accounts = ingestionResult.Accounts;
+            
+            var rankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, new BattleContext
             {
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
@@ -235,8 +261,17 @@ public class IndexModel : PageModel
             var rules = _guildAssigner.LoadRulesOrDefault();
             var assignmentResult = _guildAssigner.AssignGuilds(rankedTeams, rules);
 
+            // Build banner response lookup
+            var bannerByPlayer = accounts
+                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
+                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Battle release day banner?", out var banner) ? banner : string.Empty).Trim(),
+                    StringComparer.OrdinalIgnoreCase);
+
             var sb = new StringBuilder();
-            sb.AppendLine("Guild,In-Game Name,Reason");
+            sb.AppendLine("Guild,In-Game Name,Reason,Banner Response");
 
             foreach (var a in assignmentResult.Assignments
                          .OrderBy(x => x.Guild)
@@ -246,10 +281,20 @@ public class IndexModel : PageModel
                 sb.Append(',');
                 sb.Append(EscapeCsv(a.Player));
                 sb.Append(',');
-                sb.AppendLine(EscapeCsv(a.Reason ?? string.Empty));
+                sb.Append(EscapeCsv(a.Reason ?? string.Empty));
+                sb.Append(',');
+                var bannerResponse = bannerByPlayer.TryGetValue(a.Player, out var br) ? br : string.Empty;
+                sb.AppendLine(EscapeCsv(bannerResponse));
             }
 
-            var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+            // Use UTF-8 with BOM for proper Japanese character display in Excel
+            var utf8WithBom = new UTF8Encoding(true);
+            using var memoryStream = new MemoryStream();
+            using (var writer = new StreamWriter(memoryStream, utf8WithBom, leaveOpen: true))
+            {
+                writer.Write(sb.ToString());
+            }
+            var bytes = memoryStream.ToArray();
             var fileName = $"guild-assignments_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
             return File(bytes, "text/csv; charset=utf-8", fileName);
         }
