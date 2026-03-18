@@ -187,6 +187,14 @@ public class IndexModel : PageModel
                     g => (g.First().ItemResponsesByColumnName.TryGetValue("Battle release day banner?", out var banner) ? banner : string.Empty).Trim(),
                     StringComparer.OrdinalIgnoreCase);
 
+            var submittedGuildByPlayer = accounts
+                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
+                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Your Guild", out var guild) ? guild : string.Empty).Trim(),
+                    StringComparer.OrdinalIgnoreCase);
+
             _logger.LogInformation($"Banner responses found: {bannerByPlayer.Count(kvp => !string.IsNullOrWhiteSpace(kvp.Value))}");
             foreach (var kvp in bannerByPlayer.Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value)))
             {
@@ -199,6 +207,11 @@ public class IndexModel : PageModel
                 {
                     t.BannerResponse = bannerResponse;
                     _logger.LogInformation($"Set banner response for {t.InGameName}: {bannerResponse}");
+                }
+                
+                if (submittedGuildByPlayer.TryGetValue(t.InGameName, out var submittedGuild) && !string.IsNullOrWhiteSpace(submittedGuild))
+                {
+                    t.SubmittedGuild = submittedGuild;
                 }
             }
 
@@ -287,6 +300,15 @@ public class IndexModel : PageModel
                     g => (g.First().ItemResponsesByColumnName.TryGetValue("Discord Name (If different)", out var discord) ? discord : string.Empty).Trim(),
                     StringComparer.OrdinalIgnoreCase);
 
+            // Build submitted guild lookup
+            var submittedGuildByPlayer = accounts
+                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
+                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Your Guild", out var guild) ? guild : string.Empty).Trim(),
+                    StringComparer.OrdinalIgnoreCase);
+
             // Build score lookup from ranked teams
             var scoreByPlayer = rankedTeams
                 .ToDictionary(
@@ -295,7 +317,7 @@ public class IndexModel : PageModel
                     StringComparer.OrdinalIgnoreCase);
 
             var sb = new StringBuilder();
-            sb.AppendLine("Guild,In-Game Name,Discord Name,Score,Reason,Banner Response");
+            sb.AppendLine("Guild,In-Game Name,Discord Name,Submitted Guild,Score,Reason,Banner Response");
 
             foreach (var a in assignmentResult.Assignments
                          .OrderBy(x => x.Guild)
@@ -308,6 +330,9 @@ public class IndexModel : PageModel
                 sb.Append(',');
                 var discordName = discordByPlayer.TryGetValue(a.Player, out var dn) ? dn : string.Empty;
                 sb.Append(EscapeCsv(discordName));
+                sb.Append(',');
+                var submittedGuild = submittedGuildByPlayer.TryGetValue(a.Player, out var sg) ? sg : string.Empty;
+                sb.Append(EscapeCsv(submittedGuild));
                 sb.Append(',');
                 var score = scoreByPlayer.TryGetValue(a.Player, out var s) ? s.ToString("F0") : "0";
                 sb.Append(score);

@@ -1,14 +1,14 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "FFVII Ever Crisis Power Level Analyzer";
+    ViewData["Title"] = "Blitzball Fantasy League Manager";
 }
 
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
             <h1 class="text-center mb-4">
-                <i class="fas fa-sword"></i> FFVII Ever Crisis Power Level Analyzer
+                <i class="fas fa-futbol"></i> Blitzball Fantasy League Manager
             </h1>
             <p class="text-center text-muted">Upload your player data CSV to calculate and analyze power levels</p>
         </div>
@@ -340,20 +340,44 @@
                                                 <td><span class="badge @(i < 3 ? "bg-warning" : "bg-secondary")">@(i + 1)</span></td>
                                                 <td>@team.GuildNumber</td>
                                                 <td>
-                                                    @team.InGameName
-                                                    @if (!string.IsNullOrWhiteSpace(team.DiscordName))
-                                                    {
-                                                        <text> (@team.DiscordName)</text>
-                                                    }
-                                                    @if (!string.IsNullOrWhiteSpace(team.BannerResponse))
-                                                    {
-                                                        if (team.BannerResponse.Contains("OB6", StringComparison.OrdinalIgnoreCase))
+                                                    <div>
+                                                        @team.InGameName
+                                                        @if (!string.IsNullOrWhiteSpace(team.DiscordName))
                                                         {
-                                                            <span class="badge bg-warning text-dark ms-1" title="Yes - Possibly To OB6">⚠️</span>
+                                                            <text> (@team.DiscordName)</text>
                                                         }
-                                                        else if (team.BannerResponse.Contains("OB10", StringComparison.OrdinalIgnoreCase))
+                                                        @if (!string.IsNullOrWhiteSpace(team.BannerResponse))
                                                         {
-                                                            <span class="badge bg-success ms-1" title="Yes - Possibly To OB10">✓</span>
+                                                            if (team.BannerResponse.Contains("OB6", StringComparison.OrdinalIgnoreCase))
+                                                            {
+                                                                <span class="badge bg-warning text-dark ms-1" title="Yes - Possibly To OB6">⚠️</span>
+                                                            }
+                                                            else if (team.BannerResponse.Contains("OB10", StringComparison.OrdinalIgnoreCase))
+                                                            {
+                                                                <span class="badge bg-success ms-1" title="Yes - Possibly To OB10">✓</span>
+                                                            }
+                                                        }
+                                                    </div>
+                                                    @if (!string.IsNullOrWhiteSpace(team.SubmittedGuild))
+                                                    {
+                                                        var expectedGuildName = team.GuildNumber switch
+                                                        {
+                                                            1 => "SOLDIER",
+                                                            2 => "SOLDIER 2nd",
+                                                            3 => "SOLDIER 3rd",
+                                                            4 => "SOLDIER 4th",
+                                                            _ => ""
+                                                        };
+                                                        var isGuildMismatch = !string.IsNullOrWhiteSpace(expectedGuildName) && 
+                                                                              !team.SubmittedGuild.Equals(expectedGuildName, StringComparison.OrdinalIgnoreCase);
+                                                        
+                                                        if (isGuildMismatch)
+                                                        {
+                                                            <div><small class="text-warning fw-bold">⚠️ Submitted: @team.SubmittedGuild</small></div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div><small class="text-muted">Submitted: @team.SubmittedGuild</small></div>
                                                         }
                                                     }
                                                 </td>

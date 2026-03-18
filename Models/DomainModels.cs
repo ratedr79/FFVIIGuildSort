@@ -57,6 +57,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public Dictionary<string, List<WeaponOwnership>> WeaponsByCharacter { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public TeamScoreBreakdown? Breakdown { get; set; }
         public string? BannerResponse { get; set; }
+        public string? SubmittedGuild { get; set; }
     }
 
     public sealed class AlternateTeamResult
