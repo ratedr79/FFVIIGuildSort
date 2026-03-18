@@ -251,11 +251,19 @@ public class IndexModel : PageModel
             var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);
             var accounts = ingestionResult.Accounts;
             
+            // Build list of enabled team templates
+            var enabledTemplateNames = EnabledTeamTemplates
+                .Where(kvp => kvp.Value)
+                .Select(kvp => kvp.Key)
+                .ToList();
+            
             var rankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, new BattleContext
             {
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
-                TargetScenario = TargetScenario
+                TargetScenario = TargetScenario,
+                SynergyEffectBonusPercents = SynergyEffectBonusPercents,
+                EnabledTeamTemplates = enabledTemplateNames
             });
 
             var rules = _guildAssigner.LoadRulesOrDefault();
@@ -270,16 +278,39 @@ public class IndexModel : PageModel
                     g => (g.First().ItemResponsesByColumnName.TryGetValue("Battle release day banner?", out var banner) ? banner : string.Empty).Trim(),
                     StringComparer.OrdinalIgnoreCase);
 
+            // Build Discord name lookup
+            var discordByPlayer = accounts
+                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
+                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Discord Name (If different)", out var discord) ? discord : string.Empty).Trim(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            // Build score lookup from ranked teams
+            var scoreByPlayer = rankedTeams
+                .ToDictionary(
+                    t => t.InGameName,
+                    t => t.Score,
+                    StringComparer.OrdinalIgnoreCase);
+
             var sb = new StringBuilder();
-            sb.AppendLine("Guild,In-Game Name,Reason,Banner Response");
+            sb.AppendLine("Guild,In-Game Name,Discord Name,Score,Reason,Banner Response");
 
             foreach (var a in assignmentResult.Assignments
                          .OrderBy(x => x.Guild)
+                         .ThenByDescending(x => scoreByPlayer.TryGetValue(x.Player, out var s) ? s : 0)
                          .ThenBy(x => x.Player, StringComparer.OrdinalIgnoreCase))
             {
                 sb.Append(a.Guild);
                 sb.Append(',');
                 sb.Append(EscapeCsv(a.Player));
+                sb.Append(',');
+                var discordName = discordByPlayer.TryGetValue(a.Player, out var dn) ? dn : string.Empty;
+                sb.Append(EscapeCsv(discordName));
+                sb.Append(',');
+                var score = scoreByPlayer.TryGetValue(a.Player, out var s) ? s.ToString("F0") : "0";
+                sb.Append(score);
                 sb.Append(',');
                 sb.Append(EscapeCsv(a.Reason ?? string.Empty));
                 sb.Append(',');
