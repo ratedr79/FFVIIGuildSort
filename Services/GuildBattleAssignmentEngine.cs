@@ -495,8 +495,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     int used = attemptsUsed.GetValueOrDefault(playerName, 0);
                     if (used >= player.attempts) continue;
                     
-                    var damage = player.eff.GetValueOrDefault(targetStage.Value, 0);
-                    if (damage <= 0) continue;
+                    var baseDamage = player.eff.GetValueOrDefault(targetStage.Value, 0);
+                    if (baseDamage <= 0) continue;
+                    
+                    // Apply per-attack variance (±10% random variance)
+                    // This simulates RNG, player execution quality, and game mechanics
+                    double varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2); // 0.9 to 1.1
+                    var damage = baseDamage * varianceMultiplier;
                     
                     // Make the attack
                     hp[targetStage.Value] = Math.Max(0, hp[targetStage.Value] - damage);
