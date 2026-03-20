@@ -1,0 +1,231 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.GuildBattleModel
+@using FFVIIEverCrisisAnalyzer.Models
+@{
+    ViewData["Title"] = "Guild Battle Stage Assignment";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-3"><i class="fas fa-chess"></i> Guild Battle Stage Assignment</h1>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>Upload Guild Battle Results CSV</strong>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" asp-page-handler="Analyze">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="UploadedFile" class="form-label">Guild Battle CSV</label>
+                        <input type="file" class="form-control" id="UploadedFile" name="UploadedFile" accept=".csv" />
+                    </div>
+                    <div class="col-md-2">
+                        <label for="CurrentDay" class="form-label">Current Day</label>
+                        <select class="form-select" id="CurrentDay" name="CurrentDay">
+                            <option value="1" selected>Day 1</option>
+                            <option value="2">Day 2</option>
+                            <option value="3">Day 3</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="MarginOfErrorPercent" class="form-label">Margin of Error (%)</label>
+                        <input type="number" step="0.5" min="0" max="25" class="form-control" id="MarginOfErrorPercent" name="MarginOfErrorPercent" value="7.5" />
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Analyze</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.Today != null)
+    {
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header"><strong>Today Summary</strong></div>
+                    <div class="card-body">
+                        <div>Current Day: <strong>@Model.Today.CurrentDay</strong></div>
+                        <div>Remaining Hits: <strong>@Model.Today.RemainingHits</strong></div>
+                        <hr />
+                        <div class="small text-muted mb-2">Remaining HP by Stage</div>
+                        @foreach (var kvp in Model.Today.RemainingHpByStage)
+                        {
+                            <div>Stage @((int)kvp.Key): <strong>@kvp.Value.ToString("F1")%</strong></div>
+                        }
+                        <hr />
+                        @if (Model.Today.CurrentDay > 1 && Model.Today.KillsPreviousDays.Any(k => k.Value > 0))
+                        {
+                            <div class="small text-muted mb-2">Kills from Previous Days</div>
+                            @foreach (var kvp in Model.Today.KillsPreviousDays.Where(k => k.Value > 0).OrderBy(k => (int)k.Key))
+                            {
+                                <div>Stage @((int)kvp.Key): <strong>@kvp.Value</strong></div>
+                            }
+                            <hr />
+                        }
+                        <div>Stage 6 Unlocked: <strong>@(Model.Today.IsStage6Unlocked ? "Yes" : "No")</strong></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Battle Plan for Today</strong>
+                        @if (Model.BattlePlan != null && Model.BattlePlan.StageGroups.Count > 0)
+                        {
+                            <form method="post" asp-page-handler="Export">
+                                <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-download"></i> Export CSV</button>
+                            </form>
+                        }
+                    </div>
+                    <div class="card-body">
+                        @if (Model.BattlePlan == null || Model.BattlePlan.StageGroups.Count == 0)
+                        {
+                            <div class="text-muted">Run Analyze to see battle plan.</div>
+                        }
+                        else
+                        {
+                            var stage123 = Model.BattlePlan.StageGroups.FirstOrDefault(g => g.Stage == StageId.S1);
+                            
+                            <div class="alert alert-info">
+                                <strong>Expected Resets:</strong> @Model.BattlePlan.ExpectedResets
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Stage Clears:</h6>
+                                <div class="row">
+                                    @foreach (var kvp in Model.BattlePlan.StageClears.OrderBy(x => (int)x.Key))
+                                    {
+                                        <div class="col-md-2 mb-2">
+                                            <div class="text-center">
+                                                <div class="fw-bold">Stage @((int)kvp.Key)</div>
+                                                <div class="badge bg-success">@kvp.Value clears</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Final HP at End of Day:</h6>
+                                <div class="row">
+                                    @foreach (var kvp in Model.BattlePlan.FinalHpByStage.OrderBy(x => (int)x.Key))
+                                    {
+                                        <div class="col-md-2 mb-2">
+                                            <div class="text-center">
+                                                <div class="fw-bold">Stage @((int)kvp.Key)</div>
+                                                <div class="text-muted">@kvp.Value.ToString("F3")%</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Attack Log:</h6>
+                                <div class="card">
+                                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                        <table class="table table-sm table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Player</th>
+                                                    <th>Stage</th>
+                                                    <th>Damage</th>
+                                                    <th>Remaining HP</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var entry in Model.BattlePlan.AttackLog)
+                                                {
+                                                    if (entry.IsReset)
+                                                    {
+                                                        @if (entry.PlayerName.Contains("Starting HP"))
+                                                        {
+                                                            <tr class="table-info">
+                                                                <td colspan="3">@entry.PlayerName</td>
+                                                                <td>@entry.RemainingHP.ToString("F3")%</td>
+                                                                <td></td>
+                                                            </tr>
+                                                        }
+                                                        else
+                                                        {
+                                                            <tr class="table-warning">
+                                                                <td colspan="5" class="text-center fw-bold">@entry.PlayerName</td>
+                                                            </tr>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <tr class="@(entry.Cleared ? "table-success" : "")">
+                                                            <td>@entry.PlayerName</td>
+                                                            <td>Stage @((int)entry.Stage)</td>
+                                                            <td>@entry.Damage.ToString("F3")%</td>
+                                                            <td>@entry.RemainingHP.ToString("F3")%</td>
+                                                            <td>@(entry.Cleared ? "✓ CLEARED" : "")</td>
+                                                        </tr>
+                                                    }
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <h6>Stage Assignments:</h6>
+                            
+                            @if (stage123 != null && stage123.PlayerNames.Count > 0)
+                            {
+                                <div class="card mb-2">
+                                    <div class="card-header bg-primary text-white">
+                                        <strong>Stage 1-3</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var player in stage123.PlayerNames)
+                                            {
+                                                <span class="badge bg-secondary">@@@player</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @foreach (var group in Model.BattlePlan.StageGroups.Where(g => g.Stage != StageId.S1 && g.Stage != StageId.S2 && g.Stage != StageId.S3).OrderBy(g => (int)g.Stage))
+                            {
+                                <div class="card mb-2">
+                                    <div class="card-header bg-primary text-white">
+                                        <strong>Stage @((int)group.Stage)</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        @if (group.PlayerNames.Count == 0)
+                                        {
+                                            <em class="text-muted">No assignments</em>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var player in group.PlayerNames)
+                                                {
+                                                    <span class="badge bg-secondary">@@@player</span>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
