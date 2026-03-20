@@ -2818,5 +2818,20 @@
     "ability8": null,
     "ability9": null,
     "ability10": null
+  },
+  {
+    "character": "Angeal",
+    "outfit": "Festive Suit",
+    "command": "Deal 1,000% Mag. Lightning damage [Rng: Single Enemy] Also, Physical Resistance is increased. [Pot.: 50%] [Rng: Self] [Dur.: 15s] [Ext.: 0s] Magic Resistance is increased. [Pot.: 50%] [Rng: Self] [Dur.: 15s] [Ext.: 0s] Applies HP Gain [Rng.: All Allies] [Dur.: 30s] [Ext.: 30s] [When triggered: restores 8% of the target's max HP]. Uses: 1; ATB: 4",
+    "ability1": "Boost Ability Pot. (All Allies) +15 pts",
+    "ability2": "Phys. & Mag. Defense +20%;",
+    "ability3": null,
+    "ability4": null,
+    "ability5": null,
+    "ability6": null,
+    "ability7": null,
+    "ability8": null,
+    "ability9": null,
+    "ability10": null
   }
 ]

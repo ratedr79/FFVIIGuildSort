@@ -28,6 +28,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
     {
         public string Name { get; set; } = string.Empty;
         public Dictionary<StageId, double> MockPercents { get; set; } = new(); // 0..100 per stage
+        public Dictionary<StageId, double> AveragedPercents { get; set; } = new(); // Running average including live attacks
         public List<AttemptLog> Attempts { get; set; } = new();
         public string? Notes { get; set; }
     }

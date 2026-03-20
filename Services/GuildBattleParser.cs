@@ -172,7 +172,58 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 result.Players.Add(profile);
             }
 
+            // Calculate averaged percentages for all players
+            CalculateAveragedPercentages(result.Players);
+
             return result;
+        }
+
+        /// <summary>
+        /// Calculate running averages for each player/stage combination using hybrid approach:
+        /// 1. Filter cleanup kills (Killed=true AND damage < 3%) - likely finishing low HP bosses
+        /// 2. Use weighted average: Mock 40%, Live attacks 60%
+        /// 3. Cap downward deviation: Don't drop more than 30% below mock
+        /// </summary>
+        private void CalculateAveragedPercentages(List<PlayerStageProfile> players)
+        {
+            foreach (var player in players)
+            {
+                foreach (var stage in Enum.GetValues<StageId>())
+                {
+                    // Start with mock percentage
+                    var mockPercent = player.MockPercents.GetValueOrDefault(stage, 0);
+                    
+                    // Get all live attacks for this stage, filtering outliers
+                    var liveAttacks = player.Attempts
+                        .Where(a => a.Stage == stage && a.Percent > 0.001) // Ignore 0% attacks
+                        .Where(a => !(a.Killed && a.Percent < 3.0)) // Filter cleanup kills (killed with < 3% damage)
+                        .Select(a => a.Percent)
+                        .ToList();
+                    
+                    double averagedPercent;
+                    
+                    if (liveAttacks.Any())
+                    {
+                        // Weighted average: Mock 40%, Live attacks 60%
+                        var liveAverage = liveAttacks.Average();
+                        averagedPercent = (mockPercent * 0.4) + (liveAverage * 0.6);
+                        
+                        // Cap downward deviation: Don't drop more than 30% below mock
+                        var minimumAllowed = mockPercent * 0.7; // 70% of mock
+                        if (averagedPercent < minimumAllowed)
+                        {
+                            averagedPercent = minimumAllowed;
+                        }
+                    }
+                    else
+                    {
+                        // No valid live data, use mock percentage
+                        averagedPercent = mockPercent;
+                    }
+                    
+                    player.AveragedPercents[stage] = averagedPercent;
+                }
+            }
         }
     }
 }

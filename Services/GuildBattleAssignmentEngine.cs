@@ -29,7 +29,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             double nextPct = 0;
             if (nextStage.HasValue)
             {
-                player.MockPercents.TryGetValue(nextStage.Value, out nextPct);
+                player.AveragedPercents.TryGetValue(nextStage.Value, out nextPct);
             }
             
             // If player has 100% on both current and next stage, they're very confident - minimal margin
@@ -91,7 +91,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var effMap = new Dictionary<StageId, double>();
                 foreach (var stage in Enum.GetValues<StageId>())
                 {
-                    p.MockPercents.TryGetValue(stage, out var pct);
+                    // Use averaged percentages (mock + live attacks) instead of just mock
+                    p.AveragedPercents.TryGetValue(stage, out var pct);
                     
                     // Calculate smart margin based on player's confidence on this and adjacent stages
                     double smartMargin = CalculateSmartMargin(p, stage, marginOfErrorPercent);
@@ -114,9 +115,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var assigned = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
-            // PRIORITY 1: Reserve Stage 6 capable players (10%+ damage on S6)
+            // PRIORITY 1: Reserve Stage 6 capable players (8%+ damage on S6)
             // These are high-power players who should focus on Stage 6
-            const double S6_THRESHOLD = 10.0;
+            const double S6_THRESHOLD = 8.0;
             var s6ReservedPlayers = playerData
                 .Where(p => p.eff.GetValueOrDefault(StageId.S6, 0) >= S6_THRESHOLD)
                 .OrderByDescending(p => p.eff.GetValueOrDefault(StageId.S6, 0))
