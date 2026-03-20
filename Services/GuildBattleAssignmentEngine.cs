@@ -81,7 +81,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var plan = new BattlePlanSummary();
             
             // Build effective percentages for each player with smart margin calculation
-            var playerData = new List<(string name, int attempts, Dictionary<StageId, double> eff)>();
+            var playerData = new List<(string name, int attempts, Dictionary<StageId, double> eff, Dictionary<StageId, double> avgPct)>();
             
             foreach (var p in players)
             {
@@ -89,17 +89,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 if (attemptsLeft <= 0) continue;
                 
                 var effMap = new Dictionary<StageId, double>();
+                var avgPctMap = new Dictionary<StageId, double>();
                 foreach (var stage in Enum.GetValues<StageId>())
                 {
                     // Use averaged percentages (mock + live attacks) instead of just mock
                     p.AveragedPercents.TryGetValue(stage, out var pct);
+                    avgPctMap[stage] = pct; // Store original averaged percentage
                     
                     // Calculate smart margin based on player's confidence on this and adjacent stages
                     double smartMargin = CalculateSmartMargin(p, stage, marginOfErrorPercent);
                     
                     effMap[stage] = Math.Max(0.0, pct - smartMargin);
                 }
-                playerData.Add((p.Name, attemptsLeft, effMap));
+                playerData.Add((p.Name, attemptsLeft, effMap, avgPctMap));
             }
 
             // Initial stage assignments (will be refined based on simulation)
@@ -203,22 +205,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // If Stage 6 will unlock, assign the reserved high-power players to it
             if (willUnlockStage6 || todayState.IsStage6Unlocked)
             {
-                // Use the reserved S6 players (10%+ damage)
-                var s6Candidates = s6ReservedPlayers.Take(6).ToList();
-                
-                // If we don't have enough reserved players, backfill from S1-3 group
-                if (s6Candidates.Count < 6 && stageAssignments[StageId.S1].Count > 0)
-                {
-                    var additionalS6 = stageAssignments[StageId.S1]
-                        .Select(name => playerData.First(p => p.name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-                        .OrderByDescending(p => p.eff.GetValueOrDefault(StageId.S6, 0))
-                        .Take(6 - s6Candidates.Count)
-                        .ToList();
-                    
-                    s6Candidates.AddRange(additionalS6);
-                }
-                
-                foreach (var c in s6Candidates)
+                // Assign ALL reserved S6-capable players (8%+ damage) to Stage 6
+                // This ensures strong S6 players aren't relegated to easier stages
+                foreach (var c in s6ReservedPlayers)
                 {
                     stageAssignments[StageId.S6].Add(c.name);
                 }
@@ -246,7 +235,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         }
 
         private (int TotalResets, Dictionary<StageId, double> FinalHP, Dictionary<StageId, int> StageClears, List<AttackLogEntry> AttackLog, bool Stage6Unlocked) SimulateBattles(
-            List<(string name, int attempts, Dictionary<StageId, double> eff)> playerData,
+            List<(string name, int attempts, Dictionary<StageId, double> eff, Dictionary<StageId, double> avgPct)> playerData,
             Dictionary<StageId, List<string>> assignments,
             TodayState todayState,
             List<PlayerStageProfile> allPlayers)
@@ -498,9 +487,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     var baseDamage = player.eff.GetValueOrDefault(targetStage.Value, 0);
                     if (baseDamage <= 0) continue;
                     
-                    // Apply per-attack variance (±10% random variance)
-                    // This simulates RNG, player execution quality, and game mechanics
-                    double varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2); // 0.9 to 1.1
+                    // Apply adaptive per-attack variance based on player confidence
+                    // High-confidence players (99%+ averaged) get minimal variance to prevent unrealistic failures
+                    var avgPct = player.avgPct.GetValueOrDefault(targetStage.Value, 0);
+                    double varianceMultiplier;
+                    
+                    if (avgPct >= 99.0)
+                    {
+                        // High confidence: ±2% variance (0.98 to 1.02)
+                        varianceMultiplier = 0.98 + (_random.NextDouble() * 0.04);
+                    }
+                    else
+                    {
+                        // Normal confidence: ±10% variance (0.9 to 1.1)
+                        varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2);
+                    }
+                    
                     var damage = baseDamage * varianceMultiplier;
                     
                     // Make the attack

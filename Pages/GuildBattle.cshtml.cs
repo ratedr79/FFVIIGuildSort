@@ -32,7 +32,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public int CurrentDay { get; set; } = 1; // 1..3
 
         [BindProperty]
-        public double MarginOfErrorPercent { get; set; } = 7.5; // default
+        public double MarginOfErrorPercent { get; set; } = 4.0; // default
 
         public GuildBattleParseResult? ParseResult { get; set; }
         public TodayState? Today { get; set; }
