@@ -19,11 +19,23 @@
         </div>
         <div class="card-body">
             <form method="post" enctype="multipart/form-data" asp-page-handler="Analyze">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label for="UploadedFile" class="form-label">Guild Battle CSV</label>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="GoogleSheetUrl" class="form-label">Google Sheets (Published CSV)</label>
+                        <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                            <option value="">-- Select a Google Sheet --</option>
+                            @foreach (var sheet in Model.AvailableSheets)
+                            {
+                                <option value="@sheet.Url">@sheet.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="UploadedFile" class="form-label">Upload CSV File</label>
                         <input type="file" class="form-control" id="UploadedFile" name="UploadedFile" accept=".csv" />
                     </div>
+                </div>
+                <div class="row g-3 align-items-end mt-2">
                     <div class="col-md-2">
                         <label for="CurrentDay" class="form-label">Current Day</label>
                         <select class="form-select" id="CurrentDay" name="CurrentDay">
@@ -36,7 +48,7 @@
                         <label for="MarginOfErrorPercent" class="form-label">Margin of Error (%)</label>
                         <input type="number" step="0.5" min="0" max="25" class="form-control" id="MarginOfErrorPercent" name="MarginOfErrorPercent" value="7.5" />
                     </div>
-                    <div class="col-md-3 text-end">
+                    <div class="col-md-7 text-end">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Analyze</button>
                     </div>
                 </div>

@@ -12,16 +12,21 @@ namespace FFVIIEverCrisisAnalyzer.Pages
     public class GuildBattleModel : PageModel
     {
         private readonly ILogger<GuildBattleModel> _logger;
+        private readonly IConfiguration _configuration;
         private readonly GuildBattleParser _parser = new();
         private readonly GuildBattleAssignmentEngine _engine = new();
 
-        public GuildBattleModel(ILogger<GuildBattleModel> logger)
+        public GuildBattleModel(ILogger<GuildBattleModel> logger, IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
         }
 
         [BindProperty]
         public IFormFile? UploadedFile { get; set; }
+
+        [BindProperty]
+        public string? GoogleSheetUrl { get; set; }
 
         [BindProperty]
         public int CurrentDay { get; set; } = 1; // 1..3
@@ -33,23 +38,48 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public TodayState? Today { get; set; }
         public BattlePlanSummary? BattlePlan { get; set; }
         public string? ErrorMessage { get; set; }
+        public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
         public void OnGet()
         {
+            // Load Google Sheets configuration from appsettings.json
+            var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")
+                .Get<List<SheetDefinition>>() ?? new List<SheetDefinition>();
+            AvailableSheets = sheetsConfig;
         }
 
         public async Task<IActionResult> OnPostAnalyzeAsync()
         {
-            if (UploadedFile == null || UploadedFile.Length == 0)
-            {
-                ErrorMessage = "Please select a CSV file to upload.";
-                return Page();
-            }
-
+            Stream? csvStream = null;
+            
             try
             {
-                using var stream = UploadedFile.OpenReadStream();
-                ParseResult = await _parser.ParseAsync(stream);
+                // Check if Google Sheets URL is provided
+                if (!string.IsNullOrWhiteSpace(GoogleSheetUrl))
+                {
+                    using var httpClient = new HttpClient();
+                    var response = await httpClient.GetAsync(GoogleSheetUrl);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        ErrorMessage = $"Failed to download Google Sheet: {response.StatusCode}";
+                        return Page();
+                    }
+                    
+                    csvStream = await response.Content.ReadAsStreamAsync();
+                }
+                // Otherwise check for uploaded file
+                else if (UploadedFile != null && UploadedFile.Length > 0)
+                {
+                    csvStream = UploadedFile.OpenReadStream();
+                }
+                else
+                {
+                    ErrorMessage = "Please select a Google Sheet or upload a CSV file.";
+                    return Page();
+                }
+
+                ParseResult = await _parser.ParseAsync(csvStream);
 
                 var players = ParseResult?.Players;
                 if (players == null || players.Count == 0)
@@ -180,13 +210,33 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
                 // Generate battle plan using the new engine
                 BattlePlan = _engine.GenerateBattlePlan(players, today, MarginOfErrorPercent);
+                
+                // Repopulate AvailableSheets for the result page
+                var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")
+                    .Get<List<SheetDefinition>>() ?? new List<SheetDefinition>();
+                AvailableSheets = sheetsConfig;
+                
                 return Page();
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"Error parsing file: {ex.Message}";
                 _logger.LogError(ex, "Error parsing Guild Battle CSV");
+                
+                // Repopulate AvailableSheets even on error
+                var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")
+                    .Get<List<SheetDefinition>>() ?? new List<SheetDefinition>();
+                AvailableSheets = sheetsConfig;
+                
                 return Page();
+            }
+            finally
+            {
+                // Dispose of the stream if it was downloaded from Google Sheets
+                if (csvStream != null && !string.IsNullOrWhiteSpace(GoogleSheetUrl))
+                {
+                    await csvStream.DisposeAsync();
+                }
             }
         }
 
