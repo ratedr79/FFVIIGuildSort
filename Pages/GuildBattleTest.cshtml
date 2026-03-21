@@ -174,6 +174,7 @@
                                 <i class="fas fa-info-circle"></i>
                                 Each cell shows how many times a player was assigned to that stage across all runs. Higher counts mean the assignment is more consistent.
                                 Players with the same stage every run are highly stable; spread across stages indicates the engine is sensitive to variance for that player.
+                                Note: Percentages are per-stage frequencies across runs and are not exclusive. A player can appear in multiple stages within a single run (e.g., after a clear or via fallback assignment), so a row can exceed 100% and you may see values in multiple columns (e.g., 100% on S5 and 14% on S6). The "Primary" column shows the most frequent stage.
                             </p>
                             <div class="table-responsive">
                                 <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
@@ -258,8 +259,12 @@
                                             var rowClass = isBest ? "table-success" : isWorst ? "table-danger" : (blocked > 0 ? "table-warning" : "");
                                             var gbLink = $"/GuildBattle?seed={run.Seed}&day={Model.CurrentDay}&margin={Model.MarginOfErrorPercent}";
                                             var detailId = $"runDetail-{run.RunIndex}";
-                                            <tr class="@rowClass" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#@detailId" aria-expanded="false">
-                                                <td class="text-center"><i class="fas fa-chevron-right fa-xs toggle-icon"></i></td>
+                                            <tr class="@rowClass">
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-link p-0 text-decoration-none" data-bs-toggle="collapse" data-bs-target="#@detailId" aria-expanded="false" aria-controls="@detailId" title="Toggle details">
+                                                        <i class="fas fa-chevron-right fa-xs toggle-icon"></i>
+                                                    </button>
+                                                </td>
                                                 <td>@run.RunIndex</td>
                                                 <td class="text-center">
                                                     <a href="@gbLink" class="text-decoration-none" title="Use this seed on Guild Battle page" onclick="event.stopPropagation();">@run.Seed</a>
@@ -522,16 +527,18 @@
 
 <style>
     .toggle-icon { transition: transform 0.2s ease; }
-    tr[aria-expanded="true"] .toggle-icon { transform: rotate(90deg); }
+    button[aria-expanded="true"] .toggle-icon { transform: rotate(90deg); }
+    button[aria-expanded="false"] .toggle-icon { transform: rotate(0deg); }
 </style>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('tr[data-bs-toggle="collapse"]').forEach(function (row) {
-            var targetId = row.getAttribute('data-bs-target');
+        // Ensure aria-expanded stays in sync for toggle buttons (Bootstrap usually handles this)
+        document.querySelectorAll('button[data-bs-toggle="collapse"]').forEach(function (btn) {
+            var targetId = btn.getAttribute('data-bs-target');
             var target = document.querySelector(targetId);
             if (target) {
-                target.addEventListener('show.bs.collapse', function () { row.setAttribute('aria-expanded', 'true'); });
-                target.addEventListener('hide.bs.collapse', function () { row.setAttribute('aria-expanded', 'false'); });
+                target.addEventListener('show.bs.collapse', function () { btn.setAttribute('aria-expanded', 'true'); });
+                target.addEventListener('hide.bs.collapse', function () { btn.setAttribute('aria-expanded', 'false'); });
             }
         });
     });
