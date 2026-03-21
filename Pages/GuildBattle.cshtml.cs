@@ -14,7 +14,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         private readonly ILogger<GuildBattleModel> _logger;
         private readonly IConfiguration _configuration;
         private readonly GuildBattleParser _parser = new();
-        private readonly GuildBattleAssignmentEngine _engine = new();
+        private GuildBattleAssignmentEngine _engine = new();
 
         public GuildBattleModel(ILogger<GuildBattleModel> logger, IConfiguration configuration)
         {
@@ -34,14 +34,22 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public double MarginOfErrorPercent { get; set; } = 4.0; // default
 
+        [BindProperty]
+        public int? Seed { get; set; }
+
         public GuildBattleParseResult? ParseResult { get; set; }
         public TodayState? Today { get; set; }
         public BattlePlanSummary? BattlePlan { get; set; }
         public string? ErrorMessage { get; set; }
         public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
-        public void OnGet()
+        public void OnGet(int? seed, int? day, double? margin)
         {
+            // Read query params from Test page seed links
+            if (seed.HasValue) Seed = seed.Value;
+            if (day.HasValue) CurrentDay = Math.Clamp(day.Value, 1, 3);
+            if (margin.HasValue) MarginOfErrorPercent = margin.Value;
+
             // Load Google Sheets configuration from appsettings.json
             var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")
                 .Get<List<SheetDefinition>>() ?? new List<SheetDefinition>();
@@ -208,7 +216,13 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
                 Today = today;
 
-                // Generate battle plan using the new engine
+                // Use seeded engine if seed is provided
+                if (Seed.HasValue)
+                {
+                    _engine = new GuildBattleAssignmentEngine(Seed.Value);
+                }
+
+                // Generate battle plan using the engine
                 BattlePlan = _engine.GenerateBattlePlan(players, today, MarginOfErrorPercent);
                 
                 // Repopulate AvailableSheets for the result page

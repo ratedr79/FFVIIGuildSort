@@ -1,0 +1,538 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.GuildBattleTestModel
+@using FFVIIEverCrisisAnalyzer.Models
+@{
+    ViewData["Title"] = "Guild Battle Test";
+}
+
+<h3 class="mb-3"><i class="fas fa-flask"></i> Guild Battle Simulation Test</h3>
+
+<form method="post" enctype="multipart/form-data" id="testForm">
+    <div class="card mb-3">
+        <div class="card-header"><strong>Test Configuration</strong></div>
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger">@Model.ErrorMessage</div>
+            }
+
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="GoogleSheetUrl" class="form-label">Google Sheet</label>
+                    <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                        <option value="">-- Select a sheet --</option>
+                        @foreach (var sheet in Model.AvailableSheets)
+                        {
+                            <option value="@sheet.Url" selected="@(Model.GoogleSheetUrl == sheet.Url)">@sheet.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="UploadedFile" class="form-label">Upload CSV File</label>
+                    <input type="file" class="form-control" id="UploadedFile" name="UploadedFile" accept=".csv" />
+                </div>
+                <div class="col-md-2">
+                    <label for="CurrentDay" class="form-label">Current Day</label>
+                    <select class="form-select" id="CurrentDay" name="CurrentDay">
+                        <option value="1" selected="@(Model.CurrentDay == 1)">Day 1</option>
+                        <option value="2" selected="@(Model.CurrentDay == 2)">Day 2</option>
+                        <option value="3" selected="@(Model.CurrentDay == 3)">Day 3</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="MarginOfErrorPercent" class="form-label">Margin (%)</label>
+                    <input type="number" step="0.5" min="0" max="25" class="form-control" id="MarginOfErrorPercent" name="MarginOfErrorPercent" value="@Model.MarginOfErrorPercent" />
+                </div>
+            </div>
+
+            <div class="row g-3 align-items-end mt-1">
+                <div class="col-md-2">
+                    <label for="NumberOfRuns" class="form-label">Number of Runs <span class="text-muted small">(Max 50)</span></label>
+                    <input type="number" min="1" max="50" class="form-control" id="NumberOfRuns" name="NumberOfRuns" value="@Model.NumberOfRuns" />
+                </div>
+                <div class="col-md-2">
+                    <label for="SeedMode" class="form-label">Seed Mode</label>
+                    <select class="form-select" id="SeedMode" name="SeedMode">
+                        <option value="Auto" selected="@(Model.SeedMode == "Auto")">Auto (Random)</option>
+                        <option value="Fixed" selected="@(Model.SeedMode == "Fixed")">Fixed</option>
+                        <option value="Incremental" selected="@(Model.SeedMode == "Incremental")">Incremental</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="FixedSeed" class="form-label">Seed Value</label>
+                    <input type="number" class="form-control" id="FixedSeed" name="FixedSeed" value="@Model.FixedSeed" />
+                </div>
+                <div class="col-md-2">
+                    <label for="ScoreBy" class="form-label">Score By</label>
+                    <select class="form-select" id="ScoreBy" name="ScoreBy">
+                        <option value="MinSumFinalHP" selected="@(Model.ScoreBy == "MinSumFinalHP")">Min Sum Final HP</option>
+                        <option value="MinS6FinalHP" selected="@(Model.ScoreBy == "MinS6FinalHP")">Min S6 Final HP</option>
+                        <option value="MaxTotalClears" selected="@(Model.ScoreBy == "MaxTotalClears")">Max Total Clears</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex gap-3 align-items-center flex-wrap">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="EnableVariance" name="EnableVariance" value="true" @(Model.EnableVariance ? "checked" : "") />
+                            <label class="form-check-label" for="EnableVariance">Variance</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="EnableOutlierFilter" name="EnableOutlierFilter" value="true" @(Model.EnableOutlierFilter ? "checked" : "") />
+                            <label class="form-check-label" for="EnableOutlierFilter">Outlier Filter</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="EnableDeviationCap" name="EnableDeviationCap" value="true" @(Model.EnableDeviationCap ? "checked" : "") />
+                            <label class="form-check-label" for="EnableDeviationCap">Deviation Cap</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="ActiveTab" name="ActiveTab" value="@Model.ActiveTab" />
+
+    <!-- Multi-Run Section -->
+    <h4 class="mt-4 mb-3"><i class="fas fa-chart-bar"></i> Multi-Run Statistics</h4>
+    <div class="d-flex gap-2 mb-3">
+        <button type="submit" asp-page-handler="MultiRun" class="btn btn-primary" onclick="document.getElementById('ActiveTab').value='multi'">
+            <i class="fas fa-play"></i> Run Simulations
+        </button>
+        @if (Model.Results != null && Model.ActiveTab == "multi")
+        {
+            <button type="submit" asp-page-handler="ExportCsv" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('ActiveTab').value='multi'">
+                <i class="fas fa-download"></i> CSV
+            </button>
+            <button type="submit" asp-page-handler="ExportJson" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('ActiveTab').value='multi'">
+                <i class="fas fa-download"></i> JSON
+            </button>
+        }
+    </div>
+
+            @if (Model.Results != null && Model.ActiveTab == "multi")
+            {
+                <!-- Summary Cards -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header"><strong>Reset Statistics</strong></div>
+                            <div class="card-body">
+                                <div>Average: <strong>@Model.Results.AvgResets.ToString("F2")</strong></div>
+                                <div>Min / Max: <strong>@Model.Results.MinResets</strong> / <strong>@Model.Results.MaxResets</strong></div>
+                                <div>P10 / P90: <strong>@Model.Results.P10Resets.ToString("F1")</strong> / <strong>@Model.Results.P90Resets.ToString("F1")</strong></div>
+                                <div>Total Attacks: <strong>@Model.Results.TotalSimulatedAttacks</strong></div>
+                                <hr class="my-2" />
+                                <small class="text-muted">
+                                    <strong>P10</strong> = 10% of runs had this many resets or fewer (lucky tail).
+                                    <strong>P90</strong> = 90% of runs had this many or fewer (unlucky tail).
+                                    A narrow P10–P90 gap means stable outcomes; a wide gap means results are RNG-sensitive.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header"><strong>Stage Clear Rates</strong></div>
+                            <div class="card-body">
+                                @foreach (var stage in Enum.GetValues<StageId>())
+                                {
+                                    var clearRate = Model.Results.ClearRatePercent.GetValueOrDefault(stage);
+                                    var avgClears = Model.Results.AvgClears.GetValueOrDefault(stage);
+                                    <div>S@((int)stage): <strong>@clearRate.ToString("F0")%</strong> <span class="text-muted small">(avg @avgClears.ToString("F1") clears)</span></div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header"><strong>Avg Final HP</strong></div>
+                            <div class="card-body">
+                                @foreach (var stage in Enum.GetValues<StageId>())
+                                {
+                                    var avgHp = Model.Results.AvgFinalHP.GetValueOrDefault(stage);
+                                    var color = avgHp <= 0.01 ? "text-success" : avgHp < 50 ? "text-warning" : "text-danger";
+                                    <div>S@((int)stage): <strong class="@color">@avgHp.ToString("F2")%</strong></div>
+                                }
+                                <hr class="my-2" />
+                                <div>S6 Unlock: <strong>@Model.Results.Stage6UnlockRatePercent.ToString("F0")%</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignment Frequency Table -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#assignFreqCollapse" role="button" aria-expanded="true" aria-controls="assignFreqCollapse">
+                            <strong>Assignment Stability (@Model.Results.TotalPlayers players × @Model.Results.TotalRuns runs)</strong>
+                            <i class="fas fa-chevron-down"></i>
+                        </a>
+                    </div>
+                    <div class="collapse show" id="assignFreqCollapse">
+                        <div class="card-body p-2">
+                            <p class="text-muted small mb-2">
+                                <i class="fas fa-info-circle"></i>
+                                Each cell shows how many times a player was assigned to that stage across all runs. Higher counts mean the assignment is more consistent.
+                                Players with the same stage every run are highly stable; spread across stages indicates the engine is sensitive to variance for that player.
+                            </p>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Player</th>
+                                            <th class="text-center">S1</th>
+                                            <th class="text-center">S2</th>
+                                            <th class="text-center">S3</th>
+                                            <th class="text-center">S4</th>
+                                            <th class="text-center">S5</th>
+                                            <th class="text-center">S6</th>
+                                            <th class="text-center">Primary</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var kvp in Model.Results.AssignmentFrequency.OrderBy(x => x.Key))
+                                        {
+                                            var maxStage = kvp.Value.OrderByDescending(x => x.Value).First();
+                                            var primaryLabel = $"S{(int)maxStage.Key}";
+                                            if (maxStage.Key == StageId.S1 || maxStage.Key == StageId.S2 || maxStage.Key == StageId.S3)
+                                            {
+                                                var s123Total = kvp.Value.GetValueOrDefault(StageId.S1) + kvp.Value.GetValueOrDefault(StageId.S2) + kvp.Value.GetValueOrDefault(StageId.S3);
+                                                if (s123Total == kvp.Value.GetValueOrDefault(StageId.S1) * 3)
+                                                {
+                                                    primaryLabel = "S1-3";
+                                                }
+                                            }
+                                            <tr>
+                                                <td class="text-truncate" style="max-width: 120px;" title="@kvp.Key">@kvp.Key</td>
+                                                @foreach (var stage in Enum.GetValues<StageId>())
+                                                {
+                                                    var count = kvp.Value.GetValueOrDefault(stage);
+                                                    var pct = Model.Results.TotalRuns > 0 ? (double)count / Model.Results.TotalRuns * 100 : 0;
+                                                    var bg = pct >= 90 ? "table-success" : pct >= 50 ? "table-warning" : pct > 0 ? "table-light" : "";
+                                                    <td class="text-center @bg">@(count > 0 ? $"{pct:F0}%" : "-")</td>
+                                                }
+                                                <td class="text-center fw-bold">@primaryLabel</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Per-Run Summary -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#perRunCollapse" role="button" aria-expanded="true" aria-controls="perRunCollapse">
+                            <strong>Per-Run Breakdown</strong>
+                            <i class="fas fa-chevron-down"></i>
+                        </a>
+                    </div>
+                    <div class="collapse show" id="perRunCollapse">
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Run</th>
+                                            <th class="text-center">Seed</th>
+                                            <th class="text-center">Resets</th>
+                                            <th class="text-center">Avail</th>
+                                            <th class="text-center">Used</th>
+                                            @foreach (var stage in Enum.GetValues<StageId>())
+                                            {
+                                                <th class="text-center">S@((int)stage) HP</th>
+                                            }
+                                            <th class="text-center">Rank</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{ var colSpan = 10 + Enum.GetValues<StageId>().Length; }
+                                        @foreach (var run in Model.Results.Runs)
+                                        {
+                                            var blocked = run.AttemptsAvailable - run.AttemptsUsed;
+                                            var isBest = run.RunIndex == Model.Results.BestRunIndex;
+                                            var isWorst = run.RunIndex == Model.Results.WorstRunIndex;
+                                            var rowClass = isBest ? "table-success" : isWorst ? "table-danger" : (blocked > 0 ? "table-warning" : "");
+                                            var gbLink = $"/GuildBattle?seed={run.Seed}&day={Model.CurrentDay}&margin={Model.MarginOfErrorPercent}";
+                                            var detailId = $"runDetail-{run.RunIndex}";
+                                            <tr class="@rowClass" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#@detailId" aria-expanded="false">
+                                                <td class="text-center"><i class="fas fa-chevron-right fa-xs toggle-icon"></i></td>
+                                                <td>@run.RunIndex</td>
+                                                <td class="text-center">
+                                                    <a href="@gbLink" class="text-decoration-none" title="Use this seed on Guild Battle page" onclick="event.stopPropagation();">@run.Seed</a>
+                                                </td>
+                                                <td class="text-center">@run.Resets</td>
+                                                <td class="text-center">@run.AttemptsAvailable</td>
+                                                <td class="text-center">
+                                                    @run.AttemptsUsed
+                                                    @if (blocked > 0)
+                                                    {
+                                                        <span class="text-danger small">(-@blocked)</span>
+                                                    }
+                                                </td>
+                                                @foreach (var stage in Enum.GetValues<StageId>())
+                                                {
+                                                    var hp = run.FinalHP.GetValueOrDefault(stage);
+                                                    var color = hp <= 0.01 ? "text-success" : hp < 50 ? "text-warning" : "text-danger";
+                                                    <td class="text-center @color">@hp.ToString("F1")%</td>
+                                                }
+                                                <td class="text-center">
+                                                    @if (isBest)
+                                                    {
+                                                        <span class="badge bg-success">Best</span>
+                                                    }
+                                                    else if (isWorst)
+                                                    {
+                                                        <span class="badge bg-danger">Worst</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                            <tr class="collapse" id="@detailId">
+                                                <td colspan="@colSpan" class="p-0">
+                                                    <div class="p-2 bg-light border-top">
+                                                        <strong>Assignments — Run @run.RunIndex</strong>
+                                                        <div class="table-responsive mt-1 mb-3">
+                                                            <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
+                                                                <thead>
+                                                                    <tr>
+                                                                        @foreach (var stage in Enum.GetValues<StageId>())
+                                                                        {
+                                                                            <th class="text-center">S@((int)stage)</th>
+                                                                        }
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr>
+                                                                        @foreach (var stage in Enum.GetValues<StageId>())
+                                                                        {
+                                                                            var players = run.Assignments.GetValueOrDefault(stage) ?? new List<string>();
+                                                                            <td class="text-center small">
+                                                                                @if (players.Any())
+                                                                                {
+                                                                                    @string.Join(", ", players)
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <span class="text-muted">—</span>
+                                                                                }
+                                                                            </td>
+                                                                        }
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        <strong>Attack Log (Seed: @run.Seed, @run.AttackLog.Count(a => !a.IsReset) attacks)</strong>
+                                                        <div class="table-responsive mt-1" style="max-height: 400px; overflow-y: auto;">
+                                                            <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                                                                <thead class="sticky-top bg-light">
+                                                                    <tr>
+                                                                        <th>Player</th>
+                                                                        <th class="text-center">Stage</th>
+                                                                        <th class="text-center">Damage</th>
+                                                                        <th class="text-center">Remaining HP</th>
+                                                                        <th class="text-center">Status</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach (var entry in run.AttackLog)
+                                                                    {
+                                                                        if (entry.IsReset)
+                                                                        {
+                                                                            <tr class="table-secondary">
+                                                                                <td colspan="5"><strong>@entry.PlayerName</strong>
+                                                                                    @if (entry.PlayerName.Contains("Starting HP"))
+                                                                                    {
+                                                                                        <span class="float-end">@entry.RemainingHP.ToString("F3")%</span>
+                                                                                    }
+                                                                                </td>
+                                                                            </tr>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <tr class="@(entry.Cleared ? "table-success" : "")">
+                                                                                <td>@entry.PlayerName</td>
+                                                                                <td class="text-center">S@((int)entry.Stage)</td>
+                                                                                <td class="text-center">@entry.Damage.ToString("F3")%</td>
+                                                                                <td class="text-center">@entry.RemainingHP.ToString("F3")%</td>
+                                                                                <td class="text-center">@(entry.Cleared ? "CLEARED" : "")</td>
+                                                                            </tr>
+                                                                        }
+                                                                    }
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (Model.Results == null && Model.ActiveTab == "multi" && Model.ErrorMessage == null)
+            {
+                <div class="text-muted">Select a data source and click "Run Simulations" to begin.</div>
+            }
+
+    @*
+    <hr class="my-4" />
+
+    <!-- Single Detailed Run Section (hidden for now) -->
+    <h4 class="mb-3"><i class="fas fa-microscope"></i> Single Detailed Run</h4>
+    <div class="d-flex gap-2 mb-3">
+        <button type="submit" asp-page-handler="SingleRun" class="btn btn-primary" onclick="document.getElementById('ActiveTab').value='single'">
+            <i class="fas fa-play"></i> Run Single Detailed Simulation
+        </button>
+    </div>
+
+            @if (Model.Results != null && Model.ActiveTab == "single")
+            {
+                var singleRun = Model.Results.Runs.FirstOrDefault();
+
+                <!-- Assignment Rationale -->
+                @if (Model.Results.Rationales.Any())
+                {
+                    <div class="card mb-3">
+                        <div class="card-header"><strong>Assignment Rationale</strong></div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Player</th>
+                                            <th class="text-center">S1</th>
+                                            <th class="text-center">S2</th>
+                                            <th class="text-center">S3</th>
+                                            <th class="text-center">S4</th>
+                                            <th class="text-center">S5</th>
+                                            <th class="text-center">S6</th>
+                                            <th>Assigned</th>
+                                            <th>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var r in Model.Results.Rationales)
+                                        {
+                                            <tr class="@(r.IsS6Reserved ? "table-info" : "")">
+                                                <td class="text-truncate" style="max-width: 100px;" title="@r.PlayerName">@r.PlayerName</td>
+                                                @foreach (var stage in Enum.GetValues<StageId>())
+                                                {
+                                                    var pct = r.AveragedPercents.GetValueOrDefault(stage);
+                                                    <td class="text-center">@pct.ToString("F1")</td>
+                                                }
+                                                <td class="fw-bold">@r.AssignedStage</td>
+                                                <td class="small text-muted">@r.Reason</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Summary -->
+                @if (singleRun != null)
+                {
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header"><strong>Run Summary (Seed: @singleRun.Seed)</strong></div>
+                                <div class="card-body">
+                                    <div>Resets: <strong>@singleRun.Resets</strong></div>
+                                    <div>Attacks: <strong>@singleRun.TotalAttacks</strong></div>
+                                    <hr class="my-2" />
+                                    @foreach (var stage in Enum.GetValues<StageId>())
+                                    {
+                                        var hp = singleRun.FinalHP.GetValueOrDefault(stage);
+                                        var clears = singleRun.StageClears.GetValueOrDefault(stage);
+                                        <div>S@((int)stage): <strong>@hp.ToString("F2")%</strong> HP <span class="text-muted">(@clears clears)</span></div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#attackLogCollapse" role="button" aria-expanded="true" aria-controls="attackLogCollapse">
+                                        <strong>Attack Log (@singleRun.AttackLog.Count entries)</strong>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </a>
+                                </div>
+                                <div class="collapse show" id="attackLogCollapse">
+                                    <div class="card-body p-2">
+                                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                            <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                                                <thead class="sticky-top bg-white">
+                                                    <tr>
+                                                        <th>Player</th>
+                                                        <th class="text-center">Stage</th>
+                                                        <th class="text-center">Damage</th>
+                                                        <th class="text-center">Remaining HP</th>
+                                                        <th class="text-center">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var entry in singleRun.AttackLog)
+                                                    {
+                                                        if (entry.IsReset)
+                                                        {
+                                                            <tr class="table-secondary">
+                                                                <td colspan="5"><strong>@entry.PlayerName</strong>
+                                                                    @if (entry.PlayerName.Contains("Starting HP"))
+                                                                    {
+                                                                        <span class="float-end">@entry.RemainingHP.ToString("F3")%</span>
+                                                                    }
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                        else
+                                                        {
+                                                            <tr class="@(entry.Cleared ? "table-success" : "")">
+                                                                <td>@entry.PlayerName</td>
+                                                                <td class="text-center">S@((int)entry.Stage)</td>
+                                                                <td class="text-center">@entry.Damage.ToString("F3")%</td>
+                                                                <td class="text-center">@entry.RemainingHP.ToString("F3")%</td>
+                                                                <td class="text-center">@(entry.Cleared ? "CLEARED" : "")</td>
+                                                            </tr>
+                                                        }
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else if (Model.Results == null && Model.ActiveTab == "single" && Model.ErrorMessage == null)
+            {
+                <div class="text-muted">Select a data source and click "Run Single Detailed Simulation" to begin.</div>
+            }
+    *@
+</form>
+
+<style>
+    .toggle-icon { transition: transform 0.2s ease; }
+    tr[aria-expanded="true"] .toggle-icon { transform: rotate(90deg); }
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('tr[data-bs-toggle="collapse"]').forEach(function (row) {
+            var targetId = row.getAttribute('data-bs-target');
+            var target = document.querySelector(targetId);
+            if (target) {
+                target.addEventListener('show.bs.collapse', function () { row.setAttribute('aria-expanded', 'true'); });
+                target.addEventListener('hide.bs.collapse', function () { row.setAttribute('aria-expanded', 'false'); });
+            }
+        });
+    });
+</script>

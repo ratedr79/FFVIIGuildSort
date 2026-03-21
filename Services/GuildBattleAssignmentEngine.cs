@@ -7,7 +7,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
 {
     public sealed class GuildBattleAssignmentEngine
     {
-        private readonly Random _random = new Random();
+        private readonly Random _random;
+        
+        public GuildBattleAssignmentEngine()
+        {
+            _random = new Random();
+        }
+        
+        public GuildBattleAssignmentEngine(int seed)
+        {
+            _random = new Random(seed);
+        }
 
         private double CalculateSmartMargin(PlayerStageProfile player, StageId stage, double baseMargin)
         {
@@ -234,7 +244,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return plan;
         }
 
-        private (int TotalResets, Dictionary<StageId, double> FinalHP, Dictionary<StageId, int> StageClears, List<AttackLogEntry> AttackLog, bool Stage6Unlocked) SimulateBattles(
+        private (int TotalResets, Dictionary<StageId, double> FinalHP, Dictionary<StageId, int> StageClears, List<AttackLogEntry> AttackLog, bool Stage6Unlocked, int AttemptsAvailable) SimulateBattles(
             List<(string name, int attempts, Dictionary<StageId, double> eff, Dictionary<StageId, double> avgPct)> playerData,
             Dictionary<StageId, List<string>> assignments,
             TodayState todayState,
@@ -287,9 +297,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             // Track attempts used per player
             var attemptsUsed = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            int totalAttemptsAvailable = 0;
             foreach (var p in playerData)
             {
                 attemptsUsed[p.name] = 0;
+                totalAttemptsAvailable += p.attempts;
             }
             
             // Add header showing starting state
@@ -401,26 +413,48 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
                 }
                 
-                // Fallback: If no stage found with assigned players, find ANY player to attack stuck stages
+                // Fallback 1: If no stage found with assigned players, find ANY player with eff > 0
                 if (targetStage == null)
                 {
                     foreach (var stage in requiredStages)
                     {
                         if (hp[stage] > 0.005)
                         {
-                            // Find ANY player with attempts left who can attack this stage
-                            // Prioritize lowest S6 power (they're less valuable for S6)
                             var availablePlayer = playerData
                                 .Where(p => attemptsUsed.GetValueOrDefault(p.name, 0) < p.attempts)
                                 .Where(p => p.eff.GetValueOrDefault(stage, 0) > 0)
-                                .OrderBy(p => p.eff.GetValueOrDefault(StageId.S6, 0)) // Lowest S6 power first
+                                .OrderBy(p => p.eff.GetValueOrDefault(StageId.S6, 0))
                                 .FirstOrDefault();
                             
                             if (availablePlayer.name != null)
                             {
                                 targetStage = stage;
-                                
-                                // Temporarily add this player to the stage assignments for this attack
+                                if (!assignments[stage].Contains(availablePlayer.name))
+                                {
+                                    assignments[stage].Add(availablePlayer.name);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Fallback 2: Force remaining attacks on any stage with HP
+                // Every attack is worth points, even if damage is minimal
+                if (targetStage == null)
+                {
+                    foreach (var stage in requiredStages)
+                    {
+                        if (hp[stage] > 0.005)
+                        {
+                            var availablePlayer = playerData
+                                .Where(p => attemptsUsed.GetValueOrDefault(p.name, 0) < p.attempts)
+                                .OrderByDescending(p => p.avgPct.GetValueOrDefault(stage, 0))
+                                .FirstOrDefault();
+                            
+                            if (availablePlayer.name != null)
+                            {
+                                targetStage = stage;
                                 if (!assignments[stage].Contains(availablePlayer.name))
                                 {
                                     assignments[stage].Add(availablePlayer.name);
@@ -485,7 +519,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     if (used >= player.attempts) continue;
                     
                     var baseDamage = player.eff.GetValueOrDefault(targetStage.Value, 0);
-                    if (baseDamage <= 0) continue;
+                    
+                    // If effective damage is 0, use raw averaged percentage or minimum 0.5%
+                    // Every attack is worth points even if damage is minimal
+                    if (baseDamage <= 0)
+                    {
+                        baseDamage = Math.Max(0.5, player.avgPct.GetValueOrDefault(targetStage.Value, 0));
+                    }
                     
                     // Apply adaptive per-attack variance based on player confidence
                     // High-confidence players (99%+ averaged) get minimal variance to prevent unrealistic failures
@@ -553,7 +593,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            return (resets, hp, stageClears, attackLog, stage6Unlocked);
+            return (resets, hp, stageClears, attackLog, stage6Unlocked, totalAttemptsAvailable);
         }
     }
 }
