@@ -95,8 +95,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
             settings.NumberOfRuns = 1;
             var results = RunMultiple(players, todayState, settings);
 
-            // Build assignment rationales
-            const double S6_THRESHOLD = 8.0;
+            // Build assignment rationales using dynamic top-scorer S6 selection
+            // (mirrors the engine's relative cutoff logic)
+            const double S6_MIN_FLOOR = 2.0;
+            const double S6_RELATIVE_CUTOFF = 0.50;
+
+            var eligiblePlayers = players
+                .Where(p => 3 - p.Attempts.Count(a => a.Day == todayState.CurrentDay) > 0)
+                .ToList();
+
+            double topS6Avg = eligiblePlayers
+                .Select(p => p.AveragedPercents.GetValueOrDefault(StageId.S6, 0))
+                .DefaultIfEmpty(0)
+                .Max();
+            double s6Cutoff = Math.Max(S6_MIN_FLOOR, topS6Avg * S6_RELATIVE_CUTOFF);
+
             var rationales = new List<PlayerAssignmentRationale>();
 
             foreach (var player in players.OrderBy(p => p.Name))
@@ -130,13 +143,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
                 }
 
-                // Check S6 reservation
+                // Check S6 reservation using dynamic relative cutoff
                 var s6Pct = player.AveragedPercents.GetValueOrDefault(StageId.S6, 0);
-                rationale.IsS6Reserved = s6Pct >= S6_THRESHOLD;
+                rationale.IsS6Reserved = s6Pct >= s6Cutoff;
 
                 if (rationale.IsS6Reserved)
                 {
-                    rationale.Reason = $"S6 reserved (avg {s6Pct:F1}% >= {S6_THRESHOLD}% threshold)";
+                    rationale.Reason = $"S6 reserved (avg {s6Pct:F1}% — top scorer: {topS6Avg:F1}%, cutoff: {s6Cutoff:F1}%)";
                 }
                 else if (rationale.AssignedStage.Contains("5"))
                 {

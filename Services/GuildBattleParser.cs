@@ -16,7 +16,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static double ParsePercent(string? text)
         {
             if (string.IsNullOrWhiteSpace(text)) return 0;
-            var cleaned = new string(text.Where(ch => char.IsDigit(ch) || ch == '.' || ch == '-').ToArray());
+            // Normalize comma decimal separators (e.g. "12,5" → "12.5") before stripping
+            var normalized = text.Replace(',', '.');
+            var cleaned = new string(normalized.Where(ch => char.IsDigit(ch) || ch == '.' || ch == '-').ToArray());
             if (double.TryParse(cleaned, NumberStyles.Float, CultureInfo.InvariantCulture, out var val))
             {
                 return val;

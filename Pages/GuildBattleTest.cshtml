@@ -218,6 +218,80 @@
                                     </tbody>
                                 </table>
                             </div>
+
+                            <!-- Primary Assignments Summary -->
+                            <hr class="my-2" />
+                            <strong class="d-block mb-1">Primary Assignments</strong>
+                            @{
+                                var primaryGroups = new Dictionary<string, List<string>>();
+                                foreach (var stage in Enum.GetValues<StageId>())
+                                    primaryGroups[$"S{(int)stage}"] = new List<string>();
+                                primaryGroups["S1-3"] = new List<string>();
+
+                                foreach (var kvp in Model.Results.AssignmentFrequency)
+                                {
+                                    var maxStage = kvp.Value.OrderByDescending(x => x.Value).First();
+                                    var primaryLabel = $"S{(int)maxStage.Key}";
+                                    if (maxStage.Key == StageId.S1 || maxStage.Key == StageId.S2 || maxStage.Key == StageId.S3)
+                                    {
+                                        var s123Total = kvp.Value.GetValueOrDefault(StageId.S1) + kvp.Value.GetValueOrDefault(StageId.S2) + kvp.Value.GetValueOrDefault(StageId.S3);
+                                        if (s123Total == kvp.Value.GetValueOrDefault(StageId.S1) * 3)
+                                        {
+                                            primaryLabel = "S1-3";
+                                        }
+                                    }
+                                    primaryGroups[primaryLabel].Add(kvp.Key);
+                                }
+                            }
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">S1-3</th>
+                                            @foreach (var stage in Enum.GetValues<StageId>().Where(s => (int)s >= 4))
+                                            {
+                                                <th class="text-center">S@((int)stage)</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-center small align-top">
+                                                @{
+                                                    var s123Players = primaryGroups["S1-3"]
+                                                        .Concat(primaryGroups["S1"])
+                                                        .Concat(primaryGroups["S2"])
+                                                        .Concat(primaryGroups["S3"])
+                                                        .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                                                        .ToList();
+                                                }
+                                                @if (s123Players.Any())
+                                                {
+                                                    @string.Join(", ", s123Players)
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                            </td>
+                                            @foreach (var stage in Enum.GetValues<StageId>().Where(s => (int)s >= 4))
+                                            {
+                                                var players = primaryGroups[$"S{(int)stage}"].OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+                                                <td class="text-center small align-top">
+                                                    @if (players.Any())
+                                                    {
+                                                        @string.Join(", ", players)
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">—</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

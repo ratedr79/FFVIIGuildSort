@@ -1,0 +1,242 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.ZelarithAssignmentModel
+@using FFVIIEverCrisisAnalyzer.Models
+@{
+    ViewData["Title"] = "Zelarith's Assignment Application";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-3"><i class="fas fa-terminal"></i> Zelarith's Assignment Application</h1>
+    <p class="text-muted mb-3">
+        <i class="fas fa-info-circle"></i>
+        This page runs the Dispatcher application using your guild battle CSV data.
+        Data from cells B4:Q93 is extracted and passed to the Dispatcher for processing.
+        The output is then used to run a simulated battle using the same player damage data.
+    </p>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>Data Source</strong>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" asp-page-handler="Run">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="GoogleSheetUrl" class="form-label">Google Sheets (Published CSV)</label>
+                        <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                            <option value="">-- Select a Google Sheet --</option>
+                            @foreach (var sheet in Model.AvailableSheets)
+                            {
+                                <option value="@sheet.Url">@sheet.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="UploadedFile" class="form-label">Or Upload CSV File</label>
+                        <input type="file" class="form-control" id="UploadedFile" name="UploadedFile" accept=".csv" />
+                    </div>
+                    <div class="col-md-2">
+                        <label for="CurrentDay" class="form-label">Day</label>
+                        <select class="form-select" id="CurrentDay" name="CurrentDay">
+                            <option value="1" selected="@(Model.CurrentDay == 1)">Day 1</option>
+                            <option value="2" selected="@(Model.CurrentDay == 2)">Day 2</option>
+                            <option value="3" selected="@(Model.CurrentDay == 3)">Day 3</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="MarginOfErrorPercent" class="form-label">Margin %</label>
+                        <input type="number" class="form-control" id="MarginOfErrorPercent" name="MarginOfErrorPercent" value="@Model.MarginOfErrorPercent" step="0.5" min="0" max="20" />
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Run Dispatcher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.HasRun && !string.IsNullOrEmpty(Model.Output))
+    {
+        <!-- Dispatcher Raw Output (collapsible) -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#dispatcherOutputCollapse" role="button" aria-expanded="false" aria-controls="dispatcherOutputCollapse">
+                    <strong><i class="fas fa-terminal"></i> Dispatcher Output</strong>
+                    <i class="fas fa-chevron-down"></i>
+                </a>
+            </div>
+            <div class="collapse" id="dispatcherOutputCollapse">
+                <div class="card-body p-0">
+                    <pre class="mb-0 p-3" style="background: #1e1e1e; color: #d4d4d4; font-size: 0.85rem; max-height: 600px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">@Model.Output</pre>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.ParsedPlan != null)
+        {
+            <!-- Parsed Assignments -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#parsedAssignmentsCollapse" role="button" aria-expanded="true" aria-controls="parsedAssignmentsCollapse">
+                        <strong><i class="fas fa-users"></i> Parsed Assignments</strong>
+                        <i class="fas fa-chevron-down"></i>
+                    </a>
+                </div>
+                <div class="collapse show" id="parsedAssignmentsCollapse">
+                    <div class="card-body p-2">
+                        <p class="text-muted small mb-2">
+                            <i class="fas fa-info-circle"></i>
+                            Dispatcher expects <strong>@Model.ParsedPlan.ExpectedResets reset(s)</strong>.
+                            Players with a number in parentheses use that many attacks on the stage; others use all remaining.
+                        </p>
+                        <div class="row">
+                            @foreach (var stage in Enum.GetValues<StageId>())
+                            {
+                                var assignments = Model.ParsedPlan.StageAssignments.GetValueOrDefault(stage);
+                                if (assignments != null && assignments.Count > 0)
+                                {
+                                    <div class="col-md-4 col-lg-2 mb-2">
+                                        <div class="card h-100">
+                                            <div class="card-header py-1 text-center">
+                                                <strong>Stage @((int)stage)</strong>
+                                            </div>
+                                            <div class="card-body p-2">
+                                                <ul class="list-unstyled mb-0 small">
+                                                    @foreach (var a in assignments)
+                                                    {
+                                                        <li>
+                                                            @a.PlayerName
+                                                            @if (a.Attacks > 0)
+                                                            {
+                                                                <span class="badge bg-secondary">@a.Attacks</span>
+                                                            }
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.SimulationResult != null)
+        {
+            <!-- Simulation Summary -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <strong><i class="fas fa-chart-bar"></i> Simulation Results</strong>
+                </div>
+                <div class="card-body p-2">
+                    <div class="row text-center mb-3">
+                        <div class="col">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <div class="small text-muted">Resets</div>
+                                    <div class="h5 mb-0">@Model.SimulationResult.ExpectedResets</div>
+                                </div>
+                            </div>
+                        </div>
+                        @foreach (var stage in Enum.GetValues<StageId>())
+                        {
+                            var clears = Model.SimulationResult.StageClears.GetValueOrDefault(stage, 0);
+                            var finalHp = Model.SimulationResult.FinalHpByStage.GetValueOrDefault(stage, 0);
+                            var bg = finalHp <= 0.005 ? "bg-success text-white" : "bg-warning";
+                            <div class="col">
+                                <div class="card @bg">
+                                    <div class="card-body py-2">
+                                        <div class="small">S@((int)stage)</div>
+                                        <div class="h6 mb-0">@clears clears</div>
+                                        <div class="small">@finalHp.ToString("F1")% HP left</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attack Log -->
+            @if (Model.SimulationResult.AttackLog.Any())
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#attackLogCollapse" role="button" aria-expanded="true" aria-controls="attackLogCollapse">
+                            <strong><i class="fas fa-list"></i> Attack Log (@Model.SimulationResult.AttackLog.Count(e => !e.IsReset) attacks)</strong>
+                            <i class="fas fa-chevron-down"></i>
+                        </a>
+                    </div>
+                    <div class="collapse show" id="attackLogCollapse">
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th class="text-center">Stage</th>
+                                            <th class="text-center">Damage</th>
+                                            <th class="text-center">Remaining HP</th>
+                                            <th class="text-center">Cleared</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{ int attackNum = 0; }
+                                        @foreach (var entry in Model.SimulationResult.AttackLog)
+                                        {
+                                            if (entry.IsReset)
+                                            {
+                                                <tr class="table-info">
+                                                    @if (entry.PlayerName.Contains("Starting HP"))
+                                                    {
+                                                        <td colspan="4" class="text-center fw-bold">@entry.PlayerName</td>
+                                                        <td class="text-center fw-bold">@entry.RemainingHP.ToString("F1")%</td>
+                                                        <td></td>
+                                                    }
+                                                    else
+                                                    {
+                                                        <td colspan="6" class="text-center fw-bold">@entry.PlayerName</td>
+                                                    }
+                                                </tr>
+                                            }
+                                            else
+                                            {
+                                                attackNum++;
+                                                <tr class="@(entry.Cleared ? "table-success" : "")">
+                                                    <td>@attackNum</td>
+                                                    <td>@entry.PlayerName</td>
+                                                    <td class="text-center">S@((int)entry.Stage)</td>
+                                                    <td class="text-center">@entry.Damage.ToString("F1")%</td>
+                                                    <td class="text-center">@entry.RemainingHP.ToString("F1")%</td>
+                                                    <td class="text-center">
+                                                        @if (entry.Cleared)
+                                                        {
+                                                            <span class="badge bg-success">Clear</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    }
+</div>

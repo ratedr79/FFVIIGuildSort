@@ -78,4 +78,23 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<StageAssignmentGroup> StageGroups { get; set; } = new();
         public List<AttackLogEntry> AttackLog { get; set; } = new();
     }
+
+    /// <summary>
+    /// Represents a player assignment from the Dispatcher application output.
+    /// </summary>
+    public sealed class DispatcherPlayerAssignment
+    {
+        public string PlayerName { get; set; } = string.Empty;
+        public int Attacks { get; set; } // 0 = use all remaining attempts
+    }
+
+    /// <summary>
+    /// Parsed Dispatcher output with per-stage player assignments.
+    /// </summary>
+    public sealed class DispatcherParsedPlan
+    {
+        public Dictionary<StageId, List<DispatcherPlayerAssignment>> StageAssignments { get; set; } = new();
+        public int ExpectedResets { get; set; }
+        public string RawOutput { get; set; } = string.Empty;
+    }
 }
