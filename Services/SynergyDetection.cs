@@ -294,7 +294,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
 
                 var potRaw = part[(potIdx + 4)..].Trim();
-                if (double.TryParse(potRaw.TrimEnd('%'), out var potParsed))
+                if (double.TryParse(potRaw.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var potParsed))
                 {
                     return ApplyObPotScaling(potParsed, overboostLevel);
                 }
@@ -349,7 +349,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 if (potIdx >= 0)
                 {
                     var potRaw = part[(potIdx + 4)..].Trim();
-                    if (double.TryParse(potRaw.TrimEnd('%'), out var potParsed))
+                    if (double.TryParse(potRaw.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var potParsed))
                     {
                         pot = ApplyObPotScaling(potParsed, overboostLevel);
                     }
@@ -838,7 +838,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 if (raw.Equals("High", StringComparison.OrdinalIgnoreCase)) return Tier.High;
                 if (raw.Equals("Extra High", StringComparison.OrdinalIgnoreCase) || raw.Equals("ExtraHigh", StringComparison.OrdinalIgnoreCase)) return Tier.ExtraHigh;
 
-                if (double.TryParse(raw.TrimEnd('%'), out var pct))
+                if (double.TryParse(raw.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var pct))
                 {
                     // Fallback heuristic if TSV provides numeric PotMax: map to closest tier by effect family.
                     if (effectName.Contains("Resistance Down", StringComparison.OrdinalIgnoreCase))
