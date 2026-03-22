@@ -50,9 +50,13 @@
                             <option value="3" selected="@(Model.CurrentDay == 3)">Day 3</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <label for="MarginOfErrorPercent" class="form-label">Margin %</label>
                         <input type="number" class="form-control" id="MarginOfErrorPercent" name="MarginOfErrorPercent" value="@Model.MarginOfErrorPercent" step="0.5" min="0" max="20" />
+                    </div>
+                    <div class="col-md-1">
+                        <label for="NumberOfRuns" class="form-label">Runs</label>
+                        <input type="number" class="form-control" id="NumberOfRuns" name="NumberOfRuns" value="@Model.NumberOfRuns" min="1" max="50" />
                     </div>
                 </div>
                 <div class="mt-3">
@@ -133,34 +137,43 @@
             </div>
         }
 
-        @if (Model.SimulationResult != null)
+        @if (Model.AggregatedResults != null)
         {
-            <!-- Simulation Summary -->
+            var agg = Model.AggregatedResults;
+            var isMulti = agg.TotalRuns > 1;
+
+            <!-- Aggregated Summary -->
             <div class="card mb-3">
                 <div class="card-header">
-                    <strong><i class="fas fa-chart-bar"></i> Simulation Results</strong>
+                    <strong><i class="fas fa-chart-bar"></i> Simulation Results (@agg.TotalRuns run@(agg.TotalRuns > 1 ? "s" : ""))</strong>
                 </div>
                 <div class="card-body p-2">
                     <div class="row text-center mb-3">
                         <div class="col">
                             <div class="card bg-light">
                                 <div class="card-body py-2">
-                                    <div class="small text-muted">Resets</div>
-                                    <div class="h5 mb-0">@Model.SimulationResult.ExpectedResets</div>
+                                    <div class="small text-muted">@(isMulti ? "Avg Resets" : "Resets")</div>
+                                    <div class="h5 mb-0">@(isMulti ? agg.AvgResets.ToString("F1") : agg.Runs.First().Resets.ToString())</div>
+                                    @if (isMulti)
+                                    {
+                                        <div class="small text-muted">@agg.MinResets – @agg.MaxResets</div>
+                                    }
                                 </div>
                             </div>
                         </div>
                         @foreach (var stage in Enum.GetValues<StageId>())
                         {
-                            var clears = Model.SimulationResult.StageClears.GetValueOrDefault(stage, 0);
-                            var finalHp = Model.SimulationResult.FinalHpByStage.GetValueOrDefault(stage, 0);
-                            var bg = finalHp <= 0.005 ? "bg-success text-white" : "bg-warning";
+                            var avgHp = agg.AvgFinalHP.GetValueOrDefault(stage, 0);
+                            var avgClears = agg.AvgClears.GetValueOrDefault(stage, 0);
+                            var clearRate = agg.ClearRatePercent.GetValueOrDefault(stage, 0);
+                            var bg = avgHp <= 0.005 ? "bg-success text-white" : avgHp < 50 ? "bg-warning" : "bg-light";
                             <div class="col">
                                 <div class="card @bg">
                                     <div class="card-body py-2">
                                         <div class="small">S@((int)stage)</div>
-                                        <div class="h6 mb-0">@clears clears</div>
-                                        <div class="small">@finalHp.ToString("F1")% HP left</div>
+                                        <div class="h6 mb-0">@avgClears.ToString("F1") clears</div>
+                                        <div class="small">@avgHp.ToString("F1")% HP left</div>
+                                        <div class="small text-muted">@clearRate.ToString("F0")% clear rate</div>
                                     </div>
                                 </div>
                             </div>
@@ -169,13 +182,120 @@
                 </div>
             </div>
 
-            <!-- Attack Log -->
-            @if (Model.SimulationResult.AttackLog.Any())
+            <!-- Per-Run Breakdown -->
+            <div class="card mb-3">
+                    <div class="card-header">
+                        <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#perRunCollapse" role="button" aria-expanded="true" aria-controls="perRunCollapse">
+                            <strong><i class="fas fa-table"></i> Per-Run Breakdown</strong>
+                            <i class="fas fa-chevron-down"></i>
+                        </a>
+                    </div>
+                    <div class="collapse show" id="perRunCollapse">
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Run</th>
+                                            <th class="text-center">Resets</th>
+                                            <th class="text-center">Attacks</th>
+                                            @foreach (var stage in Enum.GetValues<StageId>())
+                                            {
+                                                <th class="text-center">S@((int)stage) HP</th>
+                                            }
+                                            <th class="text-center">Rank</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{ var colSpan = 10 + Enum.GetValues<StageId>().Length; }
+                                        @foreach (var run in agg.Runs)
+                                        {
+                                            var isBest = run.RunIndex == agg.BestRunIndex;
+                                            var isWorst = run.RunIndex == agg.WorstRunIndex;
+                                            var rowClass = isBest ? "table-success" : isWorst ? "table-danger" : "";
+                                            var detailId = $"dispRunDetail-{run.RunIndex}";
+                                            <tr class="@rowClass">
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-link p-0 text-decoration-none" data-bs-toggle="collapse" data-bs-target="#@detailId" aria-expanded="false" aria-controls="@detailId" title="Toggle details">
+                                                        <i class="fas fa-chevron-right fa-xs toggle-icon"></i>
+                                                    </button>
+                                                </td>
+                                                <td>@run.RunIndex</td>
+                                                <td class="text-center">@run.Resets</td>
+                                                <td class="text-center">@run.TotalAttacks</td>
+                                                @foreach (var stage in Enum.GetValues<StageId>())
+                                                {
+                                                    var hp = run.FinalHP.GetValueOrDefault(stage);
+                                                    var color = hp <= 0.01 ? "text-success" : hp < 50 ? "text-warning" : "text-danger";
+                                                    <td class="text-center @color">@hp.ToString("F1")%</td>
+                                                }
+                                                <td class="text-center">
+                                                    @if (isBest) { <span class="badge bg-success">Best</span> }
+                                                    else if (isWorst) { <span class="badge bg-danger">Worst</span> }
+                                                </td>
+                                            </tr>
+                                            <tr class="collapse" id="@detailId">
+                                                <td colspan="@colSpan" class="p-0">
+                                                    <div class="p-2 bg-light border-top">
+                                                        <strong>Attack Log — Run @run.RunIndex (@run.AttackLog.Count(a => !a.IsReset) attacks)</strong>
+                                                        <div class="table-responsive mt-1" style="max-height: 400px; overflow-y: auto;">
+                                                            <table class="table table-sm mb-0" style="font-size: 0.8rem;">
+                                                                <thead class="sticky-top bg-light">
+                                                                    <tr>
+                                                                        <th>Player</th>
+                                                                        <th class="text-center">Stage</th>
+                                                                        <th class="text-center">Damage</th>
+                                                                        <th class="text-center">Remaining HP</th>
+                                                                        <th class="text-center">Status</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach (var entry in run.AttackLog)
+                                                                    {
+                                                                        if (entry.IsReset)
+                                                                        {
+                                                                            <tr class="table-secondary">
+                                                                                <td colspan="5"><strong>@entry.PlayerName</strong>
+                                                                                    @if (entry.PlayerName.Contains("Starting HP"))
+                                                                                    {
+                                                                                        <span class="float-end">@entry.RemainingHP.ToString("F1")%</span>
+                                                                                    }
+                                                                                </td>
+                                                                            </tr>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <tr class="@(entry.Cleared ? "table-success" : "")">
+                                                                                <td>@entry.PlayerName</td>
+                                                                                <td class="text-center">S@((int)entry.Stage)</td>
+                                                                                <td class="text-center">@entry.Damage.ToString("F1")%</td>
+                                                                                <td class="text-center">@entry.RemainingHP.ToString("F1")%</td>
+                                                                                <td class="text-center">@(entry.Cleared ? "CLEARED" : "")</td>
+                                                                            </tr>
+                                                                        }
+                                                                    }
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+
+            <!-- Best Run Attack Log (or single run) -->
+            @if (Model.SimulationResult != null && Model.SimulationResult.AttackLog.Any())
             {
                 <div class="card mb-3">
                     <div class="card-header">
                         <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#attackLogCollapse" role="button" aria-expanded="true" aria-controls="attackLogCollapse">
-                            <strong><i class="fas fa-list"></i> Attack Log (@Model.SimulationResult.AttackLog.Count(e => !e.IsReset) attacks)</strong>
+                            <strong><i class="fas fa-list"></i> @(isMulti ? $"Best Run (#{agg.BestRunIndex}) " : "")Attack Log (@Model.SimulationResult.AttackLog.Count(e => !e.IsReset) attacks)</strong>
                             <i class="fas fa-chevron-down"></i>
                         </a>
                     </div>

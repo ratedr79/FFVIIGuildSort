@@ -32,10 +32,14 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public double MarginOfErrorPercent { get; set; } = 0;
 
+        [BindProperty]
+        public int NumberOfRuns { get; set; } = 5;
+
         public string? Output { get; set; }
         public string? ErrorMessage { get; set; }
         public bool HasRun { get; set; }
         public BattlePlanSummary? SimulationResult { get; set; }
+        public AggregatedTestResults? AggregatedResults { get; set; }
         public DispatcherParsedPlan? ParsedPlan { get; set; }
         public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
@@ -214,11 +218,63 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                                 if (players != null && players.Count > 0)
                                 {
                                     CurrentDay = Math.Clamp(CurrentDay, 1, 3);
+                                    NumberOfRuns = Math.Clamp(NumberOfRuns, 1, 50);
                                     var todayState = BuildTodayState(players, CurrentDay);
 
-                                    var engine = new GuildBattleAssignmentEngine();
-                                    SimulationResult = engine.SimulateWithFixedAssignments(
-                                        ParsedPlan, players, todayState, MarginOfErrorPercent);
+                                    var rng = new Random();
+                                    var aggregated = new AggregatedTestResults
+                                    {
+                                        TotalRuns = NumberOfRuns,
+                                        Settings = new SimulationTestSettings
+                                        {
+                                            NumberOfRuns = NumberOfRuns,
+                                            CurrentDay = CurrentDay,
+                                            MarginOfErrorPercent = MarginOfErrorPercent
+                                        }
+                                    };
+
+                                    for (int i = 0; i < NumberOfRuns; i++)
+                                    {
+                                        int seed = rng.Next();
+                                        var engine = new GuildBattleAssignmentEngine(seed);
+                                        var plan = engine.SimulateWithFixedAssignments(
+                                            ParsedPlan, players, todayState, MarginOfErrorPercent);
+
+                                        int attacksMade = plan.AttackLog.Count(a => !a.IsReset);
+                                        var run = new SingleRunResult
+                                        {
+                                            RunIndex = i + 1,
+                                            Seed = seed,
+                                            Resets = plan.ExpectedResets,
+                                            FinalHP = new Dictionary<StageId, double>(plan.FinalHpByStage),
+                                            StageClears = new Dictionary<StageId, int>(plan.StageClears),
+                                            Stage6Unlocked = todayState.IsStage6Unlocked,
+                                            AttackLog = plan.AttackLog,
+                                            TotalAttacks = attacksMade,
+                                            AttemptsAvailable = todayState.RemainingHits,
+                                            AttemptsUsed = attacksMade
+                                        };
+                                        foreach (var group in plan.StageGroups)
+                                            run.Assignments[group.Stage] = new List<string>(group.PlayerNames);
+
+                                        aggregated.Runs.Add(run);
+                                    }
+
+                                    AggregateDispatcherResults(aggregated);
+                                    AggregatedResults = aggregated;
+
+                                    // Use the best run as the primary SimulationResult
+                                    var bestRun = aggregated.Runs.FirstOrDefault(r => r.RunIndex == aggregated.BestRunIndex)
+                                        ?? aggregated.Runs.First();
+                                    SimulationResult = new BattlePlanSummary
+                                    {
+                                        ExpectedResets = bestRun.Resets,
+                                        FinalHpByStage = bestRun.FinalHP,
+                                        StageClears = bestRun.StageClears,
+                                        AttackLog = bestRun.AttackLog
+                                    };
+                                    foreach (var kvp in bestRun.Assignments)
+                                        SimulationResult.StageGroups.Add(new StageAssignmentGroup { Stage = kvp.Key, PlayerNames = kvp.Value });
                                 }
                             }
                         }
@@ -354,6 +410,65 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             today.RemainingHits = Math.Max(0, 90 - attemptsToday);
 
             return today;
+        }
+
+        /// <summary>
+        /// Aggregate statistics across multiple dispatcher simulation runs.
+        /// </summary>
+        private static void AggregateDispatcherResults(AggregatedTestResults results)
+        {
+            if (results.Runs.Count == 0) return;
+
+            var resets = results.Runs.Select(r => (double)r.Resets).OrderBy(x => x).ToList();
+            results.AvgResets = resets.Average();
+            results.MinResets = resets.Min();
+            results.MaxResets = resets.Max();
+            results.P10Resets = Percentile(resets, 10);
+            results.P90Resets = Percentile(resets, 90);
+
+            foreach (var stage in Enum.GetValues<StageId>())
+            {
+                var finalHps = results.Runs.Select(r => r.FinalHP.GetValueOrDefault(stage, 0)).ToList();
+                results.AvgFinalHP[stage] = finalHps.Average();
+
+                var clears = results.Runs.Select(r => (double)r.StageClears.GetValueOrDefault(stage, 0)).ToList();
+                results.AvgClears[stage] = clears.Average();
+
+                var clearedRuns = results.Runs.Count(r => r.StageClears.GetValueOrDefault(stage, 0) > 0);
+                results.ClearRatePercent[stage] = (double)clearedRuns / results.Runs.Count * 100.0;
+            }
+
+            var s6Unlocked = results.Runs.Count(r => r.Stage6Unlocked);
+            results.Stage6UnlockRatePercent = (double)s6Unlocked / results.Runs.Count * 100.0;
+
+            results.TotalSimulatedAttacks = results.Runs.Sum(r => r.TotalAttacks);
+
+            // Score runs: more resets = better, lower sum of final HP = better
+            if (results.Runs.Count >= 2)
+            {
+                var scored = results.Runs
+                    .Select(r => new { r.RunIndex, Score = (-r.Resets, r.FinalHP.Values.Sum()) })
+                    .OrderBy(x => x.Score)
+                    .ToList();
+                results.BestRunIndex = scored.First().RunIndex;
+                results.WorstRunIndex = scored.Last().RunIndex;
+            }
+            else
+            {
+                results.BestRunIndex = results.Runs[0].RunIndex;
+                results.WorstRunIndex = results.Runs[0].RunIndex;
+            }
+        }
+
+        private static double Percentile(List<double> sorted, int percentile)
+        {
+            if (sorted.Count == 0) return 0;
+            if (sorted.Count == 1) return sorted[0];
+            double index = (percentile / 100.0) * (sorted.Count - 1);
+            int lower = (int)Math.Floor(index);
+            int upper = Math.Min(lower + 1, sorted.Count - 1);
+            double weight = index - lower;
+            return sorted[lower] * (1 - weight) + sorted[upper] * weight;
         }
 
         /// <summary>
