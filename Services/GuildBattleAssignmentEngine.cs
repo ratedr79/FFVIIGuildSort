@@ -419,8 +419,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 budgetDetailPerPlayer[kvp.Key] = details;
             }
 
+            // Global attempts cap for today
+            int attemptsAvailable = Math.Max(0, todayState.RemainingHits);
+            int attemptsUsed = 0;
+
             // Log starting state
             attackLog.Add(new AttackLogEntry { PlayerName = "=== DISPATCHER SIMULATION START ===", Stage = StageId.S1, IsReset = true });
+            attackLog.Add(new AttackLogEntry { PlayerName = $"Attempts available today: {attemptsAvailable}", Stage = StageId.S1, IsReset = true });
 
             if (playersWhoAttacked.Any())
             {
@@ -436,14 +441,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            // Auto-pad players with < 3 attacks to 3 by adding to their highest assigned stage
+            // Auto-pad players with < 3 attacks by adding to their highest assigned stage,
+            // BUT never exceed their remaining attempts for today (3 - used today)
             var shortBudgetPlayers = totalBudgetPerPlayer.Where(kvp => kvp.Value < 3).OrderBy(kvp => kvp.Key).ToList();
             if (shortBudgetPlayers.Any())
             {
                 attackLog.Add(new AttackLogEntry { PlayerName = "--- Players With < 3 Attacks (auto-padded) ---", Stage = StageId.S1, IsReset = true });
                 foreach (var kvp in shortBudgetPlayers)
                 {
-                    int missing = 3 - kvp.Value;
+                    // Calculate how many attempts the player actually has left today
+                    int attemptsLeftForPlayer = playerAttempts.GetValueOrDefault(kvp.Key, 0);
+                    int currentBudgetTotal = totalBudgetPerPlayer.GetValueOrDefault(kvp.Key, 0);
+                    int missing = Math.Max(0, attemptsLeftForPlayer - currentBudgetTotal);
                     var detail = budgetDetailPerPlayer.GetValueOrDefault(kvp.Key);
                     var detailStr = detail != null ? string.Join(", ", detail) : "none";
 
@@ -452,7 +461,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     var highestStage = playerBudget.Keys.OrderByDescending(s => (int)s).First();
 
                     // Add missing attacks to that stage
-                    playerBudget[highestStage] += missing;
+                    if (missing > 0)
+                    {
+                        playerBudget[highestStage] += missing;
+                        // Update cached totals used for logging of subsequent players
+                        totalBudgetPerPlayer[kvp.Key] = currentBudgetTotal + missing;
+                    }
 
                     // Ensure they're in stageAssignments for that stage
                     if (!stageAssignments[highestStage].Contains(kvp.Key, StringComparer.OrdinalIgnoreCase))
@@ -460,7 +474,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                     attackLog.Add(new AttackLogEntry
                     {
-                        PlayerName = $"  {kvp.Key}: {kvp.Value} total ({detailStr}) → +{missing} added to S{(int)highestStage}",
+                        PlayerName = $"  {kvp.Key}: {currentBudgetTotal} total ({detailStr}) → +{missing} added to S{(int)highestStage}",
                         Stage = StageId.S1,
                         IsReset = true
                     });
@@ -479,6 +493,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             while (iteration < maxIterations)
             {
                 iteration++;
+
+                if (attemptsUsed >= attemptsAvailable)
+                    break;
 
                 // Check if all budgets exhausted
                 bool allBudgetsUsed = !remainingBudget.Any(p => p.Value.Any(s => s.Value > 0));
@@ -672,6 +689,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         IsReset = false
                     });
                 }
+
+                attemptsUsed++;
             }
 
             // Use any remaining unused attacks on the lowest available stage
@@ -680,7 +699,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            if (unusedPlayers.Any())
+            if (unusedPlayers.Any() && attemptsUsed < attemptsAvailable)
             {
                 attackLog.Add(new AttackLogEntry { PlayerName = "=== REMAINING ATTACKS ===", Stage = StageId.S1, IsReset = true });
 
@@ -689,7 +708,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     string playerName = playerKvp.Key;
                     int totalRemaining = playerKvp.Value.Values.Sum();
 
-                    while (totalRemaining > 0)
+                    while (totalRemaining > 0 && attemptsUsed < attemptsAvailable)
                     {
                         // Find the lowest stage with HP > 0
                         var targetStage = currentCycleStages
@@ -750,6 +769,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             playerKvp.Value[budgetStage]--;
 
                         totalRemaining--;
+                        attemptsUsed++;
                     }
                 }
             }
