@@ -489,6 +489,104 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             int maxIterations = 1000;
             int iteration = 0;
+            bool lateStagePriorityLogged = false;
+
+            int GetRemainingAttemptsCap()
+            {
+                var budgetRemaining = remainingBudget.Sum(p => p.Value.Values.Sum(v => Math.Max(0, v)));
+                return Math.Max(0, Math.Min(attemptsAvailable - attemptsUsed, budgetRemaining));
+            }
+
+            bool ShouldPrioritizeLateStages(List<StageId> stagesWithHp)
+            {
+                if (!stagesWithHp.Any())
+                    return false;
+
+                int remainingAttempts = GetRemainingAttemptsCap();
+                if (remainingAttempts <= 0)
+                    return false;
+
+                int optimisticAttacksNeeded = 0;
+                foreach (var stage in stagesWithHp)
+                {
+                    double bestDamage = 0;
+                    foreach (var budgetByStage in remainingBudget)
+                    {
+                        int playerBudget = budgetByStage.Value.Values.Sum(v => Math.Max(0, v));
+                        if (playerBudget <= 0)
+                            continue;
+
+                        var playerName = budgetByStage.Key;
+                        var eff = playerEffMap.GetValueOrDefault(playerName);
+                        var avg = playerAvgMap.GetValueOrDefault(playerName);
+                        double damage = eff?.GetValueOrDefault(stage, 0) ?? 0;
+                        if (damage <= 0)
+                            damage = avg?.GetValueOrDefault(stage, 0) ?? 0;
+
+                        if (damage > bestDamage)
+                            bestDamage = damage;
+                    }
+
+                    if (bestDamage <= 0.005)
+                        return true;
+
+                    optimisticAttacksNeeded += (int)Math.Ceiling(hp[stage] / bestDamage);
+                }
+
+                return remainingAttempts < optimisticAttacksNeeded;
+            }
+
+            bool TryPromoteAttackToHigherStage(StageId targetStage)
+            {
+                var promotionCandidates = new List<(string name, StageId fromStage, double fromEff, double targetEff)>();
+
+                foreach (var budgetByStage in remainingBudget)
+                {
+                    var playerName = budgetByStage.Key;
+                    foreach (var fromBudget in budgetByStage.Value.Where(s => s.Value > 0 && (int)s.Key < (int)targetStage))
+                    {
+                        var eff = playerEffMap.GetValueOrDefault(playerName);
+                        var avg = playerAvgMap.GetValueOrDefault(playerName);
+
+                        double targetEff = eff?.GetValueOrDefault(targetStage, 0) ?? 0;
+                        if (targetEff <= 0)
+                            targetEff = avg?.GetValueOrDefault(targetStage, 0) ?? 0;
+                        if (targetEff <= 0)
+                            continue;
+
+                        double fromEff = eff?.GetValueOrDefault(fromBudget.Key, 0) ?? 0;
+                        promotionCandidates.Add((playerName, fromBudget.Key, fromEff, targetEff));
+                    }
+                }
+
+                if (!promotionCandidates.Any())
+                    return false;
+
+                var best = promotionCandidates
+                    .OrderByDescending(c => c.targetEff)
+                    .ThenBy(c => c.fromEff)
+                    .First();
+
+                remainingBudget[best.name][best.fromStage]--;
+                if (!remainingBudget[best.name].ContainsKey(targetStage))
+                    remainingBudget[best.name][targetStage] = 0;
+                remainingBudget[best.name][targetStage]++;
+
+                if (!stageAssignments[targetStage].Contains(best.name, StringComparer.OrdinalIgnoreCase))
+                    stageAssignments[targetStage].Add(best.name);
+
+                if (attackLog.Count < MAX_LOG_ENTRIES)
+                {
+                    attackLog.Add(new AttackLogEntry
+                    {
+                        PlayerName = $">>> PROMOTION: {best.name} moved 1 attack from S{(int)best.fromStage} to S{(int)targetStage} <<<",
+                        Stage = targetStage,
+                        IsReset = true
+                    });
+                }
+
+                return true;
+            }
 
             while (iteration < maxIterations)
             {
@@ -501,9 +599,28 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 bool allBudgetsUsed = !remainingBudget.Any(p => p.Value.Any(s => s.Value > 0));
                 if (allBudgetsUsed) break;
 
+                var stagesWithHp = currentCycleStages
+                    .Where(s => hp[s] > 0.005)
+                    .ToList();
+                bool prioritizeLateStages = ShouldPrioritizeLateStages(stagesWithHp);
+                var stageSearchOrder = prioritizeLateStages
+                    ? stagesWithHp.OrderByDescending(s => (int)s).ToList()
+                    : stagesWithHp.OrderBy(s => (int)s).ToList();
+
+                if (prioritizeLateStages && !lateStagePriorityLogged && attackLog.Count < MAX_LOG_ENTRIES)
+                {
+                    attackLog.Add(new AttackLogEntry
+                    {
+                        PlayerName = ">>> LATE-STAGE PRIORITY MODE: insufficient attempts for likely reset; prioritizing highest available stage <<<",
+                        Stage = stageSearchOrder.FirstOrDefault(),
+                        IsReset = true
+                    });
+                    lateStagePriorityLogged = true;
+                }
+
                 // Find a stage with HP and available players
                 StageId? targetStage = null;
-                foreach (var stage in currentCycleStages)
+                foreach (var stage in stageSearchOrder)
                 {
                     if (hp[stage] > 0.005)
                     {
@@ -516,6 +633,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             targetStage = stage;
                             break;
                         }
+                    }
+                }
+
+                if (prioritizeLateStages && stageSearchOrder.Any())
+                {
+                    var highestAvailableStage = stageSearchOrder.First();
+                    if (targetStage != highestAvailableStage)
+                    {
+                        if (TryPromoteAttackToHigherStage(highestAvailableStage))
+                            continue;
                     }
                 }
 
@@ -539,6 +666,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             stage6UnlockedThisCycle = false;
                         }
                         continue;
+                    }
+
+                    if (prioritizeLateStages && stageSearchOrder.Any())
+                    {
+                        var highestAvailableStage = stageSearchOrder.First();
+                        if (TryPromoteAttackToHigherStage(highestAvailableStage))
+                            continue;
                     }
 
                     // Demotion fallback: find a stuck stage and pull the weakest player from a higher stage
@@ -638,6 +772,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var avg = playerAvgMap.GetValueOrDefault(attackerName);
                 double baseDamage = eff?.GetValueOrDefault(targetStage.Value, 0) ?? 0;
                 double avgPct = avg?.GetValueOrDefault(targetStage.Value, 0) ?? 0;
+                var nextStage = targetStage.Value == StageId.S6 ? (StageId?)null : (StageId)((int)targetStage.Value + 1);
+                double nextStageAvg = nextStage.HasValue ? (avg?.GetValueOrDefault(nextStage.Value, 0) ?? 0) : 0;
 
                 if (baseDamage <= 0)
                     baseDamage = avgPct; // Use avg even if 0; don't inflate with fake 0.5%
@@ -652,11 +788,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 else
                 {
                     double varianceMultiplier;
-                    if (avgPct >= 99.0)
+                    if (avgPct >= 99.5 || nextStageAvg >= 85.0)
+                        varianceMultiplier = 0.995 + (_random.NextDouble() * 0.025);
+                    else if (avgPct >= 99.0)
                         varianceMultiplier = 0.98 + (_random.NextDouble() * 0.04);
                     else
                         varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2);
                     damage = baseDamage * varianceMultiplier;
+
+                    bool veryHighConfidence = avgPct >= 99.5 || nextStageAvg >= 85.0;
+                    if (veryHighConfidence && hp[targetStage.Value] <= 2.0)
+                    {
+                        damage = Math.Max(damage, hp[targetStage.Value]);
+                    }
                 }
                 hp[targetStage.Value] = Math.Max(0, hp[targetStage.Value] - damage);
                 remainingBudget[attackerName][targetStage.Value]--;
@@ -724,6 +868,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         var avg = playerAvgMap.GetValueOrDefault(playerName);
                         double baseDamage = eff?.GetValueOrDefault(targetStage, 0) ?? 0;
                         double avgPct = avg?.GetValueOrDefault(targetStage, 0) ?? 0;
+                        var nextStage = targetStage == StageId.S6 ? (StageId?)null : (StageId)((int)targetStage + 1);
+                        double nextStageAvg = nextStage.HasValue ? (avg?.GetValueOrDefault(nextStage.Value, 0) ?? 0) : 0;
 
                         if (baseDamage <= 0)
                             baseDamage = avgPct;
@@ -735,10 +881,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         }
                         else
                         {
-                            double varianceMultiplier = avgPct >= 99.0
-                                ? 0.98 + (_random.NextDouble() * 0.04)
-                                : 0.9 + (_random.NextDouble() * 0.2);
+                            double varianceMultiplier;
+                            if (avgPct >= 99.5 || nextStageAvg >= 85.0)
+                                varianceMultiplier = 0.995 + (_random.NextDouble() * 0.025);
+                            else if (avgPct >= 99.0)
+                                varianceMultiplier = 0.98 + (_random.NextDouble() * 0.04);
+                            else
+                                varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2);
                             damage = baseDamage * varianceMultiplier;
+
+                            bool veryHighConfidence = avgPct >= 99.5 || nextStageAvg >= 85.0;
+                            if (veryHighConfidence && hp[targetStage] <= 2.0)
+                            {
+                                damage = Math.Max(damage, hp[targetStage]);
+                            }
                         }
 
                         hp[targetStage] = Math.Max(0, hp[targetStage] - damage);

@@ -26,15 +26,27 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5><i class="fas fa-upload"></i> Upload Survey Results CSV</h5>
+                    <h5><i class="fas fa-upload"></i> Survey Data Source</h5>
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="UploadedFile" class="form-label">Select CSV File</label>
-                            <input type="file" class="form-control" id="UploadedFile" name="UploadedFile" accept=".csv" />
-                            <div class="form-text">Upload the monthly guild form export (wide format) with an "In-Game Name" column</div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="GoogleSheetUrl" class="form-label">Survey Sheet (Published CSV)</label>
+                                <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                                    <option value="">-- Select a survey sheet --</option>
+                                    @foreach (var sheet in Model.AvailableSheets)
+                                    {
+                                        <option value="@sheet.Url">@sheet.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="UploadedFile" class="form-label">Or Upload CSV File</label>
+                                <input type="file" class="form-control" id="UploadedFile" name="UploadedFile" accept=".csv" />
+                            </div>
                         </div>
+                        <div class="form-text mb-3">Select a pre-defined survey sheet or upload the monthly guild form export (wide format) with an "In-Game Name" column</div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label" for="EnemyWeakness">Enemy Weakness</label>

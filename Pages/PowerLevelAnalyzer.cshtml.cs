@@ -16,14 +16,16 @@ public class PlayerSubmissionInfo
 public class PowerLevelAnalyzerModel : PageModel
 {
     private readonly ILogger<PowerLevelAnalyzerModel> _logger;
+    private readonly IConfiguration _configuration;
     private readonly Gb20Analyzer _gb20Analyzer;
     private readonly GuildAssigner _guildAssigner;
     private readonly WeaponCatalog _weaponCatalog;
     private readonly TeamTemplateCatalog _teamTemplateCatalog;
 
-    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog)
+    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, IConfiguration configuration, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog)
     {
         _logger = logger;
+        _configuration = configuration;
         _gb20Analyzer = gb20Analyzer;
         _guildAssigner = guildAssigner;
         _weaponCatalog = weaponCatalog;
@@ -31,6 +33,9 @@ public class PowerLevelAnalyzerModel : PageModel
     }
 
     public WeaponCatalog WeaponCatalog => _weaponCatalog;
+
+    [BindProperty]
+    public string? GoogleSheetUrl { get; set; }
 
     [BindProperty]
     public IFormFile? UploadedFile { get; set; }
@@ -63,9 +68,11 @@ public class PowerLevelAnalyzerModel : PageModel
     public int TotalDistinctPlayers { get; set; }
     public List<string> DuplicateSubmitters { get; set; } = new();
     public List<PlayerSubmissionInfo> AllPlayerSubmissions { get; set; } = new();
+    public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
     public void OnGet()
     {
+        LoadAvailableSheets();
         // Load available templates and set all as enabled by default
         AvailableTeamTemplates = _teamTemplateCatalog.GetAllTemplates();
         foreach (var template in AvailableTeamTemplates)
@@ -74,23 +81,54 @@ public class PowerLevelAnalyzerModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    private void LoadAvailableSheets()
     {
-        if (UploadedFile == null || UploadedFile.Length == 0)
+        AvailableSheets = _configuration.GetSection("GoogleSheets:SurveySheets")
+            .Get<List<SheetDefinition>>() ?? new List<SheetDefinition>();
+    }
+
+    private async Task<Stream?> GetCsvStreamAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(GoogleSheetUrl))
         {
-            ErrorMessage = "Please select a CSV file to upload.";
-            return Page();
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(GoogleSheetUrl);
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage = $"Failed to download Google Sheet: {response.StatusCode}";
+                return null;
+            }
+            var memStream = new MemoryStream();
+            await response.Content.CopyToAsync(memStream);
+            memStream.Position = 0;
+            return memStream;
         }
 
-        if (!Path.GetExtension(UploadedFile.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+        if (UploadedFile != null && UploadedFile.Length > 0)
         {
-            ErrorMessage = "Please upload a valid CSV file.";
+            if (!Path.GetExtension(UploadedFile.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                ErrorMessage = "Please upload a valid CSV file.";
+                return null;
+            }
+            return UploadedFile.OpenReadStream();
+        }
+
+        ErrorMessage = "Please select a survey sheet or upload a CSV file.";
+        return null;
+    }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        LoadAvailableSheets();
+        using var stream = await GetCsvStreamAsync();
+        if (stream == null)
+        {
             return Page();
         }
 
         try
         {
-            using var stream = UploadedFile.OpenReadStream();
             var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);
             var accounts = ingestionResult.Accounts;
             DuplicateSubmitters = ingestionResult.DuplicateSubmitters;
@@ -246,21 +284,15 @@ public class PowerLevelAnalyzerModel : PageModel
 
     public async Task<IActionResult> OnPostExportGuildsAsync()
     {
-        if (UploadedFile == null || UploadedFile.Length == 0)
+        LoadAvailableSheets();
+        using var stream = await GetCsvStreamAsync();
+        if (stream == null)
         {
-            ErrorMessage = "Please select a CSV file to upload.";
-            return Page();
-        }
-
-        if (!Path.GetExtension(UploadedFile.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            ErrorMessage = "Please upload a valid CSV file.";
             return Page();
         }
 
         try
         {
-            using var stream = UploadedFile.OpenReadStream();
             var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);
             var accounts = ingestionResult.Accounts;
             

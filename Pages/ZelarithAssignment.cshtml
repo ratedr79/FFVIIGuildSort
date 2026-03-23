@@ -70,6 +70,119 @@
 
     @if (Model.HasRun && !string.IsNullOrEmpty(Model.Output))
     {
+        @if (Model.HpComputationDebug != null)
+        {
+            var hpDebug = Model.HpComputationDebug;
+            <div class="card mb-3">
+                <div class="card-header">
+                    <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#hpComputationCollapse" role="button" aria-expanded="false" aria-controls="hpComputationCollapse">
+                        <strong><i class="fas fa-heartbeat"></i> Stage HP Computation (Simulation Start State)</strong>
+                        <i class="fas fa-chevron-down"></i>
+                    </a>
+                </div>
+                <div class="collapse" id="hpComputationCollapse">
+                    <div class="card-body p-2">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-2">
+                                <div class="small text-muted">Day</div>
+                                <div><strong>@hpDebug.CurrentDay</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="small text-muted">Attempts Replayed</div>
+                                <div><strong>@hpDebug.TotalAttemptsProcessed</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="small text-muted">Attempts On Day</div>
+                                <div><strong>@hpDebug.AttemptsOnCurrentDay</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="small text-muted">Remaining Hits</div>
+                                <div><strong>@hpDebug.RemainingHits</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="small text-muted">Resets Replayed</div>
+                                <div><strong>@hpDebug.ResetsDetectedWhileReplaying</strong></div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="small text-muted">S6 Unlocked</div>
+                                <div><strong>@(hpDebug.Stage6UnlockedByS5Kills ? "Yes" : "No")</strong></div>
+                            </div>
+                        </div>
+
+                        <div class="small text-muted mb-2">
+                            <i class="fas fa-info-circle"></i>
+                            @hpDebug.ComputationMethod
+                        </div>
+
+                        <div class="table-responsive mb-2">
+                            <table class="table table-sm table-bordered mb-0" style="font-size: 0.85rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Stage</th>
+                                        <th class="text-end">Total Damage</th>
+                                        <th class="text-end">Kill Rows</th>
+                                        <th class="text-end">Net Damage</th>
+                                        <th class="text-end">Initial HP</th>
+                                        <th class="text-end">Final HP</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var stage in Enum.GetValues<StageId>())
+                                    {
+                                        var totalDamage = hpDebug.TotalDamageByStage.GetValueOrDefault(stage, 0);
+                                        var killRows = hpDebug.KillRowsByStage.GetValueOrDefault(stage, 0);
+                                        var netDamage = hpDebug.NetDamageByStage.GetValueOrDefault(stage, 0);
+                                        var initialHp = hpDebug.InitialHpByStage.GetValueOrDefault(stage, 0);
+                                        var finalHp = hpDebug.FinalHpByStage.GetValueOrDefault(stage, 0);
+                                        <tr>
+                                            <td>S@((int)stage)</td>
+                                            <td class="text-end">@totalDamage.ToString("F3")%</td>
+                                            <td class="text-end">@killRows</td>
+                                            <td class="text-end">@netDamage.ToString("F3")%</td>
+                                            <td class="text-end">@initialHp.ToString("F3")%</td>
+                                            <td class="text-end">@finalHp.ToString("F3")%</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped mb-0" style="font-size: 0.8rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Row</th>
+                                        <th>Player</th>
+                                        <th>Stage</th>
+                                        <th>Damage</th>
+                                        <th>Killed</th>
+                                        <th>Contribution</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var entry in hpDebug.ReplayEntries)
+                                    {
+                                        <tr>
+                                            <td>@entry.Day</td>
+                                            <td>@entry.RowIndex</td>
+                                            <td>@entry.PlayerName</td>
+                                            <td>S@((int)entry.Stage)</td>
+                                            <td>@entry.DamagePercent.ToString("F3")%</td>
+                                            <td>@(entry.Killed ? "Yes" : "No")</td>
+                                            <td>@(entry.Killed ? "+damage, +kill row" : "+damage")</td>
+                                            <td>@entry.Note</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <!-- Dispatcher Raw Output (collapsible) -->
         <div class="card mb-3">
             <div class="card-header">

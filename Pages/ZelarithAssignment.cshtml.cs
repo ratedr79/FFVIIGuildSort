@@ -8,6 +8,38 @@ using System.Text.RegularExpressions;
 
 namespace FFVIIEverCrisisAnalyzer.Pages
 {
+    public sealed class StageHpReplayEntry
+    {
+        public int Day { get; set; }
+        public int RowIndex { get; set; }
+        public string PlayerName { get; set; } = string.Empty;
+        public StageId Stage { get; set; }
+        public bool Killed { get; set; }
+        public double DamagePercent { get; set; }
+        public double HpBefore { get; set; }
+        public double HpAfter { get; set; }
+        public bool TriggeredReset { get; set; }
+        public string Note { get; set; } = string.Empty;
+    }
+
+    public sealed class StageHpComputationDebug
+    {
+        public int CurrentDay { get; set; }
+        public string ComputationMethod { get; set; } = string.Empty;
+        public int TotalAttemptsProcessed { get; set; }
+        public int AttemptsOnCurrentDay { get; set; }
+        public int RemainingHits { get; set; }
+        public int ResetsDetectedWhileReplaying { get; set; }
+        public bool Stage6UnlockedByS5Kills { get; set; }
+        public int TotalS5KillsAcrossAllDays { get; set; }
+        public Dictionary<StageId, double> InitialHpByStage { get; set; } = new();
+        public Dictionary<StageId, double> TotalDamageByStage { get; set; } = new();
+        public Dictionary<StageId, int> KillRowsByStage { get; set; } = new();
+        public Dictionary<StageId, double> NetDamageByStage { get; set; } = new();
+        public Dictionary<StageId, double> FinalHpByStage { get; set; } = new();
+        public List<StageHpReplayEntry> ReplayEntries { get; set; } = new();
+    }
+
     public class ZelarithAssignmentModel : PageModel
     {
         private readonly ILogger<ZelarithAssignmentModel> _logger;
@@ -41,6 +73,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public BattlePlanSummary? SimulationResult { get; set; }
         public AggregatedTestResults? AggregatedResults { get; set; }
         public DispatcherParsedPlan? ParsedPlan { get; set; }
+        public StageHpComputationDebug? HpComputationDebug { get; set; }
         public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
         public void OnGet()
@@ -219,7 +252,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                                 {
                                     CurrentDay = Math.Clamp(CurrentDay, 1, 3);
                                     NumberOfRuns = Math.Clamp(NumberOfRuns, 1, 50);
-                                    var todayState = BuildTodayState(players, CurrentDay);
+                                    var todayState = BuildTodayState(players, CurrentDay, out var hpComputationDebug);
+                                    HpComputationDebug = hpComputationDebug;
 
                                     var rng = new Random();
                                     var aggregated = new AggregatedTestResults
@@ -306,16 +340,22 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         }
 
         /// <summary>
-        /// Build the current battle state by replaying all live attacks from the CSV.
-        /// This properly handles mid-day imports where some players have already attacked.
+        /// Build the current battle state using an order-agnostic approximation from CSV rows.
+        /// Formula per stage: remainingHP = clamp(100 - (totalDamage - 100 * killRows), 0, 100)
         /// </summary>
-        private static TodayState BuildTodayState(List<PlayerStageProfile> players, int currentDay)
+        private static TodayState BuildTodayState(List<PlayerStageProfile> players, int currentDay, out StageHpComputationDebug debug)
         {
             var today = new TodayState
             {
                 CurrentDay = currentDay,
                 RemainingHpByStage = Enum.GetValues<StageId>().ToDictionary(s => s, s => 100.0),
                 KillsToday = Enum.GetValues<StageId>().ToDictionary(s => s, s => 0)
+            };
+
+            debug = new StageHpComputationDebug
+            {
+                CurrentDay = currentDay,
+                ComputationMethod = "Order-agnostic estimate: remainingHP = clamp(100 - (totalDamage - 100 * killRows), 0, 100)"
             };
 
             int totalS5KillsAllDays = 0;
@@ -332,6 +372,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             }
 
             today.IsStage6Unlocked = totalS5KillsAllDays >= 5;
+            debug.TotalS5KillsAcrossAllDays = totalS5KillsAllDays;
+            debug.Stage6UnlockedByS5Kills = today.IsStage6Unlocked;
 
             var unlockedStages = new HashSet<StageId>(Enum.GetValues<StageId>().Where(s => s != StageId.S6));
             if (today.IsStage6Unlocked) unlockedStages.Add(StageId.S6);
@@ -339,7 +381,10 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             foreach (var s in Enum.GetValues<StageId>())
                 today.RemainingHpByStage[s] = unlockedStages.Contains(s) ? 100.0 : 0.0;
 
-            // Replay all attempts in order to compute current HP state
+            foreach (var s in Enum.GetValues<StageId>())
+                debug.InitialHpByStage[s] = today.RemainingHpByStage[s];
+
+            // Collect all attempts (order is intentionally ignored)
             var allAttempts = new List<AttemptLog>();
             foreach (var player in players)
             {
@@ -347,58 +392,79 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 foreach (var attempt in player.Attempts)
                     allAttempts.Add(attempt);
             }
-            allAttempts.Sort((a, b) =>
-            {
-                var dayCompare = a.Day.CompareTo(b.Day);
-                if (dayCompare != 0) return dayCompare;
-                return a.RowIndex.CompareTo(b.RowIndex);
-            });
 
-            // Reset S5 kill counter for progressive unlock tracking
-            int s5KillsProgressive = 0;
+            var totalDamageByStage = Enum.GetValues<StageId>().ToDictionary(s => s, _ => 0.0);
+            var killRowsByStage = Enum.GetValues<StageId>().ToDictionary(s => s, _ => 0);
 
             foreach (var a in allAttempts)
             {
-                if (!unlockedStages.Contains(a.Stage)) continue;
+                if (!unlockedStages.Contains(a.Stage))
+                {
+                    debug.ReplayEntries.Add(new StageHpReplayEntry
+                    {
+                        Day = a.Day,
+                        RowIndex = a.RowIndex,
+                        PlayerName = a.PlayerName,
+                        Stage = a.Stage,
+                        Killed = a.Killed,
+                        DamagePercent = a.Percent,
+                        HpBefore = today.RemainingHpByStage.GetValueOrDefault(a.Stage, 0),
+                        HpAfter = today.RemainingHpByStage.GetValueOrDefault(a.Stage, 0),
+                        TriggeredReset = false,
+                        Note = "Ignored: stage not unlocked at this point"
+                    });
+                    continue;
+                }
 
                 bool isToday = a.Day == currentDay;
-
+                var damage = Math.Max(0.0, a.Percent);
+                totalDamageByStage[a.Stage] += damage;
                 if (a.Killed)
+                    killRowsByStage[a.Stage] += 1;
+
+                if (isToday && a.Killed)
+                    today.KillsToday[a.Stage] += 1;
+
+                string note = a.Killed
+                    ? $"Aggregate contribution: +{damage:F3}% damage, +1 kill row"
+                    : $"Aggregate contribution: +{damage:F3}% damage";
+
+                debug.ReplayEntries.Add(new StageHpReplayEntry
                 {
-                    today.RemainingHpByStage[a.Stage] = 0.0;
-
-                    if (isToday)
-                        today.KillsToday[a.Stage] += 1;
-
-                    if (a.Stage == StageId.S5)
-                    {
-                        s5KillsProgressive++;
-                        if (!today.IsStage6Unlocked && s5KillsProgressive >= 5)
-                        {
-                            today.IsStage6Unlocked = true;
-                            unlockedStages.Add(StageId.S6);
-                            if (!today.RemainingHpByStage.ContainsKey(StageId.S6))
-                                today.RemainingHpByStage[StageId.S6] = 100.0;
-                        }
-                    }
-                }
-                else
-                {
-                    var remaining = today.RemainingHpByStage[a.Stage];
-                    var after = Math.Max(0.0, remaining - Math.Max(0.0, a.Percent));
-                    today.RemainingHpByStage[a.Stage] = after;
-
-                    if (after <= 0.0001)
-                        today.RemainingHpByStage[a.Stage] = 0.0;
-                }
-
-                // Check for reset after each attack
-                if (unlockedStages.All(s => today.RemainingHpByStage[s] <= 0.0001))
-                {
-                    foreach (var s in unlockedStages.ToArray())
-                        today.RemainingHpByStage[s] = 100.0;
-                }
+                    Day = a.Day,
+                    RowIndex = a.RowIndex,
+                    PlayerName = a.PlayerName,
+                    Stage = a.Stage,
+                    Killed = a.Killed,
+                    DamagePercent = damage,
+                    HpBefore = 0,
+                    HpAfter = 0,
+                    TriggeredReset = false,
+                    Note = note
+                });
             }
+
+            foreach (var stage in Enum.GetValues<StageId>())
+            {
+                if (!unlockedStages.Contains(stage))
+                {
+                    today.RemainingHpByStage[stage] = 0.0;
+                    continue;
+                }
+
+                var totalDamage = totalDamageByStage.GetValueOrDefault(stage, 0);
+                var killRows = killRowsByStage.GetValueOrDefault(stage, 0);
+                var netDamage = totalDamage - (100.0 * killRows);
+                var remainingHp = Math.Clamp(100.0 - netDamage, 0.0, 100.0);
+                today.RemainingHpByStage[stage] = remainingHp;
+
+                debug.TotalDamageByStage[stage] = totalDamage;
+                debug.KillRowsByStage[stage] = killRows;
+                debug.NetDamageByStage[stage] = netDamage;
+            }
+
+            // Order-agnostic mode does not infer reset counts from row sequence.
+            debug.ResetsDetectedWhileReplaying = 0;
 
             // Count remaining hits
             int attemptsToday = 0;
@@ -408,6 +474,17 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 attemptsToday += player.Attempts.Count(a => a.Day == currentDay);
             }
             today.RemainingHits = Math.Max(0, 90 - attemptsToday);
+
+            debug.TotalAttemptsProcessed = allAttempts.Count;
+            debug.AttemptsOnCurrentDay = attemptsToday;
+            debug.RemainingHits = today.RemainingHits;
+            foreach (var s in Enum.GetValues<StageId>())
+            {
+                debug.TotalDamageByStage.TryAdd(s, 0);
+                debug.KillRowsByStage.TryAdd(s, 0);
+                debug.NetDamageByStage.TryAdd(s, 0);
+                debug.FinalHpByStage[s] = today.RemainingHpByStage.GetValueOrDefault(s, 0);
+            }
 
             return today;
         }
