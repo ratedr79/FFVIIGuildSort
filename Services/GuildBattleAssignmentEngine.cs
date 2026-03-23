@@ -1075,7 +1075,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (stage6Unlocked)
             {
                 currentCycleStages.Add(StageId.S6);
-                hp[StageId.S6] = 100;
+                // Only default to 100 if HP was 0 (stage was locked / not yet tracked)
+                if (hp[StageId.S6] <= 0.005)
+                    hp[StageId.S6] = 100;
             }
 
             // Track attempts used per player
