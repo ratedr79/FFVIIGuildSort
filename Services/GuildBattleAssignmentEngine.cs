@@ -83,6 +83,74 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return calculatedMargin * performanceVariance;
         }
 
+        /// <summary>
+        /// Convert stage assignments produced by GenerateBattlePlan into a DispatcherParsedPlan
+        /// so the shared SimulateWithFixedAssignments loop can be used.
+        /// Multi-stage players get their attempts distributed evenly across assigned stages.
+        /// Single-stage players use Attacks = 0 (all remaining).
+        /// </summary>
+        private static DispatcherParsedPlan BuildSyntheticDispatcherPlan(
+            Dictionary<StageId, List<string>> stageAssignments,
+            List<(string name, int attempts, Dictionary<StageId, double> eff, Dictionary<StageId, double> avgPct)> playerData)
+        {
+            // For each player, collect all their assigned stages
+            var playerStages = new Dictionary<string, List<StageId>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in stageAssignments)
+            {
+                foreach (var name in kvp.Value)
+                {
+                    if (!playerStages.ContainsKey(name))
+                        playerStages[name] = new List<StageId>();
+                    if (!playerStages[name].Contains(kvp.Key))
+                        playerStages[name].Add(kvp.Key);
+                }
+            }
+
+            var plan = new DispatcherParsedPlan();
+            foreach (var stage in Enum.GetValues<StageId>())
+                plan.StageAssignments[stage] = new List<DispatcherPlayerAssignment>();
+
+            foreach (var kvp in playerStages)
+            {
+                var name = kvp.Key;
+                var stages = kvp.Value;
+                var player = playerData.FirstOrDefault(p => p.name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                int attempts = player.name != null ? player.attempts : 3;
+
+                if (stages.Count <= 1)
+                {
+                    // Single stage: use all remaining attempts
+                    plan.StageAssignments[stages[0]].Add(new DispatcherPlayerAssignment
+                    {
+                        PlayerName = name,
+                        Attacks = 0
+                    });
+                }
+                else
+                {
+                    // Multi-stage: distribute attempts evenly, remainder to lowest stages
+                    var sortedStages = stages.OrderBy(s => (int)s).ToList();
+                    int perStage = attempts / sortedStages.Count;
+                    int remainder = attempts % sortedStages.Count;
+
+                    for (int i = 0; i < sortedStages.Count; i++)
+                    {
+                        int budget = perStage + (i < remainder ? 1 : 0);
+                        if (budget > 0)
+                        {
+                            plan.StageAssignments[sortedStages[i]].Add(new DispatcherPlayerAssignment
+                            {
+                                PlayerName = name,
+                                Attacks = budget
+                            });
+                        }
+                    }
+                }
+            }
+
+            return plan;
+        }
+
         public BattlePlanSummary GenerateBattlePlan(
             List<PlayerStageProfile> players,
             TodayState todayState,
@@ -248,15 +316,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            // Simulate battles to calculate clears, final HP, and stage 6 unlock status
-            var simulation = SimulateBattles(playerData, stageAssignments, todayState, players);
+            // Convert assignments to a DispatcherParsedPlan so we use the shared simulation path
+            var syntheticPlan = BuildSyntheticDispatcherPlan(stageAssignments, playerData);
 
-            plan.ExpectedResets = simulation.TotalResets;
-            plan.FinalHpByStage = simulation.FinalHP;
-            plan.StageClears = simulation.StageClears;
-            plan.AttackLog = simulation.AttackLog;
+            // Run simulation using the same engine as Zelarith (late-stage priority, promotion, cleanup, etc.)
+            plan = SimulateWithFixedAssignments(syntheticPlan, players, todayState, marginOfErrorPercent);
 
-            // Build stage groups
+            // Override StageGroups with original assignments (simulation may modify during promotion/demotion)
+            plan.StageGroups.Clear();
             foreach (var kvp in stageAssignments.OrderBy(x => (int)x.Key))
             {
                 plan.StageGroups.Add(new StageAssignmentGroup
@@ -577,7 +644,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 remainingBudget[best.name][targetStage]++;
 
                 if (!stageAssignments[targetStage].Contains(best.name, StringComparer.OrdinalIgnoreCase))
-                    stageAssignments[targetStage].Add(best.name);
+                    stageAssignments[targetStage].Insert(0, best.name);
 
                 if (attackLog.Count < MAX_LOG_ENTRIES)
                 {
@@ -665,7 +732,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 remainingBudget[best.name][cleanupStage]++;
 
                 if (!stageAssignments[cleanupStage].Contains(best.name, StringComparer.OrdinalIgnoreCase))
-                    stageAssignments[cleanupStage].Add(best.name);
+                    stageAssignments[cleanupStage].Insert(0, best.name);
 
                 if (attackLog.Count < MAX_LOG_ENTRIES)
                 {
@@ -760,9 +827,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         continue;
                     }
 
-                    if (prioritizeLateStages && stageSearchOrder.Any())
+                    // Try to promote an attack from a lower stage to the highest stage with HP.
+                    // This is not gated on late-stage priority because it also handles the common
+                    // case where lower stages are cleared and players have stranded budgets there.
+                    if (stagesWithHp.Any())
                     {
-                        var highestAvailableStage = stageSearchOrder.First();
+                        var highestAvailableStage = stagesWithHp.OrderByDescending(s => (int)s).First();
                         if (TryPromoteAttackToHigherStage(highestAvailableStage))
                             continue;
                     }
@@ -820,7 +890,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             remainingBudget[best.name][stuckStage]++;
 
                             if (!stageAssignments[stuckStage].Contains(best.name, StringComparer.OrdinalIgnoreCase))
-                                stageAssignments[stuckStage].Add(best.name);
+                                stageAssignments[stuckStage].Insert(0, best.name);
 
                             if (attackLog.Count < MAX_LOG_ENTRIES)
                             {
@@ -934,15 +1004,27 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                     while (totalRemaining > 0 && attemptsUsed < attemptsAvailable)
                     {
+                        // If all stages are cleared, trigger a reset before continuing
+                        if (currentCycleStages.All(s => hp[s] <= 0.005))
+                        {
+                            resets++;
+                            if (attackLog.Count < MAX_LOG_ENTRIES)
+                                attackLog.Add(new AttackLogEntry { PlayerName = $"=== RESET #{resets} ===", Stage = StageId.S1, IsReset = true });
+                            foreach (var s in currentCycleStages)
+                                hp[s] = 100;
+                            if (stage6UnlockedThisCycle)
+                            {
+                                currentCycleStages.Add(StageId.S6);
+                                hp[StageId.S6] = 100;
+                                stage6UnlockedThisCycle = false;
+                            }
+                        }
+
                         // Find the lowest stage with HP > 0
                         var targetStage = currentCycleStages
                             .Where(s => hp[s] > 0.005)
                             .OrderBy(s => (int)s)
                             .FirstOrDefault();
-
-                        // If no stage has HP, use the lowest stage overall (log as 0% on cleared stage)
-                        if (targetStage == default && !currentCycleStages.Any(s => hp[s] > 0.005))
-                            targetStage = currentCycleStages.OrderBy(s => (int)s).First();
 
                         var eff = playerEffMap.GetValueOrDefault(playerName);
                         var avg = playerAvgMap.GetValueOrDefault(playerName);
@@ -1027,358 +1109,5 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return plan;
         }
 
-        private (int TotalResets, Dictionary<StageId, double> FinalHP, Dictionary<StageId, int> StageClears, List<AttackLogEntry> AttackLog, bool Stage6Unlocked, int AttemptsAvailable) SimulateBattles(
-            List<(string name, int attempts, Dictionary<StageId, double> eff, Dictionary<StageId, double> avgPct)> playerData,
-            Dictionary<StageId, List<string>> assignments,
-            TodayState todayState,
-            List<PlayerStageProfile> allPlayers)
-        {
-            // Initialize HP from current state based on live attack data
-            // Keep all HP values as-is from current state
-            // Defeated bosses stay at 0% until a reset occurs in the simulation
-            var hp = new Dictionary<StageId, double>();
-            foreach (var stage in Enum.GetValues<StageId>())
-            {
-                if (todayState.RemainingHpByStage.TryGetValue(stage, out var currentHp))
-                {
-                    // Keep the current HP as-is (defeated bosses stay at 0%)
-                    hp[stage] = currentHp;
-                }
-                else
-                {
-                    // Stage not in current state (e.g., Stage 6 not unlocked yet)
-                    hp[stage] = 0;
-                }
-            }
-
-            // Track clears per stage
-            var stageClears = new Dictionary<StageId, int>
-            {
-                { StageId.S1, 0 },
-                { StageId.S2, 0 },
-                { StageId.S3, 0 },
-                { StageId.S4, 0 },
-                { StageId.S5, 0 },
-                { StageId.S6, 0 }
-            };
-
-            var attackLog = new List<AttackLogEntry>();
-            const int MAX_LOG_ENTRIES = 500; // Limit log size
-
-            int totalS5Kills = 0;
-            bool stage6Unlocked = todayState.IsStage6Unlocked;
-            bool stage6UnlockedThisCycle = false; // Track if S6 was unlocked during current cycle
-            int resets = 0;
-            
-            // Track which stages are part of the CURRENT cycle
-            var currentCycleStages = new List<StageId> { StageId.S1, StageId.S2, StageId.S3, StageId.S4, StageId.S5 };
-            if (stage6Unlocked)
-            {
-                currentCycleStages.Add(StageId.S6);
-                // Only default to 100 if HP was 0 (stage was locked / not yet tracked)
-                if (hp[StageId.S6] <= 0.005)
-                    hp[StageId.S6] = 100;
-            }
-
-            // Track attempts used per player
-            var attemptsUsed = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            int totalAttemptsAvailable = 0;
-            foreach (var p in playerData)
-            {
-                attemptsUsed[p.name] = 0;
-                totalAttemptsAvailable += p.attempts;
-            }
-            
-            // Add header showing starting state
-            attackLog.Add(new AttackLogEntry
-            {
-                PlayerName = "=== SIMULATION START ===",
-                Stage = StageId.S1,
-                Damage = 0,
-                RemainingHP = 0,
-                Cleared = false,
-                IsReset = true
-            });
-            
-            // List ALL players who already used attempts (check original allPlayers list)
-            var playersWhoAttacked = new List<(string name, int used)>();
-            foreach (var player in allPlayers)
-            {
-                int attemptsUsedToday = player.Attempts.Count(a => a.Day == todayState.CurrentDay);
-                if (attemptsUsedToday > 0)
-                {
-                    playersWhoAttacked.Add((player.Name, attemptsUsedToday));
-                }
-            }
-            
-            if (playersWhoAttacked.Any())
-            {
-                foreach (var (name, used) in playersWhoAttacked.OrderBy(x => x.name))
-                {
-                    attackLog.Add(new AttackLogEntry
-                    {
-                        PlayerName = $"{name} ({used} used)",
-                        Stage = StageId.S1,
-                        Damage = 0,
-                        RemainingHP = 0,
-                        Cleared = false,
-                        IsReset = true
-                    });
-                }
-            }
-            
-            // Show starting HP for each stage
-            foreach (var stage in currentCycleStages.OrderBy(s => (int)s))
-            {
-                attackLog.Add(new AttackLogEntry
-                {
-                    PlayerName = $"Stage {(int)stage} Starting HP",
-                    Stage = stage,
-                    Damage = 0,
-                    RemainingHP = hp[stage],
-                    Cleared = false,
-                    IsReset = true
-                });
-            }
-            
-            attackLog.Add(new AttackLogEntry
-            {
-                PlayerName = "=== SIMULATED ATTACKS ===",
-                Stage = StageId.S1,
-                Damage = 0,
-                RemainingHP = 0,
-                Cleared = false,
-                IsReset = true
-            });
-
-            // Simulate until all attempts are exhausted
-            int maxIterations = 1000;
-            int iteration = 0;
-            
-            while (iteration < maxIterations)
-            {
-                iteration++;
-                
-                // Use current cycle stages for this iteration
-                var requiredStages = currentCycleStages;
-                
-                // Check if all attempts are exhausted first
-                bool allAttemptsUsed = playerData.All(p => 
-                    attemptsUsed.GetValueOrDefault(p.name, 0) >= p.attempts);
-                
-                if (allAttemptsUsed)
-                {
-                    break; // All attempts exhausted, stop simulation
-                }
-                
-                // Find a stage that has HP and has players who can attack it
-                StageId? targetStage = null;
-                
-                foreach (var stage in requiredStages)
-                {
-                    if (hp[stage] > 0.005)
-                    {
-                        // Check if any assigned player has attempts left
-                        if (assignments.ContainsKey(stage) && assignments[stage].Count > 0)
-                        {
-                            bool hasAvailablePlayer = assignments[stage].Any(playerName =>
-                            {
-                                var player = playerData.FirstOrDefault(p => p.name.Equals(playerName, StringComparison.OrdinalIgnoreCase));
-                                if (player.name == null) return false;
-                                int used = attemptsUsed.GetValueOrDefault(playerName, 0);
-                                return used < player.attempts && player.eff.GetValueOrDefault(stage, 0) > 0;
-                            });
-                            
-                            if (hasAvailablePlayer)
-                            {
-                                targetStage = stage;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                // Fallback 1: If no stage found with assigned players, find ANY player with eff > 0
-                if (targetStage == null)
-                {
-                    foreach (var stage in requiredStages)
-                    {
-                        if (hp[stage] > 0.005)
-                        {
-                            var availablePlayer = playerData
-                                .Where(p => attemptsUsed.GetValueOrDefault(p.name, 0) < p.attempts)
-                                .Where(p => p.eff.GetValueOrDefault(stage, 0) > 0)
-                                .OrderBy(p => p.eff.GetValueOrDefault(StageId.S6, 0))
-                                .FirstOrDefault();
-                            
-                            if (availablePlayer.name != null)
-                            {
-                                targetStage = stage;
-                                if (!assignments[stage].Contains(availablePlayer.name))
-                                {
-                                    assignments[stage].Add(availablePlayer.name);
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                // Fallback 2: Force remaining attacks on any stage with HP
-                // Every attack is worth points, even if damage is minimal
-                if (targetStage == null)
-                {
-                    foreach (var stage in requiredStages)
-                    {
-                        if (hp[stage] > 0.005)
-                        {
-                            var availablePlayer = playerData
-                                .Where(p => attemptsUsed.GetValueOrDefault(p.name, 0) < p.attempts)
-                                .OrderByDescending(p => p.avgPct.GetValueOrDefault(stage, 0))
-                                .FirstOrDefault();
-                            
-                            if (availablePlayer.name != null)
-                            {
-                                targetStage = stage;
-                                if (!assignments[stage].Contains(availablePlayer.name))
-                                {
-                                    assignments[stage].Add(availablePlayer.name);
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                // If all stages cleared, check for reset
-                if (targetStage == null)
-                {
-                    bool allCleared = requiredStages.All(s => hp[s] <= 0.005);
-                    if (allCleared)
-                    {
-                        resets++;
-                        
-                        // Log the reset
-                        if (attackLog.Count < MAX_LOG_ENTRIES)
-                        {
-                            attackLog.Add(new AttackLogEntry
-                            {
-                                PlayerName = $"=== RESET #{resets} ===",
-                                Stage = StageId.S1,
-                                Damage = 0,
-                                RemainingHP = 0,
-                                Cleared = false,
-                                IsReset = true
-                            });
-                        }
-                        
-                        // Reset all stages for next cycle
-                        foreach (var s in requiredStages)
-                        {
-                            hp[s] = 100;
-                        }
-                        
-                        // If stage 6 was unlocked during this cycle, add it to the NEXT cycle
-                        if (stage6UnlockedThisCycle)
-                        {
-                            currentCycleStages.Add(StageId.S6);
-                            hp[StageId.S6] = 100;
-                            stage6UnlockedThisCycle = false; // Reset flag
-                        }
-                        
-                        continue; // Start next cycle
-                    }
-                    
-                    // No attackable stages found but not all attempts used
-                    // This shouldn't happen, but if it does, stop to avoid infinite loop
-                    break;
-                }
-                
-                bool attackMade = false;
-                foreach (var playerName in assignments[targetStage.Value])
-                {
-                    var player = playerData.FirstOrDefault(p => p.name.Equals(playerName, StringComparison.OrdinalIgnoreCase));
-                    if (player.name == null) continue;
-                    
-                    int used = attemptsUsed.GetValueOrDefault(playerName, 0);
-                    if (used >= player.attempts) continue;
-                    
-                    var baseDamage = player.eff.GetValueOrDefault(targetStage.Value, 0);
-                    
-                    // If effective damage is 0, use raw averaged percentage or minimum 0.5%
-                    // Every attack is worth points even if damage is minimal
-                    if (baseDamage <= 0)
-                    {
-                        baseDamage = Math.Max(0.5, player.avgPct.GetValueOrDefault(targetStage.Value, 0));
-                    }
-                    
-                    // Apply adaptive per-attack variance based on player confidence
-                    // High-confidence players (99%+ averaged) get minimal variance to prevent unrealistic failures
-                    var avgPct = player.avgPct.GetValueOrDefault(targetStage.Value, 0);
-                    double varianceMultiplier;
-                    
-                    if (avgPct >= 99.0)
-                    {
-                        // High confidence: ±2% variance (0.98 to 1.02)
-                        varianceMultiplier = 0.98 + (_random.NextDouble() * 0.04);
-                    }
-                    else
-                    {
-                        // Normal confidence: ±10% variance (0.9 to 1.1)
-                        varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2);
-                    }
-                    
-                    var damage = baseDamage * varianceMultiplier;
-                    
-                    // Make the attack
-                    hp[targetStage.Value] = Math.Max(0, hp[targetStage.Value] - damage);
-                    attemptsUsed[playerName] = used + 1;
-                    attackMade = true;
-                    
-                    bool wasCleared = hp[targetStage.Value] <= 0.005;
-                    if (wasCleared)
-                    {
-                        hp[targetStage.Value] = 0;
-                        stageClears[targetStage.Value]++;
-                        
-                        if (targetStage.Value == StageId.S5)
-                        {
-                            totalS5Kills++;
-                            if (!stage6Unlocked && totalS5Kills >= 5)
-                            {
-                                stage6Unlocked = true;
-                                stage6UnlockedThisCycle = true; // Mark that S6 was unlocked this cycle
-                            }
-                        }
-                    }
-                    
-                    // Log the attack
-                    if (attackLog.Count < MAX_LOG_ENTRIES)
-                    {
-                        attackLog.Add(new AttackLogEntry
-                        {
-                            PlayerName = playerName,
-                            Stage = targetStage.Value,
-                            Damage = damage,
-                            RemainingHP = hp[targetStage.Value],
-                            Cleared = wasCleared,
-                            IsReset = false
-                        });
-                    }
-                    
-                    break; // One attack per iteration
-                }
-                
-                // If no attack was made, stop simulation
-                if (!attackMade)
-                {
-                    // Stage has HP but no assigned players can attack it
-                    // Either all attempts exhausted or stage is stuck
-                    break;
-                }
-            }
-
-            return (resets, hp, stageClears, attackLog, stage6Unlocked, totalAttemptsAvailable);
-        }
     }
 }

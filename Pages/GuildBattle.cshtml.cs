@@ -32,7 +32,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public int CurrentDay { get; set; } = 1; // 1..3
 
         [BindProperty]
-        public double MarginOfErrorPercent { get; set; } = 4.0; // default
+        public double MarginOfErrorPercent { get; set; } = 1.0; // default
 
         [BindProperty]
         public int? Seed { get; set; }

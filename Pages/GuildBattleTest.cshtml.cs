@@ -34,7 +34,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public int CurrentDay { get; set; } = 1;
 
         [BindProperty]
-        public double MarginOfErrorPercent { get; set; } = 4.0;
+        public double MarginOfErrorPercent { get; set; } = 1.0;
 
         [BindProperty]
         public int NumberOfRuns { get; set; } = 10;
