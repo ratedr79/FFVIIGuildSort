@@ -211,7 +211,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 var today = TodayStateBuilder.BuildTodayState(
                     players,
                     CurrentDay,
-                    TodayStateBuildMode.OrderedReplay,
+                    TodayStateBuildMode.OrderAgnosticAggregate,
                     out _);
 
                 var settings = new SimulationTestSettings

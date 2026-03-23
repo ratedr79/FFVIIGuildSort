@@ -35,9 +35,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public Dictionary<StageId, double> InitialHpByStage { get; set; } = new();
         public Dictionary<StageId, double> TotalDamageByStage { get; set; } = new();
         public Dictionary<StageId, int> KillRowsByStage { get; set; } = new();
+        public Dictionary<StageId, int> EffectiveResetsByStage { get; set; } = new();
         public Dictionary<StageId, double> NetDamageByStage { get; set; } = new();
         public Dictionary<StageId, double> FinalHpByStage { get; set; } = new();
         public List<string> MissingKillWarnings { get; set; } = new();
+        public List<string> DayTransitionNotes { get; set; } = new();
         public List<StageHpReplayEntry> ReplayEntries { get; set; } = new();
     }
 
@@ -178,7 +180,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             out StageHpComputationDebug? debug)
         {
             const double killCompletionTolerance = 1.0;
-            const double missingKillThreshold = 100.0;
 
             var today = new TodayState
             {
@@ -190,16 +191,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
             debug = new StageHpComputationDebug
             {
                 CurrentDay = currentDay,
-                ComputationMethod = "Day-aware order-agnostic estimate (current day only): remainingHP = clamp(100 - (totalDamageToday - 100 * killRowsToday), 0, 100); if killRowsToday > 0 and netDamage is near 0, stage is treated as killed (0 HP)."
+                ComputationMethod = $"Day-by-day order-agnostic aggregate (days 1..{currentDay}). " +
+                    "Per day: dayResets = min(kills across all stages in reset cycle). " +
+                    "Per stage: remainingHP = clamp(startHP + 100 × dayResets − totalDamage, 0, 100). " +
+                    "Between days: stages at 0% HP revive to 100%."
             };
 
+            // Collect all attempts
+            var allAttempts = new List<AttemptLog>();
             int totalS5KillsAllDays = 0;
-
             foreach (var player in players)
             {
                 if (player.Attempts == null) continue;
                 foreach (var attempt in player.Attempts)
                 {
+                    allAttempts.Add(attempt);
                     if (attempt.Stage == StageId.S5 && attempt.Killed)
                         totalS5KillsAllDays++;
                 }
@@ -212,66 +218,199 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var unlockedStages = new HashSet<StageId>(Enum.GetValues<StageId>().Where(s => s != StageId.S6));
             if (today.IsStage6Unlocked) unlockedStages.Add(StageId.S6);
 
-            foreach (var s in Enum.GetValues<StageId>())
-                today.RemainingHpByStage[s] = unlockedStages.Contains(s) ? 100.0 : 0.0;
+            // Group attempts by day
+            var attemptsByDay = allAttempts
+                .GroupBy(a => a.Day)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
+            // Initialize HP — all unlocked stages start at 100% on Day 1
+            var stageHp = new Dictionary<StageId, double>();
             foreach (var s in Enum.GetValues<StageId>())
-                debug.InitialHpByStage[s] = today.RemainingHpByStage[s];
+                stageHp[s] = unlockedStages.Contains(s) ? 100.0 : 0.0;
 
-            var allAttempts = new List<AttemptLog>();
+            // Track cumulative S5 kills to detect when S6 unlocks
+            int cumulativeS5Kills = 0;
+            bool s6UnlockedBeforeDay = false;
+
+            // Process each day from 1 to currentDay
+            for (int day = 1; day <= currentDay; day++)
+            {
+                var dayAttempts = attemptsByDay.GetValueOrDefault(day, new List<AttemptLog>());
+
+                var dayDamage = Enum.GetValues<StageId>().ToDictionary(s => s, _ => 0.0);
+                var dayKills = Enum.GetValues<StageId>().ToDictionary(s => s, _ => 0);
+
+                foreach (var a in dayAttempts)
+                {
+                    if (!unlockedStages.Contains(a.Stage)) continue;
+                    dayDamage[a.Stage] += Math.Max(0.0, a.Percent);
+                    if (a.Killed)
+                        dayKills[a.Stage]++;
+                }
+
+                // Detect whether S6 unlocked during this day
+                bool s6UnlockedDuringThisDay = false;
+                if (today.IsStage6Unlocked && !s6UnlockedBeforeDay)
+                {
+                    cumulativeS5Kills += dayKills[StageId.S5];
+                    if (cumulativeS5Kills >= 5)
+                        s6UnlockedDuringThisDay = true;
+                }
+
+                // Compute dayResets: the number of full clears (all stages in the
+                // reset cycle killed) that occurred this day.
+                // A reset requires ALL unlocked stages to be dead simultaneously.
+                // dayResets = min(kills) across all stages in the current reset cycle.
+                // Special case: if S6 unlocked mid-day, the reset cycle changed
+                // partway through — fall back to per-stage kills as an approximation.
+                bool usePerStageKillsFallback = s6UnlockedDuringThisDay;
+                int dayResets = 0;
+                if (!usePerStageKillsFallback)
+                {
+                    var resetCycleStages = s6UnlockedBeforeDay
+                        ? Enum.GetValues<StageId>().Where(s => unlockedStages.Contains(s))
+                        : Enum.GetValues<StageId>().Where(s => s != StageId.S6 && unlockedStages.Contains(s));
+                    dayResets = resetCycleStages.Any()
+                        ? resetCycleStages.Min(s => dayKills[s])
+                        : 0;
+                }
+
+                // Capture start-of-current-day HP for debug display
+                if (day == currentDay)
+                {
+                    foreach (var s in Enum.GetValues<StageId>())
+                        debug.InitialHpByStage[s] = stageHp[s];
+                }
+
+                // Apply per-stage aggregate formula for this day
+                foreach (var stage in Enum.GetValues<StageId>())
+                {
+                    if (!unlockedStages.Contains(stage)) continue;
+
+                    var startHp = stageHp[stage];
+                    int effectiveResets = usePerStageKillsFallback
+                        ? dayKills[stage]
+                        : dayResets;
+                    var rawRemaining = startHp + 100.0 * effectiveResets - dayDamage[stage];
+                    var remaining = Math.Clamp(rawRemaining, 0.0, 100.0);
+
+                    // Snap near-zero to 0 when kills occurred
+                    if (dayKills[stage] > 0 && remaining < killCompletionTolerance)
+                        remaining = 0.0;
+
+                    // Missing-kill detection: if raw remaining < 0, damage exceeds
+                    // what recorded kills can account for
+                    if (rawRemaining < -killCompletionTolerance)
+                    {
+                        debug.MissingKillWarnings.Add(
+                            $"S{(int)stage} Day {day}: computed HP = {rawRemaining:F3}% " +
+                            $"(start {startHp:F3}% + {effectiveResets} resets × 100% − {dayDamage[stage]:F3}% damage). " +
+                            "Likely missing kill checkbox(es).");
+                    }
+
+                    stageHp[stage] = remaining;
+
+                    // Store current-day stats for the debug table
+                    if (day == currentDay)
+                    {
+                        debug.TotalDamageByStage[stage] = dayDamage[stage];
+                        debug.KillRowsByStage[stage] = dayKills[stage];
+                        debug.EffectiveResetsByStage[stage] = effectiveResets;
+                        debug.NetDamageByStage[stage] = dayDamage[stage] - 100.0 * effectiveResets;
+                    }
+                }
+
+                // Update S6 unlock tracking for next day
+                if (!s6UnlockedBeforeDay && (s6UnlockedDuringThisDay || cumulativeS5Kills >= 5))
+                    s6UnlockedBeforeDay = true;
+
+                // Day transition: dead stages revive to 100% for the next day
+                if (day < currentDay)
+                {
+                    var revived = new List<string>();
+                    var carried = new List<string>();
+                    foreach (var stage in Enum.GetValues<StageId>())
+                    {
+                        if (!unlockedStages.Contains(stage)) continue;
+                        if (stageHp[stage] <= 0.0)
+                        {
+                            revived.Add($"S{(int)stage} (0% → 100%)");
+                            stageHp[stage] = 100.0;
+                        }
+                        else if (stageHp[stage] < 100.0)
+                        {
+                            carried.Add($"S{(int)stage} ({stageHp[stage]:F3}% carried over)");
+                        }
+                    }
+                    var parts = new List<string>();
+                    if (revived.Any()) parts.Add("Revived: " + string.Join(", ", revived));
+                    if (carried.Any()) parts.Add("Carried: " + string.Join(", ", carried));
+                    if (parts.Any())
+                        debug.DayTransitionNotes.Add($"Day {day} → Day {day + 1}: {string.Join(". ", parts)}");
+                }
+            }
+
+            // Final state
+            foreach (var stage in Enum.GetValues<StageId>())
+            {
+                today.RemainingHpByStage[stage] = stageHp[stage];
+                debug.FinalHpByStage[stage] = stageHp[stage];
+            }
+
+            // Count current-day attempts and kills
+            int attemptsToday = 0;
             foreach (var player in players)
             {
                 if (player.Attempts == null) continue;
-                foreach (var attempt in player.Attempts)
-                    allAttempts.Add(attempt);
+                foreach (var a in player.Attempts)
+                {
+                    if (a.Day == currentDay)
+                    {
+                        attemptsToday++;
+                        if (a.Killed)
+                            today.KillsToday[a.Stage]++;
+                    }
+                }
+            }
+            today.RemainingHits = Math.Max(0, 90 - attemptsToday);
+
+            debug.TotalAttemptsProcessed = allAttempts.Count;
+            debug.AttemptsOnCurrentDay = attemptsToday;
+            debug.RemainingHits = today.RemainingHits;
+            debug.ResetsDetectedWhileReplaying = 0;
+
+            // Ensure all debug dictionaries have entries for every stage
+            foreach (var s in Enum.GetValues<StageId>())
+            {
+                debug.TotalDamageByStage.TryAdd(s, 0);
+                debug.KillRowsByStage.TryAdd(s, 0);
+                debug.EffectiveResetsByStage.TryAdd(s, 0);
+                debug.NetDamageByStage.TryAdd(s, 0);
+                debug.InitialHpByStage.TryAdd(s, 0);
+                debug.FinalHpByStage.TryAdd(s, stageHp.GetValueOrDefault(s, 0));
             }
 
-            var totalDamageByStage = Enum.GetValues<StageId>().ToDictionary(s => s, _ => 0.0);
-            var killRowsByStage = Enum.GetValues<StageId>().ToDictionary(s => s, _ => 0);
-
+            // Build replay entries for reference
             foreach (var a in allAttempts)
             {
-                if (!unlockedStages.Contains(a.Stage))
-                {
-                    debug.ReplayEntries.Add(new StageHpReplayEntry
-                    {
-                        Day = a.Day,
-                        RowIndex = a.RowIndex,
-                        PlayerName = a.PlayerName,
-                        Stage = a.Stage,
-                        Killed = a.Killed,
-                        DamagePercent = a.Percent,
-                        HpBefore = today.RemainingHpByStage.GetValueOrDefault(a.Stage, 0),
-                        HpAfter = today.RemainingHpByStage.GetValueOrDefault(a.Stage, 0),
-                        TriggeredReset = false,
-                        Note = "Ignored: stage not unlocked at this point"
-                    });
-                    continue;
-                }
-
                 bool isToday = a.Day == currentDay;
                 var damage = Math.Max(0.0, a.Percent);
-
-                if (isToday)
-                {
-                    totalDamageByStage[a.Stage] += damage;
-                    if (a.Killed)
-                        killRowsByStage[a.Stage] += 1;
-                }
-
-                if (isToday && a.Killed)
-                    today.KillsToday[a.Stage] += 1;
-
                 string note;
-                if (!isToday)
+
+                if (!unlockedStages.Contains(a.Stage))
                 {
-                    note = $"Ignored for HP estimate: Day {a.Day} (using Day {currentDay} aggregate)";
+                    note = "Ignored: stage not unlocked";
+                }
+                else if (!isToday)
+                {
+                    note = $"Day {a.Day} aggregate: +{damage:F3}% damage" +
+                           (a.Killed ? ", +1 kill row (processed in day-by-day carryover)" : " (processed in day-by-day carryover)");
                 }
                 else
                 {
                     note = a.Killed
-                        ? $"Aggregate contribution (Day {currentDay}): +{damage:F3}% damage, +1 kill row"
-                        : $"Aggregate contribution (Day {currentDay}): +{damage:F3}% damage";
+                        ? $"Day {currentDay} aggregate: +{damage:F3}% damage, +1 kill row"
+                        : $"Day {currentDay} aggregate: +{damage:F3}% damage";
                 }
 
                 debug.ReplayEntries.Add(new StageHpReplayEntry
@@ -287,61 +426,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     TriggeredReset = false,
                     Note = note
                 });
-            }
-
-            foreach (var stage in Enum.GetValues<StageId>())
-            {
-                if (!unlockedStages.Contains(stage))
-                {
-                    today.RemainingHpByStage[stage] = 0.0;
-                    continue;
-                }
-
-                var totalDamage = totalDamageByStage.GetValueOrDefault(stage, 0);
-                var killRows = killRowsByStage.GetValueOrDefault(stage, 0);
-                var netDamage = totalDamage - (100.0 * killRows);
-                var remainingHp = Math.Clamp(100.0 - netDamage, 0.0, 100.0);
-
-                if (killRows > 0 && netDamage <= killCompletionTolerance)
-                {
-                    remainingHp = 0.0;
-                }
-
-                if (netDamage > missingKillThreshold)
-                {
-                    debug.MissingKillWarnings.Add($"S{(int)stage}: net damage is {netDamage:F3}% after subtracting {killRows} recorded kill row(s). Likely missing one or more kill checkboxes.");
-                }
-                else if (killRows == 0 && totalDamage > missingKillThreshold)
-                {
-                    debug.MissingKillWarnings.Add($"S{(int)stage}: total damage is {totalDamage:F3}% with 0 recorded kill rows. Likely missing kill checkbox(es).");
-                }
-
-                today.RemainingHpByStage[stage] = remainingHp;
-
-                debug.TotalDamageByStage[stage] = totalDamage;
-                debug.KillRowsByStage[stage] = killRows;
-                debug.NetDamageByStage[stage] = netDamage;
-            }
-
-            debug.ResetsDetectedWhileReplaying = 0;
-
-            int attemptsToday = 0;
-            foreach (var player in players)
-            {
-                if (player.Attempts == null) continue;
-                attemptsToday += player.Attempts.Count(a => a.Day == currentDay);
-            }
-            today.RemainingHits = Math.Max(0, 90 - attemptsToday);
-
-            debug.TotalAttemptsProcessed = allAttempts.Count;
-            debug.AttemptsOnCurrentDay = attemptsToday;
-            debug.RemainingHits = today.RemainingHits;
-            foreach (var s in Enum.GetValues<StageId>())
-            {
-                debug.TotalDamageByStage.TryAdd(s, 0);
-                debug.KillRowsByStage.TryAdd(s, 0);
-                debug.NetDamageByStage.TryAdd(s, 0);
-                debug.FinalHpByStage[s] = today.RemainingHpByStage.GetValueOrDefault(s, 0);
             }
 
             return today;
