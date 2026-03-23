@@ -154,7 +154,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public BattlePlanSummary GenerateBattlePlan(
             List<PlayerStageProfile> players,
             TodayState todayState,
-            double marginOfErrorPercent)
+            double marginOfErrorPercent,
+            double overshootTriggerPercent = 20,
+            double cleanupConfidenceBufferPercent = 15)
         {
             var plan = new BattlePlanSummary();
             
@@ -320,7 +322,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var syntheticPlan = BuildSyntheticDispatcherPlan(stageAssignments, playerData);
 
             // Run simulation using the same engine as Zelarith (late-stage priority, promotion, cleanup, etc.)
-            plan = SimulateWithFixedAssignments(syntheticPlan, players, todayState, marginOfErrorPercent);
+            plan = SimulateWithFixedAssignments(syntheticPlan, players, todayState, marginOfErrorPercent, overshootTriggerPercent, cleanupConfidenceBufferPercent);
 
             // Override StageGroups with original assignments (simulation may modify during promotion/demotion)
             plan.StageGroups.Clear();

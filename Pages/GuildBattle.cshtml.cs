@@ -35,6 +35,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public double MarginOfErrorPercent { get; set; } = 1.0; // default
 
         [BindProperty]
+        public double OvershootTriggerPercent { get; set; } = 20;
+
+        [BindProperty]
+        public double CleanupConfidenceBufferPercent { get; set; } = 15;
+
+        [BindProperty]
         public int? Seed { get; set; }
 
         public GuildBattleParseResult? ParseResult { get; set; }
@@ -43,12 +49,14 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public string? ErrorMessage { get; set; }
         public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
-        public void OnGet(int? seed, int? day, double? margin)
+        public void OnGet(int? seed, int? day, double? margin, double? overshoot, double? cleanup)
         {
             // Read query params from Test page seed links
             if (seed.HasValue) Seed = seed.Value;
             if (day.HasValue) CurrentDay = Math.Clamp(day.Value, 1, 3);
             if (margin.HasValue) MarginOfErrorPercent = margin.Value;
+            if (overshoot.HasValue) OvershootTriggerPercent = overshoot.Value;
+            if (cleanup.HasValue) CleanupConfidenceBufferPercent = cleanup.Value;
 
             // Load Google Sheets configuration from appsettings.json
             var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")
@@ -112,7 +120,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 }
 
                 // Generate battle plan using the engine
-                BattlePlan = _engine.GenerateBattlePlan(players, today, MarginOfErrorPercent);
+                BattlePlan = _engine.GenerateBattlePlan(players, today, MarginOfErrorPercent, OvershootTriggerPercent, CleanupConfidenceBufferPercent);
                 
                 // Repopulate AvailableSheets for the result page
                 var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")

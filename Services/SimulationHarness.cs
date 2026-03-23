@@ -43,7 +43,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     ? players // Use pre-processed data as-is (all filters enabled)
                     : ReprocessAverages(players, settings); // Recompute with toggled filters
 
-                var plan = engine.GenerateBattlePlan(playersForRun, todayState, settings.MarginOfErrorPercent);
+                var plan = engine.GenerateBattlePlan(playersForRun, todayState, settings.MarginOfErrorPercent, settings.OvershootTriggerPercent, settings.CleanupConfidenceBufferPercent);
 
                 // Calculate attempts available for this run
                 int attemptsAvailable = 0;

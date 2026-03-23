@@ -55,6 +55,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public bool EnableDeviationCap { get; set; } = true;
 
         [BindProperty]
+        public double OvershootTriggerPercent { get; set; } = 20;
+
+        [BindProperty]
+        public double CleanupConfidenceBufferPercent { get; set; } = 15;
+
+        [BindProperty]
         public string ActiveTab { get; set; } = "multi";
 
         [BindProperty]
@@ -223,7 +229,9 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                     FixedSeed = FixedSeed,
                     EnableVariance = EnableVariance,
                     EnableOutlierFilter = EnableOutlierFilter,
-                    EnableDeviationCap = EnableDeviationCap
+                    EnableDeviationCap = EnableDeviationCap,
+                    OvershootTriggerPercent = OvershootTriggerPercent,
+                    CleanupConfidenceBufferPercent = CleanupConfidenceBufferPercent
                 };
 
                 return singleDetailed

@@ -58,16 +58,24 @@
                             <option value="3" selected="@(Model.CurrentDay == 3)">Day 3</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="MarginOfErrorPercent" class="form-label">Margin of Error (%)</label>
+                    <div class="col-md-2">
+                        <label for="MarginOfErrorPercent" class="form-label">Margin %</label>
                         <input type="number" step="0.5" min="0" max="25" class="form-control" id="MarginOfErrorPercent" name="MarginOfErrorPercent" value="@Model.MarginOfErrorPercent" />
                     </div>
                     <div class="col-md-2">
-                        <label for="Seed" class="form-label">Seed <span class="text-muted small">(optional)</span></label>
-                        <input type="number" class="form-control" id="Seed" name="Seed" value="@Model.Seed" placeholder="Random" />
+                        <label for="OvershootTriggerPercent" class="form-label">Overshoot %</label>
+                        <input type="number" step="1" min="0" max="100" class="form-control" id="OvershootTriggerPercent" name="OvershootTriggerPercent" value="@Model.OvershootTriggerPercent" title="If the smallest projected overshoot on a target stage exceeds this value, the simulation tries to promote a lower-stage cleanup attacker." />
                     </div>
-                    <div class="col-md-5 text-end">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-play"></i> Analyze</button>
+                    <div class="col-md-2">
+                        <label for="CleanupConfidenceBufferPercent" class="form-label text-nowrap">Cleanup Buffer %</label>
+                        <input type="number" step="1" min="0" max="100" class="form-control" id="CleanupConfidenceBufferPercent" name="CleanupConfidenceBufferPercent" value="@Model.CleanupConfidenceBufferPercent" title="A promoted cleanup candidate is considered safe when their target-stage avg is at least remaining HP plus this buffer." />
+                    </div>
+                    <div class="col-md-1">
+                        <label for="Seed" class="form-label">Seed</label>
+                        <input type="number" class="form-control" id="Seed" name="Seed" value="@Model.Seed" placeholder="Rng" />
+                    </div>
+                    <div class="col-md-1 text-end d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100"><i class="fas fa-play"></i></button>
                     </div>
                 </div>
             </form>

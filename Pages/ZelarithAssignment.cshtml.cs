@@ -48,6 +48,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public AggregatedTestResults? AggregatedResults { get; set; }
         public DispatcherParsedPlan? ParsedPlan { get; set; }
         public StageHpComputationDebug? HpComputationDebug { get; set; }
+        public List<PlayerStageProfile> Players { get; set; } = new();
         public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
         public void OnGet()
@@ -224,6 +225,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
                                 if (players != null && players.Count > 0)
                                 {
+                                    Players = players;
                                     CurrentDay = Math.Clamp(CurrentDay, 1, 3);
                                     NumberOfRuns = Math.Clamp(NumberOfRuns, 1, 50);
                                     OvershootTriggerPercent = Math.Clamp(OvershootTriggerPercent, 0, 100);

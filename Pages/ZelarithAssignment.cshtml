@@ -242,6 +242,54 @@
             </div>
         </div>
 
+        @if (Model.Players != null && Model.Players.Count > 0)
+        {
+            <!-- Player Percentages (collapsed by default) -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#playerMocksCollapse" role="button" aria-expanded="false" aria-controls="playerMocksCollapse">
+                        <strong>Player Percentages</strong>
+                        <i class="fas fa-chevron-down"></i>
+                    </a>
+                </div>
+                <div class="collapse" id="playerMocksCollapse">
+                    <div class="card-body p-2">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 30%;">Player</th>
+                                        <th class="text-center" style="width: 10%;">S1</th>
+                                        <th class="text-center" style="width: 10%;">S2</th>
+                                        <th class="text-center" style="width: 10%;">S3</th>
+                                        <th class="text-center" style="width: 10%;">S4</th>
+                                        <th class="text-center" style="width: 10%;">S5</th>
+                                        <th class="text-center" style="width: 10%;">S6</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var player in Model.Players.OrderBy(p => p.Name))
+                                    {
+                                        <tr>
+                                            <td class="text-truncate" style="max-width: 100px;" title="@player.Name">@player.Name</td>
+                                            @foreach (var stage in Enum.GetValues<StageId>())
+                                            {
+                                                var pct = player.AveragedPercents.GetValueOrDefault(stage, 0);
+                                                <td class="text-center">@pct.ToString("F1")</td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="small text-muted mt-2">
+                            <i class="fas fa-info-circle"></i> Percentages include live attack data averaged with mocks
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         @if (Model.ParsedPlan != null)
         {
             <!-- Parsed Assignments -->

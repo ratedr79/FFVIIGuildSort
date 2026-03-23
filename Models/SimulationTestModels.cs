@@ -13,6 +13,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public bool EnableVariance { get; set; } = true;
         public bool EnableOutlierFilter { get; set; } = true;
         public bool EnableDeviationCap { get; set; } = true;
+        public double OvershootTriggerPercent { get; set; } = 20;
+        public double CleanupConfidenceBufferPercent { get; set; } = 15;
     }
 
     public sealed class SingleRunResult
