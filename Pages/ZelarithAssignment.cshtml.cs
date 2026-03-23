@@ -67,6 +67,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public int NumberOfRuns { get; set; } = 5;
 
+        [BindProperty]
+        public double OvershootTriggerPercent { get; set; } = 20;
+
+        [BindProperty]
+        public double CleanupConfidenceBufferPercent { get; set; } = 15;
+
         public string? Output { get; set; }
         public string? ErrorMessage { get; set; }
         public bool HasRun { get; set; }
@@ -252,6 +258,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                                 {
                                     CurrentDay = Math.Clamp(CurrentDay, 1, 3);
                                     NumberOfRuns = Math.Clamp(NumberOfRuns, 1, 50);
+                                    OvershootTriggerPercent = Math.Clamp(OvershootTriggerPercent, 0, 100);
+                                    CleanupConfidenceBufferPercent = Math.Clamp(CleanupConfidenceBufferPercent, 0, 100);
                                     var todayState = BuildTodayState(players, CurrentDay, out var hpComputationDebug);
                                     HpComputationDebug = hpComputationDebug;
 
@@ -272,7 +280,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                                         int seed = rng.Next();
                                         var engine = new GuildBattleAssignmentEngine(seed);
                                         var plan = engine.SimulateWithFixedAssignments(
-                                            ParsedPlan, players, todayState, MarginOfErrorPercent);
+                                            ParsedPlan,
+                                            players,
+                                            todayState,
+                                            MarginOfErrorPercent,
+                                            OvershootTriggerPercent,
+                                            CleanupConfidenceBufferPercent);
 
                                         int attacksMade = plan.AttackLog.Count(a => !a.IsReset);
                                         var run = new SingleRunResult

@@ -14,6 +14,12 @@
         The output is then used to run a simulated battle using the same player damage data.
     </p>
 
+    <div class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        This page runs an external application and writes to a temporary shared text file (`input.txt`) in the Dispatcher directory.
+        If multiple users run this page at the same time, results may overlap and become inconsistent.
+    </div>
+
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
         <div class="alert alert-danger" role="alert">
@@ -58,6 +64,18 @@
                         <label for="NumberOfRuns" class="form-label">Runs</label>
                         <input type="number" class="form-control" id="NumberOfRuns" name="NumberOfRuns" value="@Model.NumberOfRuns" min="1" max="50" />
                     </div>
+                    <div class="col-md-2">
+                        <label for="OvershootTriggerPercent" class="form-label">Overshoot Trigger %</label>
+                        <input type="number" class="form-control" id="OvershootTriggerPercent" name="OvershootTriggerPercent" value="@Model.OvershootTriggerPercent" step="1" min="0" max="100" title="If the smallest projected overshoot on a target stage exceeds this value, the simulation tries to promote a lower-stage cleanup attacker." />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="CleanupConfidenceBufferPercent" class="form-label text-nowrap">Cleanup Confidence Buffer %</label>
+                        <input type="number" class="form-control" id="CleanupConfidenceBufferPercent" name="CleanupConfidenceBufferPercent" value="@Model.CleanupConfidenceBufferPercent" step="1" min="0" max="100" title="A promoted cleanup candidate is considered safe when their target-stage mock/average is at least remaining HP plus this buffer." />
+                    </div>
+                </div>
+                <div class="form-text mt-2">
+                    <i class="fas fa-info-circle"></i>
+                    Overshoot Trigger % decides when to try cleanup reassignment (to reduce wasted damage). Cleanup Confidence Buffer % sets required headroom above remaining HP for a promoted cleanup candidate.
                 </div>
                 <div class="mt-3">
                     <button type="submit" class="btn btn-primary">

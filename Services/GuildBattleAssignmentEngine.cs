@@ -277,9 +277,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             DispatcherParsedPlan dispatcherPlan,
             List<PlayerStageProfile> players,
             TodayState todayState,
-            double marginOfErrorPercent)
+            double marginOfErrorPercent,
+            double overshootTriggerPercent = 20,
+            double cleanupConfidenceBufferPercent = 15)
         {
             var plan = new BattlePlanSummary();
+            double overshootTrigger = Math.Clamp(overshootTriggerPercent, 0.0, 100.0);
+            double cleanupConfidenceBuffer = Math.Clamp(cleanupConfidenceBufferPercent, 0.0, 100.0);
 
             // Build effective percentages for each player
             var playerEffMap = new Dictionary<string, Dictionary<StageId, double>>(StringComparer.OrdinalIgnoreCase);
@@ -489,98 +493,88 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             int maxIterations = 1000;
             int iteration = 0;
-            bool lateStagePriorityLogged = false;
 
-            int GetRemainingAttemptsCap()
+            bool TryPromoteCleanupFromLowerStages(StageId cleanupStage)
             {
-                var budgetRemaining = remainingBudget.Sum(p => p.Value.Values.Sum(v => Math.Max(0, v)));
-                return Math.Max(0, Math.Min(attemptsAvailable - attemptsUsed, budgetRemaining));
-            }
-
-            bool ShouldPrioritizeLateStages(List<StageId> stagesWithHp)
-            {
-                if (!stagesWithHp.Any())
+                if ((int)cleanupStage < (int)StageId.S4)
                     return false;
 
-                int remainingAttempts = GetRemainingAttemptsCap();
-                if (remainingAttempts <= 0)
+                double cleanupHp = hp.GetValueOrDefault(cleanupStage, 0);
+                if (cleanupHp <= 0.005)
                     return false;
 
-                int optimisticAttacksNeeded = 0;
-                foreach (var stage in stagesWithHp)
-                {
-                    double bestDamage = 0;
-                    foreach (var budgetByStage in remainingBudget)
+                var assignedOvershoots = stageAssignments[cleanupStage]
+                    .Where(name =>
+                        remainingBudget.ContainsKey(name) &&
+                        remainingBudget[name].GetValueOrDefault(cleanupStage, 0) > 0)
+                    .Select(name =>
                     {
-                        int playerBudget = budgetByStage.Value.Values.Sum(v => Math.Max(0, v));
-                        if (playerBudget <= 0)
-                            continue;
+                        var eff = playerEffMap.GetValueOrDefault(name);
+                        var avg = playerAvgMap.GetValueOrDefault(name);
+                        double projected = eff?.GetValueOrDefault(cleanupStage, 0) ?? 0;
+                        if (projected <= 0)
+                            projected = avg?.GetValueOrDefault(cleanupStage, 0) ?? 0;
+                        return projected - cleanupHp;
+                    })
+                    .Where(overshoot => overshoot >= 0)
+                    .ToList();
 
-                        var playerName = budgetByStage.Key;
-                        var eff = playerEffMap.GetValueOrDefault(playerName);
-                        var avg = playerAvgMap.GetValueOrDefault(playerName);
-                        double damage = eff?.GetValueOrDefault(stage, 0) ?? 0;
-                        if (damage <= 0)
-                            damage = avg?.GetValueOrDefault(stage, 0) ?? 0;
+                if (!assignedOvershoots.Any())
+                    return false;
 
-                        if (damage > bestDamage)
-                            bestDamage = damage;
-                    }
+                double smallestAssignedOvershoot = assignedOvershoots.Min();
+                if (smallestAssignedOvershoot <= overshootTrigger)
+                    return false;
 
-                    if (bestDamage <= 0.005)
-                        return true;
-
-                    optimisticAttacksNeeded += (int)Math.Ceiling(hp[stage] / bestDamage);
-                }
-
-                return remainingAttempts < optimisticAttacksNeeded;
-            }
-
-            bool TryPromoteAttackToHigherStage(StageId targetStage)
-            {
-                var promotionCandidates = new List<(string name, StageId fromStage, double fromEff, double targetEff)>();
+                var cleanupCandidates = new List<(string name, StageId fromStage, double fromEff, double cleanupAvg, double cleanupOvershoot)>();
 
                 foreach (var budgetByStage in remainingBudget)
                 {
                     var playerName = budgetByStage.Key;
-                    foreach (var fromBudget in budgetByStage.Value.Where(s => s.Value > 0 && (int)s.Key < (int)targetStage))
+                    foreach (var fromBudget in budgetByStage.Value.Where(s => s.Value > 0 && (int)s.Key >= (int)StageId.S1 && (int)s.Key <= (int)StageId.S3))
                     {
                         var eff = playerEffMap.GetValueOrDefault(playerName);
                         var avg = playerAvgMap.GetValueOrDefault(playerName);
 
-                        double targetEff = eff?.GetValueOrDefault(targetStage, 0) ?? 0;
-                        if (targetEff <= 0)
-                            targetEff = avg?.GetValueOrDefault(targetStage, 0) ?? 0;
-                        if (targetEff <= 0)
+                        double cleanupAvg = avg?.GetValueOrDefault(cleanupStage, 0) ?? 0;
+                        if (cleanupAvg <= 0)
+                            continue;
+
+                        if (cleanupAvg < cleanupHp + cleanupConfidenceBuffer)
+                            continue;
+
+                        double cleanupOvershoot = cleanupAvg - cleanupHp;
+                        if (cleanupOvershoot < 0)
                             continue;
 
                         double fromEff = eff?.GetValueOrDefault(fromBudget.Key, 0) ?? 0;
-                        promotionCandidates.Add((playerName, fromBudget.Key, fromEff, targetEff));
+                        cleanupCandidates.Add((playerName, fromBudget.Key, fromEff, cleanupAvg, cleanupOvershoot));
                     }
                 }
 
-                if (!promotionCandidates.Any())
+                if (!cleanupCandidates.Any())
                     return false;
 
-                var best = promotionCandidates
-                    .OrderByDescending(c => c.targetEff)
+                var best = cleanupCandidates
+                    .OrderBy(c => c.cleanupOvershoot)
+                    .ThenBy(c => (int)c.fromStage)
                     .ThenBy(c => c.fromEff)
                     .First();
 
                 remainingBudget[best.name][best.fromStage]--;
-                if (!remainingBudget[best.name].ContainsKey(targetStage))
-                    remainingBudget[best.name][targetStage] = 0;
-                remainingBudget[best.name][targetStage]++;
+                if (!remainingBudget[best.name].ContainsKey(cleanupStage))
+                    remainingBudget[best.name][cleanupStage] = 0;
+                remainingBudget[best.name][cleanupStage]++;
 
-                if (!stageAssignments[targetStage].Contains(best.name, StringComparer.OrdinalIgnoreCase))
-                    stageAssignments[targetStage].Add(best.name);
+                if (!stageAssignments[cleanupStage].Contains(best.name, StringComparer.OrdinalIgnoreCase))
+                    stageAssignments[cleanupStage].Add(best.name);
 
                 if (attackLog.Count < MAX_LOG_ENTRIES)
                 {
                     attackLog.Add(new AttackLogEntry
                     {
-                        PlayerName = $">>> PROMOTION: {best.name} moved 1 attack from S{(int)best.fromStage} to S{(int)targetStage} <<<",
-                        Stage = targetStage,
+                        PlayerName = $">>> CLEANUP PROMOTION: {best.name} moved 1 attack from S{(int)best.fromStage} to S{(int)cleanupStage} (HP {cleanupHp:F3}%, assigned overshoot {smallestAssignedOvershoot:F3}%, candidate avg {best.cleanupAvg:F3}%) <<<",
+                        Stage = cleanupStage,
                         IsReset = true
                     });
                 }
@@ -599,32 +593,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 bool allBudgetsUsed = !remainingBudget.Any(p => p.Value.Any(s => s.Value > 0));
                 if (allBudgetsUsed) break;
 
-                var stagesWithHp = currentCycleStages
-                    .Where(s => hp[s] > 0.005)
-                    .ToList();
-                bool prioritizeLateStages = ShouldPrioritizeLateStages(stagesWithHp);
-                var stageSearchOrder = prioritizeLateStages
-                    ? stagesWithHp.OrderByDescending(s => (int)s).ToList()
-                    : stagesWithHp.OrderBy(s => (int)s).ToList();
-
-                if (prioritizeLateStages && !lateStagePriorityLogged && attackLog.Count < MAX_LOG_ENTRIES)
-                {
-                    attackLog.Add(new AttackLogEntry
-                    {
-                        PlayerName = ">>> LATE-STAGE PRIORITY MODE: insufficient attempts for likely reset; prioritizing highest available stage <<<",
-                        Stage = stageSearchOrder.FirstOrDefault(),
-                        IsReset = true
-                    });
-                    lateStagePriorityLogged = true;
-                }
-
-                // Find a stage with HP and available players
+                // Find a stage with HP and available players (same stage-first scan as core simulation)
                 StageId? targetStage = null;
-                foreach (var stage in stageSearchOrder)
+                foreach (var stage in currentCycleStages)
                 {
                     if (hp[stage] > 0.005)
                     {
-                        bool hasPlayer = stageAssignments[stage].Any(name =>
+                        bool hasPlayer = stageAssignments.ContainsKey(stage) && stageAssignments[stage].Any(name =>
                             remainingBudget.ContainsKey(name) &&
                             remainingBudget[name].GetValueOrDefault(stage, 0) > 0);
 
@@ -636,17 +611,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
                 }
 
-                if (prioritizeLateStages && stageSearchOrder.Any())
-                {
-                    var highestAvailableStage = stageSearchOrder.First();
-                    if (targetStage != highestAvailableStage)
-                    {
-                        if (TryPromoteAttackToHigherStage(highestAvailableStage))
-                            continue;
-                    }
-                }
-
-                // If no stage found, check for reset or try demotion fallback
+                // If no stage found, check for reset
                 if (targetStage == null)
                 {
                     bool allCleared = currentCycleStages.All(s => hp[s] <= 0.005);
@@ -667,97 +632,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         }
                         continue;
                     }
+                    break;
+                }
 
-                    if (prioritizeLateStages && stageSearchOrder.Any())
-                    {
-                        var highestAvailableStage = stageSearchOrder.First();
-                        if (TryPromoteAttackToHigherStage(highestAvailableStage))
-                            continue;
-                    }
-
-                    // Demotion fallback: find a stuck stage and pull the weakest player from a higher stage
-                    // S6 cannot be helped (no higher stage exists)
-                    bool demoted = false;
-                    foreach (var stuckStage in currentCycleStages.Where(s => hp[s] > 0.005 && s != StageId.S6))
-                    {
-                        // Search higher stages for a player with remaining budget
-                        var higherStages = currentCycleStages
-                            .Where(s => (int)s > (int)stuckStage)
-                            .OrderBy(s => (int)s)
-                            .ToList();
-
-                        // Candidates: players in higher stages with budget remaining who have some damage on the stuck stage
-                        var demotionCandidates = new List<(string name, StageId fromStage, double fromEff, double stuckEff)>();
-
-                        foreach (var higherStage in higherStages)
-                        {
-                            foreach (var playerName in stageAssignments[higherStage])
-                            {
-                                if (!remainingBudget.ContainsKey(playerName)) continue;
-                                if (remainingBudget[playerName].GetValueOrDefault(higherStage, 0) <= 0) continue;
-
-                                double stuckDmg = playerEffMap.GetValueOrDefault(playerName)?.GetValueOrDefault(stuckStage, 0) ?? 0;
-                                double stuckAvg = playerAvgMap.GetValueOrDefault(playerName)?.GetValueOrDefault(stuckStage, 0) ?? 0;
-                                if (stuckDmg <= 0) stuckDmg = stuckAvg;
-                                if (stuckDmg <= 0) continue; // Can't help at all
-
-                                double fromDmg = playerEffMap.GetValueOrDefault(playerName)?.GetValueOrDefault(higherStage, 0) ?? 0;
-                                demotionCandidates.Add((playerName, higherStage, fromDmg, stuckDmg));
-                            }
-                        }
-
-                        if (demotionCandidates.Count > 0)
-                        {
-                            double stuckHpRemaining = hp[stuckStage];
-
-                            // Prefer candidates who can clear the stuck stage in one hit (damage >= remaining HP)
-                            // Apply 0.9 multiplier as conservative variance floor
-                            var canClear = demotionCandidates
-                                .Where(c => c.stuckEff * 0.9 >= stuckHpRemaining)
-                                .ToList();
-
-                            (string name, StageId fromStage, double fromEff, double stuckEff) best;
-                            if (canClear.Count > 0)
-                            {
-                                // Among those who can clear it, pick the one with the lowest power on their original stage
-                                // (least impact when removed from that stage)
-                                best = canClear.OrderBy(c => c.fromEff).First();
-                            }
-                            else
-                            {
-                                // No one can one-shot it; pick whoever deals the most damage on the stuck stage
-                                best = demotionCandidates.OrderByDescending(c => c.stuckEff).First();
-                            }
-
-                            // Transfer one attack from higher stage to stuck stage
-                            remainingBudget[best.name][best.fromStage]--;
-                            if (!remainingBudget[best.name].ContainsKey(stuckStage))
-                                remainingBudget[best.name][stuckStage] = 0;
-                            remainingBudget[best.name][stuckStage]++;
-
-                            // Add to stuck stage assignments if not already there
-                            if (!stageAssignments[stuckStage].Contains(best.name, StringComparer.OrdinalIgnoreCase))
-                                stageAssignments[stuckStage].Add(best.name);
-
-                            // Log the demotion
-                            if (attackLog.Count < MAX_LOG_ENTRIES)
-                            {
-                                attackLog.Add(new AttackLogEntry
-                                {
-                                    PlayerName = $">>> DEMOTION: {best.name} moved 1 attack from S{(int)best.fromStage} to S{(int)stuckStage} <<<",
-                                    Stage = stuckStage,
-                                    IsReset = true
-                                });
-                            }
-
-                            demoted = true;
-                            break; // Re-enter the main loop to process the demoted attack
-                        }
-                    }
-
-                    if (!demoted)
-                        break; // Truly stuck - no demotion possible
-                    continue;
+                if (hp[targetStage.Value] > 0.005)
+                {
+                    if (TryPromoteCleanupFromLowerStages(targetStage.Value))
+                        continue;
                 }
 
                 // Pick the first available player for this stage
@@ -772,36 +653,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var avg = playerAvgMap.GetValueOrDefault(attackerName);
                 double baseDamage = eff?.GetValueOrDefault(targetStage.Value, 0) ?? 0;
                 double avgPct = avg?.GetValueOrDefault(targetStage.Value, 0) ?? 0;
-                var nextStage = targetStage.Value == StageId.S6 ? (StageId?)null : (StageId)((int)targetStage.Value + 1);
-                double nextStageAvg = nextStage.HasValue ? (avg?.GetValueOrDefault(nextStage.Value, 0) ?? 0) : 0;
 
                 if (baseDamage <= 0)
-                    baseDamage = avgPct; // Use avg even if 0; don't inflate with fake 0.5%
+                    baseDamage = Math.Max(0.5, avgPct);
 
                 // Variance
-                double damage;
-                if (baseDamage <= 0)
-                {
-                    // Player has no data for this stage — log 0% attack
-                    damage = 0;
-                }
-                else
-                {
-                    double varianceMultiplier;
-                    if (avgPct >= 99.5 || nextStageAvg >= 85.0)
-                        varianceMultiplier = 0.995 + (_random.NextDouble() * 0.025);
-                    else if (avgPct >= 99.0)
-                        varianceMultiplier = 0.98 + (_random.NextDouble() * 0.04);
-                    else
-                        varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2);
-                    damage = baseDamage * varianceMultiplier;
-
-                    bool veryHighConfidence = avgPct >= 99.5 || nextStageAvg >= 85.0;
-                    if (veryHighConfidence && hp[targetStage.Value] <= 2.0)
-                    {
-                        damage = Math.Max(damage, hp[targetStage.Value]);
-                    }
-                }
+                double varianceMultiplier = avgPct >= 99.0
+                    ? 0.98 + (_random.NextDouble() * 0.04)
+                    : 0.9 + (_random.NextDouble() * 0.2);
+                double damage = baseDamage * varianceMultiplier;
                 hp[targetStage.Value] = Math.Max(0, hp[targetStage.Value] - damage);
                 remainingBudget[attackerName][targetStage.Value]--;
 
