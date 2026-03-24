@@ -41,6 +41,30 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public double CleanupConfidenceBufferPercent { get; set; } = 15;
 
+        [BindProperty]
+        public bool HpOverrideEnabled { get; set; }
+
+        [BindProperty]
+        public double? HpS1 { get; set; }
+
+        [BindProperty]
+        public double? HpS2 { get; set; }
+
+        [BindProperty]
+        public double? HpS3 { get; set; }
+
+        [BindProperty]
+        public double? HpS4 { get; set; }
+
+        [BindProperty]
+        public double? HpS5 { get; set; }
+
+        [BindProperty]
+        public double? HpS6 { get; set; }
+
+        [BindProperty]
+        public bool HpS6Unlocked { get; set; }
+
         public string? Output { get; set; }
         public string? ErrorMessage { get; set; }
         public bool HasRun { get; set; }
@@ -89,10 +113,10 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
                 // Read all CSV lines
                 var allLines = new List<string>();
-                using (var reader = new StreamReader(csvStream, Encoding.UTF8))
+                using (var csvReader = new StreamReader(csvStream, Encoding.UTF8))
                 {
                     string? line;
-                    while ((line = await reader.ReadLineAsync()) != null)
+                    while ((line = await csvReader.ReadLineAsync()) != null)
                     {
                         allLines.Add(line);
                     }
@@ -158,26 +182,91 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 var stdout = new StringBuilder();
                 var stderr = new StringBuilder();
 
-                process.OutputDataReceived += (_, e) => { if (e.Data != null) stdout.AppendLine(e.Data); };
                 process.ErrorDataReceived += (_, e) => { if (e.Data != null) stderr.AppendLine(e.Data); };
 
                 process.Start();
-                process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
-                // Send Enter key to stdin in case the exe waits for a keypress to exit
-                await process.StandardInput.WriteLineAsync();
-                process.StandardInput.Close();
+                // Read stdout until the dispatcher blocks waiting for input.
+                // Interactive prompts typically don't end with a newline, so we
+                // read char-by-char with a timeout to detect when it's waiting.
+                var reader = process.StandardOutput;
+                var buf = new char[1];
+                bool inputSent = false;
+                using var cts = new CancellationTokenSource(30_000);
 
-                // Wait up to 30 seconds
-                bool exited = process.WaitForExit(30_000);
-                if (!exited)
+                try
+                {
+                    Task<int>? pendingRead = null;
+                    while (!process.HasExited)
+                    {
+                        // Reuse any still-pending read from the previous iteration
+                        var readTask = pendingRead ?? reader.ReadAsync(buf, 0, 1);
+                        pendingRead = null;
+                        var completed = await Task.WhenAny(readTask, Task.Delay(1500, cts.Token));
+
+                        if (completed == readTask)
+                        {
+                            int charsRead = await readTask;
+                            if (charsRead == 0) break; // EOF
+                            stdout.Append(buf[0]);
+                        }
+                        else if (!inputSent)
+                        {
+                            // No output for 1.5s — the dispatcher is likely waiting for input.
+                            // Keep the pending read alive for reuse after we send input.
+                            pendingRead = readTask;
+
+                            // Parse the first line to extract the day the dispatcher detected,
+                            // e.g. "Based on data, it seems to be day 3 of the official matches."
+                            string outputSoFar = stdout.ToString();
+                            _logger.LogInformation("Dispatcher prompt detected: {Prompt}", outputSoFar);
+
+                            int detectedDay = 0;
+                            var dayMatch = System.Text.RegularExpressions.Regex.Match(outputSoFar, @"day\s+(\d)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (dayMatch.Success)
+                                detectedDay = int.Parse(dayMatch.Groups[1].Value);
+
+                            if (detectedDay != CurrentDay && CurrentDay >= 1 && CurrentDay <= 3)
+                            {
+                                _logger.LogInformation("Dispatcher detected day {Detected}, overriding to day {Selected}", detectedDay, CurrentDay);
+                                await process.StandardInput.WriteLineAsync(CurrentDay.ToString());
+                            }
+                            else
+                            {
+                                // Day matches — accept default
+                                await process.StandardInput.WriteLineAsync();
+                            }
+                            process.StandardInput.Close();
+                            inputSent = true;
+                        }
+                        else
+                        {
+                            // Input already sent but no output — keep pending read and break
+                            pendingRead = readTask;
+                            break;
+                        }
+                    }
+
+                    // Read any remaining output after process exits
+                    var remaining = await reader.ReadToEndAsync();
+                    if (!string.IsNullOrEmpty(remaining))
+                        stdout.Append(remaining);
+                }
+                catch (OperationCanceledException)
                 {
                     process.Kill();
                     ErrorMessage = "Dispatcher.exe timed out after 30 seconds.";
                     return Page();
                 }
 
+                if (!inputSent)
+                {
+                    // Process exited without ever waiting for input — close stdin
+                    try { process.StandardInput.Close(); } catch { }
+                }
+
+                process.WaitForExit(5_000); // final cleanup wait
                 HasRun = true;
 
                 if (stderr.Length > 0)
@@ -236,6 +325,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                                         TodayStateBuildMode.OrderAgnosticAggregate,
                                         out var hpComputationDebug);
                                     HpComputationDebug = hpComputationDebug;
+
+                                    // Apply HP overrides if enabled
+                                    if (HpOverrideEnabled)
+                                    {
+                                        ApplyHpOverrides(todayState);
+                                    }
 
                                     var rng = new Random();
                                     var aggregated = new AggregatedTestResults
@@ -494,6 +589,21 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             }
             fields.Add(current.ToString());
             return fields;
+        }
+
+        private void ApplyHpOverrides(TodayState today)
+        {
+            var overrides = new (StageId stage, double? value)[]
+            {
+                (StageId.S1, HpS1), (StageId.S2, HpS2), (StageId.S3, HpS3),
+                (StageId.S4, HpS4), (StageId.S5, HpS5), (StageId.S6, HpS6)
+            };
+            foreach (var (stage, value) in overrides)
+            {
+                if (value.HasValue)
+                    today.RemainingHpByStage[stage] = Math.Clamp(value.Value, 0, 100);
+            }
+            today.IsStage6Unlocked = HpS6Unlocked;
         }
     }
 }

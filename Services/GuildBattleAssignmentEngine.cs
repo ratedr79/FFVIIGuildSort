@@ -749,6 +749,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return true;
             }
 
+            // Shuffle player order within each stage so different players attack first per simulation run
+            foreach (var stage in stageAssignments.Keys.ToList())
+            {
+                var list = stageAssignments[stage];
+                for (int i = list.Count - 1; i > 0; i--)
+                {
+                    int j = _random.Next(i + 1);
+                    (list[i], list[j]) = (list[j], list[i]);
+                }
+            }
+
             while (iteration < maxIterations)
             {
                 iteration++;

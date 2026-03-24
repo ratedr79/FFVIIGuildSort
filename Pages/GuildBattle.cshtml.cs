@@ -43,13 +43,38 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public int? Seed { get; set; }
 
+        [BindProperty]
+        public bool HpOverrideEnabled { get; set; }
+
+        [BindProperty]
+        public double? HpS1 { get; set; }
+
+        [BindProperty]
+        public double? HpS2 { get; set; }
+
+        [BindProperty]
+        public double? HpS3 { get; set; }
+
+        [BindProperty]
+        public double? HpS4 { get; set; }
+
+        [BindProperty]
+        public double? HpS5 { get; set; }
+
+        [BindProperty]
+        public double? HpS6 { get; set; }
+
+        [BindProperty]
+        public bool HpS6Unlocked { get; set; }
+
         public GuildBattleParseResult? ParseResult { get; set; }
         public TodayState? Today { get; set; }
         public BattlePlanSummary? BattlePlan { get; set; }
         public string? ErrorMessage { get; set; }
         public List<SheetDefinition> AvailableSheets { get; set; } = new();
 
-        public void OnGet(int? seed, int? day, double? margin, double? overshoot, double? cleanup)
+        public void OnGet(int? seed, int? day, double? margin, double? overshoot, double? cleanup,
+            bool? hpOverride, double? hpS1, double? hpS2, double? hpS3, double? hpS4, double? hpS5, double? hpS6, bool? hpS6Unlocked)
         {
             // Read query params from Test page seed links
             if (seed.HasValue) Seed = seed.Value;
@@ -57,6 +82,14 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             if (margin.HasValue) MarginOfErrorPercent = margin.Value;
             if (overshoot.HasValue) OvershootTriggerPercent = overshoot.Value;
             if (cleanup.HasValue) CleanupConfidenceBufferPercent = cleanup.Value;
+            if (hpOverride == true) HpOverrideEnabled = true;
+            if (hpS1.HasValue) HpS1 = hpS1.Value;
+            if (hpS2.HasValue) HpS2 = hpS2.Value;
+            if (hpS3.HasValue) HpS3 = hpS3.Value;
+            if (hpS4.HasValue) HpS4 = hpS4.Value;
+            if (hpS5.HasValue) HpS5 = hpS5.Value;
+            if (hpS6.HasValue) HpS6 = hpS6.Value;
+            if (hpS6Unlocked == true) HpS6Unlocked = true;
 
             // Load Google Sheets configuration from appsettings.json
             var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")
@@ -110,6 +143,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                     CurrentDay,
                     TodayStateBuildMode.OrderAgnosticAggregate,
                     out _);
+
+                // Apply HP overrides if enabled
+                if (HpOverrideEnabled)
+                {
+                    ApplyHpOverrides(today);
+                }
 
                 Today = today;
 
@@ -179,6 +218,21 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             var bytes = memoryStream.ToArray();
             var fileName = $"guild-battle-plan_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
             return File(bytes, "text/csv; charset=utf-8", fileName);
+        }
+
+        private void ApplyHpOverrides(TodayState today)
+        {
+            var overrides = new (StageId stage, double? value)[]
+            {
+                (StageId.S1, HpS1), (StageId.S2, HpS2), (StageId.S3, HpS3),
+                (StageId.S4, HpS4), (StageId.S5, HpS5), (StageId.S6, HpS6)
+            };
+            foreach (var (stage, value) in overrides)
+            {
+                if (value.HasValue)
+                    today.RemainingHpByStage[stage] = Math.Clamp(value.Value, 0, 100);
+            }
+            today.IsStage6Unlocked = HpS6Unlocked;
         }
     }
 }

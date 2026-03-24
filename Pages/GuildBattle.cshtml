@@ -78,6 +78,37 @@
                         <button type="submit" class="btn btn-primary w-100"><i class="fas fa-play"></i></button>
                     </div>
                 </div>
+                <!-- Advanced: HP Override -->
+                <div class="mt-2">
+                    <a class="text-decoration-none text-muted small" data-bs-toggle="collapse" href="#hpOverrideCollapse" role="button" aria-expanded="false" aria-controls="hpOverrideCollapse">
+                        <i class="fas fa-cog"></i> Advanced <i class="fas fa-chevron-down fa-xs"></i>
+                    </a>
+                    <div class="collapse" id="hpOverrideCollapse">
+                        <div class="card card-body mt-2 p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="HpOverrideEnabled" name="HpOverrideEnabled" value="true" @(Model.HpOverrideEnabled ? "checked" : "") onchange="document.getElementById('hpOverrideFields').style.display = this.checked ? '' : 'none';" />
+                                <label class="form-check-label" for="HpOverrideEnabled">Enable HP Override</label>
+                            </div>
+                            <div id="hpOverrideFields" style="display: @(Model.HpOverrideEnabled ? "" : "none");">
+                                <p class="text-muted small mb-2"><i class="fas fa-info-circle"></i> If you leave a stage blank, its HP will be computed from the CSV data.</p>
+                                <div class="row g-2 align-items-end">
+                                    <div class="col"><label class="form-label small mb-0">S1</label><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm" name="HpS1" value="@Model.HpS1" placeholder="CSV" /></div>
+                                    <div class="col"><label class="form-label small mb-0">S2</label><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm" name="HpS2" value="@Model.HpS2" placeholder="CSV" /></div>
+                                    <div class="col"><label class="form-label small mb-0">S3</label><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm" name="HpS3" value="@Model.HpS3" placeholder="CSV" /></div>
+                                    <div class="col"><label class="form-label small mb-0">S4</label><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm" name="HpS4" value="@Model.HpS4" placeholder="CSV" /></div>
+                                    <div class="col"><label class="form-label small mb-0">S5</label><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm" name="HpS5" value="@Model.HpS5" placeholder="CSV" /></div>
+                                    <div class="col"><label class="form-label small mb-0">S6</label><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm" name="HpS6" value="@Model.HpS6" placeholder="CSV" /></div>
+                                    <div class="col-auto d-flex align-items-end">
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" id="HpS6Unlocked" name="HpS6Unlocked" value="true" @(Model.HpS6Unlocked ? "checked" : "") />
+                                            <label class="form-check-label small" for="HpS6Unlocked">S6 Unlocked</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     </div>

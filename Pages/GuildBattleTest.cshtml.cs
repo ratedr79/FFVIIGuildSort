@@ -61,6 +61,30 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public double CleanupConfidenceBufferPercent { get; set; } = 15;
 
         [BindProperty]
+        public bool HpOverrideEnabled { get; set; }
+
+        [BindProperty]
+        public double? HpS1 { get; set; }
+
+        [BindProperty]
+        public double? HpS2 { get; set; }
+
+        [BindProperty]
+        public double? HpS3 { get; set; }
+
+        [BindProperty]
+        public double? HpS4 { get; set; }
+
+        [BindProperty]
+        public double? HpS5 { get; set; }
+
+        [BindProperty]
+        public double? HpS6 { get; set; }
+
+        [BindProperty]
+        public bool HpS6Unlocked { get; set; }
+
+        [BindProperty]
         public string ActiveTab { get; set; } = "multi";
 
         [BindProperty]
@@ -220,6 +244,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                     TodayStateBuildMode.OrderAgnosticAggregate,
                     out _);
 
+                // Apply HP overrides if enabled
+                if (HpOverrideEnabled)
+                {
+                    ApplyHpOverrides(today);
+                }
+
                 var settings = new SimulationTestSettings
                 {
                     NumberOfRuns = NumberOfRuns,
@@ -258,6 +288,21 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             var sheetsConfig = _configuration.GetSection("GoogleSheets:GuildBattleSheets")
                 .Get<List<SheetDefinition>>() ?? new List<SheetDefinition>();
             AvailableSheets = sheetsConfig;
+        }
+
+        private void ApplyHpOverrides(TodayState today)
+        {
+            var overrides = new (StageId stage, double? value)[]
+            {
+                (StageId.S1, HpS1), (StageId.S2, HpS2), (StageId.S3, HpS3),
+                (StageId.S4, HpS4), (StageId.S5, HpS5), (StageId.S6, HpS6)
+            };
+            foreach (var (stage, value) in overrides)
+            {
+                if (value.HasValue)
+                    today.RemainingHpByStage[stage] = Math.Clamp(value.Value, 0, 100);
+            }
+            today.IsStage6Unlocked = HpS6Unlocked;
         }
     }
 }
