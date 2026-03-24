@@ -141,7 +141,66 @@
                         <div>Stage 6 Unlocked: <strong>@(Model.Today.IsStage6Unlocked ? "Yes" : "No")</strong></div>
                     </div>
                 </div>
-                
+
+                @if (Model.ParseResult?.Players != null && Model.ParseResult.Players.Count > 0 && Model.CurrentDay >= 2)
+                {
+                    var missingAttacks = new List<(string Name, int Day, int Missing)>();
+                    for (int day = 1; day < Model.CurrentDay; day++)
+                    {
+                        foreach (var player in Model.ParseResult.Players.OrderBy(p => p.Name))
+                        {
+                            int attacksOnDay = player.Attempts.Count(a => a.Day == day);
+                            if (attacksOnDay < 3)
+                            {
+                                missingAttacks.Add((player.Name, day, 3 - attacksOnDay));
+                            }
+                        }
+                    }
+
+                    if (missingAttacks.Any())
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#missingAttacksCollapse" role="button" aria-expanded="true" aria-controls="missingAttacksCollapse">
+                                    <strong><i class="fas fa-exclamation-triangle text-warning"></i> Missing Attacks (@missingAttacks.Sum(m => m.Missing) total)</strong>
+                                    <i class="fas fa-chevron-down"></i>
+                                </a>
+                            </div>
+                            <div class="collapse show" id="missingAttacksCollapse">
+                                <div class="card-body p-2">
+                                    <p class="text-muted small mb-2">
+                                        <i class="fas fa-info-circle"></i>
+                                        Players who did not use all 3 attacks on previous day(s).
+                                    </p>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped mb-0" style="font-size: 0.85rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Player</th>
+                                                    <th class="text-center">Day</th>
+                                                    <th class="text-center">Attacks Used</th>
+                                                    <th class="text-center">Missing</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var entry in missingAttacks)
+                                                {
+                                                    <tr>
+                                                        <td>@entry.Name</td>
+                                                        <td class="text-center">@entry.Day</td>
+                                                        <td class="text-center">@(3 - entry.Missing)</td>
+                                                        <td class="text-center"><span class="badge bg-danger">@entry.Missing</span></td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+
                 @if (Model.ParseResult?.Players != null && Model.ParseResult.Players.Any())
                 {
                     <div class="card mb-3">
