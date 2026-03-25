@@ -342,6 +342,7 @@
                                                     <th>Stage</th>
                                                     <th>Damage</th>
                                                     <th>Remaining HP</th>
+                                                    <th class="text-end">Est. Points</th>
                                                     <th>Status</th>
                                                 </tr>
                                             </thead>
@@ -355,13 +356,13 @@
                                                             <tr class="table-info">
                                                                 <td colspan="3">@entry.PlayerName</td>
                                                                 <td>@entry.RemainingHP.ToString("F3")%</td>
-                                                                <td></td>
+                                                                <td colspan="2"></td>
                                                             </tr>
                                                         }
                                                         else
                                                         {
                                                             <tr class="table-warning">
-                                                                <td colspan="5" class="text-center fw-bold">@entry.PlayerName</td>
+                                                                <td colspan="6" class="text-center fw-bold">@entry.PlayerName</td>
                                                             </tr>
                                                         }
                                                     }
@@ -372,11 +373,23 @@
                                                             <td>Stage @((int)entry.Stage)</td>
                                                             <td>@entry.Damage.ToString("F3")%</td>
                                                             <td>@entry.RemainingHP.ToString("F3")%</td>
+                                                            <td class="text-end">@if (entry.EstimatedPoints > 0 || entry.BonusPoints > 0) { @((entry.EstimatedPoints + entry.BonusPoints).ToString("N0")) if (entry.BonusPoints > 0) { <small class="text-success"> (+@entry.BonusPoints.ToString("N0"))</small> } }</td>
                                                             <td>@(entry.Cleared ? "✓ CLEARED" : "")</td>
                                                         </tr>
                                                     }
                                                 }
                                             </tbody>
+                                            <tfoot>
+                                                @{
+                                                    var totalBase = Model.BattlePlan.AttackLog.Where(e => !e.IsReset).Sum(e => e.EstimatedPoints);
+                                                    var totalBonus = Model.BattlePlan.AttackLog.Where(e => !e.IsReset).Sum(e => e.BonusPoints);
+                                                }
+                                                <tr class="table-dark fw-bold">
+                                                    <td colspan="4" class="text-end">Total</td>
+                                                    <td class="text-end">@((totalBase + totalBonus).ToString("N0")) @if (totalBonus > 0) { <small class="text-success">(+@totalBonus.ToString("N0") bonus)</small> }</td>
+                                                    <td></td>
+                                                </tr>
+                                            </tfoot>
                                         </table>
                                     </div>
                                 </div>

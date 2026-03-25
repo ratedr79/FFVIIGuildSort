@@ -12,12 +12,14 @@ namespace FFVIIEverCrisisAnalyzer.Pages
     {
         private readonly ILogger<ZelarithAssignmentModel> _logger;
         private readonly IConfiguration _configuration;
+        private readonly StagePointEstimator _pointEstimator;
         private readonly GuildBattleParser _parser = new();
 
-        public ZelarithAssignmentModel(ILogger<ZelarithAssignmentModel> logger, IConfiguration configuration)
+        public ZelarithAssignmentModel(ILogger<ZelarithAssignmentModel> logger, IConfiguration configuration, StagePointEstimator pointEstimator)
         {
             _logger = logger;
             _configuration = configuration;
+            _pointEstimator = pointEstimator;
         }
 
         [BindProperty]
@@ -347,7 +349,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                                     for (int i = 0; i < NumberOfRuns; i++)
                                     {
                                         int seed = rng.Next();
-                                        var engine = new GuildBattleAssignmentEngine(seed);
+                                        var engine = new GuildBattleAssignmentEngine(seed, _pointEstimator);
                                         var plan = engine.SimulateWithFixedAssignments(
                                             ParsedPlan,
                                             players,

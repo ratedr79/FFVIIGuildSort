@@ -8,15 +8,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
     public sealed class GuildBattleAssignmentEngine
     {
         private readonly Random _random;
+        private readonly StagePointEstimator? _pointEstimator;
         
-        public GuildBattleAssignmentEngine()
+        public GuildBattleAssignmentEngine(StagePointEstimator? pointEstimator = null)
         {
             _random = new Random();
+            _pointEstimator = pointEstimator;
         }
         
-        public GuildBattleAssignmentEngine(int seed)
+        public GuildBattleAssignmentEngine(int seed, StagePointEstimator? pointEstimator = null)
         {
             _random = new Random(seed);
+            _pointEstimator = pointEstimator;
         }
 
         private double CalculateSmartMargin(PlayerStageProfile player, StageId stage, double baseMargin)
@@ -965,6 +968,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     damage = Math.Max(damage, hp[targetStage.Value]);
                 }
 
+                double hpBefore = hp[targetStage.Value];
                 hp[targetStage.Value] = Math.Max(0, hp[targetStage.Value] - damage);
                 remainingBudget[attackerName][targetStage.Value]--;
 
@@ -984,6 +988,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
                 }
 
+                double estimatedPoints = 0;
+                double bonusPoints = 0;
+                if (_pointEstimator != null)
+                {
+                    double pointsBefore = _pointEstimator.GetPoints(targetStage.Value, hpBefore);
+                    double pointsAfter = _pointEstimator.GetPoints(targetStage.Value, hp[targetStage.Value]);
+                    estimatedPoints = pointsBefore - pointsAfter;
+                    bonusPoints = _pointEstimator.GetBonusPoints(targetStage.Value, hpBefore, hp[targetStage.Value]);
+                }
+
                 if (attackLog.Count < MAX_LOG_ENTRIES)
                 {
                     attackLog.Add(new AttackLogEntry
@@ -993,7 +1007,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         Damage = damage,
                         RemainingHP = hp[targetStage.Value],
                         Cleared = wasCleared,
-                        IsReset = false
+                        IsReset = false,
+                        EstimatedPoints = estimatedPoints,
+                        BonusPoints = bonusPoints
                     });
                 }
 
@@ -1072,6 +1088,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             }
                         }
 
+                        double remHpBefore = hp[targetStage];
                         hp[targetStage] = Math.Max(0, hp[targetStage] - damage);
 
                         bool wasCleared = hp[targetStage] <= 0.005 && damage > 0;
@@ -1079,6 +1096,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         {
                             hp[targetStage] = 0;
                             stageClears[targetStage]++;
+                        }
+
+                        double remEstPoints = 0;
+                        double remBonusPoints = 0;
+                        if (_pointEstimator != null)
+                        {
+                            remEstPoints = _pointEstimator.GetPoints(targetStage, remHpBefore)
+                                         - _pointEstimator.GetPoints(targetStage, hp[targetStage]);
+                            remBonusPoints = _pointEstimator.GetBonusPoints(targetStage, remHpBefore, hp[targetStage]);
                         }
 
                         if (attackLog.Count < MAX_LOG_ENTRIES)
@@ -1090,7 +1116,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                                 Damage = damage,
                                 RemainingHP = hp[targetStage],
                                 Cleared = wasCleared,
-                                IsReset = false
+                                IsReset = false,
+                                EstimatedPoints = remEstPoints,
+                                BonusPoints = remBonusPoints
                             });
                         }
 

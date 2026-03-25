@@ -16,6 +16,7 @@ builder.Services.AddScoped<Gb20Ingestion>();
 builder.Services.AddScoped<TeamOptimizer>();
 builder.Services.AddScoped<Gb20Analyzer>();
 builder.Services.AddScoped<GuildAssigner>();
+builder.Services.AddSingleton<StagePointEstimator>();
 
 var app = builder.Build();
 

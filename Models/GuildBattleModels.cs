@@ -68,6 +68,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public double RemainingHP { get; set; }
         public bool Cleared { get; set; }
         public bool IsReset { get; set; }
+        public double EstimatedPoints { get; set; }
+        public double BonusPoints { get; set; }
     }
 
     public sealed class BattlePlanSummary

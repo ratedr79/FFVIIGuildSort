@@ -14,13 +14,15 @@ namespace FFVIIEverCrisisAnalyzer.Pages
     {
         private readonly ILogger<GuildBattleTestModel> _logger;
         private readonly IConfiguration _configuration;
+        private readonly StagePointEstimator _pointEstimator;
         private readonly GuildBattleParser _parser = new();
         private readonly SimulationHarness _harness = new();
 
-        public GuildBattleTestModel(ILogger<GuildBattleTestModel> logger, IConfiguration configuration)
+        public GuildBattleTestModel(ILogger<GuildBattleTestModel> logger, IConfiguration configuration, StagePointEstimator pointEstimator)
         {
             _logger = logger;
             _configuration = configuration;
+            _pointEstimator = pointEstimator;
         }
 
         // Form inputs
@@ -265,8 +267,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 };
 
                 return singleDetailed
-                    ? _harness.RunSingleDetailed(players, today, settings)
-                    : _harness.RunMultiple(players, today, settings, ScoreBy);
+                    ? _harness.RunSingleDetailed(players, today, settings, _pointEstimator)
+                    : _harness.RunMultiple(players, today, settings, ScoreBy, _pointEstimator);
             }
             catch (Exception ex)
             {

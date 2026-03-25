@@ -13,13 +13,16 @@ namespace FFVIIEverCrisisAnalyzer.Pages
     {
         private readonly ILogger<GuildBattleModel> _logger;
         private readonly IConfiguration _configuration;
+        private readonly StagePointEstimator _pointEstimator;
         private readonly GuildBattleParser _parser = new();
-        private GuildBattleAssignmentEngine _engine = new();
+        private GuildBattleAssignmentEngine _engine;
 
-        public GuildBattleModel(ILogger<GuildBattleModel> logger, IConfiguration configuration)
+        public GuildBattleModel(ILogger<GuildBattleModel> logger, IConfiguration configuration, StagePointEstimator pointEstimator)
         {
             _logger = logger;
             _configuration = configuration;
+            _pointEstimator = pointEstimator;
+            _engine = new GuildBattleAssignmentEngine(_pointEstimator);
         }
 
         [BindProperty]
@@ -155,7 +158,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 // Use seeded engine if seed is provided
                 if (Seed.HasValue)
                 {
-                    _engine = new GuildBattleAssignmentEngine(Seed.Value);
+                    _engine = new GuildBattleAssignmentEngine(Seed.Value, _pointEstimator);
                 }
 
                 // Generate battle plan using the engine

@@ -1,0 +1,54 @@
+{
+  "stages": {
+    "S1": [
+      { "percent": 0, "points": 0 },
+      { "percent": 25, "points": 37500 },
+      { "percent": 50, "points": 75000 },
+      { "percent": 75, "points": 112500 },
+      { "percent": 100, "points": 150000 }
+    ],
+    "S2": [
+      { "percent": 0, "points": 0 },
+      { "percent": 25, "points": 160875 },
+      { "percent": 50, "points": 321750 },
+      { "percent": 75, "points": 482625 },
+      { "percent": 100, "points": 643500 }
+    ],
+    "S3": [
+      { "percent": 0, "points": 0 },
+      { "percent": 25, "points": 532350 },
+      { "percent": 50, "points": 1064700 },
+      { "percent": 75, "points": 1597050 },
+      { "percent": 100, "points": 2129400 }
+    ],
+    "S4": [
+      { "percent": 0, "points": 0 },
+      { "percent": 25, "points": 1853925 },
+      { "percent": 50, "points": 3707850 },
+      { "percent": 75, "points": 5561775 },
+      { "percent": 100, "points": 7415700 }
+    ],
+    "S5": [
+      { "percent": 0, "points": 0 },
+      { "percent": 25, "points": 5145075 },
+      { "percent": 50, "points": 10290150 },
+      { "percent": 75, "points": 15435225 },
+      { "percent": 100, "points": 20580300 }
+    ],
+    "S6": [
+      { "percent": 0, "points": 0 },
+      { "percent": 25, "points": 23672325 },
+      { "percent": 50, "points": 47344650 },
+      { "percent": 75, "points": 71016975 },
+      { "percent": 100, "points": 94689300 }
+    ]
+  },
+  "bonuses": {
+    "S1": 11300,
+    "S2": 48300,
+    "S3": 159700,
+    "S4": 556200,
+    "S5": 1542400,
+    "S6": 7101000
+  }
+}

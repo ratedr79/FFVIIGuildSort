@@ -16,7 +16,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             List<PlayerStageProfile> players,
             TodayState todayState,
             SimulationTestSettings settings,
-            string scoreBy = "MinSumFinalHP")
+            string scoreBy = "MinSumFinalHP",
+            StagePointEstimator? pointEstimator = null)
         {
             var results = new AggregatedTestResults
             {
@@ -36,7 +37,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 };
 
                 // Create a fresh engine with the seed
-                var engine = new GuildBattleAssignmentEngine(seed);
+                var engine = new GuildBattleAssignmentEngine(seed, pointEstimator);
                 
                 // Reprocess averages if any filter toggle is disabled (default is all enabled)
                 var playersForRun = (settings.EnableOutlierFilter && settings.EnableDeviationCap)
@@ -90,10 +91,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public AggregatedTestResults RunSingleDetailed(
             List<PlayerStageProfile> players,
             TodayState todayState,
-            SimulationTestSettings settings)
+            SimulationTestSettings settings,
+            StagePointEstimator? pointEstimator = null)
         {
             settings.NumberOfRuns = 1;
-            var results = RunMultiple(players, todayState, settings);
+            var results = RunMultiple(players, todayState, settings, pointEstimator: pointEstimator);
 
             // Build assignment rationales using dynamic top-scorer S6 selection
             // (mirrors the engine's relative cutoff logic)
