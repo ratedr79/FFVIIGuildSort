@@ -23,6 +23,12 @@
       "roles": ["DPS", "DPS", "Healer"],
       "enabled": true,
       "priority": 4
+    },
+    {
+      "name": "DPS/DPS/Tank",
+      "roles": ["DPS", "DPS", "Tank"],
+      "enabled": true,
+      "priority": 5
     }
   ]
 }
