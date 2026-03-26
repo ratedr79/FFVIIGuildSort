@@ -501,11 +501,12 @@
                                             {
                                                 <th class="text-center">S@((int)stage) HP</th>
                                             }
+                                            <th class="text-end">Total Points</th>
                                             <th class="text-center">Rank</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @{ var colSpan = 10 + Enum.GetValues<StageId>().Length; }
+                                        @{ var colSpan = 11 + Enum.GetValues<StageId>().Length; }
                                         @foreach (var run in agg.Runs)
                                         {
                                             var isBest = run.RunIndex == agg.BestRunIndex;
@@ -527,6 +528,10 @@
                                                     var color = hp <= 0.01 ? "text-success" : hp < 50 ? "text-warning" : "text-danger";
                                                     <td class="text-center @color">@hp.ToString("F1")%</td>
                                                 }
+                                                @{
+                                                    var zRunPts = run.AttackLog.Where(e => !e.IsReset).Sum(e => e.EstimatedPoints + e.BonusPoints);
+                                                }
+                                                <td class="text-end">@(zRunPts > 0 ? zRunPts.ToString("N0") : "")</td>
                                                 <td class="text-center">
                                                     @if (isBest) { <span class="badge bg-success">Best</span> }
                                                     else if (isWorst) { <span class="badge bg-danger">Worst</span> }

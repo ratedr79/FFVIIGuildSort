@@ -81,10 +81,6 @@
                 <div class="col-md-4">
                     <div class="d-flex gap-3 align-items-center flex-wrap">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="EnableVariance" name="EnableVariance" value="true" @(Model.EnableVariance ? "checked" : "") />
-                            <label class="form-check-label" for="EnableVariance">Variance</label>
-                        </div>
-                        <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="EnableOutlierFilter" name="EnableOutlierFilter" value="true" @(Model.EnableOutlierFilter ? "checked" : "") />
                             <label class="form-check-label" for="EnableOutlierFilter">Outlier Filter</label>
                         </div>
@@ -360,11 +356,12 @@
                                             {
                                                 <th class="text-center">S@((int)stage) HP</th>
                                             }
+                                            <th class="text-end">Total Points</th>
                                             <th class="text-center">Rank</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @{ var colSpan = 10 + Enum.GetValues<StageId>().Length; }
+                                        @{ var colSpan = 11 + Enum.GetValues<StageId>().Length; }
                                         @foreach (var run in Model.Results.Runs)
                                         {
                                             var blocked = run.AttemptsAvailable - run.AttemptsUsed;
@@ -398,6 +395,10 @@
                                                     var color = hp <= 0.01 ? "text-success" : hp < 50 ? "text-warning" : "text-danger";
                                                     <td class="text-center @color">@hp.ToString("F1")%</td>
                                                 }
+                                                @{
+                                                    var runPts = run.AttackLog.Where(e => !e.IsReset).Sum(e => e.EstimatedPoints + e.BonusPoints);
+                                                }
+                                                <td class="text-end">@(runPts > 0 ? runPts.ToString("N0") : "")</td>
                                                 <td class="text-center">
                                                     @if (isBest)
                                                     {

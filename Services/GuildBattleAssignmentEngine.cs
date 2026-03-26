@@ -360,6 +360,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // Build effective percentages for each player
             var playerEffMap = new Dictionary<string, Dictionary<StageId, double>>(StringComparer.OrdinalIgnoreCase);
             var playerAvgMap = new Dictionary<string, Dictionary<StageId, double>>(StringComparer.OrdinalIgnoreCase);
+            var playerMockMap = new Dictionary<string, Dictionary<StageId, double>>(StringComparer.OrdinalIgnoreCase);
             var playerAttempts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in players)
@@ -369,15 +370,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var effMap = new Dictionary<StageId, double>();
                 var avgMap = new Dictionary<StageId, double>();
+                var mockMap = new Dictionary<StageId, double>();
                 foreach (var stage in Enum.GetValues<StageId>())
                 {
                     p.AveragedPercents.TryGetValue(stage, out var pct);
                     avgMap[stage] = pct;
+                    p.MockPercents.TryGetValue(stage, out var mockPct);
+                    mockMap[stage] = mockPct;
                     double smartMargin = CalculateSmartMargin(p, stage, marginOfErrorPercent);
                     effMap[stage] = Math.Max(0.0, pct - smartMargin);
                 }
                 playerEffMap[p.Name] = effMap;
                 playerAvgMap[p.Name] = avgMap;
+                playerMockMap[p.Name] = mockMap;
                 playerAttempts[p.Name] = attemptsLeft;
             }
 
@@ -944,28 +949,42 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var eff = playerEffMap.GetValueOrDefault(attackerName);
                 var avg = playerAvgMap.GetValueOrDefault(attackerName);
+                var mock = playerMockMap.GetValueOrDefault(attackerName);
                 double baseDamage = eff?.GetValueOrDefault(targetStage.Value, 0) ?? 0;
                 double avgPct = avg?.GetValueOrDefault(targetStage.Value, 0) ?? 0;
                 var nextStage = targetStage.Value == StageId.S6 ? (StageId?)null : (StageId)((int)targetStage.Value + 1);
                 double nextStageAvg = nextStage.HasValue ? (avg?.GetValueOrDefault(nextStage.Value, 0) ?? 0) : 0;
+                double nextStageMock = nextStage.HasValue ? (mock?.GetValueOrDefault(nextStage.Value, 0) ?? 0) : 0;
+
+                // If attacking S1-S3 and the player's mock for the next stage is 100%, guarantee a clear
+                bool guaranteedClear = (int)targetStage.Value <= (int)StageId.S3 && nextStageMock >= 99.9;
 
                 if (baseDamage <= 0)
                     baseDamage = Math.Max(0.5, avgPct);
 
-                // Variance
-                double varianceMultiplier;
-                if (avgPct >= 99.5 || nextStageAvg >= 85.0)
-                    varianceMultiplier = 0.995 + (_random.NextDouble() * 0.025);
-                else if (avgPct >= 99.0)
-                    varianceMultiplier = 0.98 + (_random.NextDouble() * 0.04);
-                else
-                    varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2);
-                double damage = baseDamage * varianceMultiplier;
-
-                bool veryHighConfidence = avgPct >= 99.5 || nextStageAvg >= 85.0;
-                if (veryHighConfidence && hp[targetStage.Value] <= 2.0)
+                double damage;
+                if (guaranteedClear)
                 {
-                    damage = Math.Max(damage, hp[targetStage.Value]);
+                    // Player can definitely clear this stage — use full averaged pct with minimal variance
+                    damage = Math.Max(avgPct, hp[targetStage.Value]);
+                }
+                else
+                {
+                    // Variance
+                    double varianceMultiplier;
+                    if (avgPct >= 99.5 || nextStageAvg >= 85.0)
+                        varianceMultiplier = 0.995 + (_random.NextDouble() * 0.025);
+                    else if (avgPct >= 99.0)
+                        varianceMultiplier = 0.98 + (_random.NextDouble() * 0.04);
+                    else
+                        varianceMultiplier = 0.9 + (_random.NextDouble() * 0.2);
+                    damage = baseDamage * varianceMultiplier;
+
+                    bool veryHighConfidence = avgPct >= 99.5 || nextStageAvg >= 85.0;
+                    if (veryHighConfidence && hp[targetStage.Value] <= 2.0)
+                    {
+                        damage = Math.Max(damage, hp[targetStage.Value]);
+                    }
                 }
 
                 double hpBefore = hp[targetStage.Value];
@@ -1057,10 +1076,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                         var eff = playerEffMap.GetValueOrDefault(playerName);
                         var avg = playerAvgMap.GetValueOrDefault(playerName);
+                        var mock = playerMockMap.GetValueOrDefault(playerName);
                         double baseDamage = eff?.GetValueOrDefault(targetStage, 0) ?? 0;
                         double avgPct = avg?.GetValueOrDefault(targetStage, 0) ?? 0;
                         var nextStage = targetStage == StageId.S6 ? (StageId?)null : (StageId)((int)targetStage + 1);
                         double nextStageAvg = nextStage.HasValue ? (avg?.GetValueOrDefault(nextStage.Value, 0) ?? 0) : 0;
+                        double nextStageMock = nextStage.HasValue ? (mock?.GetValueOrDefault(nextStage.Value, 0) ?? 0) : 0;
+
+                        // If attacking S1-S3 and the player's mock for the next stage is 100%, guarantee a clear
+                        bool guaranteedClear = (int)targetStage <= (int)StageId.S3 && nextStageMock >= 99.9;
 
                         if (baseDamage <= 0)
                             baseDamage = avgPct;
@@ -1069,6 +1093,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         if (baseDamage <= 0 || hp[targetStage] <= 0.005)
                         {
                             damage = 0;
+                        }
+                        else if (guaranteedClear)
+                        {
+                            // Player can definitely clear this stage — use full averaged pct with minimal variance
+                            damage = Math.Max(avgPct, hp[targetStage]);
                         }
                         else
                         {

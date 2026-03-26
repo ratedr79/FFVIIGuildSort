@@ -10,7 +10,6 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public double MarginOfErrorPercent { get; set; } = 4.0;
         public string SeedMode { get; set; } = "Auto"; // Auto, Fixed, Incremental
         public int FixedSeed { get; set; } = 42;
-        public bool EnableVariance { get; set; } = true;
         public bool EnableOutlierFilter { get; set; } = true;
         public bool EnableDeviationCap { get; set; } = true;
         public double OvershootTriggerPercent { get; set; } = 20;

@@ -48,9 +48,6 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public int FixedSeed { get; set; } = 42;
 
         [BindProperty]
-        public bool EnableVariance { get; set; } = true;
-
-        [BindProperty]
         public bool EnableOutlierFilter { get; set; } = true;
 
         [BindProperty]
@@ -259,7 +256,6 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                     MarginOfErrorPercent = MarginOfErrorPercent,
                     SeedMode = SeedMode,
                     FixedSeed = FixedSeed,
-                    EnableVariance = EnableVariance,
                     EnableOutlierFilter = EnableOutlierFilter,
                     EnableDeviationCap = EnableDeviationCap,
                     OvershootTriggerPercent = OvershootTriggerPercent,

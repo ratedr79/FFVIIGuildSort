@@ -29,6 +29,12 @@
       "roles": ["DPS", "DPS", "Tank"],
       "enabled": true,
       "priority": 5
+    },
+    {
+      "name": "DPS/DPS/Support",
+      "roles": ["DPS", "DPS", "Support"],
+      "enabled": true,
+      "priority": 5
     }
   ]
 }
