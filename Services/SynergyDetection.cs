@@ -50,6 +50,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
                    effectTextBlob.Contains(token, StringComparison.OrdinalIgnoreCase);
         }
 
+        private static bool HasAnyToken(string? effectTextBlob, params string[] tokens)
+        {
+            if (string.IsNullOrWhiteSpace(effectTextBlob) || tokens == null || tokens.Length == 0)
+                return false;
+            foreach (var token in tokens)
+            {
+                if (!string.IsNullOrWhiteSpace(token) && effectTextBlob.Contains(token, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
         public static bool ProvidesWeaknessUtility(WeaponInfo weapon, Element weakness)
         {
             if (weakness == Element.None)
@@ -210,6 +222,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 DamageType.Magical => HasAnyToken(weapon, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up"),
                 _ => HasAnyToken(weapon, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up") ||
                      HasAnyToken(weapon, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up")
+            };
+        }
+
+        public static bool ProvidesAllTargetDamageReceivedUp(WeaponInfo weapon, DamageType preferred)
+        {
+            return preferred switch
+            {
+                DamageType.Physical => HasAnyToken(weapon, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up"),
+                DamageType.Magical => HasAnyToken(weapon, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"),
+                _ => HasAnyToken(weapon, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up") ||
+                     HasAnyToken(weapon, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up")
             };
         }
 
@@ -592,6 +615,30 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
+            // All-target damage received up: same tier as single-target, for AoE abilities.
+            if (ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            {
+                var token = ctx.PreferredDamageType switch
+                {
+                    DamageType.Physical => "All-Tgt. Phys. Dmg. Rcvd. Up",
+                    DamageType.Magical => "All-Tgt. Mag. Dmg. Rcvd. Up",
+                    _ => string.Empty
+                };
+
+                var pot = !string.IsNullOrWhiteSpace(token)
+                    ? TryGetEffectPotScaled(weapon.EffectTextBlob, token, overboostLevel)
+                    : null;
+
+                if (pot.HasValue)
+                {
+                    score += ApplyBonus(ctx, "AllTargetDamageReceivedUp", Math.Min(360, 14.5 * pot.Value));
+                }
+                else
+                {
+                    score += ApplyBonus(ctx, "AllTargetDamageReceivedUp", 260);
+                }
+            }
+
             if (ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType))
             {
                 var token = ctx.PreferredDamageType switch
@@ -895,6 +942,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                              ProvidesElementalWeaponBoost(weapon, ctx.EnemyWeakness) ||
                              ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
                              ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
+                             ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
                              ProvidesDamageTypeBoost(weapon, ctx.PreferredDamageType) ||
                              ProvidesDamageTypeDamageBonus(weapon, ctx.PreferredDamageType) ||
                              ProvidesDamageTypeAtkUp(weapon, ctx.PreferredDamageType) ||
@@ -907,7 +955,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var isDebuffLike = ProvidesElementalResistanceDown(weapon, ctx.EnemyWeakness) ||
                                ProvidesDefenseDown(weapon, ctx.PreferredDamageType) ||
                                ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
-                               ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType);
+                               ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
+                               ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType);
 
             if (isBuffLike && !isDebuffLike)
             {
@@ -973,6 +1022,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
             {
                 reasons.Add($"{ctx.PreferredDamageType} single-target damage received up");
+            }
+
+            if (ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            {
+                reasons.Add($"{ctx.PreferredDamageType} all-target damage received up");
             }
 
             if (ProvidesDamageTypeDamageBonus(weapon, ctx.PreferredDamageType))
@@ -1073,6 +1127,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     if (HasToken(effectTextBlob, "Phys. Weapon Boost")) matches.Add(new Match("phys_weapon_boost", "Physical weapon boost"));
                     if (HasToken(effectTextBlob, "Phys. Dmg. Rcvd. Up")) matches.Add(new Match("phys_rcvd_up", "Physical damage received up"));
+                    if (HasAnyToken(effectTextBlob, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up"))
+                        matches.Add(new Match("phys_rcvd_up_all", "Physical all-target damage received up"));
                     if (HasToken(effectTextBlob, "Phys. Damage Bonus")) matches.Add(new Match("phys_dmg_bonus", "Physical damage bonus"));
                     if (HasToken(effectTextBlob, "PATK Up")) matches.Add(new Match("patk_up", "PATK up"));
                     if (HasToken(effectTextBlob, "PDEF Down")) matches.Add(new Match("pdef_down", "PDEF down (lower weight)"));
@@ -1081,6 +1137,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     if (HasToken(effectTextBlob, "Mag. Weapon Boost")) matches.Add(new Match("mag_weapon_boost", "Magical weapon boost"));
                     if (HasToken(effectTextBlob, "Mag. Dmg. Rcvd. Up")) matches.Add(new Match("mag_rcvd_up", "Magical damage received up"));
+                    if (HasAnyToken(effectTextBlob, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"))
+                        matches.Add(new Match("mag_rcvd_up_all", "Magical all-target damage received up"));
                     if (HasToken(effectTextBlob, "Mag. Damage Bonus")) matches.Add(new Match("mag_dmg_bonus", "Magical damage bonus"));
                     if (HasToken(effectTextBlob, "MATK Up")) matches.Add(new Match("matk_up", "MATK up"));
                     if (HasToken(effectTextBlob, "MDEF Down")) matches.Add(new Match("mdef_down", "MDEF down (lower weight)"));

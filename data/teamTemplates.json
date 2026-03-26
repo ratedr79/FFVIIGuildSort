@@ -34,7 +34,7 @@
       "name": "DPS/DPS/Support",
       "roles": ["DPS", "DPS", "Support"],
       "enabled": true,
-      "priority": 5
+      "priority": 6
     }
   ]
 }

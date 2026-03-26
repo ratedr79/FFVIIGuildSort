@@ -1521,6 +1521,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     if (weapon.EffectTextBlob.Contains("Phys. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase)) cats.Add("phys_rcvd_up");
                     if (weapon.EffectTextBlob.Contains("Single-Tgt. Phys. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase) ||
                         weapon.EffectTextBlob.Contains("Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase)) cats.Add("phys_rcvd_up_single");
+                    if (weapon.EffectTextBlob.Contains("All-Tgt. Phys. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase) ||
+                        weapon.EffectTextBlob.Contains("Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase)) cats.Add("phys_rcvd_up_all");
                     if (weapon.EffectTextBlob.Contains("Phys. Damage Bonus", StringComparison.OrdinalIgnoreCase)) cats.Add("phys_dmg_bonus");
                     if (weapon.EffectTextBlob.Contains("PATK Up", StringComparison.OrdinalIgnoreCase)) cats.Add("patk_up");
                     if (weapon.EffectTextBlob.Contains("PDEF Down", StringComparison.OrdinalIgnoreCase)) cats.Add("pdef_down");
@@ -1532,6 +1534,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     if (weapon.EffectTextBlob.Contains("Mag. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase)) cats.Add("mag_rcvd_up");
                     if (weapon.EffectTextBlob.Contains("Single-Tgt. Mag. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase) ||
                         weapon.EffectTextBlob.Contains("Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase)) cats.Add("mag_rcvd_up_single");
+                    if (weapon.EffectTextBlob.Contains("All-Tgt. Mag. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase) ||
+                        weapon.EffectTextBlob.Contains("Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up", StringComparison.OrdinalIgnoreCase)) cats.Add("mag_rcvd_up_all");
                     if (weapon.EffectTextBlob.Contains("Mag. Damage Bonus", StringComparison.OrdinalIgnoreCase)) cats.Add("mag_dmg_bonus");
                     if (weapon.EffectTextBlob.Contains("MATK Up", StringComparison.OrdinalIgnoreCase)) cats.Add("matk_up");
                     if (weapon.EffectTextBlob.Contains("MDEF Down", StringComparison.OrdinalIgnoreCase)) cats.Add("mdef_down");
