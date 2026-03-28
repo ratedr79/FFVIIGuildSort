@@ -2833,5 +2833,20 @@
     "ability8": null,
     "ability9": null,
     "ability10": null
+  },
+  {
+    "character": "Sephirot  ",
+    "outfit": "The Immaculate",
+    "command": "Deal 2000.0% Phys. Earth damage [Rng: All Enemies] \nApplies Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up [Rng: All Enemies] [Pot: 50.0%] [Dur: 60s] [Ext: 60s]. Uses: 2; ATB: 4",
+    "ability1": "Boost Earth Pot. (All Allies) +15 pts",
+    "ability2": "Earth Ability Dmg. +10%;",
+    "ability3": "HP +15%",
+    "ability4": "Attack Stance Cmd. Gauge Max.: Phys. Ability Dmg. +15%;",
+    "ability5": null,
+    "ability6": null,
+    "ability7": null,
+    "ability8": null,
+    "ability9": null,
+    "ability10": null
   }
 ]

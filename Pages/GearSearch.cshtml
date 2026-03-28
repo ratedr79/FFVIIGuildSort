@@ -1,0 +1,164 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.GearSearchModel
+@{
+    ViewData["Title"] = "Gear Search";
+}
+
+<div class="container py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Gear Search</h1>
+            <p class="text-muted mb-0">Browse all weapons with passive skills and filters.</p>
+        </div>
+        <a class="btn btn-outline-primary" href="https://cyphersignal.github.io/ff7ec/" target="_blank" rel="noopener">
+            <i class="fas fa-arrow-up-right-from-square me-2"></i>Open original FF7EC Equipment Database
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label mb-1">Characters</label>
+                    <div class="text-muted small mb-2">Check one or more characters to filter. Leave all unchecked to show everything.</div>
+                    <div id="characterCheckboxGroup" class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2">
+                        @foreach (var character in GearSearchModel.AvailableCharacters)
+                        {
+                            var checkboxId = $"character-{character.Replace(" ", "-").ToLowerInvariant()}";
+                            <div class="col">
+                                <div class="form-check">
+                                    <input class="form-check-input character-checkbox" type="checkbox" value="@character" id="@checkboxId" />
+                                    <label class="form-check-label" for="@checkboxId">@character</label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label for="searchBox" class="form-label">Search</label>
+                    <input id="searchBox" type="text" class="form-control" placeholder="Search by weapon, ability, effects..." />
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label for="pageSize" class="form-label">Rows per page</label>
+                    <select id="pageSize" class="form-select">
+                        @foreach (var size in GearSearchModel.AvailablePageSizes)
+                        {
+                            if (Model.PageSize == size)
+                            {
+                                <option value="@size" selected>@size</option>
+                            }
+                            else
+                            {
+                                <option value="@size">@size</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <table id="gearTable" class="table table-striped table-bordered w-100">
+                <thead>
+                    <tr>
+                        <th>Weapon</th>
+                        <th>Character</th>
+                        <th>Element</th>
+                        <th>Damage %</th>
+                        <th>Range</th>
+                        <th>Type</th>
+                        <th>Gacha</th>
+                        <th>R. Abilities (Lv. 130/OB 10)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var weapon in Model.Weapons)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@weapon.Name</div>
+                                <div class="text-muted small">
+                                    @if (!string.IsNullOrWhiteSpace(weapon.AbilityText))
+                                    {
+                                        @Html.Raw(weapon.AbilityText.Replace("\r\n", "<br />").Replace("\n", "<br />"))
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No ability data</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>@weapon.Character</td>
+                            <td>@weapon.Element</td>
+                            <td>@string.Format("{0:N1}%", weapon.DamagePercent)
+                            </td>
+                            <td>@weapon.Range</td>
+                            <td>@weapon.AbilityType</td>
+                            <td>@weapon.GachaType</td>
+                            <td>
+                                @if (weapon.MaxPassiveSkills.Any())
+                                {
+                                    <ul class="list-unstyled small mb-0">
+                                        @foreach (var passive in weapon.MaxPassiveSkills)
+                                        {
+                                            <li>
+                                                <strong>+@passive.TotalPoints</strong> @passive.SkillName
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No OB data</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const table = new DataTable('#gearTable', {
+                pageLength: @Model.PageSize,
+                lengthChange: false,
+                order: [[0, 'asc']],
+                language: {
+                    search: '',
+                    searchPlaceholder: 'Filter table...'
+                }
+            });
+
+            const searchBox = document.getElementById('searchBox');
+            searchBox.addEventListener('keyup', (e) => table.search(e.target.value).draw());
+
+            const pageSizeSelect = document.getElementById('pageSize');
+            pageSizeSelect.addEventListener('change', (e) => table.page.len(parseInt(e.target.value, 10)).draw());
+
+            const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const updateCharacterFilter = () => {
+                const selected = Array.from(document.querySelectorAll('.character-checkbox:checked')).map(cb => cb.value);
+                if (selected.length === 0) {
+                    table.column(1).search('').draw();
+                    return;
+                }
+
+                const pattern = `^(${selected.map(escapeRegex).join('|')})$`;
+                table.column(1).search(pattern, true, false).draw();
+            };
+
+            document.getElementById('characterCheckboxGroup')
+                .addEventListener('change', (event) => {
+                    if (event.target && event.target.classList.contains('character-checkbox')) {
+                        updateCharacterFilter();
+                    }
+                });
+        });
+    </script>
+}

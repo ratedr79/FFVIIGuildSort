@@ -2588,5 +2588,17 @@
     "weapon": "Festive Blade",
     "ability1": "Boost MATK (All Allies) +46 pts",
     "ability2": "Boost Mag. Ability Pot. +42 pts"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Immaculate Blade",
+    "ability1": "Boost PATK +46 pts",
+    "ability2": "Boost Earth Pot. +56 pts"
+  },
+  {
+    "character": "Cait Sith",
+    "weapon": "Sable Megaphone",
+    "ability1": "Boost MATK +46 pts",
+    "ability2": "Boost Earth Pot. +39 pts"
   }
 ]

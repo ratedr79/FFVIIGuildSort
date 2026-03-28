@@ -220,5 +220,17 @@
     "weapon": "Divine Emissary",
     "ability1": "Boost Elem. Pot. Arcanum (All Allies) +45 pts",
     "ability2": "Fortunate Interruption +25 pt"
+  },
+  {
+    "character": "Zack",
+    "weapon": "Divine Emissary",
+    "ability1": "Boost Elem. Pot. Arcanum (All Allies) +45 pts",
+    "ability2": "Fortunate Interruption +25 pt"
+  },
+  {
+    "character": "Sephiroth",
+    "weapon": "Metsumato",
+    "ability1": "Boost Elem. Pot. Arcanum (All Allies) +45 pts",
+    "ability2": "Interruption Damage Bonus (All Allies) +25 pt"
   }
 ]
