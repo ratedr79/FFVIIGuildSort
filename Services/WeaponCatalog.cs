@@ -68,7 +68,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
 
                     var character = (csv.GetField("Character") ?? string.Empty).Trim();
-                    var gachaType = (csv.GetField("GachaType") ?? string.Empty).Trim();
+                    var equipmentType = (csv.GetField("GachaType") ?? string.Empty).Trim();
                     var abilityElement = (csv.GetField("Ability Element") ?? string.Empty).Trim();
                     var abilityType = (csv.GetField("Ability Type") ?? string.Empty).Trim();
                     var abilityRange = (csv.GetField("Ability Range") ?? string.Empty).Trim();
@@ -153,8 +153,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             .Where(s => !string.IsNullOrWhiteSpace(s)));
                     }
 
-                    AddWeaponOrCostume(name, character, gachaType, abilityElement, abilityType, abilityRange, abilityPotPercent, multiplyDamageBonusPercent, effectText);
-                    if (gachaType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase))
+                    AddWeaponOrCostume(name, character, equipmentType, abilityElement, abilityType, abilityRange, abilityPotPercent, multiplyDamageBonusPercent, effectText);
+                    if (equipmentType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase))
                     {
                         TryEnrichWeaponFromAdditional(additionalUltimateWeapons, name, _byWeaponName[name]);
                     }
@@ -162,7 +162,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     {
                         TryEnrichWeaponFromAdditional(additionalWeapons, name, _byWeaponName[name]);
                     }
-                    if (gachaType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
+                    if (equipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
                     {
                         TryEnrichCostumeFromAdditional(additionalOutfits, name, _byCostumeName);
                     }
@@ -175,7 +175,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private void AddWeaponOrCostume(
             string name,
             string character,
-            string gachaType,
+            string equipmentType,
             string abilityElement,
             string abilityType,
             string abilityRange,
@@ -187,8 +187,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 Name = name,
                 Character = character,
-                GachaType = gachaType,
-                IsUltimate = gachaType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase),
+                EquipmentType = equipmentType,
+                IsUltimate = equipmentType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase),
                 AbilityElement = abilityElement,
                 AbilityType = abilityType,
                 AbilityRange = abilityRange,
@@ -203,7 +203,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 _byWeaponNameNormalized[normalizedName] = _byWeaponName[name];
             }
 
-            if (gachaType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
+            if (equipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
             {
                 var costume = new CostumeInfo
                 {
@@ -572,7 +572,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
     {
         public string Name { get; set; } = string.Empty;
         public string Character { get; set; } = string.Empty;
-        public string GachaType { get; set; } = string.Empty;
+        public string EquipmentType { get; set; } = string.Empty;
+        public string GachaType
+        {
+            get => EquipmentType;
+            set => EquipmentType = value;
+        }
         public bool IsUltimate { get; set; }
         public string AbilityElement { get; set; } = string.Empty;
         public string AbilityType { get; set; } = string.Empty;

@@ -18,6 +18,25 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int PassiveSkillId2 { get; set; }
     }
 
+    public sealed class CharacterCostumeRaw
+    {
+        public int Id { get; set; }
+        public int CharacterId { get; set; }
+        public int PassiveSkillId0 { get; set; }
+        public int PassiveSkillId1 { get; set; }
+        public int PassiveSkillPoint0 { get; set; }
+        public int PassiveSkillPoint1 { get; set; }
+        public long NameLanguageId { get; set; }
+        public int SkillCharacterCostumeId { get; set; }
+    }
+
+    public sealed class SkillCharacterCostumeRaw
+    {
+        public int Id { get; set; }
+        public int SkillActiveId { get; set; }
+        public int SkillNotesSetId { get; set; }
+    }
+
     public sealed class CharacterRaw
     {
         public int Id { get; set; }

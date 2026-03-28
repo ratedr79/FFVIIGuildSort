@@ -14,7 +14,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string AbilityType { get; init; }
         public required int CommandAtb { get; init; }
         public required string CommandSigil { get; init; }
-        public required string GachaType { get; init; }
+        public required string EquipmentType { get; init; }
         public required string MateriaSupport0 { get; init; }
         public required string MateriaSupport1 { get; init; }
         public required string MateriaSupport2 { get; init; }
@@ -23,6 +23,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required List<UpgradeSkillData> UpgradeSkills { get; init; }
         public required List<PassiveSkillTotal> MaxPassiveSkills { get; init; }
         public required string MaxAbilityDescription { get; init; }
+        public required List<string> EffectTags { get; init; }
     }
 
     public sealed class UpgradeSkillData

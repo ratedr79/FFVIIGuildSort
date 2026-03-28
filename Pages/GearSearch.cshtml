@@ -2,6 +2,48 @@
 @model FFVIIEverCrisisAnalyzer.Pages.GearSearchModel
 @{
     ViewData["Title"] = "Gear Search";
+
+    var elementOptions = Model.Weapons
+        .Select(w => w.Element)
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(s => s)
+        .ToList();
+
+    var rangeOptions = Model.Weapons
+        .Select(w => w.Range)
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(s => s)
+        .ToList();
+
+    var abilityTypeOptions = Model.Weapons
+        .Select(w => w.AbilityType)
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(s => s)
+        .ToList();
+
+    var equipmentTypeOptions = Model.Weapons
+        .Select(w => w.EquipmentType)
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(s => s)
+        .ToList();
+
+    var rAbilityOptions = Model.Weapons
+        .SelectMany(w => w.MaxPassiveSkills.Select(p => p.SkillName))
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(s => s)
+        .ToList();
+
+    var effectOptions = Model.Weapons
+        .SelectMany(w => w.EffectTags)
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(s => s)
+        .ToList();
 }
 
 <div class="container py-4">
@@ -58,6 +100,170 @@
         </div>
     </div>
 
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Advanced Search</span>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearchCollapse" aria-expanded="false" aria-controls="advancedSearchCollapse">
+                Toggle Filters
+            </button>
+        </div>
+        <div class="collapse" id="advancedSearchCollapse">
+            <div class="card-body">
+                <div class="accordion" id="advancedFiltersAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingElement">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseElement" aria-expanded="false" aria-controls="collapseElement">
+                                Element Type
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".element-filter">Reset</button>
+                        </h2>
+                        <div id="collapseElement" class="accordion-collapse collapse" aria-labelledby="headingElement" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body">
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var element in elementOptions)
+                                    {
+                                        var checkboxId = $"element-{element.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter element-filter" type="checkbox" value="@element" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@element</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingAbility">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAbility" aria-expanded="false" aria-controls="collapseAbility">
+                                Ability Type
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".ability-filter">Reset</button>
+                        </h2>
+                        <div id="collapseAbility" class="accordion-collapse collapse" aria-labelledby="headingAbility" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body">
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var ability in abilityTypeOptions)
+                                    {
+                                        var checkboxId = $"ability-{ability.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter ability-filter" type="checkbox" value="@ability" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@ability</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingRange">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRange" aria-expanded="false" aria-controls="collapseRange">
+                                Range Type
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".range-filter">Reset</button>
+                        </h2>
+                        <div id="collapseRange" class="accordion-collapse collapse" aria-labelledby="headingRange" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body">
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var range in rangeOptions)
+                                    {
+                                        var checkboxId = $"range-{range.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter range-filter" type="checkbox" value="@range" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@range</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingEquipment">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEquipment" aria-expanded="false" aria-controls="collapseEquipment">
+                                Equipment Type
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".equipment-filter">Reset</button>
+                        </h2>
+                        <div id="collapseEquipment" class="accordion-collapse collapse" aria-labelledby="headingEquipment" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body">
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var type in equipmentTypeOptions)
+                                    {
+                                        var checkboxId = $"equipment-{type.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter equipment-filter" type="checkbox" value="@type" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@type</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingRAbilities">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRAbilities" aria-expanded="false" aria-controls="collapseRAbilities">
+                                R Abilities
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".rability-filter">Reset</button>
+                        </h2>
+                        <div id="collapseRAbilities" class="accordion-collapse collapse" aria-labelledby="headingRAbilities" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var passive in rAbilityOptions)
+                                    {
+                                        var checkboxId = $"rability-{passive.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter rability-filter" type="checkbox" value="@passive" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@passive</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingEffects">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEffects" aria-expanded="false" aria-controls="collapseEffects">
+                                Effects
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".effect-filter">Reset</button>
+                        </h2>
+                        <div id="collapseEffects" class="accordion-collapse collapse" aria-labelledby="headingEffects" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
+                                <div class="row row-cols-2 row-cols-md-3 g-2">
+                                    @foreach (var effect in effectOptions)
+                                    {
+                                        var checkboxId = $"effect-{effect.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter effect-filter" type="checkbox" value="@effect" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@effect</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             <table id="gearTable" class="table table-striped table-bordered w-100">
@@ -69,7 +275,8 @@
                         <th>Damage %</th>
                         <th>Range</th>
                         <th>Type</th>
-                        <th>Gacha</th>
+                        <th>Equipment Type</th>
+                        <th>Effects</th>
                         <th>R. Abilities (Lv. 130/OB 10)</th>
                     </tr>
                 </thead>
@@ -77,12 +284,20 @@
                     @foreach (var weapon in Model.Weapons)
                     {
                         <tr>
+                            @{
+                                var costumeNoAbility = weapon.EquipmentType.Equals("Costume", System.StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(weapon.AbilityText);
+                            }
                             <td>
                                 <div class="fw-semibold">@weapon.Name</div>
                                 <div class="text-muted small">
                                     @if (!string.IsNullOrWhiteSpace(weapon.AbilityText))
                                     {
                                         @Html.Raw(weapon.AbilityText.Replace("\r\n", "<br />").Replace("\n", "<br />"))
+
+                                        if (weapon.EquipmentType.Equals("Costume", System.StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(weapon.UseCount))
+                                        {
+                                            <div class="mt-1">Uses: @weapon.UseCount</div>
+                                        }
                                     }
                                     else
                                     {
@@ -91,12 +306,30 @@
                                 </div>
                             </td>
                             <td>@weapon.Character</td>
-                            <td>@weapon.Element</td>
-                            <td>@string.Format("{0:N1}%", weapon.DamagePercent)
+                            <td>@(costumeNoAbility ? "N/A" : weapon.Element)</td>
+                            <td>
+                                @if (costumeNoAbility)
+                                {
+                                    @:N/A
+                                }
+                                else
+                                {
+                                    @string.Format("{0:N1}%", weapon.DamagePercent)
+                                }
                             </td>
-                            <td>@weapon.Range</td>
-                            <td>@weapon.AbilityType</td>
-                            <td>@weapon.GachaType</td>
+                            <td>@(costumeNoAbility ? "N/A" : weapon.Range)</td>
+                            <td>@(costumeNoAbility ? "N/A" : weapon.AbilityType)</td>
+                            <td>@weapon.EquipmentType</td>
+                            <td>
+                                @if (weapon.EffectTags.Any())
+                                {
+                                    <span>@string.Join(", ", weapon.EffectTags)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">None</span>
+                                }
+                            </td>
                             <td>
                                 @if (weapon.MaxPassiveSkills.Any())
                                 {
@@ -129,10 +362,7 @@
                 pageLength: @Model.PageSize,
                 lengthChange: false,
                 order: [[0, 'asc']],
-                language: {
-                    search: '',
-                    searchPlaceholder: 'Filter table...'
-                }
+                dom: 'lrtip'
             });
 
             const searchBox = document.getElementById('searchBox');
@@ -159,6 +389,50 @@
                         updateCharacterFilter();
                     }
                 });
+
+            const advancedFilters = [
+                { selector: '.element-filter', columnIndex: 2 },
+                { selector: '.range-filter', columnIndex: 4 },
+                { selector: '.ability-filter', columnIndex: 5 },
+                { selector: '.equipment-filter', columnIndex: 6 },
+                { selector: '.effect-filter', columnIndex: 7 },
+                { selector: '.rability-filter', columnIndex: 8 }
+            ];
+
+            const applyAdvancedFilter = (selector, columnIndex) => {
+                const selected = Array.from(document.querySelectorAll(`${selector}:checked`)).map(cb => cb.value);
+                if (selected.length === 0) {
+                    table.column(columnIndex).search('', true, false).draw();
+                    return;
+                }
+
+                const pattern = selected
+                    .map(value => escapeRegex(value))
+                    .join('|');
+
+                table.column(columnIndex).search(pattern, true, false).draw();
+            };
+
+            advancedFilters.forEach(group => {
+                document.querySelectorAll(group.selector).forEach(cb => {
+                    cb.addEventListener('change', () => applyAdvancedFilter(group.selector, group.columnIndex));
+                });
+            });
+
+            document.querySelectorAll('.reset-filter').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetSelector = button.getAttribute('data-filter-target');
+                    if (!targetSelector) {
+                        return;
+                    }
+
+                    document.querySelectorAll(`${targetSelector}:checked`).forEach(cb => cb.checked = false);
+                    const filterGroup = advancedFilters.find(group => group.selector === targetSelector);
+                    if (filterGroup) {
+                        applyAdvancedFilter(filterGroup.selector, filterGroup.columnIndex);
+                    }
+                });
+            });
         });
     </script>
 }

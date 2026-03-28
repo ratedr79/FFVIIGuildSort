@@ -151,6 +151,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .GroupBy(e => e.Id)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.SkillStatusChangeType).ToList());
 
+            var characterCostumes = LoadList<CharacterCostumeRaw>(Path.Combine(masterPath, "CharacterCostume.json"));
+            var skillCharacterCostumes = LoadList<SkillCharacterCostumeRaw>(Path.Combine(masterPath, "SkillCharacterCostume.json"))
+                .ToDictionary(c => c.Id);
+
             var materiaFallback = string.Empty;
 
             foreach (var weapon in weapons)
@@ -189,9 +193,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     skillBase = sb;
                 }
-                else if (skillBases.TryGetValue(skillWeapon.SkillActiveId, out var sbFallback))
+                else if (skillWeapon.SkillActiveId != 0 && skillBases.TryGetValue(skillWeapon.SkillActiveId, out var sbFallback))
                 {
                     skillBase = sbFallback;
+                }
+                else if (skillBases.TryGetValue(skillWeapon.Id, out var sbByWeaponSkill))
+                {
+                    skillBase = sbByWeaponSkill;
                 }
 
                 if (skillBase == null)
@@ -246,6 +254,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     abilityType,
                     element);
 
+                var effectTags = ExtractEffectTags(
+                    effectEntries,
+                    skillEffects,
+                    skillStatusConditionEffects,
+                    skillBuffDebuffs,
+                    skillStatusChangeEffects);
+
                 if (string.IsNullOrWhiteSpace(abilityDetails.Text))
                 {
                     _logger.LogWarning(
@@ -255,7 +270,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         effectEntries.Count);
                 }
 
-                var gachaType = ResolveGachaType(weapon);
+                var equipmentType = isUltimate ? "Ultimate" : ResolveEquipmentType(weapon);
 
                 var commandAtb = isUltimate ? 0 : skillActive?.Cost ?? 0;
                 var commandSigil = ResolveCommandSigil(skillWeapon.SkillNotesSetId, skillNotesSets);
@@ -312,7 +327,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     AbilityType = abilityType,
                     CommandAtb = commandAtb,
                     CommandSigil = commandSigil,
-                    GachaType = gachaType,
+                    EquipmentType = equipmentType,
                     MateriaSupport0 = materia0,
                     MateriaSupport1 = materia1,
                     MateriaSupport2 = materia2,
@@ -320,13 +335,228 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     UseCount = useCount,
                     UpgradeSkills = upgradeSkillData,
                     MaxPassiveSkills = maxPassiveTotals,
-                    MaxAbilityDescription = abilityDetails.Text
+                    MaxAbilityDescription = abilityDetails.Text,
+                    EffectTags = effectTags
                 };
 
                 _allWeapons.Add(searchItem);
             }
 
-            _logger.LogInformation("Loaded {Count} weapons from JSON master data", _allWeapons.Count);
+            AddCostumeEntries(
+                characterCostumes,
+                skillCharacterCostumes,
+                characters,
+                skillActives,
+                skillBases,
+                skillWeapons,
+                skillEffectGroups,
+                skillEffects,
+                skillEffectDescriptions,
+                skillEffectDescriptionGroups,
+                skillDamageEffects,
+                skillAdditionalEffects,
+                skillStatusChangeEffects,
+                skillStatusConditionEffects,
+                skillBuffDebuffs,
+                skillBuffDebuffEnhances,
+                skillCancelEffects,
+                skillAtbChanges,
+                skillSpecialGaugeChanges,
+                skillTacticsGaugeChanges,
+                skillOveraccelGaugeChanges,
+                skillCostumeCountChanges,
+                skillTriggerConditionHp,
+                buffDebuffGroups,
+                statusConditionGroups,
+                statusChangeGroups,
+                localization,
+                skillPassives,
+                skillNotesSets);
+
+            _logger.LogInformation("Loaded {Count} gear entries from JSON master data", _allWeapons.Count);
+        }
+
+        private void AddCostumeEntries(
+            List<CharacterCostumeRaw> characterCostumes,
+            Dictionary<int, SkillCharacterCostumeRaw> skillCharacterCostumes,
+            Dictionary<int, string> characters,
+            Dictionary<int, SkillActiveRaw> skillActives,
+            Dictionary<int, SkillBaseRaw> skillBases,
+            Dictionary<int, SkillWeaponRaw> skillWeapons,
+            Dictionary<long, List<SkillEffectGroupEntryRaw>> skillEffectGroups,
+            Dictionary<long, SkillEffectRaw> skillEffects,
+            Dictionary<long, SkillEffectDescriptionRaw> skillEffectDescriptions,
+            Dictionary<long, List<SkillEffectDescriptionGroupEntryRaw>> skillEffectDescriptionGroups,
+            Dictionary<long, SkillDamageEffectRaw> skillDamageEffects,
+            Dictionary<long, SkillAdditionalEffectRaw> skillAdditionalEffects,
+            Dictionary<long, SkillStatusChangeEffectRaw> skillStatusChangeEffects,
+            Dictionary<long, SkillStatusConditionEffectRaw> skillStatusConditionEffects,
+            Dictionary<long, SkillBuffDebuffRaw> skillBuffDebuffs,
+            Dictionary<long, SkillBuffDebuffEnhanceRaw> skillBuffDebuffEnhances,
+            Dictionary<long, SkillCancelEffectRaw> skillCancelEffects,
+            Dictionary<long, SkillAtbChangeEffectRaw> skillAtbChanges,
+            Dictionary<long, SkillSpecialGaugeChangeEffectRaw> skillSpecialGaugeChanges,
+            Dictionary<long, SkillTacticsGaugeChangeEffectRaw> skillTacticsGaugeChanges,
+            Dictionary<long, SkillOveraccelGaugeChangeEffectRaw> skillOveraccelGaugeChanges,
+            Dictionary<long, SkillCostumeCountChangeEffectRaw> skillCostumeCountChanges,
+            Dictionary<long, SkillTriggerConditionHpRaw> skillTriggerConditionHp,
+            Dictionary<long, List<int>> buffDebuffGroups,
+            Dictionary<long, List<int>> statusConditionGroups,
+            Dictionary<long, List<int>> statusChangeGroups,
+            LocalizationStore localization,
+            Dictionary<int, SkillPassiveRaw> skillPassives,
+            Dictionary<long, SkillNotesSetRaw> skillNotesSets)
+        {
+            foreach (var costume in characterCostumes)
+            {
+                if (!characters.TryGetValue(costume.CharacterId, out var characterName))
+                {
+                    characterName = $"Character #{costume.CharacterId}";
+                }
+
+                SkillCharacterCostumeRaw? costumeSkill = null;
+                if (costume.SkillCharacterCostumeId != 0)
+                {
+                    skillCharacterCostumes.TryGetValue(costume.SkillCharacterCostumeId, out costumeSkill);
+                }
+
+                SkillActiveRaw? costumeActive = null;
+                SkillBaseRaw? costumeBase = null;
+                SkillWeaponRaw? costumeWeaponSkill = null;
+
+                if (costumeSkill != null)
+                {
+                    skillActives.TryGetValue(costumeSkill.SkillActiveId, out costumeActive);
+                    if (costumeActive != null)
+                    {
+                        skillBases.TryGetValue(costumeActive.SkillBaseId, out costumeBase);
+                        skillWeapons.TryGetValue(costumeActive.SkillBaseId, out costumeWeaponSkill);
+                    }
+                }
+
+                string abilityType = string.Empty;
+                string element = "Unknown";
+                double damagePercent = 0;
+                string range = "Unknown";
+                string abilityText = string.Empty;
+                var effectTags = new List<string>();
+
+                if (costumeBase != null)
+                {
+                    abilityType = ResolveAttackType(costumeBase.BaseAttackType);
+                    element = ResolveElement(costumeBase.ElementType);
+
+                    var effectGroupId = (long)costumeBase.SkillEffectGroupId;
+                    var effectEntries = skillEffectGroups.TryGetValue(effectGroupId, out var entries)
+                        ? entries
+                        : new List<SkillEffectGroupEntryRaw>();
+
+                    var abilityDetails = BuildAbilityDetails(
+                        effectEntries,
+                        skillEffects,
+                        skillEffectDescriptions,
+                        skillEffectDescriptionGroups,
+                        skillDamageEffects,
+                        skillAdditionalEffects,
+                        skillStatusChangeEffects,
+                        skillStatusConditionEffects,
+                        skillBuffDebuffs,
+                        skillBuffDebuffEnhances,
+                        skillCancelEffects,
+                        skillAtbChanges,
+                        skillSpecialGaugeChanges,
+                        skillTacticsGaugeChanges,
+                        skillOveraccelGaugeChanges,
+                        skillCostumeCountChanges,
+                        skillTriggerConditionHp,
+                        buffDebuffGroups,
+                        statusConditionGroups,
+                        statusChangeGroups,
+                        localization,
+                        abilityType,
+                        element);
+
+                    abilityText = abilityDetails.Text;
+                    damagePercent = abilityDetails.DamagePercent;
+                    range = abilityDetails.Range;
+                    element = abilityDetails.IsHealing ? "Heal" : element;
+
+                    var costumeTags = ExtractEffectTags(
+                        effectEntries,
+                        skillEffects,
+                        skillStatusConditionEffects,
+                        skillBuffDebuffs,
+                        skillStatusChangeEffects);
+                    effectTags = costumeTags;
+                }
+
+                var commandAtb = costumeActive?.Cost ?? 0;
+                var commandSigil = ResolveCommandSigil(costumeSkill?.SkillNotesSetId ?? 0, skillNotesSets);
+                var useCount = costumeActive?.UseCountLimit > 0 ? costumeActive.UseCountLimit.ToString() : string.Empty;
+
+                var searchItem = new WeaponSearchItem
+                {
+                    Id = $"costume-{costume.Id}",
+                    Name = StripMarkup(localization.Get(costume.NameLanguageId)),
+                    Character = characterName,
+                    Element = element,
+                    DamagePercent = damagePercent,
+                    Range = range,
+                    AbilityText = abilityText,
+                    AbilityType = abilityType,
+                    CommandAtb = commandAtb,
+                    CommandSigil = commandSigil,
+                    EquipmentType = "Costume",
+                    MateriaSupport0 = string.Empty,
+                    MateriaSupport1 = string.Empty,
+                    MateriaSupport2 = string.Empty,
+                    RechargeTime = string.Empty,
+                    UseCount = useCount,
+                    UpgradeSkills = new List<UpgradeSkillData>(),
+                    MaxPassiveSkills = BuildCostumePassiveTotals(costume, skillPassives, localization),
+                    MaxAbilityDescription = abilityText,
+                    EffectTags = effectTags
+                };
+
+                _allWeapons.Add(searchItem);
+            }
+        }
+
+        private List<PassiveSkillTotal> BuildCostumePassiveTotals(
+            CharacterCostumeRaw costume,
+            Dictionary<int, SkillPassiveRaw> skillPassives,
+            LocalizationStore localization)
+        {
+            var totals = new List<PassiveSkillTotal>();
+            var passiveIds = new[] { costume.PassiveSkillId0, costume.PassiveSkillId1 };
+            var passivePoints = new[] { costume.PassiveSkillPoint0, costume.PassiveSkillPoint1 };
+
+            for (var slot = 0; slot < passiveIds.Length; slot++)
+            {
+                var passiveId = passiveIds[slot];
+                var points = passivePoints[slot];
+                if (passiveId == 0 || points == 0)
+                {
+                    continue;
+                }
+
+                var passiveName = skillPassives.TryGetValue(passiveId, out var passiveRaw)
+                    ? localization.Get(passiveRaw.NameLanguageId)
+                    : $"Passive {passiveId}";
+
+                totals.Add(new PassiveSkillTotal
+                {
+                    SkillId = passiveId.ToString(),
+                    SkillName = passiveName,
+                    BasePoints = points,
+                    UpgradePoints = 0,
+                    TotalPoints = points,
+                    SkillSlot = slot,
+                    SourceLabel = "Costume"
+                });
+            }
+
+            return totals;
         }
 
         private LocalizationStore LoadLocalization(string path)
@@ -507,6 +737,51 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static WeaponUpgradeSkillRaw? FindUpgrade(IEnumerable<WeaponUpgradeSkillRaw> upgrades, int upgradeCount)
         {
             return upgrades.FirstOrDefault(u => u.UpgradeCount == upgradeCount);
+        }
+
+        private List<string> ExtractEffectTags(
+            List<SkillEffectGroupEntryRaw> effectEntries,
+            Dictionary<long, SkillEffectRaw> skillEffects,
+            Dictionary<long, SkillStatusConditionEffectRaw> statusConditionEffects,
+            Dictionary<long, SkillBuffDebuffRaw> buffDebuffs,
+            Dictionary<long, SkillStatusChangeEffectRaw> statusChangeEffects)
+        {
+            var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var entry in effectEntries)
+            {
+                if (!skillEffects.TryGetValue(entry.SkillEffectId, out var effect))
+                {
+                    continue;
+                }
+
+                switch (effect.SkillEffectType)
+                {
+                    case 2:
+                        if (statusConditionEffects.TryGetValue(effect.SkillEffectDetailId, out var condition) &&
+                            StatusEffectTypes.TryGetValue(condition.SkillStatusConditionType, out var statusName))
+                        {
+                            tags.Add(statusName);
+                        }
+                        break;
+                    case 3:
+                        if (buffDebuffs.TryGetValue(effect.SkillEffectDetailId, out var buff) &&
+                            BuffDebuffTypes.TryGetValue(buff.SkillBuffDebuffType, out var buffName))
+                        {
+                            tags.Add(buffName);
+                        }
+                        break;
+                    case 5:
+                        if (statusChangeEffects.TryGetValue(effect.SkillEffectDetailId, out var change) &&
+                            StatusChangeTypes.TryGetValue(change.SkillStatusChangeType, out var changeName))
+                        {
+                            tags.Add(changeName);
+                        }
+                        break;
+                }
+            }
+
+            return tags.OrderBy(t => t).ToList();
         }
 
         private (string Text, double DamagePercent, string Range, bool IsHealing) BuildAbilityDetails(
@@ -1112,16 +1387,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static int MakeUpgradeKey(int weaponId, int upgradeCount) => weaponId * 100 + upgradeCount;
 
-        private static string ResolveGachaType(WeaponRaw weapon)
+        private static string ResolveEquipmentType(WeaponRaw weapon)
         {
             if (CustomWeaponTypes.TryGetValue(weapon.Id, out var custom))
             {
                 return custom;
             }
 
-            if (weapon.WeaponType >= 0 && weapon.WeaponType < WeaponGachaTypes.Length)
+            if (weapon.WeaponType >= 0 && weapon.WeaponType < EquipmentTypes.Length)
             {
-                return WeaponGachaTypes[weapon.WeaponType];
+                return EquipmentTypes[weapon.WeaponType];
             }
 
             return "Unknown";
@@ -1196,7 +1471,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static readonly Regex MarkupRegex = new("<.*?>", RegexOptions.Compiled);
 
-        private static readonly string[] WeaponGachaTypes =
+        private static readonly string[] EquipmentTypes =
         {
             "Featured",
             "Grindable",
