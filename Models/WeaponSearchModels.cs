@@ -24,6 +24,10 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required List<PassiveSkillTotal> MaxPassiveSkills { get; init; }
         public required string MaxAbilityDescription { get; init; }
         public required List<string> EffectTags { get; init; }
+        public required int PatkOb10Lv130 { get; init; }
+        public required int MatkOb10Lv130 { get; init; }
+        public required int HealOb10Lv130 { get; init; }
+        public required List<WeaponCustomization> Customizations { get; init; }
     }
 
     public sealed class UpgradeSkillData
@@ -50,5 +54,12 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required int TotalPoints { get; init; }
         public required int SkillSlot { get; init; }
         public required string SourceLabel { get; init; }
+    }
+
+    public sealed class WeaponCustomization
+    {
+        public required string Slot { get; init; }
+        public required string Kind { get; init; }
+        public required string Description { get; init; }
     }
 }

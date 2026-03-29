@@ -13,7 +13,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
     {
         private const int MaxDisplayReleaseCount = 11; // Lv.130 / OB10
         private const int MaxDisplayUpgradeLevel = 10;
+        private const int MaxDisplayLevel = 130;
         private const string MaxPassiveSourceLabel = "Lv.130 / OB10";
+        private const int MinCustomizationRarityType = 3;
+
+        private static readonly Dictionary<int, string> WeaponEvolveSlotNames = new()
+        {
+            { 1, "Heart" },
+            { 2, "Spade" },
+            { 3, "Diamond" },
+            { 4, "Club" }
+        };
 
         private readonly ILogger<WeaponSearchDataService> _logger;
         private readonly IWebHostEnvironment _environment;
@@ -81,6 +91,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .ToDictionary(g => g.Key, g => g.OrderBy(x => x.UpgradeCount).ToList());
             var upgradeLookup = upgradeSkills.ToDictionary(u => MakeUpgradeKey(u.WeaponId, u.UpgradeCount));
 
+            var weaponLevels = LoadList<WeaponLevelRaw>(Path.Combine(masterPath, "WeaponLevel.json"));
+            var weaponUpgradeParameters = LoadList<WeaponUpgradeParameterRaw>(Path.Combine(masterPath, "WeaponUpgradeParameter.json"));
+
             var weaponRarities = LoadList<WeaponRarityRaw>(Path.Combine(masterPath, "WeaponRarity.json"))
                 .GroupBy(r => r.WeaponId)
                 .ToDictionary(
@@ -91,6 +104,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .ToDictionary(
                     g => g.Key,
                     g => g.OrderBy(r => r.ReleaseCount).ToList());
+
+            var statCalculator = new WeaponStatCalculator(weaponLevels, weaponUpgradeParameters, weaponRarities);
+
+            var weaponEvolves = LoadList<WeaponEvolveRaw>(Path.Combine(masterPath, "WeaponEvolve.json"))
+                .GroupBy(e => e.WeaponEvolveGroupId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var weaponEvolveEffects = LoadList<WeaponEvolveEffectRaw>(Path.Combine(masterPath, "WeaponEvolveEffect.json"))
+                .GroupBy(e => e.WeaponEvolveId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var weaponEvolveWeaponSkills = LoadList<WeaponEvolveWeaponSkillRaw>(Path.Combine(masterPath, "WeaponEvolveWeaponSkill.json"))
+                .GroupBy(s => s.WeaponEvolveWeaponSkillGroupId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.ToDictionary(s => s.UpgradeCount));
 
             var skillWeapons = LoadList<SkillWeaponRaw>(Path.Combine(masterPath, "SkillWeapon.json"))
                 .ToDictionary(s => s.Id);
@@ -315,6 +342,56 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         abilityDetails.DamagePercent);
                 }
 
+                var upgradeTypeForStats = baseUpgrade.WeaponUpgradeType == 0 ? 1 : baseUpgrade.WeaponUpgradeType;
+                var upgradeCountForStats = isUltimate ? 0 : MaxDisplayUpgradeLevel;
+                var statResult = statCalculator.ComputeStats(
+                    weapon,
+                    MaxDisplayLevel,
+                    upgradeCountForStats,
+                    upgradeTypeForStats);
+
+                if (statResult == WeaponStatResult.Empty)
+                {
+                    _logger.LogWarning(
+                        "Failed to calculate stats for weapon {WeaponId} (levelGroup {LevelGroup}, upgradeGroup {UpgradeGroup})",
+                        weapon.Id,
+                        weapon.WeaponLevelGroupId,
+                        weapon.WeaponUpgradeParameterGroupId);
+                }
+
+                var customizations = BuildWeaponCustomizations(
+                    weapon,
+                    weaponRarities,
+                    weaponEvolves,
+                    weaponEvolveEffects,
+                    weaponEvolveWeaponSkills,
+                    skillWeapons,
+                    skillActives,
+                    skillBases,
+                    skillEffectGroups,
+                    skillEffects,
+                    skillEffectDescriptions,
+                    skillEffectDescriptionGroups,
+                    skillDamageEffects,
+                    skillAdditionalEffects,
+                    skillStatusChangeEffects,
+                    skillStatusConditionEffects,
+                    skillBuffDebuffs,
+                    skillBuffDebuffEnhances,
+                    skillCancelEffects,
+                    skillAtbChanges,
+                    skillSpecialGaugeChanges,
+                    skillTacticsGaugeChanges,
+                    skillOveraccelGaugeChanges,
+                    skillCostumeCountChanges,
+                    skillTriggerConditionHp,
+                    buffDebuffGroups,
+                    statusConditionGroups,
+                    statusChangeGroups,
+                    skillPassives,
+                    localization,
+                    abilityDetails.DamagePercent);
+
                 var searchItem = new WeaponSearchItem
                 {
                     Id = weapon.Id.ToString(),
@@ -336,7 +413,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     UpgradeSkills = upgradeSkillData,
                     MaxPassiveSkills = maxPassiveTotals,
                     MaxAbilityDescription = abilityDetails.Text,
-                    EffectTags = effectTags
+                    EffectTags = effectTags,
+                    PatkOb10Lv130 = statResult.PhysicalAttack,
+                    MatkOb10Lv130 = statResult.MagicalAttack,
+                    HealOb10Lv130 = statResult.HealingPower,
+                    Customizations = customizations
                 };
 
                 _allWeapons.Add(searchItem);
@@ -515,7 +596,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     UpgradeSkills = new List<UpgradeSkillData>(),
                     MaxPassiveSkills = BuildCostumePassiveTotals(costume, skillPassives, localization),
                     MaxAbilityDescription = abilityText,
-                    EffectTags = effectTags
+                    EffectTags = effectTags,
+                    PatkOb10Lv130 = 0,
+                    MatkOb10Lv130 = 0,
+                    HealOb10Lv130 = 0,
+                    Customizations = new List<WeaponCustomization>()
                 };
 
                 _allWeapons.Add(searchItem);
@@ -737,6 +822,277 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static WeaponUpgradeSkillRaw? FindUpgrade(IEnumerable<WeaponUpgradeSkillRaw> upgrades, int upgradeCount)
         {
             return upgrades.FirstOrDefault(u => u.UpgradeCount == upgradeCount);
+        }
+
+        private List<WeaponCustomization> BuildWeaponCustomizations(
+            WeaponRaw weapon,
+            Dictionary<int, WeaponRarityRaw> weaponRarities,
+            Dictionary<int, List<WeaponEvolveRaw>> weaponEvolves,
+            Dictionary<int, List<WeaponEvolveEffectRaw>> weaponEvolveEffects,
+            Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>> weaponEvolveWeaponSkills,
+            Dictionary<int, SkillWeaponRaw> skillWeapons,
+            Dictionary<int, SkillActiveRaw> skillActives,
+            Dictionary<int, SkillBaseRaw> skillBases,
+            Dictionary<long, List<SkillEffectGroupEntryRaw>> skillEffectGroups,
+            Dictionary<long, SkillEffectRaw> skillEffects,
+            Dictionary<long, SkillEffectDescriptionRaw> skillEffectDescriptions,
+            Dictionary<long, List<SkillEffectDescriptionGroupEntryRaw>> skillEffectDescriptionGroups,
+            Dictionary<long, SkillDamageEffectRaw> skillDamageEffects,
+            Dictionary<long, SkillAdditionalEffectRaw> skillAdditionalEffects,
+            Dictionary<long, SkillStatusChangeEffectRaw> skillStatusChangeEffects,
+            Dictionary<long, SkillStatusConditionEffectRaw> skillStatusConditionEffects,
+            Dictionary<long, SkillBuffDebuffRaw> skillBuffDebuffs,
+            Dictionary<long, SkillBuffDebuffEnhanceRaw> skillBuffDebuffEnhances,
+            Dictionary<long, SkillCancelEffectRaw> skillCancelEffects,
+            Dictionary<long, SkillAtbChangeEffectRaw> skillAtbChanges,
+            Dictionary<long, SkillSpecialGaugeChangeEffectRaw> skillSpecialGaugeChanges,
+            Dictionary<long, SkillTacticsGaugeChangeEffectRaw> skillTacticsGaugeChanges,
+            Dictionary<long, SkillOveraccelGaugeChangeEffectRaw> skillOveraccelGaugeChanges,
+            Dictionary<long, SkillCostumeCountChangeEffectRaw> skillCostumeCountChanges,
+            Dictionary<long, SkillTriggerConditionHpRaw> skillTriggerConditionHp,
+            Dictionary<long, List<int>> buffDebuffGroups,
+            Dictionary<long, List<int>> statusConditionGroups,
+            Dictionary<long, List<int>> statusChangeGroups,
+            Dictionary<int, SkillPassiveRaw> skillPassives,
+            LocalizationStore localization,
+            double baseDamagePercent)
+        {
+            var results = new List<WeaponCustomization>();
+
+            if (weapon.WeaponEvolveGroupId == 0)
+            {
+                return results;
+            }
+
+            if (!weaponRarities.TryGetValue(weapon.Id, out var rarity) || rarity.RarityType < MinCustomizationRarityType)
+            {
+                return results;
+            }
+
+            if (!weaponEvolves.TryGetValue(weapon.WeaponEvolveGroupId, out var evolveEntries))
+            {
+                return results;
+            }
+
+            foreach (var evolve in evolveEntries)
+            {
+                if (!weaponEvolveEffects.TryGetValue(evolve.Id, out var effects))
+                {
+                    continue;
+                }
+
+                var slot = WeaponEvolveSlotNames.TryGetValue(evolve.WeaponEvolveType, out var slotName)
+                    ? slotName
+                    : $"Slot {evolve.WeaponEvolveType}";
+
+                foreach (var effect in effects)
+                {
+                    string? description = effect.WeaponEvolveEffectType switch
+                    {
+                        1 => BuildCustomizationAbilityDescription(
+                            effect,
+                            weaponEvolveWeaponSkills,
+                            skillWeapons,
+                            skillActives,
+                            skillBases,
+                            skillEffectGroups,
+                            skillEffects,
+                            skillEffectDescriptions,
+                            skillEffectDescriptionGroups,
+                            skillDamageEffects,
+                            skillAdditionalEffects,
+                            skillStatusChangeEffects,
+                            skillStatusConditionEffects,
+                            skillBuffDebuffs,
+                            skillBuffDebuffEnhances,
+                            skillCancelEffects,
+                            skillAtbChanges,
+                            skillSpecialGaugeChanges,
+                            skillTacticsGaugeChanges,
+                            skillOveraccelGaugeChanges,
+                            skillCostumeCountChanges,
+                            skillTriggerConditionHp,
+                            buffDebuffGroups,
+                            statusConditionGroups,
+                            statusChangeGroups,
+                            localization,
+                            baseDamagePercent),
+                        3 => BuildCustomizationPassiveDescription(effect.TargetId, skillPassives, localization),
+                        _ => null
+                    };
+
+                    if (string.IsNullOrWhiteSpace(description))
+                    {
+                        continue;
+                    }
+
+                    var kind = effect.WeaponEvolveEffectType switch
+                    {
+                        1 => "Damage Upgrade",
+                        3 => "R Ability",
+                        _ => "Customization"
+                    };
+
+                    results.Add(new WeaponCustomization
+                    {
+                        Slot = slot,
+                        Kind = kind,
+                        Description = description
+                    });
+                }
+            }
+
+            return results;
+        }
+
+        private string? BuildCustomizationPassiveDescription(
+            int passiveId,
+            Dictionary<int, SkillPassiveRaw> skillPassives,
+            LocalizationStore localization)
+        {
+            if (!skillPassives.TryGetValue(passiveId, out var passive))
+            {
+                return null;
+            }
+
+            var passiveName = StripMarkup(localization.Get(passive.NameLanguageId));
+            if (string.IsNullOrWhiteSpace(passiveName))
+            {
+                passiveName = $"Passive {passive.Id}";
+            }
+
+            return $"Adds R Ability: {passiveName}";
+        }
+
+        private string? BuildCustomizationAbilityDescription(
+            WeaponEvolveEffectRaw effect,
+            Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>> weaponEvolveWeaponSkills,
+            Dictionary<int, SkillWeaponRaw> skillWeapons,
+            Dictionary<int, SkillActiveRaw> skillActives,
+            Dictionary<int, SkillBaseRaw> skillBases,
+            Dictionary<long, List<SkillEffectGroupEntryRaw>> skillEffectGroups,
+            Dictionary<long, SkillEffectRaw> skillEffects,
+            Dictionary<long, SkillEffectDescriptionRaw> skillEffectDescriptions,
+            Dictionary<long, List<SkillEffectDescriptionGroupEntryRaw>> skillEffectDescriptionGroups,
+            Dictionary<long, SkillDamageEffectRaw> skillDamageEffects,
+            Dictionary<long, SkillAdditionalEffectRaw> skillAdditionalEffects,
+            Dictionary<long, SkillStatusChangeEffectRaw> skillStatusChangeEffects,
+            Dictionary<long, SkillStatusConditionEffectRaw> skillStatusConditionEffects,
+            Dictionary<long, SkillBuffDebuffRaw> skillBuffDebuffs,
+            Dictionary<long, SkillBuffDebuffEnhanceRaw> skillBuffDebuffEnhances,
+            Dictionary<long, SkillCancelEffectRaw> skillCancelEffects,
+            Dictionary<long, SkillAtbChangeEffectRaw> skillAtbChanges,
+            Dictionary<long, SkillSpecialGaugeChangeEffectRaw> skillSpecialGaugeChanges,
+            Dictionary<long, SkillTacticsGaugeChangeEffectRaw> skillTacticsGaugeChanges,
+            Dictionary<long, SkillOveraccelGaugeChangeEffectRaw> skillOveraccelGaugeChanges,
+            Dictionary<long, SkillCostumeCountChangeEffectRaw> skillCostumeCountChanges,
+            Dictionary<long, SkillTriggerConditionHpRaw> skillTriggerConditionHp,
+            Dictionary<long, List<int>> buffDebuffGroups,
+            Dictionary<long, List<int>> statusConditionGroups,
+            Dictionary<long, List<int>> statusChangeGroups,
+            LocalizationStore localization,
+            double baseDamagePercent)
+        {
+            var skillGroupId = weaponEvolveWeaponSkills.ContainsKey(effect.TargetId)
+                ? effect.TargetId
+                : effect.WeaponEvolveId;
+
+            if (!weaponEvolveWeaponSkills.TryGetValue(skillGroupId, out var upgrades) || upgrades.Count == 0)
+            {
+                return null;
+            }
+
+            if (!upgrades.TryGetValue(MaxDisplayUpgradeLevel, out var upgradeEntry))
+            {
+                upgradeEntry = upgrades.OrderByDescending(kvp => kvp.Key).First().Value;
+            }
+
+            if (!skillWeapons.TryGetValue(upgradeEntry.WeaponSkillId, out var skillWeapon))
+            {
+                return null;
+            }
+
+            SkillBaseRaw? evolveBase = null;
+            SkillActiveRaw? evolveActive = null;
+
+            if (skillWeapon.SkillActiveId != 0 && skillActives.TryGetValue(skillWeapon.SkillActiveId, out var active))
+            {
+                evolveActive = active;
+                if (skillBases.TryGetValue(active.SkillBaseId, out var baseRaw))
+                {
+                    evolveBase = baseRaw;
+                }
+            }
+
+            if (evolveBase == null && skillWeapon.SkillActiveId != 0 &&
+                skillBases.TryGetValue(skillWeapon.SkillActiveId, out var baseFromActiveId))
+            {
+                evolveBase = baseFromActiveId;
+            }
+
+            if (evolveBase == null && skillBases.TryGetValue(skillWeapon.Id, out var baseByWeaponSkill))
+            {
+                evolveBase = baseByWeaponSkill;
+            }
+
+            if (evolveBase == null)
+            {
+                return null;
+            }
+
+            var abilityType = ResolveAttackType(evolveBase.BaseAttackType);
+            var element = ResolveElement(evolveBase.ElementType);
+            var effectGroupId = (long)evolveBase.SkillEffectGroupId;
+            var entries = skillEffectGroups.TryGetValue(effectGroupId, out var effectEntries)
+                ? effectEntries
+                : new List<SkillEffectGroupEntryRaw>();
+
+            var abilityDetails = BuildAbilityDetails(
+                entries,
+                skillEffects,
+                skillEffectDescriptions,
+                skillEffectDescriptionGroups,
+                skillDamageEffects,
+                skillAdditionalEffects,
+                skillStatusChangeEffects,
+                skillStatusConditionEffects,
+                skillBuffDebuffs,
+                skillBuffDebuffEnhances,
+                skillCancelEffects,
+                skillAtbChanges,
+                skillSpecialGaugeChanges,
+                skillTacticsGaugeChanges,
+                skillOveraccelGaugeChanges,
+                skillCostumeCountChanges,
+                skillTriggerConditionHp,
+                buffDebuffGroups,
+                statusConditionGroups,
+                statusChangeGroups,
+                localization,
+                abilityType,
+                element);
+
+            if (abilityDetails.DamagePercent > 0 && baseDamagePercent > 0)
+            {
+                var diff = abilityDetails.DamagePercent - baseDamagePercent;
+                if (diff > 0.1)
+                {
+                    return $"Damage Potency +{diff:0.#}% (new {abilityDetails.DamagePercent:0.#}%)";
+                }
+            }
+
+            var abilityText = abilityDetails.Text.Replace("\n", " ").Trim();
+            if (!string.IsNullOrWhiteSpace(abilityText))
+            {
+                return abilityText;
+            }
+
+            if (abilityDetails.DamagePercent > 0)
+            {
+                return $"Sets damage potency to {abilityDetails.DamagePercent:0.#}%";
+            }
+
+            return null;
         }
 
         private List<string> ExtractEffectTags(

@@ -8,6 +8,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int WeaponType { get; set; }
         public int CharacterId { get; set; }
         public int WeaponEquipmentType { get; set; }
+        public int WeaponLevelGroupId { get; set; }
+        public int WeaponUpgradeParameterGroupId { get; set; }
         public int WeaponEvolveGroupId { get; set; }
         public long NameLanguageId { get; set; }
         public int WeaponMateriaSupportId0 { get; set; }
@@ -17,6 +19,54 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int PassiveSkillId1 { get; set; }
         public int PassiveSkillId2 { get; set; }
     }
+
+    public sealed class WeaponLevelRaw
+    {
+        public int WeaponLevelGroupId { get; set; }
+        public int Level { get; set; }
+        public int HpCoefficient { get; set; }
+        public int PhysicalAttackCoefficient { get; set; }
+        public int MagicalCoefficient { get; set; }
+        public int PhysicalDefenseCoefficient { get; set; }
+        public int MagicalDefenseCoefficient { get; set; }
+        public int HealingPowerCoefficient { get; set; }
+    }
+
+    public sealed class WeaponUpgradeParameterRaw
+    {
+        public int WeaponUpgradeParameterGroupId { get; set; }
+        public int WeaponUpgradeType { get; set; }
+        public int UpgradeCount { get; set; }
+        public int HpAddCoefficient { get; set; }
+        public int PhysicalAttackAddCoefficient { get; set; }
+        public int MagicalAddCoefficient { get; set; }
+        public int PhysicalDefenseAddCoefficient { get; set; }
+        public int MagicalDefenseAddCoefficient { get; set; }
+        public int HealingPowerAddCoefficient { get; set; }
+    }
+
+    public sealed class WeaponEvolveRaw
+    {
+        public int Id { get; set; }
+        public int WeaponEvolveGroupId { get; set; }
+        public int WeaponEvolveType { get; set; }
+    }
+
+    public sealed class WeaponEvolveEffectRaw
+    {
+        public int Id { get; set; }
+        public int WeaponEvolveId { get; set; }
+        public int WeaponEvolveEffectType { get; set; }
+        public int TargetId { get; set; }
+    }
+
+    public sealed class WeaponEvolveWeaponSkillRaw
+    {
+        public int WeaponEvolveWeaponSkillGroupId { get; set; }
+        public int UpgradeCount { get; set; }
+        public int WeaponSkillId { get; set; }
+    }
+
 
     public sealed class CharacterCostumeRaw
     {
@@ -60,11 +110,30 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int AddPassiveSkillPoint2 { get; set; }
     }
 
+    public sealed class WeaponCustomizationRaw
+    {
+        public string Slot { get; set; } = string.Empty;
+        public string Kind { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
     public sealed class WeaponRarityRaw
     {
         public int Id { get; set; }
         public int WeaponId { get; set; }
         public int RarityType { get; set; }
+        public int BaseHp { get; set; }
+        public int BasePhysicalAttack { get; set; }
+        public int BaseMagicalAttack { get; set; }
+        public int BasePhysicalDefense { get; set; }
+        public int BaseMagicalDefense { get; set; }
+        public int BaseHealingPower { get; set; }
+        public int GrowthBaseHp { get; set; }
+        public int GrowthBasePhysicalAttack { get; set; }
+        public int GrowthBaseMagicalAttack { get; set; }
+        public int GrowthBasePhysicalDefense { get; set; }
+        public int GrowthBaseMagicalDefense { get; set; }
+        public int GrowthBaseHealingPower { get; set; }
     }
 
     public sealed class WeaponRarityReleaseSkillRaw
