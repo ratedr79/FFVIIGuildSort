@@ -57,5 +57,14 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             Page = 1;
             PageSize = Math.Max(PageSize, 1);
         }
+
+        public IActionResult OnGetWeaponSnapshot(string weaponId, int overboost, int level)
+        {
+            var snapshot = _weaponSearchService.GetWeaponSnapshot(weaponId, overboost, level);
+            if (snapshot == null)
+                return new JsonResult(new { error = "Weapon not found" }) { StatusCode = 404 };
+
+            return new JsonResult(snapshot);
+        }
     }
 }

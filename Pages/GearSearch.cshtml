@@ -177,6 +177,111 @@
         flex: 1 1 100%;
         color: #4a3c2c;
     }
+
+    .btn-view-levels {
+        font-size: 0.72rem;
+        padding: 0.15rem 0.55rem;
+        border-radius: 0.35rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    #viewLevelsModal .modal-header {
+        background: linear-gradient(90deg, rgba(92, 29, 155, 0.08), rgba(92, 29, 155, 0.02));
+        border-bottom: 2px solid #b28bff;
+    }
+
+    #viewLevelsModal .snapshot-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        align-items: baseline;
+    }
+
+    #viewLevelsModal .snapshot-section {
+        margin-bottom: 1rem;
+    }
+
+    #viewLevelsModal .snapshot-section-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6c5a8d;
+        margin-bottom: 0.35rem;
+    }
+
+    #viewLevelsModal .snapshot-ability {
+        background-color: #f9f5ff;
+        border-left: 3px solid #b28bff;
+        border-radius: 0 0.5rem 0.5rem 0;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.92rem;
+        line-height: 1.45;
+    }
+
+    #viewLevelsModal .snapshot-stats {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    #viewLevelsModal .snapshot-stat {
+        text-align: center;
+        min-width: 80px;
+    }
+
+    #viewLevelsModal .snapshot-stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #3a2758;
+    }
+
+    #viewLevelsModal .snapshot-stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #8d79b7;
+    }
+
+    #viewLevelsModal .snapshot-rability-list,
+    #viewLevelsModal .snapshot-customization-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    #viewLevelsModal .snapshot-rability-list li {
+        padding: 0.2rem 0;
+        font-size: 0.9rem;
+    }
+
+    #viewLevelsModal .snapshot-customization-entry {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem 0.65rem;
+        align-items: baseline;
+        margin-bottom: 0.3rem;
+        font-size: 0.9rem;
+    }
+
+    #viewLevelsModal .snapshot-spinner {
+        display: none;
+    }
+
+    #viewLevelsModal .snapshot-spinner.active {
+        display: inline-block;
+    }
+
+    #viewLevelsModal .snapshot-error {
+        display: none;
+        color: #dc3545;
+        font-size: 0.85rem;
+    }
+
+    #viewLevelsModal .snapshot-error.active {
+        display: block;
+    }
 </style>
 
 <div class="container py-4">
@@ -392,6 +497,15 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="col-12 col-md-3 col-lg-2">
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="hasCustomizationsFilter" />
+                            <label class="form-check-label" for="hasCustomizationsFilter">
+                                Has Customizations
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -414,7 +528,7 @@
                 <tbody>
                     @foreach (var weapon in Model.Weapons)
                     {
-                        <tr data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name">
+                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()">
                             @{
                                 var costumeNoAbility = weapon.EquipmentType.Equals("Costume", System.StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(weapon.AbilityText);
                                 var abilityMarkup = !string.IsNullOrWhiteSpace(weapon.AbilityText)
@@ -506,6 +620,99 @@
                     }
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- View Levels Modal -->
+<div class="modal fade" id="viewLevelsModal" tabindex="-1" aria-labelledby="viewLevelsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="viewLevelsModalLabel">View Levels</h5>
+                    <div class="snapshot-meta mt-1">
+                        <span class="weapon-banner-character" id="snapshotCharacter"></span>
+                        <span class="weapon-banner-name" id="snapshotWeaponName"></span>
+                        <span class="weapon-banner-equipment" id="snapshotEquipment"></span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label for="snapshotOverboost" class="form-label fw-semibold">Overboost</label>
+                        <select id="snapshotOverboost" class="form-select">
+                            <option value="0">5 Star</option>
+                            <option value="1">OB1</option>
+                            <option value="2">OB2</option>
+                            <option value="3">OB3</option>
+                            <option value="4">OB4</option>
+                            <option value="5">OB5</option>
+                            <option value="6">OB6</option>
+                            <option value="7">OB7</option>
+                            <option value="8">OB8</option>
+                            <option value="9">OB9</option>
+                            <option value="10" selected>OB10</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="snapshotLevel" class="form-label fw-semibold">Level</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="range" class="form-range flex-grow-1" id="snapshotLevelRange" min="1" max="130" value="130" />
+                            <input type="number" class="form-control" id="snapshotLevel" min="1" max="130" value="130" style="width: 5rem;" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="snapshot-section" id="snapshotAbilitySection">
+                    <div class="snapshot-section-title">Ability</div>
+                    <div class="snapshot-ability" id="snapshotAbility">
+                        <span class="text-muted">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="snapshot-section" id="snapshotStatsSection">
+                    <div class="snapshot-section-title">Stats</div>
+                    <div class="snapshot-stats">
+                        <div class="snapshot-stat">
+                            <div class="snapshot-stat-value" id="snapshotPatk">0</div>
+                            <div class="snapshot-stat-label">PATK</div>
+                        </div>
+                        <div class="snapshot-stat">
+                            <div class="snapshot-stat-value" id="snapshotMatk">0</div>
+                            <div class="snapshot-stat-label">MATK</div>
+                        </div>
+                        <div class="snapshot-stat">
+                            <div class="snapshot-stat-value" id="snapshotHeal">0</div>
+                            <div class="snapshot-stat-label">Heal</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="snapshot-section" id="snapshotRAbilitiesSection">
+                    <div class="snapshot-section-title">R Abilities</div>
+                    <ul class="snapshot-rability-list" id="snapshotRAbilities">
+                        <li class="text-muted">Loading...</li>
+                    </ul>
+                </div>
+
+                <div class="snapshot-section" id="snapshotCustomizationsSection">
+                    <div class="snapshot-section-title">Customizations</div>
+                    <div id="snapshotCustomizations">
+                        <span class="text-muted">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="snapshot-error" id="snapshotError">Failed to load weapon data. Please try again.</div>
+            </div>
+            <div class="modal-footer">
+                <span class="spinner-border spinner-border-sm snapshot-spinner me-2" id="snapshotSpinner" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -662,20 +869,31 @@
 
                 table.rows({ page: 'current' }).every(function () {
                     const rowNode = this.node();
+                    const weaponId = rowNode.getAttribute('data-weapon-id') ?? '';
                     const character = rowNode.getAttribute('data-character') ?? '';
                     const weapon = rowNode.getAttribute('data-weapon') ?? '';
                     const equipment = rowNode.getAttribute('data-equipment') ?? '';
+                    const isCostume = equipment.toLowerCase() === 'costume';
 
                     const bannerRow = document.createElement('tr');
                     bannerRow.classList.add('weapon-banner-row');
 
                     const bannerCell = document.createElement('td');
                     bannerCell.colSpan = columnCount;
+
+                    const viewLevelsBtn = isCostume ? '' :
+                        `<button type="button" class="btn btn-outline-primary btn-view-levels"
+                            data-weapon-id="${weaponId}"
+                            data-character="${character}"
+                            data-weapon="${weapon}"
+                            data-equipment="${equipment}">View Levels</button>`;
+
                     bannerCell.innerHTML = `
                         <div class="weapon-banner">
                             <span class="weapon-banner-character">${character}</span>
                             <span class="weapon-banner-name">${weapon}</span>
                             <span class="weapon-banner-equipment">${equipment}</span>
+                            ${viewLevelsBtn}
                         </div>`;
                     bannerRow.appendChild(bannerCell);
 
@@ -687,6 +905,182 @@
                 renderBannerRows();
                 renderDetailRows();
             };
+
+            const customizationFilterCheckbox = document.getElementById('hasCustomizationsFilter');
+
+            $.fn.dataTable.ext.search.push(function (settings, rowData, dataIndex) {
+                if (settings.nTable !== table.table().node()) {
+                    return true;
+                }
+
+                if (!customizationFilterCheckbox.checked) {
+                    return true;
+                }
+
+                const rowNode = table.row(dataIndex).node();
+                const hasCustomizations = rowNode?.getAttribute('data-has-customizations') === 'true';
+                return hasCustomizations;
+            });
+
+            customizationFilterCheckbox.addEventListener('change', () => {
+                table.draw();
+            });
+
+            // --- View Levels Modal Logic ---
+            const viewLevelsModal = document.getElementById('viewLevelsModal');
+            const bsModal = new bootstrap.Modal(viewLevelsModal);
+            const snapshotOverboost = document.getElementById('snapshotOverboost');
+            const snapshotLevel = document.getElementById('snapshotLevel');
+            const snapshotLevelRange = document.getElementById('snapshotLevelRange');
+            const snapshotSpinner = document.getElementById('snapshotSpinner');
+            const snapshotError = document.getElementById('snapshotError');
+
+            let currentWeaponId = null;
+            let snapshotDebounceTimer = null;
+            let snapshotAbortController = null;
+
+            const formatNumber = (n) => Number(n).toLocaleString();
+
+            const setSnapshotLoading = (loading) => {
+                snapshotSpinner.classList.toggle('active', loading);
+                snapshotOverboost.disabled = loading;
+                snapshotLevel.disabled = loading;
+                snapshotLevelRange.disabled = loading;
+            };
+
+            const showSnapshotError = (show) => {
+                snapshotError.classList.toggle('active', show);
+            };
+
+            const updateSnapshotContent = (data) => {
+                showSnapshotError(false);
+
+                // Ability
+                const abilityEl = document.getElementById('snapshotAbility');
+                if (data.abilityText) {
+                    abilityEl.innerHTML = data.abilityText.replace(/\r?\n/g, '<br />');
+                } else {
+                    abilityEl.innerHTML = '<span class="text-muted">No ability data</span>';
+                }
+
+                // Stats
+                document.getElementById('snapshotPatk').textContent = formatNumber(data.patk);
+                document.getElementById('snapshotMatk').textContent = formatNumber(data.matk);
+                document.getElementById('snapshotHeal').textContent = formatNumber(data.heal);
+
+                // R Abilities
+                const rAbilitiesEl = document.getElementById('snapshotRAbilities');
+                if (data.rAbilities && data.rAbilities.length > 0) {
+                    rAbilitiesEl.innerHTML = data.rAbilities.map(r => {
+                        if (r.isLocked) {
+                            const hint = r.lockedUntilLevel != null
+                                ? ` <span class="text-muted">(unlocks at Lv. ${r.lockedUntilLevel})</span>`
+                                : '';
+                            return `<li class="text-muted"><i class="fas fa-lock fa-xs me-1"></i>${r.skillName}${hint}</li>`;
+                        }
+                        const breakdown = (r.basePoints > 0 && r.upgradePoints > 0)
+                            ? ` <small class="text-muted">(Lv. ${r.basePoints} + OB ${r.upgradePoints})</small>`
+                            : '';
+                        return `<li><strong>+${r.totalPoints}</strong> ${r.skillName}${breakdown}</li>`;
+                    }).join('');
+                } else {
+                    rAbilitiesEl.innerHTML = '<li class="text-muted">No R Ability data at this level</li>';
+                }
+
+                // Customizations
+                const customEl = document.getElementById('snapshotCustomizations');
+                if (data.customizations && data.customizations.length > 0) {
+                    customEl.innerHTML = data.customizations.map(c =>
+                        `<div class="snapshot-customization-entry">
+                            <span class="customization-slot">${c.slot}</span>
+                            <span class="customization-kind">${c.kind}</span>
+                            <span class="customization-description">${c.description}</span>
+                        </div>`
+                    ).join('');
+                    document.getElementById('snapshotCustomizationsSection').style.display = '';
+                } else {
+                    customEl.innerHTML = '<span class="text-muted">No customizations available</span>';
+                    document.getElementById('snapshotCustomizationsSection').style.display = 'none';
+                }
+            };
+
+            const fetchSnapshot = () => {
+                if (!currentWeaponId) return;
+
+                if (snapshotAbortController) {
+                    snapshotAbortController.abort();
+                }
+                snapshotAbortController = new AbortController();
+
+                const overboost = snapshotOverboost.value;
+                const level = snapshotLevel.value;
+                const url = `/GearSearch?handler=WeaponSnapshot&weaponId=${encodeURIComponent(currentWeaponId)}&overboost=${overboost}&level=${level}`;
+
+                setSnapshotLoading(true);
+                showSnapshotError(false);
+
+                fetch(url, { signal: snapshotAbortController.signal })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Request failed');
+                        return response.json();
+                    })
+                    .then(data => {
+                        updateSnapshotContent(data);
+                        setSnapshotLoading(false);
+                    })
+                    .catch(err => {
+                        if (err.name === 'AbortError') return;
+                        showSnapshotError(true);
+                        setSnapshotLoading(false);
+                    });
+            };
+
+            const debouncedFetchSnapshot = () => {
+                clearTimeout(snapshotDebounceTimer);
+                snapshotDebounceTimer = setTimeout(fetchSnapshot, 250);
+            };
+
+            snapshotOverboost.addEventListener('change', debouncedFetchSnapshot);
+            snapshotLevel.addEventListener('change', debouncedFetchSnapshot);
+            snapshotLevel.addEventListener('input', () => {
+                snapshotLevelRange.value = snapshotLevel.value;
+            });
+            snapshotLevelRange.addEventListener('input', () => {
+                snapshotLevel.value = snapshotLevelRange.value;
+                debouncedFetchSnapshot();
+            });
+
+            document.getElementById('gearTable').addEventListener('click', (e) => {
+                const btn = e.target.closest('.btn-view-levels');
+                if (!btn) return;
+
+                currentWeaponId = btn.getAttribute('data-weapon-id');
+                const character = btn.getAttribute('data-character');
+                const weapon = btn.getAttribute('data-weapon');
+                const equipment = btn.getAttribute('data-equipment');
+
+                document.getElementById('snapshotCharacter').textContent = character;
+                document.getElementById('snapshotWeaponName').textContent = weapon;
+                document.getElementById('snapshotEquipment').textContent = equipment;
+
+                // Reset controls to defaults
+                snapshotOverboost.value = '10';
+                snapshotLevel.value = '130';
+                snapshotLevelRange.value = '130';
+
+                // Clear previous content
+                document.getElementById('snapshotAbility').innerHTML = '<span class="text-muted">Loading...</span>';
+                document.getElementById('snapshotPatk').textContent = '...';
+                document.getElementById('snapshotMatk').textContent = '...';
+                document.getElementById('snapshotHeal').textContent = '...';
+                document.getElementById('snapshotRAbilities').innerHTML = '<li class="text-muted">Loading...</li>';
+                document.getElementById('snapshotCustomizations').innerHTML = '<span class="text-muted">Loading...</span>';
+                document.getElementById('snapshotCustomizationsSection').style.display = '';
+                showSnapshotError(false);
+
+                bsModal.show();
+                fetchSnapshot();
+            });
 
             updateCharacterFilter();
             updateEquipmentFilter();

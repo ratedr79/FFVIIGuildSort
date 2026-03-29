@@ -11,6 +11,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int WeaponLevelGroupId { get; set; }
         public int WeaponUpgradeParameterGroupId { get; set; }
         public int WeaponEvolveGroupId { get; set; }
+        public int WeaponReleaseSettingGroupId { get; set; }
         public long NameLanguageId { get; set; }
         public int WeaponMateriaSupportId0 { get; set; }
         public int WeaponMateriaSupportId1 { get; set; }
@@ -18,6 +19,13 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int PassiveSkillId0 { get; set; }
         public int PassiveSkillId1 { get; set; }
         public int PassiveSkillId2 { get; set; }
+    }
+
+    public sealed class WeaponReleaseSettingRaw
+    {
+        public int WeaponReleaseSettingGroupId { get; set; }
+        public int ReleaseCount { get; set; }
+        public int LevelLimit { get; set; }
     }
 
     public sealed class WeaponLevelRaw
@@ -122,6 +130,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int Id { get; set; }
         public int WeaponId { get; set; }
         public int RarityType { get; set; }
+        public int WeaponSkillId { get; set; }
         public int BaseHp { get; set; }
         public int BasePhysicalAttack { get; set; }
         public int BaseMagicalAttack { get; set; }

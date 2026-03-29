@@ -54,6 +54,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required int TotalPoints { get; init; }
         public required int SkillSlot { get; init; }
         public required string SourceLabel { get; init; }
+        public bool IsLocked { get; init; }
+        public int? LockedUntilLevel { get; init; }
     }
 
     public sealed class WeaponCustomization
@@ -61,5 +63,18 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string Slot { get; init; }
         public required string Kind { get; init; }
         public required string Description { get; init; }
+    }
+
+    public sealed class WeaponSnapshotResult
+    {
+        public required string Character { get; init; }
+        public required string Name { get; init; }
+        public required string EquipmentType { get; init; }
+        public required string AbilityText { get; init; }
+        public required int Patk { get; init; }
+        public required int Matk { get; init; }
+        public required int Heal { get; init; }
+        public required List<PassiveSkillTotal> RAbilities { get; init; }
+        public required List<WeaponCustomization> Customizations { get; init; }
     }
 }
