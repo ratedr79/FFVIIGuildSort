@@ -633,6 +633,7 @@
             <table id="gearTable" class="table table-striped table-bordered w-100">
                 <thead>
                     <tr>
+                        <th class="d-none">Name</th>
                         <th>Element</th>
                         <th><nobr>Pot. %</nobr></th>
                         <th>Stats</th>
@@ -659,6 +660,7 @@
                                     ? $"<div class=\"ability-meta\">Uses: {weapon.UseCount}</div>"
                                     : string.Empty;
                             }
+                            <td class="d-none">@weapon.Name</td>
                             <td>
                                 @(costumeNoAbility ? "N/A" : weapon.Element)
                                 <span class="visually-hidden weapon-name-search">@weapon.Name</span>
@@ -809,7 +811,7 @@
             </div>
             <div class="modal-body">
                 <div class="row g-3 mb-3">
-                    <div class="col-sm-6">
+                    <div class="col-sm-6" id="snapshotOverboostCol">
                         <label for="snapshotOverboost" class="form-label fw-semibold">Overboost</label>
                         <select id="snapshotOverboost" class="form-select">
                             <option value="0">5 Star</option>
@@ -824,6 +826,7 @@
                             <option value="9">OB9</option>
                             <option value="10" selected>OB10</option>
                         </select>
+                        <div id="snapshotOverboostNa" class="form-control-plaintext text-muted d-none">N/A</div>
                     </div>
                     <div class="col-sm-6">
                         <label for="snapshotLevel" class="form-label fw-semibold">Level</label>
@@ -896,6 +899,10 @@
                 pageLength: @Model.PageSize,
                 lengthChange: false,
                 order: [[0, 'asc']],
+                columnDefs: [
+                    { orderable: false, targets: '_all' },
+                    { visible: false, targets: 0 }
+                ],
                 dom: 'lrtip'
             });
 
@@ -939,11 +946,11 @@
                 });
 
             const advancedFilters = [
-                { selector: '.element-filter', columnIndex: 0 },
-                { selector: '.range-filter', columnIndex: 3 },
-                { selector: '.ability-filter', columnIndex: 4 },
-                { selector: '.effect-filter', columnIndex: 5 },
-                { selector: '.rability-filter', columnIndex: 6 }
+                { selector: '.element-filter', columnIndex: 1 },
+                { selector: '.range-filter', columnIndex: 4 },
+                { selector: '.ability-filter', columnIndex: 5 },
+                { selector: '.effect-filter', columnIndex: 6 },
+                { selector: '.rability-filter', columnIndex: 7 }
             ];
 
             const applyAdvancedFilter = (selector, columnIndex) => {
@@ -1286,6 +1293,11 @@
                 document.getElementById('snapshotCharacter').textContent = character;
                 document.getElementById('snapshotWeaponName').textContent = weapon;
                 document.getElementById('snapshotEquipment').textContent = equipment;
+
+                // Toggle overboost visibility for Ultimate Weapons
+                const isUltimate = equipment.toLowerCase() === 'ultimate';
+                snapshotOverboost.classList.toggle('d-none', isUltimate);
+                document.getElementById('snapshotOverboostNa').classList.toggle('d-none', !isUltimate);
 
                 // Reset controls to defaults
                 snapshotOverboost.value = '10';
