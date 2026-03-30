@@ -261,6 +261,14 @@
         color: #4a3c2c;
     }
 
+    #gearTable tbody tr.weapon-spacer-row td {
+        padding: 0;
+        height: 8px;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
     .btn-view-levels,
     .btn-toggle-details {
         font-size: 0.72rem;
@@ -1050,8 +1058,9 @@
             };
 
             const renderBannerRows = () => {
-                document.querySelectorAll('#gearTable tbody tr.weapon-banner-row').forEach(row => row.remove());
+                document.querySelectorAll('#gearTable tbody tr.weapon-banner-row, #gearTable tbody tr.weapon-spacer-row').forEach(row => row.remove());
                 const columnCount = table.columns().count();
+                let isFirstBanner = true;
 
                 table.rows({ page: 'current' }).every(function () {
                     const rowNode = this.node();
@@ -1089,6 +1098,16 @@
                             ${detailsBtn}
                         </div>`;
                     bannerRow.appendChild(bannerCell);
+
+                    if (!isFirstBanner) {
+                        const spacerRow = document.createElement('tr');
+                        spacerRow.classList.add('weapon-spacer-row');
+                        const spacerCell = document.createElement('td');
+                        spacerCell.colSpan = columnCount;
+                        spacerRow.appendChild(spacerCell);
+                        rowNode.parentNode?.insertBefore(spacerRow, rowNode);
+                    }
+                    isFirstBanner = false;
 
                     rowNode.parentNode?.insertBefore(bannerRow, rowNode);
                 });
