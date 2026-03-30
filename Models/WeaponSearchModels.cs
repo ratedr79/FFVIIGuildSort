@@ -28,6 +28,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required int MatkOb10Lv130 { get; init; }
         public required int HealOb10Lv130 { get; init; }
         public required List<WeaponCustomization> Customizations { get; init; }
+        public required List<SigilInfo> Sigils { get; init; }
     }
 
     public sealed class UpgradeSkillData
@@ -56,6 +57,14 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string SourceLabel { get; init; }
         public bool IsLocked { get; init; }
         public int? LockedUntilLevel { get; init; }
+    }
+
+    public sealed class SigilInfo
+    {
+        public required string SigilType { get; init; }
+        public required string SigilSymbol { get; init; }
+        public required int Level { get; init; }
+        public required string Source { get; init; }
     }
 
     public sealed class WeaponCustomization

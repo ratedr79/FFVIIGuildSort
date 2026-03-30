@@ -40,7 +40,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var additionalOutfits = LoadAdditionalOutfitData(env);
             var additionalUltimateWeapons = LoadAdditionalUltimateWeaponData(env);
 
-            var dataPath = Path.Combine(env.ContentRootPath, "data", "weaponData.tsv");
+            var preferredPath = Path.Combine(env.ContentRootPath, "external", "CypherSignal", "ff7ec", "weaponData.tsv");
+            var fallbackPath = Path.Combine(env.ContentRootPath, "data", "weaponData.tsv");
+            var dataPath = File.Exists(preferredPath) ? preferredPath : fallbackPath;
             if (File.Exists(dataPath))
             {
                 using var stream = File.OpenRead(dataPath);

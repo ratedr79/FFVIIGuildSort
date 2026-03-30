@@ -561,7 +561,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     PatkOb10Lv130 = statResult.PhysicalAttack,
                     MatkOb10Lv130 = statResult.MagicalAttack,
                     HealOb10Lv130 = statResult.HealingPower,
-                    Customizations = customizations
+                    Customizations = customizations,
+                    Sigils = BuildSigils(commandSigil,
+                        weapon.WeaponMateriaSupportId0,
+                        weapon.WeaponMateriaSupportId1,
+                        weapon.WeaponMateriaSupportId2)
                 };
 
                 _allWeapons.Add(searchItem);
@@ -783,7 +787,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     PatkOb10Lv130 = 0,
                     MatkOb10Lv130 = 0,
                     HealOb10Lv130 = 0,
-                    Customizations = new List<WeaponCustomization>()
+                    Customizations = new List<WeaponCustomization>(),
+                    Sigils = BuildSigils(commandSigil, 0, 0, 0)
                 };
 
                 _allWeapons.Add(searchItem);
@@ -2385,6 +2390,52 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 3101, "✕ Cross" },
             { 4101, "◊ Diamond" }
         };
+
+        private static readonly Dictionary<int, (string Type, string Symbol, int Level)> MateriaSupportSigilIds = new()
+        {
+            { 50701, ("Circle", "◯", 1) },
+            { 50702, ("Circle", "◯", 2) },
+            { 50801, ("Cross", "✕", 1) },
+            { 50802, ("Cross", "✕", 2) },
+            { 50901, ("Triangle", "△", 1) },
+            { 50902, ("Triangle", "△", 2) },
+        };
+
+        private static List<SigilInfo> BuildSigils(string commandSigil, int materiaId0, int materiaId1, int materiaId2)
+        {
+            var sigils = new List<SigilInfo>();
+
+            if (!string.IsNullOrEmpty(commandSigil))
+            {
+                var parts = commandSigil.Split(' ', 2);
+                if (parts.Length == 2)
+                {
+                    sigils.Add(new SigilInfo
+                    {
+                        SigilType = parts[1],
+                        SigilSymbol = parts[0],
+                        Level = 1,
+                        Source = "Command"
+                    });
+                }
+            }
+
+            foreach (var materiaId in new[] { materiaId0, materiaId1, materiaId2 })
+            {
+                if (materiaId != 0 && MateriaSupportSigilIds.TryGetValue(materiaId, out var info))
+                {
+                    sigils.Add(new SigilInfo
+                    {
+                        SigilType = info.Type,
+                        SigilSymbol = info.Symbol,
+                        Level = info.Level,
+                        Source = "Materia"
+                    });
+                }
+            }
+
+            return sigils;
+        }
 
         private static readonly Dictionary<int, string> CustomWeaponTypes = new()
         {

@@ -31,8 +31,13 @@
         .OrderBy(s => s)
         .ToList();
 
+    const string custRAbilityPrefix = "Adds R Ability: ";
     var rAbilityOptions = Model.Weapons
-        .SelectMany(w => w.MaxPassiveSkills.Select(p => p.SkillName))
+        .SelectMany(w =>
+            w.MaxPassiveSkills.Select(p => p.SkillName)
+            .Concat(w.Customizations
+                .Where(c => c.Kind == "R Ability" && c.Description.StartsWith(custRAbilityPrefix))
+                .Select(c => c.Description.Substring(custRAbilityPrefix.Length))))
         .Where(s => !string.IsNullOrWhiteSpace(s))
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(s => s)
@@ -44,6 +49,14 @@
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(s => s)
         .ToList();
+
+    var sigilOptions = new List<(string Type, string Symbol)>
+    {
+        ("Circle", "◯"),
+        ("Triangle", "△"),
+        ("Cross", "✕"),
+        ("Diamond", "◊"),
+    };
 }
 
 <style>
@@ -109,6 +122,76 @@
 
     .stat-stack {
         line-height: 1.2;
+    }
+
+    .sigil-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+    }
+
+    .sigil-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.35rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid;
+    }
+
+    .sigil-circle  { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+    .sigil-triangle { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
+    .sigil-cross   { background: #fce4ec; color: #880e4f; border-color: #f48fb1; }
+    .sigil-diamond { background: #e3f2fd; color: #0d47a1; border-color: #90caf9; }
+
+    .sigil-mat { border-style: dashed; opacity: 0.85; }
+
+    .sigil-legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: #f9f5ff;
+        border-radius: 0.4rem;
+        font-size: 0.85rem;
+        color: #5a5a5a;
+    }
+
+    .cust-rability-list {
+        margin-top: 0.3rem;
+        padding-top: 0.3rem;
+        border-top: 1px dashed #c9b8e8;
+    }
+
+    .cust-rability-list li {
+        display: flex;
+        align-items: baseline;
+        gap: 0.3rem;
+        color: #6a3fa0;
+        font-style: italic;
+    }
+
+    .cust-rability-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        font-style: normal;
+        background: #ede0ff;
+        color: #5c1d9b;
+        border: 1px solid #c9a8f5;
+        border-radius: 0.25rem;
+        padding: 0 0.3rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .sigil-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
     }
 
     .weapon-name-cell .weapon-meta {
@@ -178,7 +261,8 @@
         color: #4a3c2c;
     }
 
-    .btn-view-levels {
+    .btn-view-levels,
+    .btn-toggle-details {
         font-size: 0.72rem;
         padding: 0.15rem 0.55rem;
         border-radius: 0.35rem;
@@ -498,6 +582,31 @@
                         </div>
                     </div>
 
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingSigils">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSigils" aria-expanded="false" aria-controls="collapseSigils">
+                                Sigils
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".sigil-filter">Reset</button>
+                        </h2>
+                        <div id="collapseSigils" class="accordion-collapse collapse" aria-labelledby="headingSigils" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body">
+                                <div class="row row-cols-2 row-cols-md-4 g-2">
+                                    @foreach (var sigil in sigilOptions)
+                                    {
+                                        var checkboxId = $"sigil-{sigil.Type.ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter sigil-filter" type="checkbox" value="@sigil.Type" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@sigil.Symbol @sigil.Type</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-12 col-md-3 col-lg-2">
                         <div class="form-check mt-3">
                             <input class="form-check-input" type="checkbox" id="hasCustomizationsFilter" />
@@ -517,18 +626,19 @@
                 <thead>
                     <tr>
                         <th>Element</th>
-                        <th>Damage %</th>
-                        <th>PATK, MATK, Heal</th>
+                        <th><nobr>Pot. %</nobr></th>
+                        <th>Stats</th>
                         <th>Range</th>
                         <th>Type</th>
                         <th>Effects</th>
-                        <th>R. Abilities (Lv. 130/OB 10)</th>
+                        <th>R. Abilities</th>
+                        <th>Sigils</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var weapon in Model.Weapons)
                     {
-                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()">
+                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())">
                             @{
                                 var costumeNoAbility = weapon.EquipmentType.Equals("Costume", System.StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(weapon.AbilityText);
                                 var abilityMarkup = !string.IsNullOrWhiteSpace(weapon.AbilityText)
@@ -563,9 +673,9 @@
                                 else
                                 {
                                     <div class="stat-stack">
-                                        <div>@string.Format("PATK {0:N0}", weapon.PatkOb10Lv130)</div>
-                                        <div>@string.Format("MATK {0:N0}", weapon.MatkOb10Lv130)</div>
-                                        <div>@string.Format("Heal {0:N0}", weapon.HealOb10Lv130)</div>
+                                        <div><nobr>@string.Format("P: {0:N0}", weapon.PatkOb10Lv130)</nobr></div>
+                                        <div><nobr>@string.Format("M: {0:N0}", weapon.MatkOb10Lv130)</nobr></div>
+                                        <div><nobr>@string.Format("H: {0:N0}", weapon.HealOb10Lv130)</nobr></div>
                                     </div>
                                 }
                             </td>
@@ -597,6 +707,21 @@
                                 {
                                     <span class="text-muted">No OB data</span>
                                 }
+                                @{
+                                    var custRAbilityNames = weapon.Customizations
+                                        .Where(c => c.Kind == "R Ability" && c.Description.StartsWith(custRAbilityPrefix))
+                                        .Select(c => c.Description.Substring(custRAbilityPrefix.Length))
+                                        .ToList();
+                                }
+                                @if (custRAbilityNames.Any())
+                                {
+                                    <ul class="list-unstyled small mb-0 cust-rability-list">
+                                        @foreach (var name in custRAbilityNames)
+                                        {
+                                            <li><span class="cust-rability-badge">Cust.</span> @name</li>
+                                        }
+                                    </ul>
+                                }
                                 <div class="ability-template d-none">
                                     @Html.Raw(abilityMarkup)
                                     @Html.Raw(rechargeMarkup)
@@ -616,11 +741,46 @@
                                     </div>
                                 }
                             </td>
+                            <td>
+                                @if (weapon.Sigils.Any())
+                                {
+                                    <div class="sigil-badges">
+                                        @foreach (var sigil in weapon.Sigils)
+                                        {
+                                            var sigilClass = sigil.SigilType.ToLowerInvariant();
+                                            var sourceClass = sigil.Source == "Command" ? "sigil-cmd" : "sigil-mat";
+                                            @if (sigil.Source == "Command")
+                                            {
+                                                <span class="sigil-badge sigil-@sigilClass @sourceClass" title="@sigil.SigilType Sigil (Command)">@sigil.SigilSymbol</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="sigil-badge sigil-@sigilClass @sourceClass" title="@sigil.SigilType Sigil Boost @sigil.Level (Materia)">@sigil.SigilSymbol <small>×@sigil.Level</small></span>
+                                            }
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">&mdash;</span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+    </div>
+    <div class="sigil-legend">
+        <span class="fw-semibold text-muted me-1">Sigil Legend:</span>
+        <span class="sigil-legend-item">
+            <span class="sigil-badge sigil-circle sigil-cmd">◯</span>
+            <span>Command Ability (solid border)</span>
+        </span>
+        <span class="sigil-legend-item">
+            <span class="sigil-badge sigil-circle sigil-mat">◯ <small>×1</small></span>
+            <span>Materia Support (dashed border)</span>
+        </span>
     </div>
 </div>
 
@@ -731,6 +891,8 @@
                 dom: 'lrtip'
             });
 
+            const selectedSigils = new Set();
+
             DataTable.ext.search.push(function (settings, data, dataIndex) {
                 if (settings.nTable !== tableElement) {
                     return true;
@@ -739,11 +901,13 @@
                 const rowNode = table.row(dataIndex).node();
                 const rowCharacter = rowNode.getAttribute('data-character') ?? '';
                 const rowEquipment = rowNode.getAttribute('data-equipment') ?? '';
+                const rowSigils = (rowNode.getAttribute('data-sigils') ?? '').split(' ').filter(Boolean);
 
                 const characterMatch = selectedCharacters.size === 0 || selectedCharacters.has(rowCharacter);
                 const equipmentMatch = selectedEquipmentTypes.size === 0 || selectedEquipmentTypes.has(rowEquipment);
+                const sigilMatch = selectedSigils.size === 0 || [...selectedSigils].some(s => rowSigils.includes(s));
 
-                return characterMatch && equipmentMatch;
+                return characterMatch && equipmentMatch && sigilMatch;
             });
 
             const searchBox = document.getElementById('searchBox');
@@ -804,6 +968,16 @@
                 cb.addEventListener('change', updateEquipmentFilter);
             });
 
+            const updateSigilFilter = () => {
+                selectedSigils.clear();
+                document.querySelectorAll('.sigil-filter:checked').forEach(cb => selectedSigils.add(cb.value));
+                table.draw();
+            };
+
+            document.querySelectorAll('.sigil-filter').forEach(cb => {
+                cb.addEventListener('change', updateSigilFilter);
+            });
+
             document.querySelectorAll('.reset-filter').forEach(button => {
                 button.addEventListener('click', () => {
                     const targetSelector = button.getAttribute('data-filter-target');
@@ -824,12 +998,19 @@
                     if (targetSelector === '.equipment-filter') {
                         updateEquipmentFilter();
                     }
+
+                    if (targetSelector === '.sigil-filter') {
+                        updateSigilFilter();
+                    }
                 });
             });
+
+            const expandedWeaponIds = new Set();
 
             const renderDetailRows = () => {
                 table.rows({ page: 'current' }).every(function () {
                     const rowNode = this.node();
+                    const weaponId = rowNode.getAttribute('data-weapon-id') ?? '';
                     const template = rowNode.querySelector('.ability-template');
                     const customizationTemplate = rowNode.querySelector('.customization-template');
 
@@ -859,7 +1040,12 @@
                     }
 
                     const content = `<div class="detail-wrapper">${sections.join('')}</div>`;
-                    this.child(content).show();
+                    this.child(content);
+                    if (expandedWeaponIds.has(weaponId)) {
+                        this.child.show();
+                    } else {
+                        this.child.hide();
+                    }
                 });
             };
 
@@ -888,12 +1074,19 @@
                             data-weapon="${weapon}"
                             data-equipment="${equipment}">View Levels</button>`;
 
+                    const hasDetailsAttr = rowNode.getAttribute('data-has-details') === 'true';
+                    const isExpanded = expandedWeaponIds.has(weaponId);
+                    const detailsBtn = hasDetailsAttr
+                        ? `<button type="button" class="btn btn-outline-secondary btn-toggle-details" data-weapon-id="${weaponId}">${isExpanded ? 'Hide Ability Details' : 'Show Ability Details'}</button>`
+                        : '';
+
                     bannerCell.innerHTML = `
                         <div class="weapon-banner">
                             <span class="weapon-banner-character">${character}</span>
                             <span class="weapon-banner-name">${weapon}</span>
                             <span class="weapon-banner-equipment">${equipment}</span>
                             ${viewLevelsBtn}
+                            ${detailsBtn}
                         </div>`;
                     bannerRow.appendChild(bannerCell);
 
@@ -1051,6 +1244,18 @@
             });
 
             document.getElementById('gearTable').addEventListener('click', (e) => {
+                const toggleBtn = e.target.closest('.btn-toggle-details');
+                if (toggleBtn) {
+                    const wid = toggleBtn.getAttribute('data-weapon-id');
+                    if (expandedWeaponIds.has(wid)) {
+                        expandedWeaponIds.delete(wid);
+                    } else {
+                        expandedWeaponIds.add(wid);
+                    }
+                    renderDecorations();
+                    return;
+                }
+
                 const btn = e.target.closest('.btn-view-levels');
                 if (!btn) return;
 
