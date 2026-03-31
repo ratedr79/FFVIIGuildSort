@@ -46,6 +46,9 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public double IntermediateObPoints { get; set; }
         public double UltimateMultiplier { get; set; } = 1.0;
         public double FinalWeaponScore { get; set; }
+        public bool HasCustomizations { get; set; }
+        public List<string> CustomizationDescriptions { get; set; } = new();
+        public bool GearSearchEnriched { get; set; }
     }
 
     public sealed class CharacterScoreBreakdown

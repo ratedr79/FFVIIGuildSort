@@ -10,20 +10,20 @@
     <div class="accordion" id="diagnosticsAccordion">
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#tsvMissingCollapse" aria-expanded="true" aria-controls="tsvMissingCollapse">
-                    TSV items missing additional JSON data (@Model.TsvItemsMissingAdditionalData.Count)
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#weaponsNotEnrichedCollapse" aria-expanded="true" aria-controls="weaponsNotEnrichedCollapse">
+                    Weapons NOT enriched from GearSearch (@Model.WeaponsNotEnriched.Count)
                 </button>
             </h2>
-            <div id="tsvMissingCollapse" class="accordion-collapse collapse show" data-bs-parent="#diagnosticsAccordion">
+            <div id="weaponsNotEnrichedCollapse" class="accordion-collapse collapse show" data-bs-parent="#diagnosticsAccordion">
                 <div class="accordion-body">
-                    @if (Model.TsvItemsMissingAdditionalData.Count == 0)
+                    @if (Model.WeaponsNotEnriched.Count == 0)
                     {
-                        <div class="text-success">No missing enrichment detected.</div>
+                        <div class="text-success">All weapons enriched from GearSearch data.</div>
                     }
                     else
                     {
                         <ul class="mb-0">
-                            @foreach (var item in Model.TsvItemsMissingAdditionalData)
+                            @foreach (var item in Model.WeaponsNotEnriched)
                             {
                                 <li>@item</li>
                             }
@@ -35,20 +35,20 @@
 
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#additionalWeaponsCollapse" aria-expanded="false" aria-controls="additionalWeaponsCollapse">
-                    additionalWeaponData.json items missing from TSV (@Model.AdditionalWeaponsMissingFromTsv.Count)
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#weaponsEnrichedCollapse" aria-expanded="false" aria-controls="weaponsEnrichedCollapse">
+                    Weapons enriched from GearSearch (@Model.WeaponsEnriched.Count)
                 </button>
             </h2>
-            <div id="additionalWeaponsCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+            <div id="weaponsEnrichedCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
                 <div class="accordion-body">
-                    @if (Model.AdditionalWeaponsMissingFromTsv.Count == 0)
+                    @if (Model.WeaponsEnriched.Count == 0)
                     {
-                        <div class="text-success">No missing weapon TSV entries detected.</div>
+                        <div class="text-muted">No weapons enriched.</div>
                     }
                     else
                     {
                         <ul class="mb-0">
-                            @foreach (var item in Model.AdditionalWeaponsMissingFromTsv)
+                            @foreach (var item in Model.WeaponsEnriched)
                             {
                                 <li>@item</li>
                             }
@@ -60,20 +60,20 @@
 
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#additionalOutfitsCollapse" aria-expanded="false" aria-controls="additionalOutfitsCollapse">
-                    additionalOutfitData.json items missing from TSV (@Model.AdditionalOutfitsMissingFromTsv.Count)
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#costumesNotEnrichedCollapse" aria-expanded="false" aria-controls="costumesNotEnrichedCollapse">
+                    Costumes NOT enriched from GearSearch (@Model.CostumesNotEnriched.Count)
                 </button>
             </h2>
-            <div id="additionalOutfitsCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+            <div id="costumesNotEnrichedCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
                 <div class="accordion-body">
-                    @if (Model.AdditionalOutfitsMissingFromTsv.Count == 0)
+                    @if (Model.CostumesNotEnriched.Count == 0)
                     {
-                        <div class="text-success">No missing outfit TSV entries detected.</div>
+                        <div class="text-success">All costumes enriched from GearSearch data.</div>
                     }
                     else
                     {
                         <ul class="mb-0">
-                            @foreach (var item in Model.AdditionalOutfitsMissingFromTsv)
+                            @foreach (var item in Model.CostumesNotEnriched)
                             {
                                 <li>@item</li>
                             }
@@ -85,20 +85,20 @@
 
         <div class="accordion-item">
             <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#additionalUltimateWeaponsCollapse" aria-expanded="false" aria-controls="additionalUltimateWeaponsCollapse">
-                    additionalUltimateWeaponData.json items missing from TSV (@Model.AdditionalUltimateWeaponsMissingFromTsv.Count)
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#costumesEnrichedCollapse" aria-expanded="false" aria-controls="costumesEnrichedCollapse">
+                    Costumes enriched from GearSearch (@Model.CostumesEnriched.Count)
                 </button>
             </h2>
-            <div id="additionalUltimateWeaponsCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+            <div id="costumesEnrichedCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
                 <div class="accordion-body">
-                    @if (Model.AdditionalUltimateWeaponsMissingFromTsv.Count == 0)
+                    @if (Model.CostumesEnriched.Count == 0)
                     {
-                        <div class="text-success">No missing ultimate weapon TSV entries detected.</div>
+                        <div class="text-muted">No costumes enriched.</div>
                     }
                     else
                     {
                         <ul class="mb-0">
-                            @foreach (var item in Model.AdditionalUltimateWeaponsMissingFromTsv)
+                            @foreach (var item in Model.CostumesEnriched)
                             {
                                 <li>@item</li>
                             }

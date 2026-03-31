@@ -986,6 +986,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return breakdown;
             }
 
+            breakdown.GearSearchEnriched = weaponInfo.GearSearchEnriched;
+            breakdown.HasCustomizations = weaponInfo.HasCustomizations;
+            breakdown.CustomizationDescriptions = weaponInfo.CustomizationDescriptions;
+
             breakdown.SynergyReason = SynergyDetection.DescribeSynergy(weaponInfo, context);
 
             breakdown.WeaknessMatch = context.EnemyWeakness == Element.None ||
@@ -997,7 +1001,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (!w.IsUltimate && role == CharacterRole.DPS && weaponInfo.AbilityPotPercentAtOb10.HasValue)
             {
                 breakdown.PotencyApplied = true;
-                breakdown.AbilityPotPercentUsed = CalculateAbilityPotencyAtOb(weaponInfo.AbilityPotPercentAtOb10.Value, ob);
+                // Prefer real pot% from GearSearch data when available
+                if (weaponInfo.PotPercentByOb.TryGetValue(ob, out var realPot) && realPot > 0)
+                {
+                    breakdown.AbilityPotPercentUsed = realPot;
+                }
+                else
+                {
+                    breakdown.AbilityPotPercentUsed = CalculateAbilityPotencyAtOb(weaponInfo.AbilityPotPercentAtOb10.Value, ob);
+                }
                 breakdown.MultiplyDamageBonusPercent = weaponInfo.MultiplyDamageBonusPercent;
                 breakdown.EffectiveAbilityPotPercentUsed = breakdown.AbilityPotPercentUsed.Value + breakdown.MultiplyDamageBonusPercent;
 
@@ -1007,37 +1019,48 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var isOffHand = string.Equals(breakdown.Slot, "Off-hand", StringComparison.OrdinalIgnoreCase);
                 if (isOffHand && (context.EnemyWeakness != Element.None || context.PreferredDamageType != DamageType.Any))
                 {
-                    var elementRelevant = context.EnemyWeakness != Element.None;
-                    var typeRelevant = context.PreferredDamageType != DamageType.Any;
-
-                    var elemOk = !elementRelevant || breakdown.WeaknessMatch;
-                    var typeOk = !typeRelevant || breakdown.PreferredDamageTypeMatch;
-
-                    if (isElemental && elementRelevant && !breakdown.WeaknessMatch)
+                    // Off-hand weapons that match the battle type but provide no synergy bonuses
+                    // (no R ability utility, no debuffs, no buffs — only passive stats) should not
+                    // get pot% applied. In battle you'd always use the main-hand ability instead.
+                    var offHandSynergyScore = SynergyDetection.CalculateSynergyScore(weaponInfo, ob, context);
+                    if (offHandSynergyScore <= 0)
                     {
                         breakdown.PotencyWeightApplied = 0.0;
                     }
-                    else if (isElemental && elementRelevant)
-                    {
-                        breakdown.PotencyWeightApplied = 1.0;
-                    }
                     else
                     {
-                        if (elemOk && typeOk)
+                        var elementRelevant = context.EnemyWeakness != Element.None;
+                        var typeRelevant = context.PreferredDamageType != DamageType.Any;
+
+                        var elemOk = !elementRelevant || breakdown.WeaknessMatch;
+                        var typeOk = !typeRelevant || breakdown.PreferredDamageTypeMatch;
+
+                        if (isElemental && elementRelevant && !breakdown.WeaknessMatch)
+                        {
+                            breakdown.PotencyWeightApplied = 0.0;
+                        }
+                        else if (isElemental && elementRelevant)
                         {
                             breakdown.PotencyWeightApplied = 1.0;
                         }
-                        else if (elemOk && !typeOk)
-                        {
-                            breakdown.PotencyWeightApplied = 0.50;
-                        }
-                        else if (!elemOk && typeOk)
-                        {
-                            breakdown.PotencyWeightApplied = 0.25;
-                        }
                         else
                         {
-                            breakdown.PotencyWeightApplied = 0.0;
+                            if (elemOk && typeOk)
+                            {
+                                breakdown.PotencyWeightApplied = 1.0;
+                            }
+                            else if (elemOk && !typeOk)
+                            {
+                                breakdown.PotencyWeightApplied = 0.50;
+                            }
+                            else if (!elemOk && typeOk)
+                            {
+                                breakdown.PotencyWeightApplied = 0.25;
+                            }
+                            else
+                            {
+                                breakdown.PotencyWeightApplied = 0.0;
+                            }
                         }
                     }
                 }
@@ -1382,7 +1405,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var ob = weapon.OverboostLevel ?? 0;
             if (_weaponCatalog.TryGetWeapon(weapon.WeaponName, out var info) && info.AbilityPotPercentAtOb10.HasValue)
             {
-                return CalculateAbilityPotencyAtOb(info.AbilityPotPercentAtOb10.Value, ob) + info.MultiplyDamageBonusPercent;
+                double basePot;
+                if (info.PotPercentByOb.TryGetValue(ob, out var realPot) && realPot > 0)
+                {
+                    basePot = realPot;
+                }
+                else
+                {
+                    basePot = CalculateAbilityPotencyAtOb(info.AbilityPotPercentAtOb10.Value, ob);
+                }
+                return basePot + info.MultiplyDamageBonusPercent;
             }
 
             return 0;

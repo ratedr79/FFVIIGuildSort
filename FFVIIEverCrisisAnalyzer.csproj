@@ -11,15 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="data\additionalOutfitData.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Update="data\additionalUltimateWeaponData.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Update="data\additionalWeaponData.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Update="data\enemyAbilities.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -7,6 +7,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddScoped<PowerLevelCalculator>();
 builder.Services.AddScoped<CsvProcessor>();
 builder.Services.AddSingleton<NameCorrectionService>();
+builder.Services.AddSingleton<WeaponSearchDataService>();
 builder.Services.AddSingleton<WeaponCatalog>();
 builder.Services.AddSingleton<SummonCatalog>();
 builder.Services.AddSingleton<EnemyAbilityCatalog>();
@@ -17,7 +18,6 @@ builder.Services.AddScoped<TeamOptimizer>();
 builder.Services.AddScoped<Gb20Analyzer>();
 builder.Services.AddScoped<GuildAssigner>();
 builder.Services.AddSingleton<StagePointEstimator>();
-builder.Services.AddSingleton<WeaponSearchDataService>();
 
 var app = builder.Build();
 

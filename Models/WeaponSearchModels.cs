@@ -80,10 +80,22 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string Name { get; init; }
         public required string EquipmentType { get; init; }
         public required string AbilityText { get; init; }
+        public required double DamagePercent { get; init; }
         public required int Patk { get; init; }
         public required int Matk { get; init; }
         public required int Heal { get; init; }
         public required List<PassiveSkillTotal> RAbilities { get; init; }
         public required List<WeaponCustomization> Customizations { get; init; }
+    }
+
+    public sealed class WeaponEnrichmentResult
+    {
+        public required string WeaponName { get; init; }
+        public required string Character { get; init; }
+        public required string EquipmentType { get; init; }
+        public required double DamagePercent { get; init; }
+        public required List<PassiveSkillTotal> RAbilities { get; init; }
+        public required List<WeaponCustomization> Customizations { get; init; }
+        public bool HasCustomizations => Customizations.Count > 0;
     }
 }

@@ -30,6 +30,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private readonly IWebHostEnvironment _environment;
         private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
         private readonly List<WeaponSearchItem> _allWeapons = new();
+        private readonly Dictionary<string, string> _weaponNameToId = new(StringComparer.OrdinalIgnoreCase);
 
         // Lookup data retained for the snapshot API
         private Dictionary<int, WeaponRaw> _weaponsById = new();
@@ -73,6 +74,96 @@ namespace FFVIIEverCrisisAnalyzer.Services
             _logger = logger;
             _environment = environment;
             LoadData();
+        }
+
+        public WeaponEnrichmentResult? GetWeaponEnrichment(string weaponName, int overboostLevel)
+        {
+            if (string.IsNullOrWhiteSpace(weaponName))
+                return null;
+
+            // Try direct name match, then normalized
+            if (!_weaponNameToId.TryGetValue(weaponName, out var weaponId))
+            {
+                // Try normalized match (strip unicode, whitespace)
+                var normalized = NormalizeWeaponName(weaponName);
+                var match = _weaponNameToId.FirstOrDefault(kvp => NormalizeWeaponName(kvp.Key) == normalized);
+                if (match.Key == null)
+                    return null;
+                weaponId = match.Value;
+            }
+
+            var snapshot = GetWeaponSnapshot(weaponId, overboostLevel, 130);
+            if (snapshot == null)
+                return null;
+
+            var item = _allWeapons.FirstOrDefault(w => w.Id == weaponId);
+
+            return new WeaponEnrichmentResult
+            {
+                WeaponName = snapshot.Name,
+                Character = snapshot.Character,
+                EquipmentType = snapshot.EquipmentType,
+                DamagePercent = item?.DamagePercent ?? 0,
+                RAbilities = snapshot.RAbilities,
+                Customizations = snapshot.Customizations
+            };
+        }
+
+        public WeaponEnrichmentResult? GetWeaponEnrichmentAtOb(string weaponName, int overboostLevel)
+        {
+            if (string.IsNullOrWhiteSpace(weaponName))
+                return null;
+
+            if (!_weaponNameToId.TryGetValue(weaponName, out var weaponId))
+            {
+                var normalized = NormalizeWeaponName(weaponName);
+                var match = _weaponNameToId.FirstOrDefault(kvp => NormalizeWeaponName(kvp.Key) == normalized);
+                if (match.Key == null)
+                    return null;
+                weaponId = match.Value;
+            }
+
+            var snapshot = GetWeaponSnapshot(weaponId, overboostLevel, 130);
+            if (snapshot == null)
+                return null;
+
+            return new WeaponEnrichmentResult
+            {
+                WeaponName = snapshot.Name,
+                Character = snapshot.Character,
+                EquipmentType = snapshot.EquipmentType,
+                DamagePercent = snapshot.DamagePercent,
+                RAbilities = snapshot.RAbilities,
+                Customizations = snapshot.Customizations
+            };
+        }
+
+        public WeaponSearchItem? TryGetWeaponSearchItemByName(string weaponName)
+        {
+            if (string.IsNullOrWhiteSpace(weaponName))
+                return null;
+
+            if (_weaponNameToId.TryGetValue(weaponName, out var weaponId))
+                return _allWeapons.FirstOrDefault(w => w.Id == weaponId);
+
+            var normalized = NormalizeWeaponName(weaponName);
+            var match = _weaponNameToId.FirstOrDefault(kvp => NormalizeWeaponName(kvp.Key) == normalized);
+            if (match.Key != null)
+                return _allWeapons.FirstOrDefault(w => w.Id == match.Value);
+
+            return null;
+        }
+
+        private static string NormalizeWeaponName(string name)
+        {
+            return name.Trim()
+                .Replace("\u2019", "'")
+                .Replace("\u2018", "'")
+                .Replace("\u201C", "\"")
+                .Replace("\u201D", "\"")
+                .Replace("\u00A0", " ")
+                .Replace(" ", "")
+                .ToLowerInvariant();
         }
 
         public IReadOnlyList<WeaponSearchItem> GetWeapons(string? characterFilter = null)
@@ -201,6 +292,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 Name = item.Name,
                 EquipmentType = item.EquipmentType,
                 AbilityText = abilityText,
+                DamagePercent = damagePercent,
                 Patk = statResult.PhysicalAttack,
                 Matk = statResult.MagicalAttack,
                 Heal = statResult.HealingPower,
@@ -569,6 +661,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 };
 
                 _allWeapons.Add(searchItem);
+                if (!_weaponNameToId.ContainsKey(searchItem.Name))
+                    _weaponNameToId[searchItem.Name] = searchItem.Id;
             }
 
             AddCostumeEntries(
@@ -792,6 +886,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 };
 
                 _allWeapons.Add(searchItem);
+                if (!_weaponNameToId.ContainsKey(searchItem.Name))
+                    _weaponNameToId[searchItem.Name] = searchItem.Id;
             }
         }
 
