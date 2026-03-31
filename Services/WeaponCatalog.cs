@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using CsvHelper;
 using CsvHelper.Configuration;
 
@@ -164,13 +165,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 weapon.GearSearchEnriched = true;
 
-                // Pre-compute pot% for OB 0-10
+                // Pre-compute pot% for OB 0-10 (use customized pot% when available)
                 for (int ob = 0; ob <= 10; ob++)
                 {
                     var enrichment = _weaponSearchDataService.GetWeaponEnrichmentAtOb(weapon.Name, ob);
                     if (enrichment != null)
                     {
-                        weapon.PotPercentByOb[ob] = enrichment.DamagePercent;
+                        var customPot = TryGetCustomizedPotPercent(enrichment);
+                        weapon.PotPercentByOb[ob] = customPot ?? enrichment.DamagePercent;
                     }
                 }
 
@@ -296,6 +298,32 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
         }
 
+        private static readonly Regex DamagePotencyNewRegex = new(
+            @"new\s+([\d,]+\.?\d*)%",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>
+        /// If the enrichment has a "Damage Potency" customization (Heart slot),
+        /// parse the "new Y%" value and return it. Otherwise returns null.
+        /// </summary>
+        private static double? TryGetCustomizedPotPercent(FFVIIEverCrisisAnalyzer.Models.WeaponEnrichmentResult enrichment)
+        {
+            foreach (var cust in enrichment.Customizations)
+            {
+                if (cust.Kind != "Damage Upgrade")
+                    continue;
+
+                var match = DamagePotencyNewRegex.Match(cust.Description);
+                if (match.Success)
+                {
+                    var raw = match.Groups[1].Value.Replace(",", "");
+                    if (double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var newPot))
+                        return newPot;
+                }
+            }
+            return null;
+        }
+
         private static void AppendEffectText(ref string target, string? extra)
         {
             if (string.IsNullOrWhiteSpace(extra))
@@ -405,14 +433,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 weapon.GearSearchEnriched = true;
 
-                // Pre-compute pot% for OB 0-10
+                // Pre-compute pot% for OB 0-10 (use customized pot% when available)
                 int maxOb = isUltimate ? 0 : 10;
                 for (int ob = 0; ob <= maxOb; ob++)
                 {
                     var enrichment = _weaponSearchDataService.GetWeaponEnrichmentAtOb(searchItem.Name, ob);
                     if (enrichment != null)
                     {
-                        weapon.PotPercentByOb[ob] = enrichment.DamagePercent;
+                        var customPot = TryGetCustomizedPotPercent(enrichment);
+                        weapon.PotPercentByOb[ob] = customPot ?? enrichment.DamagePercent;
                     }
                 }
 
