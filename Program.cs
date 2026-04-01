@@ -11,6 +11,7 @@ builder.Services.AddSingleton<WeaponSearchDataService>();
 builder.Services.AddSingleton<WeaponCatalog>();
 builder.Services.AddSingleton<SummonCatalog>();
 builder.Services.AddSingleton<EnemyAbilityCatalog>();
+builder.Services.AddSingleton<EnemyCatalog>();
 builder.Services.AddSingleton<MemoriaCatalog>();
 builder.Services.AddSingleton<TeamTemplateCatalog>();
 builder.Services.AddScoped<Gb20Ingestion>();

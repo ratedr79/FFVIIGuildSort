@@ -4,19 +4,16 @@
   "lockedPlayers": [
     { "player": "Domi", "guild": 1 },
     { "player": "DDelaneyCA", "guild": 1 },
-    { "player": "DrakeSky", "guild": 2 },
-    { "player": "Cybercyco", "guild": 3 }
+    { "player": "DrakeSky", "guild": 2 }
   ],
   "playerGuildExclusions": [
     { "player": "Mikey4Life", "excludedGuilds": [ 1 ] },
     { "player": "Intern-Kun", "excludedGuilds": [ 1 ] },
-    { "player": "Sin", "excludedGuilds": [ 1 ] },
-    { "player": "5af", "excludedGuilds": [ 1 ] }
+    { "player": "Sin", "excludedGuilds": [ 1 ] }
   ],
   "ensurePlayersPresent": [
     "Domi",
     "DDelaneyCA",
-    "DrakeSky",
-    "Cybercyco"
+    "DrakeSky"
   ]
 }

@@ -1,0 +1,194 @@
+@page
+@using System.Collections.Generic
+@model FFVIIEverCrisisAnalyzer.Pages.EnemyStatsModel
+@{
+    ViewData["Title"] = "Enemy Stats";
+}
+
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <h1 class="display-6">Enemy Stats</h1>
+        <p class="text-muted">Search bosses by name, then inspect their stats, resistances, and flavor text.</p>
+    </div>
+</div>
+
+<form method="post" asp-page-handler="Search" class="mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-6">
+            <label asp-for="SearchQuery" class="form-label">Boss name</label>
+            <input asp-for="SearchQuery" class="form-control" placeholder="e.g. Titan" />
+            <span asp-validation-for="SearchQuery" class="text-danger"></span>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+    </div>
+</form>
+
+@if (Model.ShowNoResults)
+{
+    <div class="alert alert-warning">
+        No enemies found for '<strong>@Model.SearchQuery</strong>'.
+    </div>
+}
+
+@if (Model.Results?.Count > 0)
+{
+    <div class="table-responsive">
+        <table class="table table-striped" id="enemy-results">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-center">ID</th>
+                    <th>Name</th>
+                    <th class="text-center">Level</th>
+                    <th>Species</th>
+                    <th class="text-end">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var result in Model.Results)
+                {
+                    var detailId = $"detail-{result.EnemyId}-{result.Level}";
+                    var displayLevel = string.IsNullOrWhiteSpace(result.DisplayLevelText)
+                        ? result.Level.ToString()
+                        : result.DisplayLevelText;
+                    <tr class="@(result.IsStageResult ? "table-info" : string.Empty)">
+                        <td class="text-center">@result.EnemyId</td>
+                        <td>@(string.IsNullOrWhiteSpace(result.DisplayName) ? result.Name : result.DisplayName)</td>
+                        <td class="text-center">@displayLevel</td>
+                        <td>@result.SpeciesSummary</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#@detailId" aria-expanded="false">
+                                Show Details
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4" id="enemy-detail-panels">
+        @{ var renderedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
+        @foreach (var result in Model.Results)
+        {
+            if (!renderedKeys.Add(result.Key))
+            {
+                continue;
+            }
+            var detailId = $"detail-{result.EnemyId}-{result.Level}";
+            var detail = Model.FindDetail(result);
+            <div class="collapse mb-3" id="@detailId" data-bs-parent="#enemy-detail-panels">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        @if (detail == null)
+                        {
+                            <div class="text-muted">Details unavailable.</div>
+                        }
+                        else
+                        {
+                            var allImmunities = detail.StatusImmunities
+                                .Concat(detail.BuffDebuffImmunities)
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .OrderBy(i => i)
+                                .ToList();
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <h5 class="mb-0">@detail.Name [Level @detail.Level]</h5>
+                            </div>
+                            <div class="fw-semibold mb-2">
+                                <span class="me-3">HP: @string.Format("{0:N0}", detail.Hp)</span>
+                                <span class="me-3">PATK: @detail.PhysicalAttack</span>
+                                <span class="me-3">MATK: @detail.MagicalAttack</span>
+                                <span class="me-3">PDEF: @detail.PhysicalDefense</span>
+                                <span>MDEF: @detail.MagicalDefense</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Species:</strong>
+                                <span>@string.Join(", ", detail.Species)</span>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <strong>Elemental Resistances</strong>
+                                    <ul class="mb-2">
+                                        @if (detail.ElementResistances.Count == 0)
+                                        {
+                                            <li class="text-muted">None listed</li>
+                                        }
+                                        else
+                                        {
+                                            foreach (var resist in detail.ElementResistances)
+                                            {
+                                                <li>@resist.Type: @resist.Value</li>
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Immunities</strong>
+                                    <ul class="mb-2">
+                                        @if (allImmunities.Count == 0)
+                                        {
+                                            <li class="text-muted">Ailments unknown</li>
+                                        }
+                                        else
+                                        {
+                                            foreach (var immunity in allImmunities)
+                                            {
+                                                <li>@immunity</li>
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Buff/Debuff Resist</strong>
+                                    <ul class="mb-2">
+                                        @if (detail.BuffDebuffImmunities.Count == 0)
+                                        {
+                                            <li class="text-muted">None</li>
+                                        }
+                                        else
+                                        {
+                                            foreach (var buff in detail.BuffDebuffImmunities)
+                                            {
+                                                <li>@buff</li>
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(detail.Description))
+                            {
+                                <div class="mt-3">
+                                    <strong>Description</strong>
+                                    <p class="mb-0" style="white-space: pre-line;">@detail.Description</p>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @if (Model.Results?.Count > 0)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const table = document.querySelector('#enemy-results');
+                if (table && !table.dataset.initialized) {
+                    new DataTable(table, {
+                        paging: true,
+                        searching: true,
+                        order: [[0, 'asc']]
+                    });
+                    table.dataset.initialized = 'true';
+                }
+            });
+        </script>
+    }
+}
