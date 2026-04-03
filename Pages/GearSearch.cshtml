@@ -72,9 +72,17 @@
     }
 
     .weapon-banner-row td {
-        background: linear-gradient(90deg, rgba(92, 29, 155, 0.08), rgba(92, 29, 155, 0.02));
-        border: 0;
+        background: linear-gradient(90deg, rgba(92, 29, 155, 0.10) 0 4px, rgba(92, 29, 155, 0.07) 4px, rgba(92, 29, 155, 0.015) 100%);
+        border: 1px solid rgba(109, 90, 144, 0.28);
         padding: 0.65rem 1rem 0.35rem;
+    }
+
+    .weapon-banner-row.weapon-banner-row-alt td {
+        background: linear-gradient(90deg, rgba(92, 29, 155, 0.13) 0 4px, rgba(92, 29, 155, 0.09) 4px, rgba(92, 29, 155, 0.025) 100%);
+    }
+
+    .weapon-banner-row:hover td {
+        box-shadow: inset 0 0 0 1px rgba(92, 29, 155, 0.28);
     }
 
     .weapon-banner {
@@ -86,23 +94,38 @@
         text-transform: none;
     }
 
+    .weapon-banner-meta {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.55rem;
+        margin-right: 0.5rem;
+    }
+
+    .weapon-banner-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
     .weapon-banner-character {
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
         letter-spacing: 0.08em;
-        color: #6c5a8d;
+        color: #615874;
         text-transform: uppercase;
     }
 
     .weapon-banner-name {
         font-size: 1.05rem;
-        font-weight: 700;
-        color: #3a2758;
+        font-weight: 800;
+        color: #332b42;
     }
 
     .weapon-banner-equipment {
         font-size: 0.85rem;
-        color: #8d79b7;
+        color: #857b96;
     }
 
     .advanced-toggle-btn {
@@ -118,6 +141,32 @@
         background-color: #f5ecff;
         color: #4a147a;
         border-color: rgba(92, 29, 155, 0.5);
+    }
+
+    .sticky-gear-controls {
+        position: sticky;
+        top: 0.75rem;
+        z-index: 1010;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    .sticky-compare-panel {
+        position: sticky;
+        top: var(--gear-compare-top, 6.5rem);
+        z-index: 1005;
+    }
+
+    @@media (max-width: 991.98px) {
+        .sticky-gear-controls {
+            position: static;
+            top: auto;
+            box-shadow: none;
+        }
+
+        .sticky-compare-panel {
+            position: static;
+            top: auto;
+        }
     }
 
     .stat-stack {
@@ -155,10 +204,10 @@
         gap: 1rem;
         margin-top: 0.75rem;
         padding: 0.5rem 0.75rem;
-        background: #f9f5ff;
+        background: #f8f7fb;
         border-radius: 0.4rem;
         font-size: 0.85rem;
-        color: #5a5a5a;
+        color: #66626f;
     }
 
     .cust-rability-list {
@@ -208,8 +257,8 @@
     }
 
     .ability-detail-row {
-        background-color: #f9f5ff;
-        border-left: 3px solid #b28bff;
+        background-color: #f8f7fb;
+        border-left: 3px solid #c8bfdc;
         border-radius: 0 0.5rem 0.5rem 0;
         padding: 0.75rem 1rem;
         font-size: 0.95rem;
@@ -218,13 +267,13 @@
 
     .ability-detail-row .ability-meta {
         font-size: 0.85rem;
-        color: #6c5a8d;
+        color: #746d85;
         margin-top: 0.25rem;
     }
 
     .customization-detail-row {
-        background-color: #fff9f2;
-        border-left: 3px solid #f4b183;
+        background-color: #fdfaf6;
+        border-left: 3px solid #e5ccb6;
         border-radius: 0 0.5rem 0.5rem 0;
         padding: 0.65rem 1rem;
         font-size: 0.92rem;
@@ -261,9 +310,46 @@
         color: #4a3c2c;
     }
 
+    .results-summary {
+        font-size: 0.9rem;
+        color: #5f5b69;
+    }
+
+    .active-filters-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .active-filters-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #6b6680;
+    }
+
+    .active-filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .active-filter-chip {
+        border-radius: 999px;
+        font-size: 0.78rem;
+        padding: 0.15rem 0.55rem;
+    }
+
+    .filter-count-badge {
+        font-size: 0.7rem;
+        line-height: 1;
+    }
+
     #gearTable tbody tr.weapon-spacer-row td {
         padding: 0;
-        height: 8px;
+        height: 11px;
         border: 0 !important;
         background: transparent !important;
         box-shadow: none !important;
@@ -272,11 +358,12 @@
     .btn-view-levels,
     .btn-toggle-details,
     .btn-compare-toggle {
-        font-size: 0.72rem;
-        padding: 0.15rem 0.55rem;
-        border-radius: 0.35rem;
+        font-size: 0.7rem;
+        padding: 0.12rem 0.5rem;
+        border-radius: 999px;
         font-weight: 600;
         white-space: nowrap;
+        line-height: 1.25;
     }
 
     #comparePanel .card-body {
@@ -285,9 +372,9 @@
 
     #comparePanel .compare-name-tag {
         display: inline-block;
-        background: #ede0ff;
-        color: #5c1d9b;
-        border: 1px solid #c9a8f5;
+        background: #f2edf8;
+        color: #5d526f;
+        border: 1px solid #d8cfe7;
         border-radius: 0.3rem;
         padding: 0.1rem 0.45rem;
         font-size: 0.78rem;
@@ -434,8 +521,15 @@
         </a>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-body">
+    <div class="card mb-4 sticky-gear-controls">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Main Search</span>
+            <button class="btn btn-sm advanced-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#mainSearchCollapse" aria-expanded="true" aria-controls="mainSearchCollapse">
+                Toggle
+            </button>
+        </div>
+        <div class="collapse show" id="mainSearchCollapse">
+            <div class="card-body">
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label mb-1">Characters</label>
@@ -475,6 +569,7 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 
     <div class="card mb-4">
@@ -491,6 +586,7 @@
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingElement">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseElement" aria-expanded="false" aria-controls="collapseElement">
                                 Element Type
+                                <span id="badgeElementCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
                             </button>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".element-filter">Reset</button>
                         </h2>
@@ -516,6 +612,7 @@
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingAbility">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAbility" aria-expanded="false" aria-controls="collapseAbility">
                                 Ability Type
+                                <span id="badgeAbilityCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
                             </button>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".ability-filter">Reset</button>
                         </h2>
@@ -541,6 +638,7 @@
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingRange">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRange" aria-expanded="false" aria-controls="collapseRange">
                                 Range Type
+                                <span id="badgeRangeCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
                             </button>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".range-filter">Reset</button>
                         </h2>
@@ -566,6 +664,7 @@
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingEquipment">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEquipment" aria-expanded="false" aria-controls="collapseEquipment">
                                 Equipment Type
+                                <span id="badgeEquipmentCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
                             </button>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".equipment-filter">Reset</button>
                         </h2>
@@ -591,6 +690,7 @@
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingRAbilities">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRAbilities" aria-expanded="false" aria-controls="collapseRAbilities">
                                 R Abilities
+                                <span id="badgeRAbilitiesCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
                             </button>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".rability-filter">Reset</button>
                         </h2>
@@ -616,6 +716,7 @@
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingEffects">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEffects" aria-expanded="false" aria-controls="collapseEffects">
                                 Effects
+                                <span id="badgeEffectsCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
                             </button>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".effect-filter">Reset</button>
                         </h2>
@@ -641,6 +742,7 @@
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingSigils">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSigils" aria-expanded="false" aria-controls="collapseSigils">
                                 Sigils
+                                <span id="badgeSigilsCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
                             </button>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".sigil-filter">Reset</button>
                         </h2>
@@ -675,7 +777,16 @@
         </div>
     </div>
 
-    <div class="card mb-2" id="comparePanel">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-2">
+        <div id="resultsSummary" class="results-summary">Showing 0 of 0 items</div>
+        <div id="activeFiltersWrap" class="active-filters-wrap d-none">
+            <span class="active-filters-label">Active Filters</span>
+            <div id="activeFilterChips" class="active-filter-chips"></div>
+            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" id="clearAllFiltersBtn">Clear all</button>
+        </div>
+    </div>
+
+    <div class="card mb-2 sticky-compare-panel" id="comparePanel">
         <div class="card-body d-flex flex-wrap align-items-center gap-2">
             <span class="fw-semibold text-muted">Compare:</span>
             <span id="compareCount" class="small text-muted">0 items selected</span>
@@ -991,6 +1102,31 @@
 
             const selectedSigils = new Set();
 
+            const stickyControlsCard = document.querySelector('.sticky-gear-controls');
+            const mainSearchCollapse = document.getElementById('mainSearchCollapse');
+            const syncStickyOffsets = () => {
+                if (!stickyControlsCard || window.innerWidth < 992) {
+                    document.documentElement.style.removeProperty('--gear-compare-top');
+                    return;
+                }
+
+                const baseTop = 12;
+                const controlsHeight = stickyControlsCard.getBoundingClientRect().height;
+                const compareTop = Math.ceil(baseTop + controlsHeight + 8);
+                document.documentElement.style.setProperty('--gear-compare-top', `${compareTop}px`);
+            };
+
+            syncStickyOffsets();
+            window.addEventListener('resize', syncStickyOffsets);
+            if (mainSearchCollapse) {
+                ['shown.bs.collapse', 'hidden.bs.collapse'].forEach(eventName => {
+                    mainSearchCollapse.addEventListener(eventName, () => {
+                        syncStickyOffsets();
+                        setTimeout(syncStickyOffsets, 220);
+                    });
+                });
+            }
+
             DataTable.ext.search.push(function (settings, data, dataIndex) {
                 if (settings.nTable !== tableElement) {
                     return true;
@@ -1010,6 +1146,11 @@
 
             const searchBox = document.getElementById('searchBox');
             searchBox.addEventListener('keyup', (e) => table.search(e.target.value).draw());
+
+            const resultsSummaryEl = document.getElementById('resultsSummary');
+            const activeFiltersWrap = document.getElementById('activeFiltersWrap');
+            const activeFilterChips = document.getElementById('activeFilterChips');
+            const clearAllFiltersBtn = document.getElementById('clearAllFiltersBtn');
 
             const pageSizeSelect = document.getElementById('pageSize');
             pageSizeSelect.addEventListener('change', (e) => table.page.len(parseInt(e.target.value, 10)).draw());
@@ -1036,6 +1177,108 @@
                 { selector: '.rability-filter', columnIndex: 7 }
             ];
 
+            const filterCountBadges = [
+                { selector: '.element-filter', badgeId: 'badgeElementCount' },
+                { selector: '.ability-filter', badgeId: 'badgeAbilityCount' },
+                { selector: '.range-filter', badgeId: 'badgeRangeCount' },
+                { selector: '.equipment-filter', badgeId: 'badgeEquipmentCount' },
+                { selector: '.rability-filter', badgeId: 'badgeRAbilitiesCount' },
+                { selector: '.effect-filter', badgeId: 'badgeEffectsCount' },
+                { selector: '.sigil-filter', badgeId: 'badgeSigilsCount' }
+            ];
+
+            const updateFilterCountBadges = () => {
+                filterCountBadges.forEach(({ selector, badgeId }) => {
+                    const count = document.querySelectorAll(`${selector}:checked`).length;
+                    const badge = document.getElementById(badgeId);
+                    if (!badge) {
+                        return;
+                    }
+
+                    badge.textContent = count.toString();
+                    badge.classList.toggle('d-none', count === 0);
+                });
+            };
+
+            const updateResultsSummary = () => {
+                const visibleCount = table.rows({ filter: 'applied' }).count();
+                const totalCount = table.rows().count();
+                resultsSummaryEl.textContent = `Showing ${visibleCount} of ${totalCount} items`;
+            };
+
+            const buildActiveFilterEntries = () => {
+                const entries = [];
+
+                const searchValue = searchBox.value.trim();
+                if (searchValue.length > 0) {
+                    entries.push({ kind: 'search', label: `Search: ${searchValue}` });
+                }
+
+                document.querySelectorAll('.character-checkbox:checked').forEach(cb => {
+                    entries.push({ selector: '.character-checkbox', value: cb.value, label: `Character: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.element-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.element-filter', value: cb.value, label: `Element: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.ability-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.ability-filter', value: cb.value, label: `Ability: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.range-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.range-filter', value: cb.value, label: `Range: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.equipment-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.equipment-filter', value: cb.value, label: `Equipment: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.rability-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.rability-filter', value: cb.value, label: `R Ability: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.effect-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.effect-filter', value: cb.value, label: `Effect: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.sigil-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.sigil-filter', value: cb.value, label: `Sigil: ${cb.value}` });
+                });
+
+                if (customizationFilterCheckbox.checked) {
+                    entries.push({ kind: 'hasCustomizations', label: 'Has Customizations' });
+                }
+
+                return entries;
+            };
+
+            const renderActiveFilterChips = () => {
+                const entries = buildActiveFilterEntries();
+                activeFilterChips.innerHTML = '';
+
+                entries.forEach(entry => {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'btn btn-outline-secondary active-filter-chip';
+                    chip.textContent = `✕ ${entry.label}`;
+
+                    if (entry.kind) {
+                        chip.dataset.kind = entry.kind;
+                    }
+                    if (entry.selector) {
+                        chip.dataset.selector = entry.selector;
+                    }
+                    if (entry.value) {
+                        chip.dataset.value = entry.value;
+                    }
+
+                    activeFilterChips.appendChild(chip);
+                });
+
+                activeFiltersWrap.classList.toggle('d-none', entries.length === 0);
+            };
+
             const applyAdvancedFilter = (selector, columnIndex) => {
                 const selected = Array.from(document.querySelectorAll(`${selector}:checked`)).map(cb => cb.value);
                 if (selected.length === 0) {
@@ -1048,6 +1291,12 @@
                     .join('|');
 
                 table.column(columnIndex).search(pattern, true, false).draw();
+            };
+
+            const syncFilterUi = () => {
+                updateFilterCountBadges();
+                renderActiveFilterChips();
+                updateResultsSummary();
             };
 
             advancedFilters.forEach(group => {
@@ -1253,6 +1502,7 @@
                 document.querySelectorAll('#gearTable tbody tr.weapon-banner-row, #gearTable tbody tr.weapon-spacer-row').forEach(row => row.remove());
                 const columnCount = table.columns().count();
                 let isFirstBanner = true;
+                let bannerIndex = 0;
 
                 table.rows({ page: 'current' }).every(function () {
                     const rowNode = this.node();
@@ -1264,12 +1514,15 @@
 
                     const bannerRow = document.createElement('tr');
                     bannerRow.classList.add('weapon-banner-row');
+                    if (bannerIndex % 2 === 1) {
+                        bannerRow.classList.add('weapon-banner-row-alt');
+                    }
 
                     const bannerCell = document.createElement('td');
                     bannerCell.colSpan = columnCount;
 
                     const viewLevelsBtn = isCostume ? '' :
-                        `<button type="button" class="btn btn-outline-primary btn-view-levels"
+                        `<button type="button" class="btn btn-sm btn-outline-primary btn-view-levels"
                             data-weapon-id="${weaponId}"
                             data-character="${character}"
                             data-weapon="${weapon}"
@@ -1278,21 +1531,25 @@
                     const hasDetailsAttr = rowNode.getAttribute('data-has-details') === 'true';
                     const isExpanded = expandedWeaponIds.has(weaponId);
                     const detailsBtn = hasDetailsAttr
-                        ? `<button type="button" class="btn btn-outline-secondary btn-toggle-details" data-weapon-id="${weaponId}">${isExpanded ? 'Hide Ability Details' : 'Show Ability Details'}</button>`
+                        ? `<button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-details" data-weapon-id="${weaponId}">${isExpanded ? 'Hide Ability Details' : 'Show Ability Details'}</button>`
                         : '';
 
                     const inCompare = compareItems.has(weaponId);
                     const compareFull = !inCompare && compareItems.size >= 3;
-                    const compareBtn = `<button type="button" class="btn ${inCompare ? 'btn-warning' : 'btn-outline-info'} btn-compare-toggle" data-weapon-id="${weaponId}" ${compareFull ? 'disabled' : ''}>${inCompare ? 'Remove from Compare' : 'Add to Compare'}</button>`;
+                    const compareBtn = `<button type="button" class="btn btn-sm ${inCompare ? 'btn-warning' : 'btn-outline-info'} btn-compare-toggle" data-weapon-id="${weaponId}" ${compareFull ? 'disabled' : ''}>${inCompare ? 'Remove from Compare' : 'Add to Compare'}</button>`;
 
                     bannerCell.innerHTML = `
                         <div class="weapon-banner">
-                            <span class="weapon-banner-character">${character}</span>
-                            <span class="weapon-banner-name">${weapon}</span>
-                            <span class="weapon-banner-equipment">${equipment}</span>
-                            ${viewLevelsBtn}
-                            ${detailsBtn}
-                            ${compareBtn}
+                            <div class="weapon-banner-meta">
+                                <span class="weapon-banner-name">${weapon}</span>
+                                <span class="weapon-banner-character">${character}</span>
+                                <span class="weapon-banner-equipment">${equipment}</span>
+                            </div>
+                            <div class="weapon-banner-actions">
+                                ${viewLevelsBtn}
+                                ${detailsBtn}
+                                ${compareBtn}
+                            </div>
                         </div>`;
                     bannerRow.appendChild(bannerCell);
 
@@ -1305,6 +1562,7 @@
                         rowNode.parentNode?.insertBefore(spacerRow, rowNode);
                     }
                     isFirstBanner = false;
+                    bannerIndex += 1;
 
                     rowNode.parentNode?.insertBefore(bannerRow, rowNode);
                 });
@@ -1332,6 +1590,80 @@
             });
 
             customizationFilterCheckbox.addEventListener('change', () => {
+                table.draw();
+            });
+
+            activeFilterChips.addEventListener('click', (event) => {
+                const chip = event.target.closest('.active-filter-chip');
+                if (!chip) {
+                    return;
+                }
+
+                const kind = chip.dataset.kind;
+                const selector = chip.dataset.selector;
+                const value = chip.dataset.value;
+
+                if (kind === 'search') {
+                    searchBox.value = '';
+                    table.search('').draw();
+                    return;
+                }
+
+                if (kind === 'hasCustomizations') {
+                    customizationFilterCheckbox.checked = false;
+                    table.draw();
+                    return;
+                }
+
+                if (!selector || !value) {
+                    return;
+                }
+
+                document.querySelectorAll(selector).forEach(cb => {
+                    if (cb.value === value) {
+                        cb.checked = false;
+                    }
+                });
+
+                if (selector === '.character-checkbox') {
+                    updateCharacterFilter();
+                    return;
+                }
+
+                if (selector === '.equipment-filter') {
+                    updateEquipmentFilter();
+                    return;
+                }
+
+                if (selector === '.sigil-filter') {
+                    updateSigilFilter();
+                    return;
+                }
+
+                const filterGroup = advancedFilters.find(group => group.selector === selector);
+                if (filterGroup) {
+                    applyAdvancedFilter(filterGroup.selector, filterGroup.columnIndex);
+                }
+            });
+
+            clearAllFiltersBtn.addEventListener('click', () => {
+                searchBox.value = '';
+                table.search('');
+
+                document.querySelectorAll('.character-checkbox:checked, .advanced-filter:checked').forEach(cb => {
+                    cb.checked = false;
+                });
+
+                customizationFilterCheckbox.checked = false;
+
+                selectedCharacters.clear();
+                selectedEquipmentTypes.clear();
+                selectedSigils.clear();
+
+                advancedFilters.forEach(group => {
+                    table.column(group.columnIndex).search('', true, false);
+                });
+
                 table.draw();
             });
 
@@ -1534,7 +1866,11 @@
             updateCharacterFilter();
             updateEquipmentFilter();
             renderDecorations();
-            table.on('draw', renderDecorations);
+            syncFilterUi();
+            table.on('draw', () => {
+                renderDecorations();
+                syncFilterUi();
+            });
         });
     </script>
 }
