@@ -30,12 +30,12 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/PowerLevelAnalyzer">
-                                <i class="fas fa-futbol"></i> Power Levels
+                                <i class="fas fa-futbol"></i> Power Levels <i class="fas fa-lock small text-warning" title="Leadership only"></i>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/DataDiagnostics">
-                                <i class="fas fa-list-check"></i> Data Diagnostics
+                                <i class="fas fa-list-check"></i> Data Diagnostics <i class="fas fa-lock small text-warning" title="Leadership only"></i>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -50,17 +50,22 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/GuildBattle">
-                                <i class="fas fa-chess"></i> Guild Battle
+                                <i class="fas fa-chess"></i> Guild Battle <i class="fas fa-lock small text-warning" title="Leadership only"></i>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/GuildBattleTest">
-                                <i class="fas fa-flask"></i> GB Test
+                                <i class="fas fa-flask"></i> GB Test <i class="fas fa-lock small text-warning" title="Leadership only"></i>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/ZelarithAssignment">
-                                <i class="fas fa-terminal"></i> Zelarith
+                                <i class="fas fa-terminal"></i> Zelarith <i class="fas fa-lock small text-warning" title="Leadership only"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-page="/Unlock">
+                                <i class="fas fa-key"></i> Unlock
                             </a>
                         </li>
                     </ul>
@@ -72,6 +77,15 @@
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
+    </div>
+
+    <div class="border-top py-2 mt-2" style="border-top: 0 !important;">
+        <div class="container small text-muted text-center mt-0">
+            <i class="fas fa-comment-dots me-1"></i>Issues or suggestions? Message <strong>@@ddelaneyca</strong> on Discord
+            <span class="mx-2">|</span>
+            <i class="fab fa-github me-1"></i>
+            <a class="link-secondary" href="https://github.com/ratedr79/FFVIIGuildSort" target="_blank" rel="noopener noreferrer">github.com/ratedr79/FFVIIGuildSort</a>
+        </div>
     </div>
 
     @* Footer hidden - was floating over collapsible panels *@

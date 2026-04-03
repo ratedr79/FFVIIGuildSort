@@ -27,16 +27,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static readonly Regex BreakTagRegex = new(@"<\s*br\s*/?\s*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ParagraphCloseTagRegex = new(@"<\s*/\s*p\s*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Dictionary<int, string> ElementNames = new()
+        private static readonly string[] ElementNamesByType =
         {
-            { 2, "Fire" },
-            { 3, "Ice" },
-            { 4, "Water" },
-            { 5, "Earth" },
-            { 6, "Lightning" },
-            { 7, "Wind" },
-            { 8, "Holy" },
-            { 9, "Dark" }
+            "Unknown",
+            "Non-Elemental",
+            "Fire",
+            "Ice",
+            "Lightning",
+            "Earth",
+            "Water",
+            "Wind",
+            "Holy",
+            "Dark"
         };
 
         private static readonly Dictionary<int, string> StatusEffectTypes = new()
@@ -69,14 +71,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 6, "PDEF Down" },
             { 7, "MATK Down" },
             { 8, "MDEF Down" },
-            { 12, "Fire Resistance Down" },
-            { 14, "Ice Resistance Down" },
-            { 16, "Lightning Resistance Down" },
-            { 18, "Earth Resistance Down" },
-            { 20, "Water Resistance Down" },
-            { 22, "Wind Resistance Down" },
-            { 24, "Phys. Damage Down" },
-            { 26, "Mag. Damage Down" }
+            { 24, "PATK Down" },
+            { 26, "MATK Down" }
         };
 
         public EnemyCatalog(ILogger<EnemyCatalog> logger, IWebHostEnvironment environment)
@@ -164,7 +160,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     StageSummary = record.StageSummary,
                     DisplayName = record.Name,
                     DisplayLevelText = level.ToString(),
-                    IsStageResult = false
+                    IsStageResult = false,
+                    StageName = string.Empty
                 });
             }
         }
@@ -192,8 +189,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     SpeciesSummary = record.SpeciesSummary,
                     StageNames = record.StageNames,
                     StageSummary = record.StageSummary,
-                    DisplayName = stageName,
-                    DisplayLevelText = "N/A",
+                    DisplayName = record.Name,
+                    DisplayLevelText = fallbackLevel.ToString(),
                     IsStageResult = true,
                     StageName = stageName
                 });
@@ -502,10 +499,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return entries.Where(e => e.DamageCoefficient != 0)
                 .Select(e => new ResistanceEntry
                 {
-                    Type = ElementNames.TryGetValue(e.ElementType, out var name) ? name : $"Element {e.ElementType}",
+                    Type = ResolveElementName(e.ElementType),
                     Value = $"{e.DamageCoefficient / 10.0:0.#}%"
                 })
                 .ToList();
+        }
+
+        private static string ResolveElementName(int elementType)
+        {
+            if (elementType >= 0 && elementType < ElementNamesByType.Length)
+            {
+                return ElementNamesByType[elementType];
+            }
+
+            return $"Element {elementType}";
         }
 
         private IReadOnlyList<string> BuildStatusImmunities(int resistId)
@@ -544,9 +551,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             return entries
                 .Where(e => e.TriggerCoefficient >= 1000)
-                .Select(e => BuffDebuffTypes.TryGetValue(e.BuffDebuffType, out var name)
-                    ? name
-                    : $"Buff/Debuff {e.BuffDebuffType}")
+                .Where(e => BuffDebuffTypes.ContainsKey(e.BuffDebuffType))
+                .Select(e => BuffDebuffTypes[e.BuffDebuffType])
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(n => n)
                 .ToList();

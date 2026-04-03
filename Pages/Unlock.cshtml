@@ -1,0 +1,38 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.UnlockModel
+@{
+    ViewData["Title"] = "Leadership Unlock";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm border-warning">
+            <div class="card-body">
+                <h1 class="h4 mb-3"><i class="fas fa-lock text-warning"></i> Leadership Unlock</h1>
+                <p class="text-muted small mb-3">This page is restricted to guild leadership tools. Enter the shared password to continue.</p>
+
+                <form method="post">
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Password</label>
+                        <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-unlock"></i> Unlock Leadership Tools
+                    </button>
+                </form>
+
+                <div class="mt-3 text-center">
+                    <a asp-page="/Index" class="small">Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

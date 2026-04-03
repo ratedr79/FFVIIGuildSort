@@ -1221,6 +1221,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             var results = new List<WeaponCustomization>();
 
+            if (targetUpgradeCount < 1) return results;
             if (weapon.WeaponEvolveGroupId == 0) return results;
             if (!_weaponRarities.TryGetValue(weapon.Id, out var rarity) || rarity.RarityType < MinCustomizationRarityType) return results;
             if (!_weaponEvolves.TryGetValue(weapon.WeaponEvolveGroupId, out var evolveEntries)) return results;

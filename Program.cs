@@ -19,6 +19,8 @@ builder.Services.AddScoped<TeamOptimizer>();
 builder.Services.AddScoped<Gb20Analyzer>();
 builder.Services.AddScoped<GuildAssigner>();
 builder.Services.AddSingleton<StagePointEstimator>();
+builder.Services.Configure<SharedAccessOptions>(builder.Configuration.GetSection(SharedAccessOptions.SectionName));
+builder.Services.AddSingleton<SharedAccessGate>();
 
 var app = builder.Build();
 
@@ -34,6 +36,28 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.Use(async (context, next) =>
+{
+    var gate = context.RequestServices.GetRequiredService<SharedAccessGate>();
+
+    if (!gate.RequiresUnlock(context.Request.Path))
+    {
+        await next();
+        return;
+    }
+
+    var token = context.Request.Cookies[gate.CookieName];
+    if (gate.IsValidToken(token))
+    {
+        await next();
+        return;
+    }
+
+    var returnUrl = context.Request.Path + context.Request.QueryString;
+    var unlockUrl = $"/Unlock?returnUrl={Uri.EscapeDataString(returnUrl)}";
+    context.Response.Redirect(unlockUrl);
+});
 
 app.UseAuthorization();
 

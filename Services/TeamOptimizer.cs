@@ -987,8 +987,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             breakdown.GearSearchEnriched = weaponInfo.GearSearchEnriched;
-            breakdown.HasCustomizations = weaponInfo.HasCustomizations;
-            breakdown.CustomizationDescriptions = weaponInfo.CustomizationDescriptions;
+            breakdown.HasCustomizations = ob >= 1 && weaponInfo.HasCustomizations;
+            breakdown.CustomizationDescriptions = breakdown.HasCustomizations
+                ? weaponInfo.CustomizationDescriptions
+                : new List<string>();
 
             breakdown.SynergyReason = SynergyDetection.DescribeSynergy(weaponInfo, context);
 
