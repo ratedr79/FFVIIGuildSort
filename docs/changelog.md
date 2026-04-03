@@ -45,3 +45,4 @@ All notable changes to this project should be documented in this file.
   - Power Analyzer scoring and guild assignment behavior
   - Guild Battle simulation, aggregation, and dispatcher integration
   - configuration-driven behavior and operational caveats
+- Added a direct deep-dive section for Power Analyzer synergy processing and effect weighting in `docs/features/power-analyzer.md#synergy-logic-and-effect-processing`.
