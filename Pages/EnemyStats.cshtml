@@ -1,5 +1,6 @@
 @page
 @using System.Collections.Generic
+@using System.Text.Json
 @model FFVIIEverCrisisAnalyzer.Pages.EnemyStatsModel
 @{
     ViewData["Title"] = "Enemy Stats";
@@ -16,7 +17,9 @@
     <div class="row g-3 align-items-end">
         <div class="col-md-6">
             <label asp-for="SearchQuery" class="form-label">Boss or stage name</label>
-            <input asp-for="SearchQuery" class="form-control" placeholder="e.g. Titan" />
+            <input asp-for="SearchQuery" class="form-control" placeholder="e.g. Titan" list="enemy-search-suggestions" autocomplete="off" />
+            <datalist id="enemy-search-suggestions"></datalist>
+            <div class="form-text">Type at least 3 characters to see suggestions.</div>
             <span asp-validation-for="SearchQuery" class="text-danger"></span>
         </div>
         <div class="col-md-2">
@@ -177,6 +180,52 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('SearchQuery');
+            const dataList = document.getElementById('enemy-search-suggestions');
+            const allSuggestions = @Html.Raw(JsonSerializer.Serialize(Model.SearchSuggestions));
+
+            if (searchInput && dataList && Array.isArray(allSuggestions)) {
+                const maxSuggestions = 25;
+
+                const renderSuggestions = (query) => {
+                    const normalized = (query || '').trim().toLowerCase();
+                    dataList.innerHTML = '';
+
+                    if (normalized.length < 3) {
+                        return;
+                    }
+
+                    let count = 0;
+                    for (const suggestion of allSuggestions) {
+                        if (!suggestion || typeof suggestion !== 'string') {
+                            continue;
+                        }
+
+                        if (!suggestion.toLowerCase().includes(normalized)) {
+                            continue;
+                        }
+
+                        const option = document.createElement('option');
+                        option.value = suggestion;
+                        dataList.appendChild(option);
+
+                        count += 1;
+                        if (count >= maxSuggestions) {
+                            break;
+                        }
+                    }
+                };
+
+                searchInput.addEventListener('input', function () {
+                    renderSuggestions(searchInput.value);
+                });
+
+                renderSuggestions(searchInput.value);
+            }
+        });
+    </script>
     @if (Model.Results?.Count > 0)
     {
         <script>

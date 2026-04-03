@@ -19,6 +19,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public string? SearchQuery { get; set; }
 
+        public IReadOnlyList<string> SearchSuggestions { get; private set; } = new List<string>();
+
         public List<EnemySearchResult> Results { get; private set; } = new();
 
         public Dictionary<string, EnemyDetailView> DetailsByKey { get; private set; } = new();
@@ -29,12 +31,13 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
         public void OnGet()
         {
-            // noop - wait for search postback
+            SearchSuggestions = _enemyCatalog.GetSearchSuggestions();
         }
 
         public IActionResult OnPostSearch()
         {
             HasSearchAttempt = true;
+            SearchSuggestions = _enemyCatalog.GetSearchSuggestions();
 
             if (string.IsNullOrWhiteSpace(SearchQuery))
             {

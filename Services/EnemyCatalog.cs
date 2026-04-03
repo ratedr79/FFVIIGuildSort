@@ -146,6 +146,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return results;
         }
 
+        public IReadOnlyList<string> GetSearchSuggestions()
+        {
+            if (_enemies.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            return _enemies.Values
+                .SelectMany(record => new[] { record.Name }.Concat(record.StageNames))
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value)
+                .ToList();
+        }
+
         private static void AddEnemyRows(EnemyRecord record, IReadOnlyList<int> levels, List<EnemySearchResult> results)
         {
             foreach (var level in levels.OrderBy(l => l))
