@@ -33,6 +33,76 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 5. Assign players into guilds using `GuildAssigner` + `data/guildRules.json`.
 6. Render ranked results, guild summaries, and detailed score breakdowns.
 
+## Synergy Logic and Effect Processing
+
+### Where synergy is applied
+- `TeamOptimizer.CalculateSupportSynergyBonus(...)` computes support/synergy contribution from the selected weapons across the 3-character team.
+- Per weapon, `SynergyDetection.CalculateSynergyScore(...)` evaluates effect text and returns a weighted synergy score.
+- `BattleContext` inputs that control matching:
+  - `EnemyWeakness`
+  - `PreferredDamageType`
+  - `TargetScenario`
+  - `SynergyEffectBonusPercents`
+
+### Effect matching model
+- Matching is token-driven against `WeaponInfo.EffectTextBlob`.
+- Effect detection is context-aware:
+  - elemental checks only run when `EnemyWeakness != None`
+  - physical/magical checks only run when `PreferredDamageType != Any`
+- Several effects are potency-aware:
+  - Uses `% Pot` when present (`TryGetEffectPotScaled(...)`) and converts potency to bounded score curves.
+  - Falls back to tier mapping (`Low/Mid/High/Extra High`) when direct potency is not available.
+
+### Synergy bonus override behavior
+- UI control values are posted via `SynergyEffectBonusPercents[key]` from `PowerLevelAnalyzer`.
+- The value is treated as a percent multiplier on that effect's base points:
+  - final = `basePoints * (1 + bonusPct/100)`
+- If a key is missing or `<= 0`, base points are unchanged.
+- Current UI options are `0`, `+100%`, `+200%`, `+300%`, `+400%`, `+500%`.
+
+### Primary effect families scored
+- Elemental: resistance down/weakness infliction, elemental damage bonus/up, elemental weapon boost.
+- Damage-type: weapon boost, damage bonus, PATK/MATK up, PDEF/MDEF down.
+- Damage-received modifiers: single-target, all-target, and generic variants.
+- Tempo/utility: `ATB+N`, Haste, ATB conservation, Exploit Weakness, Enfeeble.
+- Tier amplifiers: applied debuff tier increased, applied buff tier increased, Enliven.
+- Amp abilities: parsed by potency/count metadata and bounded before scoring.
+
+### Coverage/range weighting
+- After base synergy points are computed, the score is multiplied by a range coverage weight (`GetRangeWeightMultiplier`).
+- Buff-like preference: `All Allies` > `Single Ally` > `Self`.
+- Debuff-like preference: `All Enemies` > `Single Enemy` (adjusted by single-target vs multi-target scenario).
+- Mixed/unknown categories use conservative near-neutral multipliers.
+
+### Team-level dedupe and stacking rules
+- Team optimizer groups effects into categories (for example, `elem_res_down:<element>`, `phys_weapon_boost`, `mag_rcvd_up_all`, `haste`, etc.).
+- For each category, only the best provider is kept, selected by:
+  1. higher coverage weight
+  2. then higher synergy score (tie-break)
+- ATB+ effects are intentionally allowed to stack and are added separately.
+- Final support synergy bonus = deduped category sum + stacked ATB+ contribution.
+
+### Synergy keys exposed in the UI override panel
+- `ElementalResistanceDown`
+- `AtbPlus`
+- `ElementalDamageBonus`
+- `ElementalDamageUp`
+- `WeaponBoost`
+- `ElementalWeaponBoost`
+- `SingleTargetDamageReceivedUp`
+- `DamageReceivedUp`
+- `DamageTypeDamageBonus`
+- `DamageTypeAtkUp`
+- `ExploitWeakness`
+- `Haste`
+- `AtbConservationEffect`
+- `Enfeeble`
+- `Enliven`
+- `AppliedStatsDebuffTierIncreased`
+- `AppliedStatsBuffTierIncreased`
+- `AmpAbilities`
+- `DefenseDown`
+
 ## Advanced Scoring Concepts (Proprietary/Complex)
 
 ### Team Construction
