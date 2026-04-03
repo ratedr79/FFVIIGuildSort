@@ -9,25 +9,27 @@ A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, 
 - [Power Level Analyzer](#power-level-analyzer)
   - [Power Level Analyzer: What It Does](#power-level-analyzer-what-it-does)
   - [Power Level Analyzer: Inputs](#power-level-analyzer-inputs)
-  - [Power Level Analyzer: Basic Steps](#power-level-analyzer-basic-steps)
+  - [Power Level Analyzer: Quick Walkthrough](#power-level-analyzer-quick-walkthrough)
 - [Guild Battle](#guild-battle)
   - [Guild Battle: What It Does](#guild-battle-what-it-does)
   - [Guild Battle: Inputs](#guild-battle-inputs)
-  - [Guild Battle: Basic Steps](#guild-battle-basic-steps)
+  - [Guild Battle: Quick Walkthrough](#guild-battle-quick-walkthrough)
 - [Guild Battle Test](#guild-battle-test)
   - [Guild Battle Test: What It Does](#guild-battle-test-what-it-does)
   - [Guild Battle Test: Inputs](#guild-battle-test-inputs)
-  - [Guild Battle Test: Basic Steps](#guild-battle-test-basic-steps)
+  - [Guild Battle Test: Quick Walkthrough](#guild-battle-test-quick-walkthrough)
 - [Zelarith Assignment](#zelarith-assignment)
   - [Zelarith Assignment: What It Does](#zelarith-assignment-what-it-does)
   - [Zelarith Assignment: Inputs](#zelarith-assignment-inputs)
-  - [Zelarith Assignment: Basic Steps](#zelarith-assignment-basic-steps)
+  - [Zelarith Assignment: Quick Walkthrough](#zelarith-assignment-quick-walkthrough)
 - [Gear Search](#gear-search)
   - [Gear Search: What It Does](#gear-search-what-it-does)
   - [Gear Search: Inputs](#gear-search-inputs)
+  - [Gear Search: Quick Walkthrough](#gear-search-quick-walkthrough)
 - [Enemy Stats](#enemy-stats)
   - [Enemy Stats: What It Does](#enemy-stats-what-it-does)
   - [Enemy Stats: Inputs](#enemy-stats-inputs)
+  - [Enemy Stats: Quick Walkthrough](#enemy-stats-quick-walkthrough)
 - [Data Diagnostics](#data-diagnostics)
 - [Configuration Needed](#configuration-needed)
 - [Important Accuracy Notes](#important-accuracy-notes)
@@ -69,13 +71,16 @@ Builds and scores 3-character teams from guild survey data, ranks players, and a
 | Team template checkboxes | Enable one or more templates | Limits valid team composition patterns |
 | Synergy effect bonus selects | 0% to +500% per effect | Applies extra weight to selected buffs/debuffs |
 
-### Power Level Analyzer: Basic Steps
-1. Choose sheet or upload CSV.
-2. Set weakness/type/scenario.
-3. (Optional) tune templates and synergy boosts.
-4. Click `Find Best Teams`.
-5. Review ranked teams and details.
-6. Use `Export guilds CSV` for distribution.
+### Power Level Analyzer: Quick Walkthrough
+Required steps:
+1. Select a survey sheet or upload a CSV file.
+2. Set `Enemy Weakness`, `Preferred Damage Type`, and `Enemy Count Weighting`.
+3. Click `Find Best Teams`.
+
+Expected output:
+- Ranked player/team results sorted by score.
+- Guild assignment output based on configured guild rules.
+- Per-player context fields (for example submitted guild/banner response) shown in results.
 
 ---
 
@@ -97,13 +102,16 @@ Runs a single guild battle simulation from guild battle logs and outputs current
 | HP S1-S6 | 0-100 or blank | Overrides computed stage HP (blank = compute from CSV) |
 | S6 Unlocked | Checkbox | Applies S6 override/availability when checked |
 
-### Guild Battle: Basic Steps
-1. Choose sheet/upload and day.
-2. Set margin/overshoot/cleanup settings.
-3. (Optional) set HP overrides.
-4. Click play button.
-5. Review summary, assignments, final HP, and attack log.
-6. Export assignment CSV if needed.
+### Guild Battle: Quick Walkthrough
+Required steps:
+1. Select a guild battle sheet or upload a CSV file.
+2. Set `Current Day` (if different from default).
+3. Click the play button.
+
+Expected output:
+- `Today Summary` with interpreted current stage state.
+- Player percentage/profile context used by the simulation.
+- `Battle Plan for Today` with stage assignments, final HP projection, and attack log details.
 
 ---
 
@@ -127,11 +135,16 @@ Runs many simulations and aggregates variance metrics (resets, clear rates, fina
 | Deviation Cap | Checkbox | Caps average degradation vs mock |
 | HP Override + S1-S6 + S6 Unlocked | Same as Guild Battle | Manual stage-state override |
 
-### Guild Battle Test: Basic Steps
-1. Load sheet/CSV and set run parameters.
-2. Run multi or single detailed mode.
-3. Compare aggregate metrics and best/worst run.
-4. Export CSV/JSON summaries if needed.
+### Guild Battle Test: Quick Walkthrough
+Required steps:
+1. Select a guild battle sheet or upload a CSV file.
+2. Set `Current Day` and `Number of Runs`.
+3. Click `Run Multi` (or `Run Single Detailed`).
+
+Expected output:
+- Aggregate simulation metrics (average resets, clear rates, final HP trends).
+- Best/worst run comparison based on selected scoring mode.
+- Assignment frequency distribution by player and stage.
 
 ---
 
@@ -151,11 +164,16 @@ Uses external `Dispatcher.exe` assignment output, then re-simulates the generate
 | Cleanup Confidence Buffer % | Number | Cleanup confidence threshold |
 | Enable HP Override + S1-S6 + S6 Unlocked | Same pattern as other GB pages | Manual state correction |
 
-### Zelarith Assignment: Basic Steps
-1. Ensure `Dispatcher:Path` points to valid dispatcher folder.
-2. Select data source and options.
+### Zelarith Assignment: Quick Walkthrough
+Required steps:
+1. Ensure `Dispatcher:Path` points to a valid dispatcher directory.
+2. Select a guild battle sheet or upload a CSV file, then set `Day`.
 3. Click `Run Dispatcher`.
-4. Review dispatcher output, parsed assignments, and simulation aggregate results.
+
+Expected output:
+- Raw dispatcher console output.
+- Parsed stage assignments extracted from dispatcher output.
+- Re-simulated battle summary/aggregate metrics for the parsed plan.
 
 ---
 
@@ -174,6 +192,17 @@ Provides searchable/filterable weapon/costume data with ability details, R abili
 | View Levels modal Overboost | 5★ (OB0) to OB10 | Snapshot at specific overboost |
 | View Levels modal Level | 1-130 (slider/number) | Snapshot at specific weapon level |
 
+### Gear Search: Quick Walkthrough
+Required steps:
+1. Enter a search term and/or select one or more filters.
+2. Review matching rows in the results table.
+3. Use a banner action (`Show Ability Details`, `View Levels`, or compare toggle) on a matching row.
+
+Expected output:
+- Filtered weapon results with key stats/effects.
+- Banner actions for `View Levels`, `Show Ability Details`, and compare selection.
+- Compare panel updates as items are added.
+
 ### Important UI Note
 - Customizations unlock at `OB1+`.
 - At `5★/OB0`, customizations are intentionally unavailable.
@@ -190,6 +219,17 @@ Searches enemy and stage names and displays detailed boss metadata: stats, resis
 | Boss or stage name | Free text | Finds enemy-name matches and stage-name matches |
 | Search button | Click | Runs query |
 | Show Details button | Per row | Expands detailed enemy panel |
+
+### Enemy Stats: Quick Walkthrough
+Required steps:
+1. Enter a boss or stage name in the search box.
+2. Click `Search`.
+3. Click `Show Details` on a result row.
+
+Expected output:
+- Matching enemies/stages in the result list.
+- Detail panel with stats, resistances, and immunities for the selected row.
+- Result behavior aligned with match type (`Enemy` match shows `N/A` stage; `Stage` match shows stage name).
 
 ### Result Behavior
 - Enemy-name match: Stage shows `N/A`.
