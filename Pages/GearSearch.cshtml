@@ -88,8 +88,9 @@
     .weapon-banner {
         display: flex;
         flex-wrap: wrap;
+        justify-content: space-between;
         gap: 0.75rem;
-        align-items: baseline;
+        align-items: center;
         font-size: 0.95rem;
         text-transform: none;
     }
@@ -97,35 +98,63 @@
     .weapon-banner-meta {
         display: inline-flex;
         flex-wrap: wrap;
-        align-items: baseline;
-        gap: 0.55rem;
+        align-items: center;
+        gap: 0.45rem;
         margin-right: 0.5rem;
+    }
+
+    .weapon-banner-pills {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
     }
 
     .weapon-banner-actions {
         display: inline-flex;
         flex-wrap: wrap;
         align-items: center;
+        justify-content: flex-end;
         gap: 0.4rem;
+        margin-left: auto;
     }
 
     .weapon-banner-character {
-        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.14rem 0.52rem;
+        border: 1px solid #cab7e8;
+        background: #f0e8fb;
+        font-size: 0.68rem;
         font-weight: 700;
-        letter-spacing: 0.08em;
-        color: #615874;
+        letter-spacing: 0.06em;
+        color: #5f487f;
         text-transform: uppercase;
+        line-height: 1.2;
     }
 
     .weapon-banner-name {
         font-size: 1.05rem;
-        font-weight: 800;
+        font-weight: 700;
+        font-family: "Barlow Semi Condensed", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: 0.01em;
         color: #332b42;
     }
 
     .weapon-banner-equipment {
-        font-size: 0.85rem;
-        color: #857b96;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.14rem 0.52rem;
+        border: 1px solid #d7cced;
+        background: #f9f7fd;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #75648f;
+        line-height: 1.2;
     }
 
     .advanced-toggle-btn {
@@ -358,12 +387,79 @@
     .btn-view-levels,
     .btn-toggle-details,
     .btn-compare-toggle {
-        font-size: 0.7rem;
-        padding: 0.12rem 0.5rem;
+        font-size: 0.74rem;
+        padding: 0.2rem 0.62rem;
         border-radius: 999px;
-        font-weight: 600;
+        border-width: 1px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
         white-space: nowrap;
         line-height: 1.25;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    .btn-view-levels {
+        color: #4a147a;
+        border-color: #c6a2ea;
+        background: #f4e9ff;
+    }
+
+    .btn-view-levels:hover,
+    .btn-view-levels:focus {
+        color: #3f1068;
+        border-color: #ad82dc;
+        background: #ecd8ff;
+    }
+
+    .btn-toggle-details {
+        color: #51476a;
+        border-color: #cfc6de;
+        background: #f3f0f8;
+    }
+
+    .btn-toggle-details:hover,
+    .btn-toggle-details:focus {
+        color: #433b57;
+        border-color: #bcb1cf;
+        background: #e9e4f2;
+    }
+
+    .btn-compare-toggle {
+        color: #175b70;
+        border-color: #8dc4d7;
+        background: #e7f6fc;
+    }
+
+    .btn-compare-toggle:hover,
+    .btn-compare-toggle:focus {
+        color: #114b5d;
+        border-color: #72b1c7;
+        background: #d8eef7;
+    }
+
+    .btn-compare-toggle.btn-warning {
+        color: #6a4300;
+        border-color: #e4c27f;
+        background: #ffe8b8;
+    }
+
+    .btn-view-levels:hover,
+    .btn-view-levels:focus,
+    .btn-toggle-details:hover,
+    .btn-toggle-details:focus,
+    .btn-compare-toggle:hover,
+    .btn-compare-toggle:focus {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn-view-levels:disabled,
+    .btn-toggle-details:disabled,
+    .btn-compare-toggle:disabled {
+        box-shadow: none;
+        transform: none;
+        filter: saturate(0.6);
     }
 
     #comparePanel .card-body {
@@ -1542,8 +1638,10 @@
                         <div class="weapon-banner">
                             <div class="weapon-banner-meta">
                                 <span class="weapon-banner-name">${weapon}</span>
-                                <span class="weapon-banner-character">${character}</span>
-                                <span class="weapon-banner-equipment">${equipment}</span>
+                                <div class="weapon-banner-pills">
+                                    <span class="weapon-banner-character">${character}</span>
+                                    <span class="weapon-banner-equipment">${equipment}</span>
+                                </div>
                             </div>
                             <div class="weapon-banner-actions">
                                 ${viewLevelsBtn}
