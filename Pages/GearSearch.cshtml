@@ -398,6 +398,168 @@
         text-align: right;
     }
 
+    .gear-mobile-results {
+        display: none;
+    }
+
+    .gear-mobile-card {
+        border: 1px solid #ddd3ed;
+        border-radius: 0.6rem;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(39, 26, 65, 0.06);
+        padding: 0.5rem 0.55rem;
+    }
+
+    .gear-mobile-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.4rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .gear-mobile-card-name {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #2f2840;
+        line-height: 1.25;
+    }
+
+    .gear-mobile-card-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.2rem;
+    }
+
+    .gear-mobile-pill {
+        font-size: 0.64rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-radius: 999px;
+        padding: 0.1rem 0.4rem;
+        border: 1px solid #d8cce9;
+        color: #5f4d7d;
+        background: #f7f4fc;
+        line-height: 1.2;
+    }
+
+    .gear-mobile-card-body {
+        display: grid;
+        gap: 0.28rem;
+        margin-bottom: 0.4rem;
+        font-size: 0.81rem;
+    }
+
+    .gear-mobile-row {
+        display: grid;
+        grid-template-columns: 74px 1fr;
+        gap: 0.3rem;
+        align-items: start;
+    }
+
+    .gear-mobile-label {
+        color: #7a7090;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.62rem;
+        line-height: 1.25;
+    }
+
+    .gear-mobile-value {
+        color: #332b42;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .gear-mobile-value ul.list-unstyled {
+        margin-bottom: 0;
+        padding-left: 0;
+    }
+
+    .gear-mobile-value ul.list-unstyled li {
+        margin-bottom: 0.14rem;
+        line-height: 1.22;
+    }
+
+    .gear-mobile-value ul.list-unstyled li:last-child {
+        margin-bottom: 0;
+    }
+
+    .gear-mobile-value .cust-rability-list {
+        margin-top: 0.18rem;
+        padding-top: 0.18rem;
+    }
+
+    .gear-mobile-value .cust-rability-list li {
+        gap: 0.2rem;
+    }
+
+    .gear-mobile-value .rability-hoverable {
+        position: relative;
+        display: inline-block;
+        padding-right: 0.85rem;
+        cursor: pointer;
+    }
+
+    .gear-mobile-value .rability-hoverable::after {
+        content: 'ⓘ';
+        position: absolute;
+        right: 0;
+        top: 0;
+        font-size: 0.7em;
+        color: #7a7090;
+    }
+
+    .gear-mobile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.15rem;
+    }
+
+    .gear-mobile-actions .btn {
+        flex: 1 1 120px;
+        font-size: 0.72rem;
+        padding: 0.2rem 0.5rem;
+    }
+
+    .gear-mobile-extra {
+        margin-top: 0.45rem;
+        padding-top: 0.4rem;
+        border-top: 1px dashed #d8cce9;
+    }
+
+    .gear-mobile-empty {
+        display: none;
+    }
+
+    .gear-mobile-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-top: 0.55rem;
+    }
+
+    .gear-mobile-page-info {
+        font-size: 0.78rem;
+        color: #6d657d;
+        font-weight: 600;
+    }
+
+    @@media (max-width: 767.98px) {
+        .gear-mobile-results {
+            display: block;
+        }
+
+        .gear-results-card {
+            display: none;
+        }
+    }
+
     @@media (max-width: 991.98px) {
         .gear-results-card .card-body {
             padding: 0.6rem;
@@ -1084,6 +1246,18 @@
         </div>
     </div>
 
+    <div id="gearMobileResults" class="gear-mobile-results mb-3" aria-live="polite">
+        <div id="gearMobileResultsList" class="d-flex flex-column gap-2"></div>
+        <div id="gearMobileResultsEmpty" class="gear-mobile-empty alert alert-light border text-muted mb-0">
+            No matching gear found.
+        </div>
+        <div id="gearMobilePagination" class="gear-mobile-pagination d-none">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="gearMobilePrevPage">Previous</button>
+            <span id="gearMobilePageInfo" class="gear-mobile-page-info">Page 1 of 1</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="gearMobileNextPage">Next</button>
+        </div>
+    </div>
+
     <div class="card gear-results-card">
         <div class="card-body">
             <div class="gear-table-wrap">
@@ -1413,6 +1587,15 @@
                 ],
                 dom: 'lrtip'
             });
+
+            const gearMobileResults = document.getElementById('gearMobileResults');
+            const gearMobileResultsList = document.getElementById('gearMobileResultsList');
+            const gearMobileResultsEmpty = document.getElementById('gearMobileResultsEmpty');
+            const gearMobilePagination = document.getElementById('gearMobilePagination');
+            const gearMobilePrevPage = document.getElementById('gearMobilePrevPage');
+            const gearMobileNextPage = document.getElementById('gearMobileNextPage');
+            const gearMobilePageInfo = document.getElementById('gearMobilePageInfo');
+            const isMobileCardMode = () => window.innerWidth < 768;
 
             const selectedSigils = new Set();
 
@@ -1823,8 +2006,7 @@
                     .map(d => `<span class="compare-name-tag">${d.name}</span>`).join('');
                 compareClearBtn.disabled = count === 0;
                 compareOpenBtn.disabled = count < 2;
-                // Re-render banners to update button states
-                renderBannerRows();
+                renderDecorations();
             };
 
             const populateCompareModal = () => {
@@ -1980,9 +2162,122 @@
                 });
             };
 
+            const renderMobileResults = () => {
+                if (!gearMobileResults || !gearMobileResultsList || !gearMobileResultsEmpty || !gearMobilePagination || !gearMobilePageInfo || !gearMobilePrevPage || !gearMobileNextPage) {
+                    return;
+                }
+
+                if (!isMobileCardMode()) {
+                    gearMobileResultsList.innerHTML = '';
+                    gearMobileResults.classList.add('d-none');
+                    return;
+                }
+
+                gearMobileResults.classList.remove('d-none');
+
+                const pageRows = table.rows({ page: 'current', filter: 'applied' }).nodes().toArray();
+                const pageInfo = table.page.info();
+
+                if (pageRows.length === 0) {
+                    gearMobileResultsList.innerHTML = '';
+                    gearMobileResultsEmpty.style.display = 'block';
+                    gearMobilePagination.classList.add('d-none');
+                    return;
+                }
+
+                gearMobileResultsEmpty.style.display = 'none';
+
+                gearMobileResultsList.innerHTML = pageRows.map((rowNode) => {
+                    const cells = rowNode.querySelectorAll('td');
+                    const weaponId = rowNode.getAttribute('data-weapon-id') ?? '';
+                    const character = escapeHtml(rowNode.getAttribute('data-character') ?? '');
+                    const weapon = escapeHtml(rowNode.getAttribute('data-weapon') ?? '');
+                    const equipment = rowNode.getAttribute('data-equipment') ?? '';
+                    const equipmentSafe = escapeHtml(equipment);
+                    const isCostume = equipment.toLowerCase() === 'costume';
+                    const hasDetails = rowNode.getAttribute('data-has-details') === 'true';
+                    const isExpanded = expandedWeaponIds.has(weaponId);
+
+                    const elementCell = cells[0];
+                    const elementText = escapeHtml(elementCell ? (elementCell.childNodes[0]?.textContent?.trim() ?? '') : '');
+                    const potText = escapeHtml(cells[1]?.textContent?.trim() ?? '');
+                    const statsHtml = cells[2]?.querySelector('.stat-stack')?.innerHTML ?? `<span class="text-muted">${escapeHtml(cells[2]?.textContent?.trim() ?? 'N/A')}</span>`;
+                    const effectsHtml = cells[5]?.innerHTML ?? '<span class="text-muted">None</span>';
+
+                    const rAbilityMain = cells[6]?.querySelector('ul.list-unstyled:not(.cust-rability-list)')?.outerHTML ?? '<span class="text-muted">None</span>';
+                    const rAbilityCust = cells[6]?.querySelector('.cust-rability-list')?.outerHTML ?? '';
+                    const rAbilitiesHtml = `${rAbilityMain}${rAbilityCust}`;
+
+                    const sigilsHtml = cells[7]?.querySelector('.sigil-badges')?.outerHTML ?? '<span class="text-muted">&mdash;</span>';
+                    const abilityHtml = cells[6]?.querySelector('.ability-template')?.innerHTML?.trim() ?? '';
+                    const customizationHtml = cells[6]?.querySelector('.customization-template')?.innerHTML?.trim() ?? '';
+                    const hasExtra = Boolean(abilityHtml || customizationHtml);
+
+                    const inCompare = compareItems.has(weaponId);
+                    const compareFull = !inCompare && compareItems.size >= 3;
+                    const compareBtnClass = inCompare ? 'btn-warning' : 'btn-outline-info';
+                    const compareLabel = inCompare ? 'Remove from Compare' : 'Add to Compare';
+
+                    const viewLevelsBtn = isCostume
+                        ? ''
+                        : `<button type="button" class="btn btn-sm btn-outline-primary btn-view-levels"
+                                data-weapon-id="${escapeHtml(weaponId)}"
+                                data-character="${character}"
+                                data-weapon="${weapon}"
+                                data-equipment="${equipmentSafe}">View Levels</button>`;
+
+                    const detailsBtn = hasDetails
+                        ? `<button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-details" data-weapon-id="${escapeHtml(weaponId)}">${isExpanded ? 'Hide Ability Details' : 'Show Ability Details'}</button>`
+                        : '';
+
+                    const compareBtn = `<button type="button" class="btn btn-sm ${compareBtnClass} btn-compare-toggle" data-weapon-id="${escapeHtml(weaponId)}" ${compareFull ? 'disabled' : ''}>${compareLabel}</button>`;
+
+                    const extraSection = hasExtra
+                        ? `<div class="gear-mobile-extra ${isExpanded ? '' : 'd-none'}" data-weapon-extra="${escapeHtml(weaponId)}">
+                                ${abilityHtml ? `<div class="ability-detail-row"><div class="text-uppercase text-muted small mb-2">Ability</div>${abilityHtml}</div>` : ''}
+                                ${customizationHtml ? `<div class="customization-detail-row mt-2"><div class="text-uppercase text-muted small mb-2">Customizations</div>${customizationHtml}</div>` : ''}
+                           </div>`
+                        : '';
+
+                    return `<article class="gear-mobile-card" data-weapon-id="${escapeHtml(weaponId)}">
+                        <div class="gear-mobile-card-header">
+                            <div>
+                                <div class="gear-mobile-card-name">${weapon}</div>
+                                <div class="gear-mobile-card-pills">
+                                    <span class="gear-mobile-pill">${character}</span>
+                                    <span class="gear-mobile-pill">${equipmentSafe}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gear-mobile-card-body">
+                            <div class="gear-mobile-row"><div class="gear-mobile-label">Element</div><div class="gear-mobile-value">${elementText || '<span class="text-muted">N/A</span>'}</div></div>
+                            <div class="gear-mobile-row"><div class="gear-mobile-label">Pot. %</div><div class="gear-mobile-value">${potText || '<span class="text-muted">N/A</span>'}</div></div>
+                            <div class="gear-mobile-row"><div class="gear-mobile-label">Stats</div><div class="gear-mobile-value">${statsHtml}</div></div>
+                            <div class="gear-mobile-row"><div class="gear-mobile-label">Effects</div><div class="gear-mobile-value">${effectsHtml}</div></div>
+                            <div class="gear-mobile-row"><div class="gear-mobile-label">R. Abilities (tap)</div><div class="gear-mobile-value">${rAbilitiesHtml}</div></div>
+                            <div class="gear-mobile-row"><div class="gear-mobile-label">Sigils</div><div class="gear-mobile-value">${sigilsHtml}</div></div>
+                        </div>
+                        <div class="gear-mobile-actions">
+                            ${viewLevelsBtn}
+                            ${detailsBtn}
+                            ${compareBtn}
+                        </div>
+                        ${extraSection}
+                    </article>`;
+                }).join('');
+
+                const totalPages = pageInfo.pages || 1;
+                const currentPage = (pageInfo.page ?? 0) + 1;
+                gearMobilePageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+                gearMobilePrevPage.disabled = currentPage <= 1;
+                gearMobileNextPage.disabled = currentPage >= totalPages;
+                gearMobilePagination.classList.toggle('d-none', totalPages <= 1);
+            };
+
             const renderDecorations = () => {
                 renderBannerRows();
                 renderDetailRows();
+                renderMobileResults();
                 initRAbilityPopovers();
                 syncGearTableFade();
             };
@@ -2031,6 +2326,14 @@
             });
 
             const customizationFilterCheckbox = document.getElementById('hasCustomizationsFilter');
+
+            if (gearMobilePrevPage) {
+                gearMobilePrevPage.addEventListener('click', () => table.page('previous').draw('page'));
+            }
+
+            if (gearMobileNextPage) {
+                gearMobileNextPage.addEventListener('click', () => table.page('next').draw('page'));
+            }
 
             $.fn.dataTable.ext.search.push(function (settings, rowData, dataIndex) {
                 if (settings.nTable !== table.table().node()) {
@@ -2269,7 +2572,7 @@
                 debouncedFetchSnapshot();
             });
 
-            document.getElementById('gearTable').addEventListener('click', (e) => {
+            document.addEventListener('click', (e) => {
                 const compareBtn = e.target.closest('.btn-compare-toggle');
                 if (compareBtn) {
                     const wid = compareBtn.getAttribute('data-weapon-id');
@@ -2339,6 +2642,10 @@
             table.on('draw', () => {
                 renderDecorations();
                 syncFilterUi();
+            });
+
+            window.addEventListener('resize', () => {
+                renderDecorations();
             });
         });
     </script>
