@@ -33,6 +33,7 @@ All notable changes to this project should be documented in this file.
   - per-tool walkthroughs
   - UI input reference tables
   - configuration and accuracy notes
+- Gear Search advanced filters now include in-panel search + clear controls for long `R Abilities` and `Effects` lists, with `No matches found.` feedback while preserving selected checkbox state.
 
 ### Fixed
 - Weapon customization unlock behavior now enforces `OB1+` in simulation/UI surfaces:

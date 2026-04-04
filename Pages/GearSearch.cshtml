@@ -792,6 +792,19 @@
                         </h2>
                         <div id="collapseRAbilities" class="accordion-collapse collapse" aria-labelledby="headingRAbilities" data-bs-parent="#advancedFiltersAccordion">
                             <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-12 col-md-9">
+                                        <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            id="rabilityFilterSearch"
+                                            placeholder="Search R Abilities..."
+                                            autocomplete="off" />
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clearRabilityFilterSearch">Clear</button>
+                                    </div>
+                                </div>
                                 <div class="row row-cols-2 row-cols-md-3 g-2">
                                     @foreach (var passive in rAbilityOptions)
                                     {
@@ -804,6 +817,7 @@
                                         </div>
                                     }
                                 </div>
+                                <div id="rabilityFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
                             </div>
                         </div>
                     </div>
@@ -818,6 +832,19 @@
                         </h2>
                         <div id="collapseEffects" class="accordion-collapse collapse" aria-labelledby="headingEffects" data-bs-parent="#advancedFiltersAccordion">
                             <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-12 col-md-9">
+                                        <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            id="effectFilterSearch"
+                                            placeholder="Search Effects..."
+                                            autocomplete="off" />
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clearEffectFilterSearch">Clear</button>
+                                    </div>
+                                </div>
                                 <div class="row row-cols-2 row-cols-md-3 g-2">
                                     @foreach (var effect in effectOptions)
                                     {
@@ -830,6 +857,7 @@
                                         </div>
                                     }
                                 </div>
+                                <div id="effectFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
                             </div>
                         </div>
                     </div>
@@ -1446,6 +1474,68 @@
                         updateSigilFilter();
                     }
                 });
+            });
+
+            const initAdvancedOptionSearch = ({ inputId, clearButtonId, checkboxSelector, noMatchesId }) => {
+                const input = document.getElementById(inputId);
+                const clearButton = document.getElementById(clearButtonId);
+                const noMatchesEl = noMatchesId ? document.getElementById(noMatchesId) : null;
+
+                if (!input || !clearButton) {
+                    return;
+                }
+
+                const applySearch = () => {
+                    const query = input.value.trim().toLowerCase();
+                    let visibleCount = 0;
+
+                    document.querySelectorAll(checkboxSelector).forEach((checkbox) => {
+                        const optionCol = checkbox.closest('.col');
+                        if (!optionCol) {
+                            return;
+                        }
+
+                        const label = optionCol.querySelector('label');
+                        const text = (label?.textContent ?? checkbox.value ?? '').toLowerCase();
+                        const matches = query.length === 0 || text.includes(query);
+                        optionCol.classList.toggle('d-none', !matches);
+                        if (matches) {
+                            visibleCount += 1;
+                        }
+                    });
+
+                    clearButton.disabled = query.length === 0;
+                    if (noMatchesEl) {
+                        noMatchesEl.classList.toggle('d-none', visibleCount > 0);
+                    }
+                };
+
+                input.addEventListener('input', applySearch);
+                clearButton.addEventListener('click', () => {
+                    if (input.value.length === 0) {
+                        return;
+                    }
+
+                    input.value = '';
+                    applySearch();
+                    input.focus();
+                });
+
+                applySearch();
+            };
+
+            initAdvancedOptionSearch({
+                inputId: 'rabilityFilterSearch',
+                clearButtonId: 'clearRabilityFilterSearch',
+                checkboxSelector: '.rability-filter',
+                noMatchesId: 'rabilityFilterNoMatches'
+            });
+
+            initAdvancedOptionSearch({
+                inputId: 'effectFilterSearch',
+                clearButtonId: 'clearEffectFilterSearch',
+                checkboxSelector: '.effect-filter',
+                noMatchesId: 'effectFilterNoMatches'
             });
 
             // --- Compare Feature ---
