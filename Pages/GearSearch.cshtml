@@ -384,15 +384,49 @@
     }
 
     .gear-table-wrap {
+        position: relative;
         overflow-x: auto;
         overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
     }
 
+    .gear-table-mobile-hint {
+        display: none;
+        font-size: 0.72rem;
+        color: #7a7194;
+        margin-top: 0.25rem;
+        text-align: right;
+    }
+
     @@media (max-width: 991.98px) {
+        .gear-results-card .card-body {
+            padding: 0.6rem;
+        }
+
         .gear-table-wrap {
             margin: 0 -0.25rem;
             padding: 0 0.25rem 0.2rem;
+        }
+
+        .gear-table-wrap::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 16px;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(248, 249, 252, 0.95));
+            opacity: 0;
+            transition: opacity 0.16s ease;
+        }
+
+        .gear-table-wrap.show-scroll-fade::after {
+            opacity: 1;
+        }
+
+        .gear-table-mobile-hint {
+            display: block;
         }
 
         #gearTable {
@@ -418,7 +452,22 @@
 
         #gearTable thead th:first-child {
             z-index: 3;
-            background: #f8f9fa;
+        }
+
+        #gearTable tbody tr:not(.weapon-banner-row):not(.weapon-spacer-row) td.effects-cell > span {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 72%, rgba(0, 0, 0, 0));
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 72%, rgba(0, 0, 0, 0));
+        }
+
+        #gearTable tbody tr:not(.weapon-banner-row):not(.weapon-spacer-row) td.rabilities-cell > ul.list-unstyled {
+            max-height: 3.35em;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 72%, rgba(0, 0, 0, 0));
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 72%, rgba(0, 0, 0, 0));
         }
 
         .weapon-banner-actions {
@@ -1035,7 +1084,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card gear-results-card">
         <div class="card-body">
             <div class="gear-table-wrap">
                 <table id="gearTable" class="table table-striped table-bordered w-100">
@@ -1099,7 +1148,7 @@
                             </td>
                             <td>@(costumeNoAbility ? "N/A" : weapon.Range)</td>
                             <td>@(costumeNoAbility ? "N/A" : weapon.AbilityType)</td>
-                            <td>
+                            <td class="effects-cell">
                                 @if (weapon.EffectTags.Any())
                                 {
                                     <span>@string.Join(", ", weapon.EffectTags)</span>
@@ -1109,7 +1158,7 @@
                                     <span class="text-muted">None</span>
                                 }
                             </td>
-                            <td>
+                            <td class="rabilities-cell">
                                 @if (weapon.MaxPassiveSkills.Any())
                                 {
                                     <ul class="list-unstyled small mb-0">
@@ -1195,6 +1244,7 @@
                     </tbody>
                 </table>
             </div>
+            <div class="gear-table-mobile-hint">Swipe horizontally to see all columns</div>
         </div>
     </div>
     <div class="sigil-legend">
@@ -1332,9 +1382,26 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const tableElement = document.getElementById('gearTable');
+            const gearTableWrap = document.querySelector('.gear-table-wrap');
             const selectedCharacters = new Set();
             const selectedEquipmentTypes = new Set();
             const selectedSubRAbilities = new Set();
+
+            const syncGearTableFade = () => {
+                if (!gearTableWrap || window.innerWidth >= 992) {
+                    return;
+                }
+
+                const maxScrollLeft = gearTableWrap.scrollWidth - gearTableWrap.clientWidth;
+                const shouldShowFade = maxScrollLeft > 2 && gearTableWrap.scrollLeft <= 2;
+                gearTableWrap.classList.toggle('show-scroll-fade', shouldShowFade);
+            };
+
+            if (gearTableWrap) {
+                gearTableWrap.addEventListener('scroll', syncGearTableFade, { passive: true });
+                window.addEventListener('resize', syncGearTableFade);
+                requestAnimationFrame(syncGearTableFade);
+            }
 
             const table = new DataTable(tableElement, {
                 pageLength: @Model.PageSize,
@@ -1917,6 +1984,7 @@
                 renderBannerRows();
                 renderDetailRows();
                 initRAbilityPopovers();
+                syncGearTableFade();
             };
 
             let rAbilityPopovers = [];
