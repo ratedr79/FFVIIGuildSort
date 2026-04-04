@@ -323,6 +323,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
     public sealed class SkillPassiveRaw
     {
         public int Id { get; set; }
+        public int PassiveSkillEffectGroupId { get; set; }
+        public int PassiveSkillCategoryType { get; set; }
         public long NameLanguageId { get; set; }
     }
 
@@ -331,6 +333,25 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int PassiveSkillId { get; set; }
         public int Level { get; set; }
         public int PassivePoint { get; set; }
+    }
+
+    public sealed class SkillPassiveEffectGroupRaw
+    {
+        public int Id { get; set; }
+        public int Seq { get; set; }
+        public int PassiveSkillType { get; set; }
+        public int PassiveSkillDetailType { get; set; }
+        public int PassiveSkillEffectLevelId { get; set; }
+        public int SkillEquipmentType { get; set; }
+    }
+
+    public sealed class SkillPassiveEffectLevelRaw
+    {
+        public int Id { get; set; }
+        public int Level { get; set; }
+        public int EffectValue { get; set; }
+        public int EffectCoefficient { get; set; }
+        public long DescriptionLanguageId { get; set; }
     }
 
     public sealed class SkillEffectDescriptionRaw

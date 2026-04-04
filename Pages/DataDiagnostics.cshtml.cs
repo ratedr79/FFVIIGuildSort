@@ -6,16 +6,19 @@ namespace FFVIIEverCrisisAnalyzer.Pages;
 public sealed class DataDiagnosticsModel : PageModel
 {
     private readonly WeaponCatalog _catalog;
+    private readonly WeaponSearchDataService _weaponSearchData;
 
-    public DataDiagnosticsModel(WeaponCatalog catalog)
+    public DataDiagnosticsModel(WeaponCatalog catalog, WeaponSearchDataService weaponSearchData)
     {
         _catalog = catalog;
+        _weaponSearchData = weaponSearchData;
     }
 
     public List<string> WeaponsNotEnriched { get; private set; } = new();
     public List<string> WeaponsEnriched { get; private set; } = new();
     public List<string> CostumesNotEnriched { get; private set; } = new();
     public List<string> CostumesEnriched { get; private set; } = new();
+    public List<WeaponSearchDataService.PassiveSkillTypeDiagnosticRow> PassiveSkillTypeDiagnostics { get; private set; } = new();
 
     public void OnGet()
     {
@@ -52,5 +55,7 @@ public sealed class DataDiagnosticsModel : PageModel
                 CostumesNotEnriched.Add(label);
             }
         }
+
+        PassiveSkillTypeDiagnostics = _weaponSearchData.GetPassiveSkillTypeDiagnostics().ToList();
     }
 }

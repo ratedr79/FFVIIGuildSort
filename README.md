@@ -187,7 +187,7 @@ Provides searchable/filterable weapon/costume data with ability details, R abili
 | Character checkboxes | One or more characters | Character filtering |
 | Search | Free text | Name/ability/effect search |
 | Rows per page | 25/50/100/200 | DataTable paging |
-| Advanced filter checkboxes | Element, ability, range, equipment, effects, R abilities, sigils, etc. | Narrow results |
+| Advanced filter checkboxes | Element, ability, range, equipment, effects, R abilities, Sub-R abilities, sigils, etc. | Narrow results |
 | Has Customizations | Checkbox | Show only entries with customization data |
 | View Levels modal Overboost | 5★ (OB0) to OB10 | Snapshot at specific overboost |
 | View Levels modal Level | 1-130 (slider/number) | Snapshot at specific weapon level |
@@ -201,11 +201,14 @@ Required steps:
 Expected output:
 - Filtered weapon results with key stats/effects.
 - Banner actions for `View Levels`, `Show Ability Details`, and compare selection.
+- `R Abilities` hover details in the grid showing resolved passive effects (OB10/Lv130 display state).
 - Compare panel updates as items are added.
 
 ### Important UI Note
 - Customizations unlock at `OB1+`.
 - At `5★/OB0`, customizations are intentionally unavailable.
+- View Levels modal `R Abilities` show `+points/name` on the first line and one-or-more resolved effect lines beneath.
+- `Sub-R Abilities` filters match semantic passive-effect categories (for example `HP` and `HP Gain` are distinct).
 
 ---
 

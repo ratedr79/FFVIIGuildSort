@@ -26,6 +26,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 4, "Club" }
         };
 
+        private static readonly Dictionary<int, double> PassiveSkillTypeCoefficientDivisor = new()
+        {
+            { 8, 100.0 }
+        };
+
+        private static readonly Dictionary<int, double> PassiveSkillTypeValueDivisor = new()
+        {
+            { 8, 10.0 },
+            { 21, 1000.0 }
+        };
+
         private readonly ILogger<WeaponSearchDataService> _logger;
         private readonly IWebHostEnvironment _environment;
         private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -64,6 +75,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private Dictionary<long, List<int>> _statusConditionGroups = new();
         private Dictionary<long, List<int>> _statusChangeGroups = new();
         private Dictionary<int, SkillPassiveRaw> _skillPassives = new();
+        private Dictionary<int, List<SkillPassiveLevelRaw>> _skillPassiveLevelsByPassiveId = new();
+        private Dictionary<int, List<SkillPassiveEffectGroupRaw>> _skillPassiveEffectGroupsById = new();
+        private Dictionary<int, List<SkillPassiveEffectLevelRaw>> _skillPassiveEffectLevelsById = new();
         private Dictionary<int, List<WeaponEvolveRaw>> _weaponEvolves = new();
         private Dictionary<int, List<WeaponEvolveEffectRaw>> _weaponEvolveEffects = new();
         private Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>> _weaponEvolveWeaponSkills = new();
@@ -192,6 +206,88 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     w.Name.ToLowerInvariant().Contains(query) ||
                     w.AbilityText.ToLowerInvariant().Contains(query))
                 .ToList();
+        }
+
+        public sealed class PassiveSkillTypeDiagnosticRow
+        {
+            public int PassiveSkillType { get; init; }
+            public double ValueDivisor { get; init; }
+            public double CoefficientDivisor { get; init; }
+            public int? SamplePassiveId { get; init; }
+            public required string SamplePassiveName { get; init; }
+            public required string SamplePointLevel { get; init; }
+            public required string ExampleText { get; init; }
+        }
+
+        public IReadOnlyList<PassiveSkillTypeDiagnosticRow> GetPassiveSkillTypeDiagnostics()
+        {
+            if (_locStore == null)
+            {
+                return new List<PassiveSkillTypeDiagnosticRow>();
+            }
+
+            var entries = _skillPassiveEffectGroupsById
+                .Values
+                .SelectMany(x => x)
+                .GroupBy(x => x.PassiveSkillType)
+                .OrderBy(g => g.Key)
+                .Select(group =>
+                {
+                    var sampleGroupEntry = group
+                        .OrderBy(g => g.Id)
+                        .ThenBy(g => g.Seq)
+                        .First();
+
+                    var samplePassive = _skillPassives.Values
+                        .FirstOrDefault(p => p.PassiveSkillEffectGroupId == sampleGroupEntry.Id);
+
+                    var samplePassiveId = samplePassive?.Id ?? 0;
+                    var samplePassiveName = samplePassive != null
+                        ? StripMarkup(_locStore.Get(samplePassive.NameLanguageId))
+                        : "(no mapped passive skill)";
+
+                    var samplePointAndLevel = samplePassiveId > 0 && _skillPassiveLevelsByPassiveId.TryGetValue(samplePassiveId, out var passiveLevels) && passiveLevels.Count > 0
+                        ? passiveLevels.OrderByDescending(l => l.Level).First()
+                        : null;
+
+                    var sampleEffectLevel = _skillPassiveEffectLevelsById.TryGetValue(sampleGroupEntry.PassiveSkillEffectLevelId, out var effectLevels) && effectLevels.Count > 0
+                        ? (samplePointAndLevel != null
+                            ? effectLevels.FirstOrDefault(e => e.Level == samplePointAndLevel.Level)
+                                ?? effectLevels.Where(e => e.Level <= samplePointAndLevel.Level).OrderByDescending(e => e.Level).FirstOrDefault()
+                                ?? effectLevels.Last()
+                            : effectLevels.Last())
+                        : null;
+
+                    var exampleText = "(no effect level sample)";
+                    if (sampleEffectLevel != null)
+                    {
+                        var template = StripMarkup(_locStore.Get(sampleEffectLevel.DescriptionLanguageId));
+                        exampleText = FormatPassiveEffectDescription(
+                            template,
+                            sampleEffectLevel.EffectValue,
+                            sampleEffectLevel.EffectCoefficient,
+                            group.Key);
+                    }
+
+                    var coefficientDivisor = GetPassiveSkillTypeCoefficientDivisor(group.Key);
+                    var valueDivisor = GetPassiveSkillTypeValueDivisor(group.Key);
+                    var pointInfo = samplePointAndLevel != null
+                        ? $"{samplePointAndLevel.PassivePoint} pts → L{samplePointAndLevel.Level}"
+                        : "(no point-level sample)";
+                    return new PassiveSkillTypeDiagnosticRow
+                    {
+                        PassiveSkillType = group.Key,
+                        ValueDivisor = valueDivisor,
+                        CoefficientDivisor = coefficientDivisor,
+                        SamplePassiveId = samplePassiveId > 0 ? samplePassiveId : null,
+                        SamplePassiveName = samplePassiveName,
+                        SamplePointLevel = pointInfo,
+                        ExampleText = exampleText
+                    };
+                })
+                .ToList();
+
+            return entries;
         }
 
         public WeaponSnapshotResult? GetWeaponSnapshot(string weaponId, int overboostLevel, int weaponLevel)
@@ -399,6 +495,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .ToDictionary(g => g.Key, g => g.First());
             var skillPassives = LoadList<SkillPassiveRaw>(Path.Combine(masterPath, "SkillPassive.json"))
                 .ToDictionary(p => p.Id);
+            var skillPassiveLevels = LoadList<SkillPassiveLevelRaw>(Path.Combine(masterPath, "SkillPassiveLevel.json"))
+                .GroupBy(p => p.PassiveSkillId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(x => x.PassivePoint).ThenBy(x => x.Level).ToList());
+            var skillPassiveEffectGroups = LoadList<SkillPassiveEffectGroupRaw>(Path.Combine(masterPath, "SkillPassiveEffectGroup.json"))
+                .GroupBy(p => p.Id)
+                .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Seq).ToList());
+            var skillPassiveEffectLevels = LoadList<SkillPassiveEffectLevelRaw>(Path.Combine(masterPath, "SkillPassiveEffectLevel.json"))
+                .GroupBy(p => p.Id)
+                .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Level).ToList());
             var skillEffectDescriptions = LoadList<SkillEffectDescriptionRaw>(Path.Combine(masterPath, "SkillEffectDescription.json"))
                 .ToDictionary(d => d.Id);
             var skillEffectDescriptionGroups = LoadList<SkillEffectDescriptionGroupEntryRaw>(Path.Combine(masterPath, "SkillEffectDescriptionGroup.json"))
@@ -419,6 +524,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .ToDictionary(c => c.Id);
 
             var materiaFallback = string.Empty;
+
+            _locStore = localization;
+            _skillPassives = skillPassives;
+            _skillPassiveLevelsByPassiveId = skillPassiveLevels;
+            _skillPassiveEffectGroupsById = skillPassiveEffectGroups;
+            _skillPassiveEffectLevelsById = skillPassiveEffectLevels;
 
             foreach (var weapon in weapons)
             {
@@ -657,7 +768,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Sigils = BuildSigils(commandSigil,
                         weapon.WeaponMateriaSupportId0,
                         weapon.WeaponMateriaSupportId1,
-                        weapon.WeaponMateriaSupportId2)
+                        weapon.WeaponMateriaSupportId2),
+                    SubRAbilityTags = BuildSubRAbilityTags(maxPassiveTotals)
                 };
 
                 _allWeapons.Add(searchItem);
@@ -728,6 +840,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             _statusConditionGroups = statusConditionGroups;
             _statusChangeGroups = statusChangeGroups;
             _skillPassives = skillPassives;
+            _skillPassiveLevelsByPassiveId = skillPassiveLevels;
+            _skillPassiveEffectGroupsById = skillPassiveEffectGroups;
+            _skillPassiveEffectLevelsById = skillPassiveEffectLevels;
             _weaponEvolves = weaponEvolves;
             _weaponEvolveEffects = weaponEvolveEffects;
             _weaponEvolveWeaponSkills = weaponEvolveWeaponSkills;
@@ -855,6 +970,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var commandAtb = costumeActive?.Cost ?? 0;
                 var commandSigil = ResolveCommandSigil(costumeSkill?.SkillNotesSetId ?? 0, skillNotesSets);
                 var useCount = costumeActive?.UseCountLimit > 0 ? costumeActive.UseCountLimit.ToString() : string.Empty;
+                var costumePassiveTotals = BuildCostumePassiveTotals(costume, skillPassives, localization);
 
                 var searchItem = new WeaponSearchItem
                 {
@@ -875,14 +991,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     RechargeTime = string.Empty,
                     UseCount = useCount,
                     UpgradeSkills = new List<UpgradeSkillData>(),
-                    MaxPassiveSkills = BuildCostumePassiveTotals(costume, skillPassives, localization),
+                    MaxPassiveSkills = costumePassiveTotals,
                     MaxAbilityDescription = abilityText,
                     EffectTags = effectTags,
                     PatkOb10Lv130 = 0,
                     MatkOb10Lv130 = 0,
                     HealOb10Lv130 = 0,
                     Customizations = new List<WeaponCustomization>(),
-                    Sigils = BuildSigils(commandSigil, 0, 0, 0)
+                    Sigils = BuildSigils(commandSigil, 0, 0, 0),
+                    SubRAbilityTags = BuildSubRAbilityTags(costumePassiveTotals)
                 };
 
                 _allWeapons.Add(searchItem);
@@ -921,7 +1038,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     UpgradePoints = 0,
                     TotalPoints = points,
                     SkillSlot = slot,
-                    SourceLabel = "Costume"
+                    SourceLabel = "Costume",
+                    Effects = ResolvePassiveEffects(passiveId, points)
                 });
             }
 
@@ -1096,7 +1214,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     UpgradePoints = upgradePoints,
                     TotalPoints = totalPoints,
                     SkillSlot = slot,
-                    SourceLabel = MaxPassiveSourceLabel
+                    SourceLabel = MaxPassiveSourceLabel,
+                    Effects = ResolvePassiveEffects(passiveId, totalPoints)
                 });
             }
 
@@ -1207,7 +1326,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     SkillSlot = slot,
                     SourceLabel = sourceLabel,
                     IsLocked = isLocked,
-                    LockedUntilLevel = lockedUntilLevel
+                    LockedUntilLevel = lockedUntilLevel,
+                    Effects = isLocked ? new List<PassiveSkillEffectDetail>() : ResolvePassiveEffects(passiveId, totalPoints)
                 });
             }
 
@@ -1643,6 +1763,179 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return tags.OrderBy(t => t).ToList();
+        }
+
+        private List<SubRAbilityTag> BuildSubRAbilityTags(IEnumerable<PassiveSkillTotal> passives)
+        {
+            return passives
+                .SelectMany(p => p.Effects)
+                .GroupBy(e => e.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(g =>
+                {
+                    var first = g.First();
+                    return new SubRAbilityTag
+                    {
+                        Key = first.Key,
+                        Label = first.Label
+                    };
+                })
+                .OrderBy(t => t.Label, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private List<PassiveSkillEffectDetail> ResolvePassiveEffects(int passiveId, int totalPoints)
+        {
+            var effects = new List<PassiveSkillEffectDetail>();
+            if (totalPoints <= 0 || _locStore == null)
+            {
+                return effects;
+            }
+
+            if (!_skillPassives.TryGetValue(passiveId, out var passive))
+            {
+                return effects;
+            }
+
+            var passiveLevel = ResolvePassiveLevel(passiveId, totalPoints);
+            if (passiveLevel <= 0 || passive.PassiveSkillEffectGroupId == 0)
+            {
+                return effects;
+            }
+
+            if (!_skillPassiveEffectGroupsById.TryGetValue(passive.PassiveSkillEffectGroupId, out var groupEntries))
+            {
+                return effects;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in groupEntries.OrderBy(e => e.Seq))
+            {
+                if (!_skillPassiveEffectLevelsById.TryGetValue(entry.PassiveSkillEffectLevelId, out var effectLevels))
+                {
+                    continue;
+                }
+
+                var selectedEffect = effectLevels.FirstOrDefault(e => e.Level == passiveLevel)
+                    ?? effectLevels.Where(e => e.Level <= passiveLevel).OrderByDescending(e => e.Level).FirstOrDefault()
+                    ?? effectLevels.FirstOrDefault();
+                if (selectedEffect == null)
+                {
+                    continue;
+                }
+
+                var template = StripMarkup(_locStore.Get(selectedEffect.DescriptionLanguageId));
+                var description = FormatPassiveEffectDescription(template, selectedEffect.EffectValue, selectedEffect.EffectCoefficient, entry.PassiveSkillType);
+                if (string.IsNullOrWhiteSpace(description))
+                {
+                    continue;
+                }
+
+                var label = NormalizeSubRAbilityLabel(description);
+                var key = BuildSubRAbilityKey(entry.PassiveSkillDetailType, label);
+                if (!seen.Add($"{key}|{description}"))
+                {
+                    continue;
+                }
+
+                effects.Add(new PassiveSkillEffectDetail
+                {
+                    Key = key,
+                    Label = label,
+                    Description = description,
+                    DetailType = entry.PassiveSkillDetailType
+                });
+            }
+
+            return effects;
+        }
+
+        private int ResolvePassiveLevel(int passiveId, int totalPoints)
+        {
+            if (totalPoints <= 0 || !_skillPassiveLevelsByPassiveId.TryGetValue(passiveId, out var levels) || levels.Count == 0)
+            {
+                return 0;
+            }
+
+            var matched = levels.Where(l => l.PassivePoint <= totalPoints).OrderByDescending(l => l.PassivePoint).FirstOrDefault();
+            return matched?.Level ?? levels.First().Level;
+        }
+
+        private static double GetPassiveSkillTypeCoefficientDivisor(int passiveSkillType)
+        {
+            return PassiveSkillTypeCoefficientDivisor.TryGetValue(passiveSkillType, out var divisor)
+                ? divisor
+                : 10.0;
+        }
+
+        private static double GetPassiveSkillTypeValueDivisor(int passiveSkillType)
+        {
+            return PassiveSkillTypeValueDivisor.TryGetValue(passiveSkillType, out var divisor)
+                ? divisor
+                : 1.0;
+        }
+
+        private static string FormatPassiveNumericValue(double value)
+        {
+            if (Math.Abs(value % 1) < 0.0001)
+            {
+                return value.ToString("N0");
+            }
+
+            return value.ToString("0.#");
+        }
+
+        private static string FormatPassiveEffectDescription(string template, int effectValue, int effectCoefficient, int passiveSkillType)
+        {
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                return string.Empty;
+            }
+
+            var valueAmount = effectValue / GetPassiveSkillTypeValueDivisor(passiveSkillType);
+            var coefficientPercent = effectCoefficient / GetPassiveSkillTypeCoefficientDivisor(passiveSkillType);
+            var rendered = Regex.Replace(template, "\\{(\\d+)\\}", match =>
+            {
+                return match.Groups[1].Value switch
+                {
+                    "0" => FormatPassiveNumericValue(valueAmount),
+                    "1" => coefficientPercent.ToString("0.#"),
+                    _ => string.Empty
+                };
+            });
+
+            return rendered.Replace("  ", " ").Trim();
+        }
+
+        private static string NormalizeSubRAbilityLabel(string description)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                return "Passive Effect";
+            }
+
+            var withoutNumbers = Regex.Replace(description, @"[+-]?\d+(?:\.\d+)?%?", string.Empty);
+            var normalized = withoutNumbers
+                .Replace("/", " ")
+                .Replace("(", " ")
+                .Replace(")", " ")
+                .Replace("  ", " ")
+                .Trim();
+
+            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+            normalized = normalized.Trim(',', ';', ':', '.', '-', '+');
+
+            return string.IsNullOrWhiteSpace(normalized) ? "Passive Effect" : normalized;
+        }
+
+        private static string BuildSubRAbilityKey(int detailType, string label)
+        {
+            var slug = Regex.Replace(label.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+            if (string.IsNullOrWhiteSpace(slug))
+            {
+                slug = "effect";
+            }
+
+            return $"detail-{detailType}:{slug}";
         }
 
         private (string Text, double DamagePercent, string Range, bool IsHealing) BuildAbilityDetails(

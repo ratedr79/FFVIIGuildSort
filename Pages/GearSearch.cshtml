@@ -50,6 +50,13 @@
         .OrderBy(s => s)
         .ToList();
 
+    var subRAbilityOptions = Model.Weapons
+        .SelectMany(w => w.SubRAbilityTags)
+        .GroupBy(t => t.Key, StringComparer.OrdinalIgnoreCase)
+        .Select(g => g.First())
+        .OrderBy(t => t.Label)
+        .ToList();
+
     var sigilOptions = new List<(string Type, string Symbol)>
     {
         ("Circle", "◯"),
@@ -578,6 +585,27 @@
         font-size: 0.9rem;
     }
 
+    #viewLevelsModal .snapshot-rability-item {
+        padding: 0.3rem 0;
+    }
+
+    #viewLevelsModal .snapshot-rability-main {
+        display: block;
+    }
+
+    #viewLevelsModal .snapshot-rability-effects {
+        margin: 0.2rem 0 0.1rem 1.1rem;
+        padding-left: 0.4rem;
+        color: #585466;
+        font-size: 0.84rem;
+    }
+
+    #gearTable .rability-hoverable {
+        cursor: help;
+        text-decoration: underline dotted rgba(98, 77, 136, 0.6);
+        text-underline-offset: 2px;
+    }
+
     #viewLevelsModal .snapshot-customization-entry {
         display: flex;
         flex-wrap: wrap;
@@ -863,6 +891,46 @@
                     </div>
 
                     <div class="accordion-item">
+                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingSubRAbilities">
+                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSubRAbilities" aria-expanded="false" aria-controls="collapseSubRAbilities">
+                                Sub-R Abilities
+                                <span id="badgeSubRAbilitiesCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".subr-filter">Reset</button>
+                        </h2>
+                        <div id="collapseSubRAbilities" class="accordion-collapse collapse" aria-labelledby="headingSubRAbilities" data-bs-parent="#advancedFiltersAccordion">
+                            <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-12 col-md-9">
+                                        <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            id="subRFilterSearch"
+                                            placeholder="Search Sub-R Abilities..."
+                                            autocomplete="off" />
+                                    </div>
+                                    <div class="col-12 col-md-3">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clearSubRFilterSearch">Clear</button>
+                                    </div>
+                                </div>
+                                <div class="row row-cols-1 row-cols-md-2 g-2">
+                                    @foreach (var subR in subRAbilityOptions)
+                                    {
+                                        var checkboxId = $"subr-{subR.Key.Replace(":", "-").Replace("/", "-").Replace(" ", "-").ToLowerInvariant()}";
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input advanced-filter subr-filter" type="checkbox" value="@subR.Key" data-label="@subR.Label" id="@checkboxId" />
+                                                <label class="form-check-label" for="@checkboxId">@subR.Label</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                <div id="subRFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
                         <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingSigils">
                             <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSigils" aria-expanded="false" aria-controls="collapseSigils">
                                 Sigils
@@ -941,7 +1009,7 @@
                 <tbody>
                     @foreach (var weapon in Model.Weapons)
                     {
-                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())">
+                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
                             @{
                                 var costumeNoAbility = weapon.EquipmentType.Equals("Costume", System.StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(weapon.AbilityText);
                                 var abilityMarkup = !string.IsNullOrWhiteSpace(weapon.AbilityText)
@@ -1001,8 +1069,15 @@
                                     <ul class="list-unstyled small mb-0">
                                         @foreach (var passive in weapon.MaxPassiveSkills)
                                         {
+                                            var passiveEffectLines = passive.Effects
+                                                .Select(e => e.Description)
+                                                .Where(s => !string.IsNullOrWhiteSpace(s))
+                                                .ToList();
+                                            var passiveHoverText = passiveEffectLines.Count > 0
+                                                ? string.Join(" | ", passiveEffectLines)
+                                                : "No effect details";
                                             <li>
-                                                <strong>+@passive.TotalPoints</strong> @passive.SkillName
+                                                <span class="rability-hoverable" tabindex="0" role="button" aria-label="Show passive effect details" data-rability-effects="@passiveHoverText"><strong>+@passive.TotalPoints</strong> @passive.SkillName</span>
                                             </li>
                                         }
                                     </ul>
@@ -1212,6 +1287,7 @@
             const tableElement = document.getElementById('gearTable');
             const selectedCharacters = new Set();
             const selectedEquipmentTypes = new Set();
+            const selectedSubRAbilities = new Set();
 
             const table = new DataTable(tableElement, {
                 pageLength: @Model.PageSize,
@@ -1260,12 +1336,14 @@
                 const rowCharacter = rowNode.getAttribute('data-character') ?? '';
                 const rowEquipment = rowNode.getAttribute('data-equipment') ?? '';
                 const rowSigils = (rowNode.getAttribute('data-sigils') ?? '').split(' ').filter(Boolean);
+                const rowSubR = (rowNode.getAttribute('data-subr') ?? '').split(' ').filter(Boolean);
 
                 const characterMatch = selectedCharacters.size === 0 || selectedCharacters.has(rowCharacter);
                 const equipmentMatch = selectedEquipmentTypes.size === 0 || selectedEquipmentTypes.has(rowEquipment);
                 const sigilMatch = selectedSigils.size === 0 || [...selectedSigils].some(s => rowSigils.includes(s));
+                const subRMatch = selectedSubRAbilities.size === 0 || [...selectedSubRAbilities].some(s => rowSubR.includes(s));
 
-                return characterMatch && equipmentMatch && sigilMatch;
+                return characterMatch && equipmentMatch && sigilMatch && subRMatch;
             });
 
             const searchBox = document.getElementById('searchBox');
@@ -1280,6 +1358,12 @@
             pageSizeSelect.addEventListener('change', (e) => table.page.len(parseInt(e.target.value, 10)).draw());
 
             const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const escapeHtml = (value) => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
             const updateCharacterFilter = () => {
                 selectedCharacters.clear();
                 document.querySelectorAll('.character-checkbox:checked').forEach(cb => selectedCharacters.add(cb.value));
@@ -1308,6 +1392,7 @@
                 { selector: '.equipment-filter', badgeId: 'badgeEquipmentCount' },
                 { selector: '.rability-filter', badgeId: 'badgeRAbilitiesCount' },
                 { selector: '.effect-filter', badgeId: 'badgeEffectsCount' },
+                { selector: '.subr-filter', badgeId: 'badgeSubRAbilitiesCount' },
                 { selector: '.sigil-filter', badgeId: 'badgeSigilsCount' }
             ];
 
@@ -1364,6 +1449,10 @@
 
                 document.querySelectorAll('.effect-filter:checked').forEach(cb => {
                     entries.push({ selector: '.effect-filter', value: cb.value, label: `Effect: ${cb.value}` });
+                });
+
+                document.querySelectorAll('.subr-filter:checked').forEach(cb => {
+                    entries.push({ selector: '.subr-filter', value: cb.value, label: `Sub-R: ${cb.dataset.label ?? cb.value}` });
                 });
 
                 document.querySelectorAll('.sigil-filter:checked').forEach(cb => {
@@ -1449,6 +1538,16 @@
                 cb.addEventListener('change', updateSigilFilter);
             });
 
+            const updateSubRFilter = () => {
+                selectedSubRAbilities.clear();
+                document.querySelectorAll('.subr-filter:checked').forEach(cb => selectedSubRAbilities.add(cb.value));
+                table.draw();
+            };
+
+            document.querySelectorAll('.subr-filter').forEach(cb => {
+                cb.addEventListener('change', updateSubRFilter);
+            });
+
             document.querySelectorAll('.reset-filter').forEach(button => {
                 button.addEventListener('click', () => {
                     const targetSelector = button.getAttribute('data-filter-target');
@@ -1472,6 +1571,10 @@
 
                     if (targetSelector === '.sigil-filter') {
                         updateSigilFilter();
+                    }
+
+                    if (targetSelector === '.subr-filter') {
+                        updateSubRFilter();
                     }
                 });
             });
@@ -1536,6 +1639,13 @@
                 clearButtonId: 'clearEffectFilterSearch',
                 checkboxSelector: '.effect-filter',
                 noMatchesId: 'effectFilterNoMatches'
+            });
+
+            initAdvancedOptionSearch({
+                inputId: 'subRFilterSearch',
+                clearButtonId: 'clearSubRFilterSearch',
+                checkboxSelector: '.subr-filter',
+                noMatchesId: 'subRFilterNoMatches'
             });
 
             // --- Compare Feature ---
@@ -1759,7 +1869,51 @@
             const renderDecorations = () => {
                 renderBannerRows();
                 renderDetailRows();
+                initRAbilityPopovers();
             };
+
+            let rAbilityPopovers = [];
+            const isTouchDevice = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+
+            const disposeRAbilityPopovers = () => {
+                rAbilityPopovers.forEach(popover => popover.dispose());
+                rAbilityPopovers = [];
+            };
+
+            const initRAbilityPopovers = () => {
+                disposeRAbilityPopovers();
+
+                document.querySelectorAll('.rability-hoverable').forEach((el) => {
+                    const raw = el.getAttribute('data-rability-effects') ?? '';
+                    const lines = raw
+                        .split('|')
+                        .map(v => v.trim())
+                        .filter(Boolean);
+
+                    const content = lines.length > 0
+                        ? `<ul class="mb-0 ps-3">${lines.map(line => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`
+                        : '<span>No effect details</span>';
+
+                    const popover = new bootstrap.Popover(el, {
+                        container: 'body',
+                        html: true,
+                        sanitize: true,
+                        placement: 'auto',
+                        trigger: isTouchDevice ? 'click focus' : 'hover focus',
+                        content
+                    });
+
+                    rAbilityPopovers.push(popover);
+                });
+            };
+
+            document.addEventListener('click', (event) => {
+                if (event.target.closest('.rability-hoverable') || event.target.closest('.popover')) {
+                    return;
+                }
+
+                rAbilityPopovers.forEach(popover => popover.hide());
+            });
 
             const customizationFilterCheckbox = document.getElementById('hasCustomizationsFilter');
 
@@ -1828,6 +1982,11 @@
                     return;
                 }
 
+                if (selector === '.subr-filter') {
+                    updateSubRFilter();
+                    return;
+                }
+
                 const filterGroup = advancedFilters.find(group => group.selector === selector);
                 if (filterGroup) {
                     applyAdvancedFilter(filterGroup.selector, filterGroup.columnIndex);
@@ -1847,6 +2006,7 @@
                 selectedCharacters.clear();
                 selectedEquipmentTypes.clear();
                 selectedSigils.clear();
+                selectedSubRAbilities.clear();
 
                 advancedFilters.forEach(group => {
                     table.column(group.columnIndex).search('', true, false);
@@ -1916,7 +2076,13 @@
                         const breakdown = (r.basePoints > 0 && r.upgradePoints > 0)
                             ? ` <small class="text-muted">(Lv. ${r.basePoints} + OB ${r.upgradePoints})</small>`
                             : '';
-                        return `<li><strong>+${r.totalPoints}</strong> ${r.skillName}${breakdown}</li>`;
+                        const effectsHtml = Array.isArray(r.effects) && r.effects.length > 0
+                            ? `<ul class="snapshot-rability-effects">${r.effects
+                                .filter(e => e && e.description)
+                                .map(e => `<li>${escapeHtml(e.description)}</li>`)
+                                .join('')}</ul>`
+                            : '';
+                        return `<li class="snapshot-rability-item"><div class="snapshot-rability-main"><strong>+${r.totalPoints}</strong> ${escapeHtml(r.skillName)}${breakdown}</div>${effectsHtml}</li>`;
                     }).join('');
                 } else {
                     rAbilitiesEl.innerHTML = '<li class="text-muted">No R Ability data at this level</li>';

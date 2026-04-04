@@ -29,6 +29,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required int HealOb10Lv130 { get; init; }
         public required List<WeaponCustomization> Customizations { get; init; }
         public required List<SigilInfo> Sigils { get; init; }
+        public required List<SubRAbilityTag> SubRAbilityTags { get; init; }
     }
 
     public sealed class UpgradeSkillData
@@ -57,6 +58,21 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string SourceLabel { get; init; }
         public bool IsLocked { get; init; }
         public int? LockedUntilLevel { get; init; }
+        public required List<PassiveSkillEffectDetail> Effects { get; init; }
+    }
+
+    public sealed class PassiveSkillEffectDetail
+    {
+        public required string Key { get; init; }
+        public required string Label { get; init; }
+        public required string Description { get; init; }
+        public required int DetailType { get; init; }
+    }
+
+    public sealed class SubRAbilityTag
+    {
+        public required string Key { get; init; }
+        public required string Label { get; init; }
     }
 
     public sealed class SigilInfo
