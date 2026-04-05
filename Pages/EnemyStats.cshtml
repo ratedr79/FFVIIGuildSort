@@ -6,6 +6,136 @@
     ViewData["Title"] = "Enemy Stats";
 }
 
+<style>
+    .enemy-results-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    @@media (min-width: 992px) {
+        .enemy-results-list {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+    }
+
+    .enemy-result-card {
+        border: 1px solid #ddd3ed;
+        border-radius: 0.7rem;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(39, 26, 65, 0.08);
+        padding: 0.7rem 0.8rem;
+    }
+
+    .enemy-result-card.stage-result {
+        border-color: #9fd3ff;
+        background: linear-gradient(180deg, rgba(230, 245, 255, 0.75), rgba(255, 255, 255, 1));
+    }
+
+    .enemy-result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .enemy-result-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #332b42;
+        line-height: 1.25;
+    }
+
+    .enemy-result-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.22rem;
+    }
+
+    .enemy-result-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid #d8cce9;
+        background: #f7f4fc;
+        color: #5f4d7d;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.12rem 0.45rem;
+        line-height: 1.2;
+    }
+
+    .enemy-result-grid {
+        display: grid;
+        gap: 0.3rem;
+        margin-bottom: 0.45rem;
+        font-size: 0.86rem;
+    }
+
+    .enemy-result-row {
+        display: grid;
+        grid-template-columns: 82px 1fr;
+        gap: 0.45rem;
+        align-items: start;
+    }
+
+    .enemy-result-label {
+        color: #7a7090;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.64rem;
+        line-height: 1.25;
+    }
+
+    .enemy-result-value {
+        color: #332b42;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .enemy-result-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .enemy-suggestions {
+        position: absolute;
+        z-index: 1050;
+        width: 100%;
+        max-height: 240px;
+        overflow-y: auto;
+        margin-top: 0.2rem;
+        border: 1px solid #dcd2ee;
+        border-radius: 0.45rem;
+        background: #fff;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .enemy-suggestions .list-group-item {
+        border: 0;
+        border-bottom: 1px solid #f0ecf7;
+        font-size: 0.9rem;
+        padding: 0.45rem 0.65rem;
+        text-align: left;
+    }
+
+    .enemy-suggestions .list-group-item:last-child {
+        border-bottom: 0;
+    }
+
+    .enemy-suggestions .list-group-item:hover,
+    .enemy-suggestions .list-group-item:focus {
+        background: #f5efff;
+    }
+</style>
+
 <div class="row mb-4">
     <div class="col-lg-8">
         <h1 class="mb-3"><i class="fas fa-dragon"></i> Enemy Stats</h1>
@@ -17,9 +147,11 @@
     <div class="row g-3">
         <div class="col-md-6">
             <label asp-for="SearchQuery" class="form-label">Boss or stage name</label>
-            <input asp-for="SearchQuery" class="form-control" placeholder="e.g. Titan" list="enemy-search-suggestions" autocomplete="off" />
-            <datalist id="enemy-search-suggestions"></datalist>
-            <div class="form-text">Type at least 3 characters to see suggestions.</div>
+            <div class="position-relative">
+                <input asp-for="SearchQuery" class="form-control" placeholder="e.g. Titan" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="enemy-search-suggestions" />
+                <div id="enemy-search-suggestions" class="enemy-suggestions list-group d-none" role="listbox" aria-label="Search suggestions"></div>
+            </div>
+            <div class="form-text">Type at least 2 characters to see suggestions.</div>
             <span asp-validation-for="SearchQuery" class="text-danger"></span>
         </div>
         <div class="col-md-2 pt-md-4">
@@ -39,46 +171,40 @@
 
 @if (Model.Results?.Count > 0)
 {
-    <div class="table-responsive">
-        <table class="table table-striped" id="enemy-results">
-            <thead class="table-light">
-                <tr>
-                    <th class="text-center">ID</th>
-                    <th>Stage</th>
-                    <th>Name</th>
-                    <th class="text-center">Level</th>
-                    <th>Species</th>
-                    <th class="text-end">Details</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var result in Model.Results)
-                {
-                    var detailId = $"detail-{result.EnemyId}-{result.Level}";
-                    var displayLevel = string.IsNullOrWhiteSpace(result.DisplayLevelText)
-                        ? result.Level.ToString()
-                        : result.DisplayLevelText;
-                    var displayStage = string.IsNullOrWhiteSpace(result.StageName)
-                        ? "N/A"
-                        : result.StageName;
-                    <tr class="@(result.IsStageResult ? "table-info" : string.Empty)">
-                        <td class="text-center">@result.EnemyId</td>
-                        <td>@displayStage</td>
-                        <td>@(string.IsNullOrWhiteSpace(result.DisplayName) ? result.Name : result.DisplayName)</td>
-                        <td class="text-center">@displayLevel</td>
-                        <td>@result.SpeciesSummary</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#@detailId" aria-expanded="false">
-                                Show Details
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <div class="enemy-results-list mb-3">
+        @foreach (var result in Model.Results)
+        {
+            var displayLevel = string.IsNullOrWhiteSpace(result.DisplayLevelText)
+                ? result.Level.ToString()
+                : result.DisplayLevelText;
+            var displayStage = string.IsNullOrWhiteSpace(result.StageName)
+                ? "N/A"
+                : result.StageName;
+            var detailTemplateId = $"enemy-detail-{result.EnemyId}-{result.Level}";
+            <article class="enemy-result-card @(result.IsStageResult ? "stage-result" : string.Empty)">
+                <div class="enemy-result-header">
+                    <div>
+                        <div class="enemy-result-name">@(string.IsNullOrWhiteSpace(result.DisplayName) ? result.Name : result.DisplayName)</div>
+                        <div class="enemy-result-pills">
+                            <span class="enemy-result-pill">Lv @displayLevel</span>
+                            <span class="enemy-result-pill">ID @result.EnemyId</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="enemy-result-grid">
+                    <div class="enemy-result-row"><div class="enemy-result-label">Stage</div><div class="enemy-result-value">@displayStage</div></div>
+                    <div class="enemy-result-row"><div class="enemy-result-label">Species</div><div class="enemy-result-value">@result.SpeciesSummary</div></div>
+                </div>
+                <div class="enemy-result-actions">
+                    <button class="btn btn-sm btn-outline-secondary btn-open-enemy-detail" type="button" data-detail-template-id="@detailTemplateId">
+                        Show Details
+                    </button>
+                </div>
+            </article>
+        }
     </div>
 
-    <div class="mt-4" id="enemy-detail-panels">
+    <div class="d-none" id="enemy-detail-templates">
         @{ var renderedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
         @foreach (var result in Model.Results)
         {
@@ -86,95 +212,108 @@
             {
                 continue;
             }
-            var detailId = $"detail-{result.EnemyId}-{result.Level}";
+            var detailTemplateId = $"enemy-detail-{result.EnemyId}-{result.Level}";
             var detail = Model.FindDetail(result);
-            <div class="collapse mb-3" id="@detailId" data-bs-parent="#enemy-detail-panels">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        @if (detail == null)
-                        {
-                            <div class="text-muted">Details unavailable.</div>
-                        }
-                        else
-                        {
-                            var allImmunities = detail.StatusImmunities;
-                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                                <h5 class="mb-0">@detail.Name [Level @detail.Level]</h5>
-                            </div>
-                            <div class="fw-semibold mb-2">
-                                <span class="me-3">HP: @string.Format("{0:N0}", detail.Hp)</span>
-                                <span class="me-3">PATK: @detail.PhysicalAttack</span>
-                                <span class="me-3">MATK: @detail.MagicalAttack</span>
-                                <span class="me-3">PDEF: @detail.PhysicalDefense</span>
-                                <span>MDEF: @detail.MagicalDefense</span>
-                            </div>
-                            <div class="mb-2">
-                                <strong>Species:</strong>
-                                <span>@string.Join(", ", detail.Species)</span>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <strong>Elemental Resistances</strong>
-                                    <ul class="mb-2">
-                                        @if (detail.ElementResistances.Count == 0)
-                                        {
-                                            <li class="text-muted">None listed</li>
-                                        }
-                                        else
-                                        {
-                                            foreach (var resist in detail.ElementResistances)
-                                            {
-                                                <li>@resist.Type: @resist.Value</li>
-                                            }
-                                        }
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Immunities</strong>
-                                    <div class="small text-muted">Status effects only (buff/debuff resist listed separately).</div>
-                                    <ul class="mb-2">
-                                        @if (allImmunities.Count == 0)
-                                        {
-                                            <li class="text-muted">Ailments unknown</li>
-                                        }
-                                        else
-                                        {
-                                            foreach (var immunity in allImmunities)
-                                            {
-                                                <li>@immunity</li>
-                                            }
-                                        }
-                                    </ul>
-                                </div>
-                                <div class="col-md-4">
-                                    <strong>Buff/Debuff Resist</strong>
-                                    <ul class="mb-2">
-                                        @if (detail.BuffDebuffImmunities.Count == 0)
-                                        {
-                                            <li class="text-muted">None</li>
-                                        }
-                                        else
-                                        {
-                                            foreach (var buff in detail.BuffDebuffImmunities)
-                                            {
-                                                <li>@buff</li>
-                                            }
-                                        }
-                                    </ul>
-                                </div>
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(detail.Description))
-                            {
-                                <div class="mt-3">
-                                    <strong>Description</strong>
-                                    <p class="mb-0" style="white-space: pre-line;">@detail.Description</p>
-                                </div>
-                            }
-                        }
+            <template id="@detailTemplateId">
+                @if (detail == null)
+                {
+                    <div class="text-muted">Details unavailable.</div>
+                }
+                else
+                {
+                    var allImmunities = detail.StatusImmunities;
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <h5 class="mb-0">@detail.Name [Level @detail.Level]</h5>
                     </div>
+                    <div class="fw-semibold mb-2">
+                        <span class="me-3">HP: @string.Format("{0:N0}", detail.Hp)</span>
+                        <span class="me-3">PATK: @detail.PhysicalAttack</span>
+                        <span class="me-3">MATK: @detail.MagicalAttack</span>
+                        <span class="me-3">PDEF: @detail.PhysicalDefense</span>
+                        <span>MDEF: @detail.MagicalDefense</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Species:</strong>
+                        <span>@string.Join(", ", detail.Species)</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <strong>Elemental Resistances</strong>
+                            <ul class="mb-2">
+                                @if (detail.ElementResistances.Count == 0)
+                                {
+                                    <li class="text-muted">None listed</li>
+                                }
+                                else
+                                {
+                                    foreach (var resist in detail.ElementResistances)
+                                    {
+                                        <li>@resist.Type: @resist.Value</li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Immunities</strong>
+                            <div class="small text-muted">Status effects only (buff/debuff resist listed separately).</div>
+                            <ul class="mb-2">
+                                @if (allImmunities.Count == 0)
+                                {
+                                    <li class="text-muted">Ailments unknown</li>
+                                }
+                                else
+                                {
+                                    foreach (var immunity in allImmunities)
+                                    {
+                                        <li>@immunity</li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Buff/Debuff Resist</strong>
+                            <ul class="mb-2">
+                                @if (detail.BuffDebuffImmunities.Count == 0)
+                                {
+                                    <li class="text-muted">None</li>
+                                }
+                                else
+                                {
+                                    foreach (var buff in detail.BuffDebuffImmunities)
+                                    {
+                                        <li>@buff</li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(detail.Description))
+                    {
+                        <div class="mt-3">
+                            <strong>Description</strong>
+                            <p class="mb-0" style="white-space: pre-line;">@detail.Description</p>
+                        </div>
+                    }
+                }
+            </template>
+        }
+    </div>
+
+    <div class="modal fade" id="enemyDetailModal" tabindex="-1" aria-labelledby="enemyDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="enemyDetailModalLabel">Enemy Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="enemyDetailModalContent">
+                    <div class="text-muted">Details unavailable.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
-        }
+        </div>
     </div>
 }
 
@@ -183,17 +322,25 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById('SearchQuery');
-            const dataList = document.getElementById('enemy-search-suggestions');
+            const suggestionsList = document.getElementById('enemy-search-suggestions');
             const allSuggestions = @Html.Raw(JsonSerializer.Serialize(Model.SearchSuggestions));
 
-            if (searchInput && dataList && Array.isArray(allSuggestions)) {
+            if (searchInput && suggestionsList && Array.isArray(allSuggestions)) {
                 const maxSuggestions = 25;
+                const minChars = 2;
+
+                const hideSuggestions = () => {
+                    suggestionsList.classList.add('d-none');
+                    suggestionsList.innerHTML = '';
+                    searchInput.setAttribute('aria-expanded', 'false');
+                };
 
                 const renderSuggestions = (query) => {
                     const normalized = (query || '').trim().toLowerCase();
-                    dataList.innerHTML = '';
+                    suggestionsList.innerHTML = '';
 
-                    if (normalized.length < 3) {
+                    if (normalized.length < minChars) {
+                        hideSuggestions();
                         return;
                     }
 
@@ -207,14 +354,29 @@
                             continue;
                         }
 
-                        const option = document.createElement('option');
-                        option.value = suggestion;
-                        dataList.appendChild(option);
+                        const optionBtn = document.createElement('button');
+                        optionBtn.type = 'button';
+                        optionBtn.className = 'list-group-item list-group-item-action';
+                        optionBtn.setAttribute('role', 'option');
+                        optionBtn.textContent = suggestion;
+                        optionBtn.addEventListener('mousedown', function (event) {
+                            event.preventDefault();
+                            searchInput.value = suggestion;
+                            hideSuggestions();
+                        });
+                        suggestionsList.appendChild(optionBtn);
 
                         count += 1;
                         if (count >= maxSuggestions) {
                             break;
                         }
+                    }
+
+                    if (count > 0) {
+                        suggestionsList.classList.remove('d-none');
+                        searchInput.setAttribute('aria-expanded', 'true');
+                    } else {
+                        hideSuggestions();
                     }
                 };
 
@@ -222,24 +384,46 @@
                     renderSuggestions(searchInput.value);
                 });
 
+                searchInput.addEventListener('focus', function () {
+                    renderSuggestions(searchInput.value);
+                });
+
+                searchInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        hideSuggestions();
+                    }
+                });
+
+                document.addEventListener('click', function (event) {
+                    if (event.target === searchInput || suggestionsList.contains(event.target)) {
+                        return;
+                    }
+
+                    hideSuggestions();
+                });
+
                 renderSuggestions(searchInput.value);
+            }
+
+            const detailModalElement = document.getElementById('enemyDetailModal');
+            const detailModalContent = document.getElementById('enemyDetailModalContent');
+            if (detailModalElement && detailModalContent) {
+                const detailModal = new bootstrap.Modal(detailModalElement);
+                document.querySelectorAll('.btn-open-enemy-detail').forEach((button) => {
+                    button.addEventListener('click', function () {
+                        const templateId = button.getAttribute('data-detail-template-id');
+                        if (!templateId) {
+                            detailModalContent.innerHTML = '<div class="text-muted">Details unavailable.</div>';
+                            detailModal.show();
+                            return;
+                        }
+
+                        const template = document.getElementById(templateId);
+                        detailModalContent.innerHTML = template?.innerHTML ?? '<div class="text-muted">Details unavailable.</div>';
+                        detailModal.show();
+                    });
+                });
             }
         });
     </script>
-    @if (Model.Results?.Count > 0)
-    {
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const table = document.querySelector('#enemy-results');
-                if (table && !table.dataset.initialized) {
-                    new DataTable(table, {
-                        paging: true,
-                        searching: true,
-                        order: [[0, 'asc']]
-                    });
-                    table.dataset.initialized = 'true';
-                }
-            });
-        </script>
-    }
 }
