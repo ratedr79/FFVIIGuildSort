@@ -186,7 +186,7 @@ Provides searchable/filterable weapon/costume data with ability details, R abili
 |---|---|---|
 | Character checkboxes | One or more characters | Character filtering |
 | Search | Free text | Name/ability/effect search |
-| Rows per page | 25/50/100/200 | DataTable paging |
+| Rows per page | 25/50/100/200 | Card result paging |
 | Advanced filter checkboxes | Element, ability, range, equipment, effects, R abilities, Sub-R abilities, sigils, etc. | Narrow results |
 | Has Customizations | Checkbox | Show only entries with customization data |
 | View Levels modal Overboost | 5★ (OB0) to OB10 | Snapshot at specific overboost |
@@ -195,13 +195,13 @@ Provides searchable/filterable weapon/costume data with ability details, R abili
 ### Gear Search: Quick Walkthrough
 Required steps:
 1. Enter a search term and/or select one or more filters.
-2. Review matching rows in the results table.
-3. Use a banner action (`Show Ability Details`, `View Levels`, or compare toggle) on a matching row.
+2. Review matching results in the card list (mobile and desktop).
+3. Use a card action (`Show Ability Details`, `View Levels`, or compare toggle) on a matching result.
 
 Expected output:
-- Filtered weapon results with key stats/effects.
-- Banner actions for `View Levels`, `Show Ability Details`, and compare selection.
-- `R Abilities` hover details in the grid showing resolved passive effects (OB10/Lv130 display state).
+- Filtered weapon results in card layout with key stats/effects.
+- Card actions for `View Levels`, `Show Ability Details`, and compare selection.
+- `R Abilities` shown inline on desktop cards, with tap/click affordances on mobile.
 - Compare panel updates as items are added.
 
 ### Important UI Note
@@ -219,19 +219,19 @@ Searches enemy and stage names and displays detailed boss metadata: stats, resis
 ### Enemy Stats: Inputs
 | Input | Expected Value | Use |
 |---|---|---|
-| Boss or stage name | Free text | Finds enemy-name matches and stage-name matches |
+| Boss or stage name | Free text (type 2+ characters for suggestions) | Finds enemy-name matches and stage-name matches |
 | Search button | Click | Runs query |
-| Show Details button | Per row | Expands detailed enemy panel |
+| Show Details button | Per card | Opens detailed enemy modal |
 
 ### Enemy Stats: Quick Walkthrough
 Required steps:
 1. Enter a boss or stage name in the search box.
 2. Click `Search`.
-3. Click `Show Details` on a result row.
+3. Click `Show Details` on a result card.
 
 Expected output:
-- Matching enemies/stages in the result list.
-- Detail panel with stats, resistances, and immunities for the selected row.
+- Matching enemies/stages in responsive result cards (single-column on smaller screens, 3-column desktop grid).
+- Detail modal with stats, resistances, and immunities for the selected result.
 - Result behavior aligned with match type (`Enemy` match shows `N/A` stage; `Stage` match shows stage name).
 
 ### Result Behavior
