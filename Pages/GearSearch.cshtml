@@ -399,7 +399,7 @@
     }
 
     .gear-mobile-results {
-        display: none;
+        display: block;
     }
 
     .gear-mobile-card {
@@ -497,10 +497,19 @@
         gap: 0.2rem;
     }
 
+    .gear-mobile-rability-effects-inline {
+        margin-top: 0.16rem;
+        margin-left: 0.12rem;
+        padding-left: 0.38rem;
+        border-left: 2px solid #e2d7f6;
+        font-size: 0.72rem;
+        line-height: 1.24;
+    }
+
     .gear-mobile-value .rability-hoverable {
         position: relative;
         display: inline-block;
-        padding-right: 0.85rem;
+        padding-right: 1.05rem;
         cursor: pointer;
     }
 
@@ -508,8 +517,9 @@
         content: 'ⓘ';
         position: absolute;
         right: 0;
-        top: 0;
-        font-size: 0.7em;
+        top: -0.05rem;
+        font-size: 0.92em;
+        font-weight: 700;
         color: #7a7090;
     }
 
@@ -550,13 +560,111 @@
         font-weight: 600;
     }
 
-    @@media (max-width: 767.98px) {
-        .gear-mobile-results {
-            display: block;
+    .gear-results-card {
+        display: none;
+    }
+
+    @@media (min-width: 768px) {
+        #gearMobileResultsList {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem !important;
         }
 
-        .gear-results-card {
+        .gear-mobile-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 0.72rem 0.78rem;
+            border-radius: 0.72rem;
+            box-shadow: 0 2px 8px rgba(39, 26, 65, 0.08);
+        }
+
+        .gear-mobile-card-header {
+            margin-bottom: 0.5rem;
+            gap: 0.55rem;
+        }
+
+        .gear-mobile-card-name {
+            font-size: 1rem;
+            line-height: 1.28;
+        }
+
+        .gear-mobile-card-body {
+            flex: 1 1 auto;
+            gap: 0.36rem;
+            margin-bottom: 0.52rem;
+            font-size: 0.86rem;
+        }
+
+        .gear-mobile-row {
+            grid-template-columns: 86px 1fr;
+            gap: 0.4rem;
+        }
+
+        .gear-mobile-label {
+            font-size: 0.66rem;
+        }
+
+        .gear-mobile-value .rability-hoverable {
+            padding-right: 0;
+            cursor: default;
+        }
+
+        .gear-mobile-value .rability-hoverable::after {
             display: none;
+        }
+
+        .gear-mobile-actions {
+            margin-top: auto;
+            gap: 0.4rem;
+        }
+
+        .gear-mobile-actions .btn {
+            font-size: 0.76rem;
+            padding: 0.24rem 0.56rem;
+        }
+
+        .gear-mobile-extra {
+            margin-top: 0.45rem;
+            padding-top: 0.5rem;
+            order: 3;
+        }
+
+        .gear-mobile-actions {
+            order: 4;
+        }
+
+        .gear-mobile-pagination {
+            justify-content: center;
+            gap: 0.8rem;
+            margin-top: 0.8rem;
+        }
+    }
+
+    @@media (min-width: 1200px) {
+        #gearMobileResults {
+            max-width: 1320px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #gearMobileResultsList {
+            grid-template-columns: repeat(2, minmax(480px, 620px));
+            justify-content: center;
+            gap: 1rem 1.1rem !important;
+        }
+
+        .gear-mobile-card {
+            padding: 0.78rem 0.85rem;
+        }
+
+        .gear-mobile-card-body {
+            gap: 0.42rem;
+        }
+
+        .gear-mobile-value {
+            line-height: 1.34;
         }
     }
 
@@ -769,6 +877,15 @@
 
     #compareTable tbody td {
         vertical-align: top;
+    }
+
+    #compareTable .compare-rability-effects {
+        margin-top: 0.2rem;
+        margin-left: 0.15rem;
+        padding-left: 0.45rem;
+        border-left: 2px solid #e2d7f6;
+        font-size: 0.76rem;
+        line-height: 1.3;
     }
 
     #viewLevelsModal .modal-header {
@@ -1595,7 +1712,7 @@
             const gearMobilePrevPage = document.getElementById('gearMobilePrevPage');
             const gearMobileNextPage = document.getElementById('gearMobileNextPage');
             const gearMobilePageInfo = document.getElementById('gearMobilePageInfo');
-            const isMobileCardMode = () => window.innerWidth < 768;
+            const isCardMode = () => true;
 
             const selectedSigils = new Set();
 
@@ -1953,6 +2070,48 @@
             const compareOpenBtn = document.getElementById('compareOpenBtn');
             const compareModal = new bootstrap.Modal(document.getElementById('compareModal'));
 
+            const buildCompareRAbilitiesHtml = (rAbilityCell) => {
+                if (!rAbilityCell) {
+                    return '<span class="text-muted">None</span>';
+                }
+
+                let combinedHtml = '';
+
+                const baseList = rAbilityCell.querySelector('ul.list-unstyled:not(.cust-rability-list)');
+                if (baseList) {
+                    const baseClone = baseList.cloneNode(true);
+                    baseClone.querySelectorAll('.rability-hoverable').forEach((el) => {
+                        const raw = el.getAttribute('data-rability-effects') ?? '';
+                        const lines = raw
+                            .split('|')
+                            .map(v => v.trim())
+                            .filter(Boolean);
+
+                        if (lines.length === 0) {
+                            return;
+                        }
+
+                        const effectBlock = document.createElement('div');
+                        effectBlock.className = 'compare-rability-effects text-muted';
+                        effectBlock.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
+
+                        const parentItem = el.closest('li');
+                        if (parentItem) {
+                            parentItem.appendChild(effectBlock);
+                        }
+                    });
+
+                    combinedHtml += baseClone.outerHTML;
+                }
+
+                const custList = rAbilityCell.querySelector('.cust-rability-list');
+                if (custList) {
+                    combinedHtml += custList.outerHTML;
+                }
+
+                return combinedHtml || '<span class="text-muted">None</span>';
+            };
+
             const scrapeWeaponData = (weaponId) => {
                 const row = document.querySelector(`#gearTable tbody tr[data-weapon-id="${weaponId}"]`);
                 if (!row) return null;
@@ -1976,13 +2135,7 @@
                 const effectsEl = cells[5]?.querySelector('span');
                 const effects = effectsEl ? effectsEl.textContent.trim() : 'None';
 
-                // R Abilities: get visible list items + cust list items, skip templates
-                let rAbilitiesHtml = '';
-                const rAbilityList = cells[6]?.querySelector('ul.list-unstyled:not(.cust-rability-list)');
-                if (rAbilityList) rAbilitiesHtml += rAbilityList.outerHTML;
-                const custList = cells[6]?.querySelector('.cust-rability-list');
-                if (custList) rAbilitiesHtml += custList.outerHTML;
-                if (!rAbilitiesHtml) rAbilitiesHtml = '<span class="text-muted">None</span>';
+                const rAbilitiesHtml = buildCompareRAbilitiesHtml(cells[6]);
 
                 // Sigils
                 const sigilBadges = cells[7]?.querySelector('.sigil-badges');
@@ -2043,6 +2196,7 @@
 
             compareOpenBtn.addEventListener('click', () => {
                 populateCompareModal();
+                initRAbilityPopovers();
                 compareModal.show();
             });
 
@@ -2167,7 +2321,7 @@
                     return;
                 }
 
-                if (!isMobileCardMode()) {
+                if (!isCardMode()) {
                     gearMobileResultsList.innerHTML = '';
                     gearMobileResults.classList.add('d-none');
                     return;
@@ -2204,7 +2358,40 @@
                     const statsHtml = cells[2]?.querySelector('.stat-stack')?.innerHTML ?? `<span class="text-muted">${escapeHtml(cells[2]?.textContent?.trim() ?? 'N/A')}</span>`;
                     const effectsHtml = cells[5]?.innerHTML ?? '<span class="text-muted">None</span>';
 
-                    const rAbilityMain = cells[6]?.querySelector('ul.list-unstyled:not(.cust-rability-list)')?.outerHTML ?? '<span class="text-muted">None</span>';
+                    const showInlineRAbilityEffects = window.innerWidth >= 768;
+                    const rAbilitiesLabel = showInlineRAbilityEffects ? 'R. Abilities' : 'R. Abilities (tap)';
+
+                    const rAbilityMainList = cells[6]?.querySelector('ul.list-unstyled:not(.cust-rability-list)');
+                    let rAbilityMain = '<span class="text-muted">None</span>';
+                    if (rAbilityMainList) {
+                        const listClone = rAbilityMainList.cloneNode(true);
+
+                        if (showInlineRAbilityEffects) {
+                            listClone.querySelectorAll('.rability-hoverable').forEach((el) => {
+                                const raw = el.getAttribute('data-rability-effects') ?? '';
+                                const lines = raw
+                                    .split('|')
+                                    .map(v => v.trim())
+                                    .filter(Boolean);
+
+                                if (lines.length === 0) {
+                                    return;
+                                }
+
+                                const effectBlock = document.createElement('div');
+                                effectBlock.className = 'gear-mobile-rability-effects-inline text-muted';
+                                effectBlock.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
+
+                                const parentItem = el.closest('li');
+                                if (parentItem) {
+                                    parentItem.appendChild(effectBlock);
+                                }
+                            });
+                        }
+
+                        rAbilityMain = listClone.outerHTML;
+                    }
+
                     const rAbilityCust = cells[6]?.querySelector('.cust-rability-list')?.outerHTML ?? '';
                     const rAbilitiesHtml = `${rAbilityMain}${rAbilityCust}`;
 
@@ -2254,7 +2441,7 @@
                             <div class="gear-mobile-row"><div class="gear-mobile-label">Pot. %</div><div class="gear-mobile-value">${potText || '<span class="text-muted">N/A</span>'}</div></div>
                             <div class="gear-mobile-row"><div class="gear-mobile-label">Stats</div><div class="gear-mobile-value">${statsHtml}</div></div>
                             <div class="gear-mobile-row"><div class="gear-mobile-label">Effects</div><div class="gear-mobile-value">${effectsHtml}</div></div>
-                            <div class="gear-mobile-row"><div class="gear-mobile-label">R. Abilities (tap)</div><div class="gear-mobile-value">${rAbilitiesHtml}</div></div>
+                            <div class="gear-mobile-row"><div class="gear-mobile-label">${rAbilitiesLabel}</div><div class="gear-mobile-value">${rAbilitiesHtml}</div></div>
                             <div class="gear-mobile-row"><div class="gear-mobile-label">Sigils</div><div class="gear-mobile-value">${sigilsHtml}</div></div>
                         </div>
                         <div class="gear-mobile-actions">

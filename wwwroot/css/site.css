@@ -32,6 +32,20 @@ body {
   margin-bottom: 30px;
 }
 
+@media (max-width: 767.98px) {
+  header .navbar {
+    margin-bottom: 0.35rem !important;
+  }
+
+  header .navbar > .container {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  }
+}
+
 .card {
   border: none;
   border-radius: 10px;
