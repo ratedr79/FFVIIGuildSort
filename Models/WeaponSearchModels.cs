@@ -88,6 +88,10 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string Slot { get; init; }
         public required string Kind { get; init; }
         public required string Description { get; init; }
+        public int? PassiveSkillId { get; init; }
+        public string? PassiveSkillName { get; init; }
+        public int PassiveSkillPoints { get; init; }
+        public List<PassiveSkillEffectDetail> PassiveEffects { get; init; } = new();
     }
 
     public sealed class WeaponSnapshotResult

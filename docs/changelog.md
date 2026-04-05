@@ -42,6 +42,7 @@ All notable changes to this project should be documented in this file.
 - Passive `R Ability` effect percentage rendering now supports `PassiveSkillType`-specific coefficient scaling (including `Type 8` resist-style values), fixing over-scaled percentage output.
 - Gear Search results now render as cards across mobile and desktop (desktop uses a multi-column card layout), while preserving existing filter/search/compare interactions.
 - Gear Search card behaviors were refined for readability and interaction consistency: desktop shows inline `R Ability` effect detail while mobile keeps tap/click-friendly affordances.
+- Gear Search customization-added `R Abilities` now display `+points`, include resolved effect text in card/compare views, and participate in advanced `Sub-R Abilities` filtering.
 - Enemy Stats results now render as cards (single-column on smaller screens, 3-column desktop), with `Show Details` opening a modal instead of expanding inline.
 - Enemy Stats search suggestions now use a custom mobile-friendly typeahead dropdown with outside-click dismiss and `Escape` close behavior.
 

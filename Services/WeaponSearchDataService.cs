@@ -769,7 +769,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         weapon.WeaponMateriaSupportId0,
                         weapon.WeaponMateriaSupportId1,
                         weapon.WeaponMateriaSupportId2),
-                    SubRAbilityTags = BuildSubRAbilityTags(maxPassiveTotals)
+                    SubRAbilityTags = BuildSubRAbilityTags(maxPassiveTotals, customizations)
                 };
 
                 _allWeapons.Add(searchItem);
@@ -1355,12 +1355,33 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 foreach (var effect in effects)
                 {
-                    string? description = effect.WeaponEvolveEffectType switch
+                    string? description = null;
+                    int? passiveSkillId = null;
+                    string? passiveSkillName = null;
+                    int passiveSkillPoints = 0;
+                    List<PassiveSkillEffectDetail> passiveEffects = new();
+
+                    switch (effect.WeaponEvolveEffectType)
                     {
-                        1 => BuildEvolveAbilityAtLevel(effect, targetUpgradeCount, baseDamagePercent),
-                        3 => BuildCustomizationPassiveDescription(effect.TargetId, _skillPassives, _locStore!),
-                        _ => null
-                    };
+                        case 1:
+                            description = BuildEvolveAbilityAtLevel(effect, targetUpgradeCount, baseDamagePercent);
+                            break;
+                        case 3:
+                        {
+                            var passiveData = BuildCustomizationPassiveData(effect.TargetId, _skillPassives, _locStore!);
+                            if (passiveData == null)
+                            {
+                                continue;
+                            }
+
+                            description = passiveData.Value.Description;
+                            passiveSkillId = effect.TargetId;
+                            passiveSkillName = passiveData.Value.PassiveSkillName;
+                            passiveSkillPoints = passiveData.Value.PassiveSkillPoints;
+                            passiveEffects = passiveData.Value.PassiveEffects;
+                            break;
+                        }
+                    }
 
                     if (string.IsNullOrWhiteSpace(description)) continue;
 
@@ -1375,7 +1396,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     {
                         Slot = slot,
                         Kind = kind,
-                        Description = description
+                        Description = description,
+                        PassiveSkillId = passiveSkillId,
+                        PassiveSkillName = passiveSkillName,
+                        PassiveSkillPoints = passiveSkillPoints,
+                        PassiveEffects = passiveEffects
                     });
                 }
             }
@@ -1512,39 +1537,60 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 foreach (var effect in effects)
                 {
-                    string? description = effect.WeaponEvolveEffectType switch
+                    string? description = null;
+                    int? passiveSkillId = null;
+                    string? passiveSkillName = null;
+                    int passiveSkillPoints = 0;
+                    List<PassiveSkillEffectDetail> passiveEffects = new();
+
+                    switch (effect.WeaponEvolveEffectType)
                     {
-                        1 => BuildCustomizationAbilityDescription(
-                            effect,
-                            weaponEvolveWeaponSkills,
-                            skillWeapons,
-                            skillActives,
-                            skillBases,
-                            skillEffectGroups,
-                            skillEffects,
-                            skillEffectDescriptions,
-                            skillEffectDescriptionGroups,
-                            skillDamageEffects,
-                            skillAdditionalEffects,
-                            skillStatusChangeEffects,
-                            skillStatusConditionEffects,
-                            skillBuffDebuffs,
-                            skillBuffDebuffEnhances,
-                            skillCancelEffects,
-                            skillAtbChanges,
-                            skillSpecialGaugeChanges,
-                            skillTacticsGaugeChanges,
-                            skillOveraccelGaugeChanges,
-                            skillCostumeCountChanges,
-                            skillTriggerConditionHp,
-                            buffDebuffGroups,
-                            statusConditionGroups,
-                            statusChangeGroups,
-                            localization,
-                            baseDamagePercent),
-                        3 => BuildCustomizationPassiveDescription(effect.TargetId, skillPassives, localization),
-                        _ => null
-                    };
+                        case 1:
+                            description = BuildCustomizationAbilityDescription(
+                                effect,
+                                weaponEvolveWeaponSkills,
+                                skillWeapons,
+                                skillActives,
+                                skillBases,
+                                skillEffectGroups,
+                                skillEffects,
+                                skillEffectDescriptions,
+                                skillEffectDescriptionGroups,
+                                skillDamageEffects,
+                                skillAdditionalEffects,
+                                skillStatusChangeEffects,
+                                skillStatusConditionEffects,
+                                skillBuffDebuffs,
+                                skillBuffDebuffEnhances,
+                                skillCancelEffects,
+                                skillAtbChanges,
+                                skillSpecialGaugeChanges,
+                                skillTacticsGaugeChanges,
+                                skillOveraccelGaugeChanges,
+                                skillCostumeCountChanges,
+                                skillTriggerConditionHp,
+                                buffDebuffGroups,
+                                statusConditionGroups,
+                                statusChangeGroups,
+                                localization,
+                                baseDamagePercent);
+                            break;
+                        case 3:
+                        {
+                            var passiveData = BuildCustomizationPassiveData(effect.TargetId, skillPassives, localization);
+                            if (passiveData == null)
+                            {
+                                continue;
+                            }
+
+                            description = passiveData.Value.Description;
+                            passiveSkillId = effect.TargetId;
+                            passiveSkillName = passiveData.Value.PassiveSkillName;
+                            passiveSkillPoints = passiveData.Value.PassiveSkillPoints;
+                            passiveEffects = passiveData.Value.PassiveEffects;
+                            break;
+                        }
+                    }
 
                     if (string.IsNullOrWhiteSpace(description))
                     {
@@ -1562,7 +1608,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     {
                         Slot = slot,
                         Kind = kind,
-                        Description = description
+                        Description = description,
+                        PassiveSkillId = passiveSkillId,
+                        PassiveSkillName = passiveSkillName,
+                        PassiveSkillPoints = passiveSkillPoints,
+                        PassiveEffects = passiveEffects
                     });
                 }
             }
@@ -1570,7 +1620,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return results;
         }
 
-        private string? BuildCustomizationPassiveDescription(
+        private (string Description, string PassiveSkillName, int PassiveSkillPoints, List<PassiveSkillEffectDetail> PassiveEffects)? BuildCustomizationPassiveData(
             int passiveId,
             Dictionary<int, SkillPassiveRaw> skillPassives,
             LocalizationStore localization)
@@ -1586,7 +1636,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 passiveName = $"Passive {passive.Id}";
             }
 
-            return $"Adds R Ability: {passiveName}";
+            var passivePoints = ResolveCustomizationPassivePoints(passiveId);
+            var passiveEffects = passivePoints > 0
+                ? ResolvePassiveEffects(passiveId, passivePoints)
+                : new List<PassiveSkillEffectDetail>();
+
+            return ($"Adds R Ability: {passiveName}", passiveName, passivePoints, passiveEffects);
+        }
+
+        private int ResolveCustomizationPassivePoints(int passiveId)
+        {
+            if (!_skillPassiveLevelsByPassiveId.TryGetValue(passiveId, out var levels) || levels.Count == 0)
+            {
+                return 0;
+            }
+
+            return levels.Max(l => l.PassivePoint);
         }
 
         private string? BuildCustomizationAbilityDescription(
@@ -1765,10 +1830,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return tags.OrderBy(t => t).ToList();
         }
 
-        private List<SubRAbilityTag> BuildSubRAbilityTags(IEnumerable<PassiveSkillTotal> passives)
+        private List<SubRAbilityTag> BuildSubRAbilityTags(
+            IEnumerable<PassiveSkillTotal> passives,
+            IEnumerable<WeaponCustomization>? customizations = null)
         {
-            return passives
-                .SelectMany(p => p.Effects)
+            var effectDetails = passives.SelectMany(p => p.Effects);
+            if (customizations != null)
+            {
+                effectDetails = effectDetails.Concat(
+                    customizations
+                        .Where(c => c.Kind == "R Ability")
+                        .SelectMany(c => c.PassiveEffects));
+            }
+
+            return effectDetails
                 .GroupBy(e => e.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(g =>
                 {

@@ -202,12 +202,14 @@ Expected output:
 - Filtered weapon results in card layout with key stats/effects.
 - Card actions for `View Levels`, `Show Ability Details`, and compare selection.
 - `R Abilities` shown inline on desktop cards, with tap/click affordances on mobile.
+- Customization-added `R Abilities` mirror base `R Abilities` by showing `+points` and resolved effect details.
 - Compare panel updates as items are added.
 
 ### Important UI Note
 - Customizations unlock at `OB1+`.
 - At `5★/OB0`, customizations are intentionally unavailable.
 - View Levels modal `R Abilities` show `+points/name` on the first line and one-or-more resolved effect lines beneath.
+- Customization-added `R Abilities` are included in advanced `Sub-R Abilities` filtering via their resolved passive effect categories.
 - `Sub-R Abilities` filters match semantic passive-effect categories (for example `HP` and `HP Gain` are distinct).
 
 ---

@@ -36,8 +36,12 @@
         .SelectMany(w =>
             w.MaxPassiveSkills.Select(p => p.SkillName)
             .Concat(w.Customizations
-                .Where(c => c.Kind == "R Ability" && c.Description.StartsWith(custRAbilityPrefix))
-                .Select(c => c.Description.Substring(custRAbilityPrefix.Length))))
+                .Where(c => c.Kind == "R Ability")
+                .Select(c => !string.IsNullOrWhiteSpace(c.PassiveSkillName)
+                    ? c.PassiveSkillName!
+                    : (c.Description.StartsWith(custRAbilityPrefix)
+                        ? c.Description.Substring(custRAbilityPrefix.Length)
+                        : c.Description))))
         .Where(s => !string.IsNullOrWhiteSpace(s))
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(s => s)
@@ -1632,17 +1636,47 @@
                                     <span class="text-muted">No OB data</span>
                                 }
                                 @{
-                                    var custRAbilityNames = weapon.Customizations
-                                        .Where(c => c.Kind == "R Ability" && c.Description.StartsWith(custRAbilityPrefix))
-                                        .Select(c => c.Description.Substring(custRAbilityPrefix.Length))
+                                    var custRAbilities = weapon.Customizations
+                                        .Where(c => c.Kind == "R Ability")
+                                        .Select(c =>
+                                        {
+                                            var passiveName = !string.IsNullOrWhiteSpace(c.PassiveSkillName)
+                                                ? c.PassiveSkillName!
+                                                : (c.Description.StartsWith(custRAbilityPrefix)
+                                                    ? c.Description.Substring(custRAbilityPrefix.Length)
+                                                    : c.Description);
+                                            var passiveEffectLines = c.PassiveEffects
+                                                .Select(e => e.Description)
+                                                .Where(s => !string.IsNullOrWhiteSpace(s))
+                                                .ToList();
+                                            var passiveHoverText = passiveEffectLines.Count > 0
+                                                ? string.Join(" | ", passiveEffectLines)
+                                                : "No effect details";
+                                            return new
+                                            {
+                                                Name = passiveName,
+                                                Points = c.PassiveSkillPoints,
+                                                HoverText = passiveHoverText
+                                            };
+                                        })
+                                        .Where(x => !string.IsNullOrWhiteSpace(x.Name))
                                         .ToList();
                                 }
-                                @if (custRAbilityNames.Any())
+                                @if (custRAbilities.Any())
                                 {
                                     <ul class="list-unstyled small mb-0 cust-rability-list">
-                                        @foreach (var name in custRAbilityNames)
+                                        @foreach (var passive in custRAbilities)
                                         {
-                                            <li><span class="cust-rability-badge">Cust.</span> @name</li>
+                                            <li>
+                                                <span class="cust-rability-badge">Cust.</span>
+                                                <span class="rability-hoverable" tabindex="0" role="button" aria-label="Show passive effect details" data-rability-effects="@passive.HoverText">
+                                                    @if (passive.Points > 0)
+                                                    {
+                                                        <strong>+@passive.Points</strong>
+                                                    }
+                                                    @passive.Name
+                                                </span>
+                                            </li>
                                         }
                                     </ul>
                                 }
@@ -1949,6 +1983,33 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+
+            const appendRAbilityEffectBlocks = (listElement, effectClassName) => {
+                if (!listElement) {
+                    return;
+                }
+
+                listElement.querySelectorAll('.rability-hoverable').forEach((el) => {
+                    const raw = el.getAttribute('data-rability-effects') ?? '';
+                    const lines = raw
+                        .split('|')
+                        .map(v => v.trim())
+                        .filter(Boolean);
+
+                    if (lines.length === 0) {
+                        return;
+                    }
+
+                    const effectBlock = document.createElement('div');
+                    effectBlock.className = `${effectClassName} text-muted`;
+                    effectBlock.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
+
+                    const parentItem = el.closest('li');
+                    if (parentItem) {
+                        parentItem.appendChild(effectBlock);
+                    }
+                });
+            };
             const updateCharacterFilter = () => {
                 selectedCharacters.clear();
                 document.querySelectorAll('.character-checkbox:checked').forEach(cb => selectedCharacters.add(cb.value));
@@ -2370,33 +2431,16 @@
                 const baseList = rAbilityCell.querySelector('ul.list-unstyled:not(.cust-rability-list)');
                 if (baseList) {
                     const baseClone = baseList.cloneNode(true);
-                    baseClone.querySelectorAll('.rability-hoverable').forEach((el) => {
-                        const raw = el.getAttribute('data-rability-effects') ?? '';
-                        const lines = raw
-                            .split('|')
-                            .map(v => v.trim())
-                            .filter(Boolean);
-
-                        if (lines.length === 0) {
-                            return;
-                        }
-
-                        const effectBlock = document.createElement('div');
-                        effectBlock.className = 'compare-rability-effects text-muted';
-                        effectBlock.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
-
-                        const parentItem = el.closest('li');
-                        if (parentItem) {
-                            parentItem.appendChild(effectBlock);
-                        }
-                    });
+                    appendRAbilityEffectBlocks(baseClone, 'compare-rability-effects');
 
                     combinedHtml += baseClone.outerHTML;
                 }
 
                 const custList = rAbilityCell.querySelector('.cust-rability-list');
                 if (custList) {
-                    combinedHtml += custList.outerHTML;
+                    const custClone = custList.cloneNode(true);
+                    appendRAbilityEffectBlocks(custClone, 'compare-rability-effects');
+                    combinedHtml += custClone.outerHTML;
                 }
 
                 return combinedHtml || '<span class="text-muted">None</span>';
@@ -2657,32 +2701,21 @@
                         const listClone = rAbilityMainList.cloneNode(true);
 
                         if (showInlineRAbilityEffects) {
-                            listClone.querySelectorAll('.rability-hoverable').forEach((el) => {
-                                const raw = el.getAttribute('data-rability-effects') ?? '';
-                                const lines = raw
-                                    .split('|')
-                                    .map(v => v.trim())
-                                    .filter(Boolean);
-
-                                if (lines.length === 0) {
-                                    return;
-                                }
-
-                                const effectBlock = document.createElement('div');
-                                effectBlock.className = 'gear-mobile-rability-effects-inline text-muted';
-                                effectBlock.innerHTML = lines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
-
-                                const parentItem = el.closest('li');
-                                if (parentItem) {
-                                    parentItem.appendChild(effectBlock);
-                                }
-                            });
+                            appendRAbilityEffectBlocks(listClone, 'gear-mobile-rability-effects-inline');
                         }
 
                         rAbilityMain = listClone.outerHTML;
                     }
 
-                    const rAbilityCust = cells[6]?.querySelector('.cust-rability-list')?.outerHTML ?? '';
+                    const rAbilityCustList = cells[6]?.querySelector('.cust-rability-list');
+                    let rAbilityCust = '';
+                    if (rAbilityCustList) {
+                        const custClone = rAbilityCustList.cloneNode(true);
+                        if (showInlineRAbilityEffects) {
+                            appendRAbilityEffectBlocks(custClone, 'gear-mobile-rability-effects-inline');
+                        }
+                        rAbilityCust = custClone.outerHTML;
+                    }
                     const rAbilitiesHtml = `${rAbilityMain}${rAbilityCust}`;
 
                     const sigilsHtml = cells[7]?.querySelector('.sigil-badges')?.outerHTML ?? '<span class="text-muted">&mdash;</span>';
