@@ -3055,8 +3055,35 @@
 
                 // R Abilities
                 const rAbilitiesEl = document.getElementById('snapshotRAbilities');
-                if (data.rAbilities && data.rAbilities.length > 0) {
-                    rAbilitiesEl.innerHTML = data.rAbilities.map(r => {
+                const baseRAbilities = Array.isArray(data.rAbilities) ? data.rAbilities : [];
+                const customizationRAbilities = Array.isArray(data.customizations)
+                    ? data.customizations.filter(c => c && c.kind === 'R Ability')
+                    : [];
+                const combinedRAbilities = [
+                    ...baseRAbilities.map(r => ({
+                        isCustomization: false,
+                        isLocked: !!r.isLocked,
+                        lockedUntilLevel: r.lockedUntilLevel,
+                        basePoints: r.basePoints,
+                        upgradePoints: r.upgradePoints,
+                        totalPoints: r.totalPoints,
+                        skillName: r.skillName,
+                        effects: Array.isArray(r.effects) ? r.effects : []
+                    })),
+                    ...customizationRAbilities.map(c => ({
+                        isCustomization: true,
+                        isLocked: false,
+                        lockedUntilLevel: null,
+                        basePoints: 0,
+                        upgradePoints: 0,
+                        totalPoints: Number(c.passiveSkillPoints ?? 0),
+                        skillName: c.passiveSkillName || c.description || 'Customization R Ability',
+                        effects: Array.isArray(c.passiveEffects) ? c.passiveEffects : []
+                    }))
+                ];
+
+                if (combinedRAbilities.length > 0) {
+                    rAbilitiesEl.innerHTML = combinedRAbilities.map(r => {
                         if (r.isLocked) {
                             const hint = r.lockedUntilLevel != null
                                 ? ` <span class="text-muted">(unlocks at Lv. ${r.lockedUntilLevel})</span>`
@@ -3066,13 +3093,16 @@
                         const breakdown = (r.basePoints > 0 && r.upgradePoints > 0)
                             ? ` <small class="text-muted">(Lv. ${r.basePoints} + OB ${r.upgradePoints})</small>`
                             : '';
+                        const customizationBadge = r.isCustomization
+                            ? '<span class="cust-rability-badge me-1">Cust.</span>'
+                            : '';
                         const effectsHtml = Array.isArray(r.effects) && r.effects.length > 0
                             ? `<ul class="snapshot-rability-effects">${r.effects
                                 .filter(e => e && e.description)
                                 .map(e => `<li>${escapeHtml(e.description)}</li>`)
                                 .join('')}</ul>`
                             : '';
-                        return `<li class="snapshot-rability-item"><div class="snapshot-rability-main"><strong>+${r.totalPoints}</strong> ${escapeHtml(r.skillName)}${breakdown}</div>${effectsHtml}</li>`;
+                        return `<li class="snapshot-rability-item"><div class="snapshot-rability-main">${customizationBadge}<strong>+${r.totalPoints}</strong> ${escapeHtml(r.skillName)}${breakdown}</div>${effectsHtml}</li>`;
                     }).join('');
                 } else {
                     rAbilitiesEl.innerHTML = '<li class="text-muted">No R Ability data at this level</li>';
@@ -3080,8 +3110,11 @@
 
                 // Customizations
                 const customEl = document.getElementById('snapshotCustomizations');
-                if (data.customizations && data.customizations.length > 0) {
-                    customEl.innerHTML = data.customizations.map(c =>
+                const nonRAbilityCustomizations = Array.isArray(data.customizations)
+                    ? data.customizations.filter(c => c && c.kind !== 'R Ability')
+                    : [];
+                if (nonRAbilityCustomizations.length > 0) {
+                    customEl.innerHTML = nonRAbilityCustomizations.map(c =>
                         `<div class="snapshot-customization-entry">
                             <span class="customization-slot">${c.slot}</span>
                             <span class="customization-kind">${c.kind}</span>

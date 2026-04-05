@@ -209,6 +209,8 @@ Expected output:
 - Customizations unlock at `OB1+`.
 - At `5★/OB0`, customizations are intentionally unavailable.
 - View Levels modal `R Abilities` show `+points/name` on the first line and one-or-more resolved effect lines beneath.
+- View Levels modal includes customization-added `R Abilities` in the same `R Abilities` list with the same points/effect presentation behavior.
+- View Levels modal labels customization-added `R Abilities` with a `Cust.` badge to distinguish optional unlocks from base passives.
 - Customization-added `R Abilities` are included in advanced `Sub-R Abilities` filtering via their resolved passive effect categories.
 - `Sub-R Abilities` filters match semantic passive-effect categories (for example `HP` and `HP Gain` are distinct).
 

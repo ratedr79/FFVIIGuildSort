@@ -379,8 +379,29 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var releaseCount = GetReleaseCountForLevel(weapon, level);
             var passiveTotals = ComputePassiveTotalsAtLevel(weapon, weaponUpgrades, releaseCount, upgradeCount);
 
-            // Compute customizations at the requested OB
-            var customizations = BuildCustomizationsAtLevel(weapon, upgradeCount, damagePercent);
+            // Compute customizations at the requested OB/level context
+            var snapshotPassiveProgress = passiveTotals
+                .Where(p => !p.IsLocked)
+                .Select(p =>
+                {
+                    var maxMatch = item.MaxPassiveSkills.FirstOrDefault(m => string.Equals(m.SkillId, p.SkillId, StringComparison.OrdinalIgnoreCase));
+                    if (maxMatch == null || maxMatch.TotalPoints <= 0)
+                    {
+                        return p.TotalPoints > 0 ? 1.0 : 0.0;
+                    }
+
+                    return Math.Clamp((double)p.TotalPoints / maxMatch.TotalPoints, 0.0, 1.0);
+                })
+                .DefaultIfEmpty(0.0)
+                .Average();
+            if (snapshotPassiveProgress <= 0)
+            {
+                var releaseProgress = Math.Clamp((double)releaseCount / MaxDisplayReleaseCount, 0.0, 1.0);
+                var upgradeProgress = Math.Clamp((double)upgradeCount / MaxDisplayUpgradeLevel, 0.0, 1.0);
+                snapshotPassiveProgress = (releaseProgress + upgradeProgress) / 2.0;
+            }
+
+            var customizations = BuildCustomizationsAtLevel(weapon, upgradeCount, damagePercent, snapshotPassiveProgress);
 
             return new WeaponSnapshotResult
             {
@@ -1337,7 +1358,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private List<WeaponCustomization> BuildCustomizationsAtLevel(
             WeaponRaw weapon,
             int targetUpgradeCount,
-            double baseDamagePercent)
+            double baseDamagePercent,
+            double snapshotPassiveProgressHint = 1.0)
         {
             var results = new List<WeaponCustomization>();
 
@@ -1368,7 +1390,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             break;
                         case 3:
                         {
-                            var passiveData = BuildCustomizationPassiveData(effect.TargetId, _skillPassives, _locStore!);
+                            var passiveData = BuildCustomizationPassiveData(effect.TargetId, _skillPassives, _locStore!, snapshotPassiveProgressHint);
                             if (passiveData == null)
                             {
                                 continue;
@@ -1623,7 +1645,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private (string Description, string PassiveSkillName, int PassiveSkillPoints, List<PassiveSkillEffectDetail> PassiveEffects)? BuildCustomizationPassiveData(
             int passiveId,
             Dictionary<int, SkillPassiveRaw> skillPassives,
-            LocalizationStore localization)
+            LocalizationStore localization,
+            double progressHint = 1.0)
         {
             if (!skillPassives.TryGetValue(passiveId, out var passive))
             {
@@ -1636,7 +1659,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 passiveName = $"Passive {passive.Id}";
             }
 
-            var passivePoints = ResolveCustomizationPassivePoints(passiveId);
+            var passivePoints = ResolveCustomizationPassivePoints(passiveId, progressHint);
             var passiveEffects = passivePoints > 0
                 ? ResolvePassiveEffects(passiveId, passivePoints)
                 : new List<PassiveSkillEffectDetail>();
@@ -1644,11 +1667,28 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return ($"Adds R Ability: {passiveName}", passiveName, passivePoints, passiveEffects);
         }
 
-        private int ResolveCustomizationPassivePoints(int passiveId)
+        private int ResolveCustomizationPassivePoints(int passiveId, double progressHint = 1.0)
         {
             if (!_skillPassiveLevelsByPassiveId.TryGetValue(passiveId, out var levels) || levels.Count == 0)
             {
                 return 0;
+            }
+
+            var normalizedProgress = Math.Clamp(progressHint, 0.0, 1.0);
+            if (normalizedProgress < 1.0)
+            {
+                var maxPoint = levels.Max(l => l.PassivePoint);
+                var targetPoint = maxPoint * normalizedProgress;
+                var matchedByHint = levels
+                    .Where(l => l.PassivePoint <= targetPoint)
+                    .OrderByDescending(l => l.PassivePoint)
+                    .FirstOrDefault();
+                if (matchedByHint != null)
+                {
+                    return matchedByHint.PassivePoint;
+                }
+
+                return levels.OrderBy(l => l.PassivePoint).First().PassivePoint;
             }
 
             return levels.Max(l => l.PassivePoint);
