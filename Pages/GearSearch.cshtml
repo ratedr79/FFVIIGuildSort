@@ -179,6 +179,10 @@
         border-color: rgba(92, 29, 155, 0.5);
     }
 
+    .advanced-toggle-btn .filter-count-badge {
+        margin-left: 0.35rem;
+    }
+
     .sticky-gear-controls {
         position: sticky;
         top: 0.75rem;
@@ -203,6 +207,115 @@
             position: static;
             top: auto;
         }
+
+        body.gear-advanced-open {
+            overflow: hidden;
+        }
+
+        body.gear-main-open {
+            overflow: hidden;
+        }
+
+        .sticky-gear-controls.gear-main-mobile-active {
+            position: fixed;
+            inset: 0.55rem;
+            z-index: 1090;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0.75rem;
+            box-shadow: 0 16px 34px rgba(10, 8, 18, 0.26);
+        }
+
+        .sticky-gear-controls.gear-main-mobile-active .card-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #fff;
+            border-radius: 0.75rem 0.75rem 0 0;
+        }
+
+        .sticky-gear-controls.gear-main-mobile-active .collapse.show {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .sticky-gear-controls.gear-main-mobile-active .card-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding-bottom: 0.9rem;
+        }
+
+        .main-mobile-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
+            display: flex;
+            gap: 0.45rem;
+            padding-top: 0.55rem;
+            margin-top: 0.4rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff 36%);
+        }
+
+        .main-mobile-actions .btn {
+            flex: 1 1 auto;
+        }
+
+        .gear-advanced-card.gear-advanced-mobile-active {
+            position: fixed;
+            inset: 0.55rem;
+            z-index: 1100;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0.75rem;
+            box-shadow: 0 16px 34px rgba(10, 8, 18, 0.26);
+        }
+
+        .gear-advanced-card.gear-advanced-mobile-active .card-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #fff;
+            border-radius: 0.75rem 0.75rem 0 0;
+        }
+
+        .gear-advanced-card.gear-advanced-mobile-active .collapse.show {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .gear-advanced-card.gear-advanced-mobile-active .card-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding-bottom: 0.9rem;
+        }
+
+        .advanced-mobile-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
+            display: flex;
+            gap: 0.45rem;
+            padding-top: 0.55rem;
+            margin-top: 0.4rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff 36%);
+        }
+
+        .advanced-mobile-actions .btn {
+            flex: 1 1 auto;
+        }
+
     }
 
     .stat-stack {
@@ -381,6 +494,31 @@
     .filter-count-badge {
         font-size: 0.7rem;
         line-height: 1;
+    }
+
+    .quick-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .quick-filter-btn {
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        padding: 0.2rem 0.62rem;
+        line-height: 1.25;
+    }
+
+    .quick-filter-btn.active {
+        border-color: #5c1d9b;
+        background-color: #efe4ff;
+        color: #4a147a;
+    }
+
+    .quick-filter-clear {
+        font-size: 0.74rem;
+        padding-inline: 0.55rem;
     }
 
     .gear-table-wrap {
@@ -1018,10 +1156,10 @@
         </a>
     </div>
 
-    <div class="card mb-4 sticky-gear-controls">
+    <div class="card mb-4 sticky-gear-controls" id="mainSearchCard">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span class="fw-semibold">Main Search</span>
-            <button class="btn btn-sm advanced-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#mainSearchCollapse" aria-expanded="true" aria-controls="mainSearchCollapse">
+            <button class="btn btn-sm advanced-toggle-btn" id="mainSearchToggleBtn" type="button" data-bs-toggle="collapse" data-bs-target="#mainSearchCollapse" aria-expanded="true" aria-controls="mainSearchCollapse">
                 Toggle
             </button>
         </div>
@@ -1064,15 +1202,31 @@
                         }
                     </select>
                 </div>
+                <div class="col-12">
+                    <label class="form-label mb-1">Quick Filters</label>
+                    <div class="quick-filter-bar">
+                        @foreach (var quickEquipment in equipmentTypeOptions.Take(3))
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-equipment="@quickEquipment">@quickEquipment</button>
+                        }
+                        <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-customizations="true">Has Customizations</button>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none quick-filter-clear" id="quickFiltersClearBtn">Clear Quick</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-mobile-actions d-lg-none">
+                <button type="button" class="btn btn-outline-secondary" id="mobileMainClearBtn">Clear Search</button>
+                <button type="button" class="btn btn-primary" id="mobileMainApplyBtn">Apply & Close</button>
             </div>
         </div>
         </div>
     </div>
 
-    <div class="card mb-4">
+    <div class="card mb-4 gear-advanced-card" id="advancedSearchCard">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span class="fw-semibold">Advanced Search</span>
-            <button class="btn btn-sm advanced-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearchCollapse" aria-expanded="false" aria-controls="advancedSearchCollapse">
+            <button class="btn btn-sm advanced-toggle-btn" id="advancedSearchToggleBtn" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearchCollapse" aria-expanded="false" aria-controls="advancedSearchCollapse">
                 Toggle Filters
             </button>
         </div>
@@ -1337,6 +1491,11 @@
                             </label>
                         </div>
                     </div>
+                </div>
+
+                <div class="advanced-mobile-actions d-lg-none">
+                    <button type="button" class="btn btn-outline-secondary" id="mobileClearFiltersBtn">Clear Filters</button>
+                    <button type="button" class="btn btn-primary" id="mobileApplyFiltersBtn">Apply & Close</button>
                 </div>
             </div>
         </div>
@@ -1717,7 +1876,12 @@
             const selectedSigils = new Set();
 
             const stickyControlsCard = document.querySelector('.sticky-gear-controls');
+            const mainSearchCard = document.getElementById('mainSearchCard');
             const mainSearchCollapse = document.getElementById('mainSearchCollapse');
+            const mainSearchToggleBtn = document.getElementById('mainSearchToggleBtn');
+            const advancedSearchCard = document.getElementById('advancedSearchCard');
+            const advancedSearchCollapse = document.getElementById('advancedSearchCollapse');
+            const advancedSearchToggleBtn = document.getElementById('advancedSearchToggleBtn');
             const syncStickyOffsets = () => {
                 if (!stickyControlsCard || window.innerWidth < 992) {
                     document.documentElement.style.removeProperty('--gear-compare-top');
@@ -1767,6 +1931,13 @@
             const activeFiltersWrap = document.getElementById('activeFiltersWrap');
             const activeFilterChips = document.getElementById('activeFilterChips');
             const clearAllFiltersBtn = document.getElementById('clearAllFiltersBtn');
+            const quickEquipmentButtons = Array.from(document.querySelectorAll('[data-quick-equipment]'));
+            const quickCustomizationButton = document.querySelector('[data-quick-customizations="true"]');
+            const quickFiltersClearBtn = document.getElementById('quickFiltersClearBtn');
+            const mobileMainClearBtn = document.getElementById('mobileMainClearBtn');
+            const mobileMainApplyBtn = document.getElementById('mobileMainApplyBtn');
+            const mobileClearFiltersBtn = document.getElementById('mobileClearFiltersBtn');
+            const mobileApplyFiltersBtn = document.getElementById('mobileApplyFiltersBtn');
 
             const pageSizeSelect = document.getElementById('pageSize');
             pageSizeSelect.addEventListener('change', (e) => table.page.len(parseInt(e.target.value, 10)).draw());
@@ -1810,6 +1981,17 @@
                 { selector: '.sigil-filter', badgeId: 'badgeSigilsCount' }
             ];
 
+            const accordionSelectionMap = [
+                { selector: '.element-filter', collapseId: 'collapseElement' },
+                { selector: '.ability-filter', collapseId: 'collapseAbility' },
+                { selector: '.range-filter', collapseId: 'collapseRange' },
+                { selector: '.equipment-filter', collapseId: 'collapseEquipment' },
+                { selector: '.rability-filter', collapseId: 'collapseRAbilities' },
+                { selector: '.effect-filter', collapseId: 'collapseEffects' },
+                { selector: '.subr-filter', collapseId: 'collapseSubRAbilities' },
+                { selector: '.sigil-filter', collapseId: 'collapseSigils' }
+            ];
+
             const updateFilterCountBadges = () => {
                 filterCountBadges.forEach(({ selector, badgeId }) => {
                     const count = document.querySelectorAll(`${selector}:checked`).length;
@@ -1823,10 +2005,82 @@
                 });
             };
 
+            const syncMainSearchToggleLabel = () => {
+                if (!mainSearchToggleBtn) {
+                    return;
+                }
+
+                const isOpen = mainSearchCollapse?.classList.contains('show') ?? false;
+                mainSearchToggleBtn.textContent = isOpen ? 'Close Search' : 'Open Search';
+            };
+
+            const syncMainSearchPresentation = () => {
+                const isMobile = window.innerWidth < 992;
+                const isOpen = mainSearchCollapse?.classList.contains('show') ?? false;
+
+                document.body.classList.toggle('gear-main-open', isMobile && isOpen);
+                mainSearchCard?.classList.toggle('gear-main-mobile-active', isMobile && isOpen);
+                syncMainSearchToggleLabel();
+            };
+
             const updateResultsSummary = () => {
                 const visibleCount = table.rows({ filter: 'applied' }).count();
                 const totalCount = table.rows().count();
                 resultsSummaryEl.textContent = `Showing ${visibleCount} of ${totalCount} items`;
+            };
+
+            const syncQuickFilterButtons = () => {
+                quickEquipmentButtons.forEach((button) => {
+                    const value = button.getAttribute('data-quick-equipment') ?? '';
+                    const isChecked = !!document.querySelector(`.equipment-filter[value="${CSS.escape(value)}"]:checked`);
+                    button.classList.toggle('active', isChecked);
+                });
+
+                if (quickCustomizationButton) {
+                    quickCustomizationButton.classList.toggle('active', customizationFilterCheckbox.checked);
+                }
+            };
+
+            const syncAdvancedAccordionSelectionState = () => {
+                accordionSelectionMap.forEach(({ selector, collapseId }) => {
+                    const collapseEl = document.getElementById(collapseId);
+                    if (!collapseEl) {
+                        return;
+                    }
+
+                    const hasSelected = document.querySelectorAll(`${selector}:checked`).length > 0;
+                    const collapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+                    if (hasSelected) {
+                        collapse.show();
+                    } else {
+                        collapse.hide();
+                    }
+                });
+            };
+
+            const syncAdvancedSearchToggleLabel = () => {
+                if (!advancedSearchToggleBtn) {
+                    return;
+                }
+
+                const activeCount = buildActiveFilterEntries().length;
+                const isOpen = advancedSearchCollapse?.classList.contains('show') ?? false;
+                const label = isOpen ? 'Close Filters' : 'Open Filters';
+
+                if (activeCount > 0) {
+                    advancedSearchToggleBtn.innerHTML = `${label}<span class="badge rounded-pill text-bg-primary filter-count-badge">${activeCount}</span>`;
+                } else {
+                    advancedSearchToggleBtn.textContent = label;
+                }
+            };
+
+            const syncAdvancedSearchPresentation = () => {
+                const isMobile = window.innerWidth < 992;
+                const isOpen = advancedSearchCollapse?.classList.contains('show') ?? false;
+
+                document.body.classList.toggle('gear-advanced-open', isMobile && isOpen);
+                advancedSearchCard?.classList.toggle('gear-advanced-mobile-active', isMobile && isOpen);
+                syncAdvancedSearchToggleLabel();
             };
 
             const buildActiveFilterEntries = () => {
@@ -1924,7 +2178,43 @@
                 updateFilterCountBadges();
                 renderActiveFilterChips();
                 updateResultsSummary();
+                syncQuickFilterButtons();
+                syncAdvancedSearchToggleLabel();
             };
+
+            quickEquipmentButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const targetValue = button.getAttribute('data-quick-equipment');
+                    if (!targetValue) {
+                        return;
+                    }
+
+                    const checkbox = document.querySelector(`.equipment-filter[value="${CSS.escape(targetValue)}"]`);
+                    if (!checkbox) {
+                        return;
+                    }
+
+                    checkbox.checked = !checkbox.checked;
+                    updateEquipmentFilter();
+                });
+            });
+
+            if (quickCustomizationButton) {
+                quickCustomizationButton.addEventListener('click', () => {
+                    customizationFilterCheckbox.checked = !customizationFilterCheckbox.checked;
+                    table.draw();
+                });
+            }
+
+            if (quickFiltersClearBtn) {
+                quickFiltersClearBtn.addEventListener('click', () => {
+                    document.querySelectorAll('.equipment-filter:checked').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    customizationFilterCheckbox.checked = false;
+                    updateEquipmentFilter();
+                });
+            }
 
             advancedFilters.forEach(group => {
                 document.querySelectorAll(group.selector).forEach(cb => {
@@ -2540,6 +2830,68 @@
                 table.draw();
             });
 
+            if (mobileClearFiltersBtn) {
+                mobileClearFiltersBtn.addEventListener('click', () => {
+                    clearAllFiltersBtn.click();
+                });
+            }
+
+            if (mobileMainClearBtn) {
+                mobileMainClearBtn.addEventListener('click', () => {
+                    searchBox.value = '';
+                    table.search('').draw();
+                });
+            }
+
+            if (mobileMainApplyBtn && mainSearchCollapse) {
+                mobileMainApplyBtn.addEventListener('click', () => {
+                    bootstrap.Collapse.getOrCreateInstance(mainSearchCollapse).hide();
+                });
+            }
+
+            if (mobileApplyFiltersBtn && advancedSearchCollapse) {
+                mobileApplyFiltersBtn.addEventListener('click', () => {
+                    bootstrap.Collapse.getOrCreateInstance(advancedSearchCollapse).hide();
+                });
+            }
+
+            if (advancedSearchCollapse) {
+                ['shown.bs.collapse', 'hidden.bs.collapse'].forEach(eventName => {
+                    advancedSearchCollapse.addEventListener(eventName, (event) => {
+                        if (event.target !== advancedSearchCollapse) {
+                            return;
+                        }
+
+                        if (eventName === 'shown.bs.collapse') {
+                            if (window.innerWidth < 992 && mainSearchCollapse?.classList.contains('show')) {
+                                bootstrap.Collapse.getOrCreateInstance(mainSearchCollapse, { toggle: false }).hide();
+                            }
+                            syncAdvancedAccordionSelectionState();
+                        }
+                        syncAdvancedSearchPresentation();
+                    });
+                });
+            }
+
+            if (mainSearchCollapse) {
+                ['shown.bs.collapse', 'hidden.bs.collapse'].forEach(eventName => {
+                    mainSearchCollapse.addEventListener(eventName, (event) => {
+                        if (event.target !== mainSearchCollapse) {
+                            return;
+                        }
+
+                        syncMainSearchPresentation();
+                    });
+                });
+
+                if (window.innerWidth < 992 && mainSearchCollapse.classList.contains('show')) {
+                    bootstrap.Collapse.getOrCreateInstance(mainSearchCollapse, { toggle: false }).hide();
+                }
+            }
+
+            window.addEventListener('resize', syncAdvancedSearchPresentation);
+            window.addEventListener('resize', syncMainSearchPresentation);
+
             activeFilterChips.addEventListener('click', (event) => {
                 const chip = event.target.closest('.active-filter-chip');
                 if (!chip) {
@@ -2826,6 +3178,8 @@
             updateEquipmentFilter();
             renderDecorations();
             syncFilterUi();
+            syncMainSearchPresentation();
+            syncAdvancedSearchPresentation();
             table.on('draw', () => {
                 renderDecorations();
                 syncFilterUi();
