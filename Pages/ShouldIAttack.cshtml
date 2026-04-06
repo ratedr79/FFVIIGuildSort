@@ -1,0 +1,369 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.ShouldIAttackModel
+@using FFVIIEverCrisisAnalyzer.Models
+@{
+    ViewData["Title"] = "Should I Attack?";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-3"><i class="fas fa-shield"></i> Should I Attack?</h1>
+    <div class="alert alert-warning border-2 border-warning shadow-sm py-3" role="alert">
+        <div class="h5 mb-1"><i class="fas fa-flask me-2"></i>Early Testing Notice</div>
+        <div class="mb-0">This page is in early testing. Data validation is still in progress.</div>
+    </div>
+    <p class="text-muted mb-2">Determine whether a selected player should attack now or wait based on current guild sheet data and simulation evidence.</p>
+    <p class="text-warning small mb-3"><i class="fas fa-triangle-exclamation"></i> Stale or missing spreadsheet data can produce inaccurate recommendations.</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-header"><strong>Recommendation Inputs</strong></div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="Analyze" id="shouldIAttackForm">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label" for="GoogleSheetUrl">Guild</label>
+                        <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                            <option value="">-- Select guild --</option>
+                            @foreach (var sheet in Model.AvailableSheets)
+                            {
+                                <option value="@sheet.Url" selected="@(Model.GoogleSheetUrl == sheet.Url)">@sheet.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="PlayerName">Player</label>
+                        <select class="form-select" id="PlayerName" name="PlayerName" disabled="@(Model.AvailablePlayers.Count == 0)">
+                            <option value="">-- Select player --</option>
+                            @foreach (var player in Model.AvailablePlayers)
+                            {
+                                <option value="@player" selected="@(Model.PlayerName == player)">@player</option>
+                            }
+                        </select>
+                        <div id="playerLoadingIndicator" class="form-text text-primary" style="display:none;">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            Loading players...
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="SelectedDay">Day</label>
+                        <select class="form-select" id="SelectedDay" name="SelectedDay">
+                            <option value="1" selected="@(Model.SelectedDay == 1)">Day 1</option>
+                            <option value="2" selected="@(Model.SelectedDay == 2)">Day 2</option>
+                            <option value="3" selected="@(Model.SelectedDay == 3)">Day 3</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="button" id="analyzeButton" class="btn btn-primary"><i class="fas fa-play"></i> Analyze</button>
+                    </div>
+                </div>
+
+                <div class="small text-muted mt-2" id="detectedDayHint">Auto-detected day from sheet: Day @Model.DetectedDaySuggestion. You can override before analyzing.</div>
+
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="UseAttacksNow" name="UseAttacksNow" value="true" @(Model.UseAttacksNow ? "checked" : "") />
+                    <label class="form-check-label" for="UseAttacksNow">I need to use my attacks now</label>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.Recommendation != null)
+    {
+        var rec = Model.Recommendation;
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Recommendation Summary</strong>
+                <span class="rounded-pill px-4 py-2 fw-bold fs-5 text-white shadow-sm @(rec.AttackNow ? "bg-success" : "bg-danger")">@rec.RecommendationLabel.ToUpperInvariant()</span>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Player:</strong> @rec.PlayerName</p>
+                <p class="mb-2"><strong>Detected Day:</strong> @rec.CurrentDay</p>
+                <p class="mb-2"><strong>Rationale:</strong> @rec.Rationale</p>
+                @if (rec.ImmediateMode)
+                {
+                    <p class="mb-2"><strong>Strict First-Hit Satisfied:</strong> @(rec.StrictFirstHitSatisfied ? "Yes" : "No")</p>
+                }
+                <p class="mb-2"><strong>Simulated Stage Hits:</strong> @rec.SimulatedAttackStagesSummary</p>
+                <p class="small text-muted mb-0"><i class="fas fa-info-circle"></i> @rec.Warning</p>
+            </div>
+        </div>
+
+        @if (rec.ImmediateMode && rec.ImmediateRecommendation != null)
+        {
+            var immediate = rec.ImmediateRecommendation;
+            <div class="card mb-3">
+                <div class="card-header"><strong>Immediate-Use Recommendation</strong></div>
+                <div class="card-body">
+                    <div><strong>Recommended Stage:</strong> S@((int)immediate.Stage)</div>
+                    <div><strong>Expected Damage:</strong> @immediate.ExpectedDamagePercent.ToString("F1")%</div>
+                    <div><strong>Confidence:</strong> @immediate.Confidence</div>
+                    <div><strong>Recommendation Source:</strong> @(rec.ImmediateUsedHeuristicFallback ? "Heuristic fallback" : "Run-aligned simulation")</div>
+                    <div><strong>Run-aligned stage:</strong> @(rec.RunAlignedImmediateStage.HasValue ? $"S{(int)rec.RunAlignedImmediateStage.Value}" : "Not available")</div>
+                    @if (rec.ImmediateUsedHeuristicFallback && rec.HeuristicFallbackImmediateStage.HasValue)
+                    {
+                        <div><strong>Heuristic fallback stage:</strong> S@((int)rec.HeuristicFallbackImmediateStage.Value)</div>
+                    }
+                    <div><strong>Differs from assigned-stage expectation:</strong> @(immediate.DiffersFromAssignedExpectation ? "Yes" : "No")</div>
+                    <div class="small text-muted mt-1">@immediate.Rationale</div>
+                </div>
+            </div>
+        }
+
+        <div class="card mb-3">
+            <div class="card-header"><strong>Assumed Current Stage HP</strong></div>
+            <div class="card-body">
+                <div class="row">
+                    @foreach (var kvp in rec.AssumedCurrentHp.OrderBy(k => (int)k.Key))
+                    {
+                        <div class="col-md-2 col-4 mb-2">
+                            <div class="border rounded p-2 text-center">
+                                <div class="small text-muted">S@((int)kvp.Key)</div>
+                                <div class="fw-semibold">@kvp.Value.ToString("F1")%</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="small text-muted mt-1">HP values are assumptions computed from sheet data.</div>
+            </div>
+        </div>
+
+        @if (rec.BestRun != null)
+        {
+            var best = rec.BestRun;
+            <div class="card mb-3">
+                <div class="card-header"><strong>Simulation Evidence (Best Run Basis)</strong></div>
+                <div class="card-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-3"><strong>Run:</strong> @best.RunIndex</div>
+                        <div class="col-md-3"><strong>Run Source:</strong> @(best.UsedDispatcher ? "Dispatcher" : "Fallback")</div>
+                        <div class="col-md-3"><strong>Resets:</strong> @best.Resets</div>
+                        <div class="col-md-3"><strong>Final HP Sum:</strong> @best.FinalHpSum.ToString("F2")</div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-3"><strong>Earliest @rec.PlayerName Attack:</strong> @(best.EarliestPlayerAttackOrder == int.MaxValue ? "None" : $"#{best.EarliestPlayerAttackOrder}")</div>
+                        <div class="col-md-3"><strong>Total Clears:</strong> @best.TotalClears</div>
+                        <div class="col-md-3"><strong>Total Points:</strong> @best.TotalEstimatedPoints.ToString("F1")</div>
+                    </div>
+                    <div class="small text-muted">
+                        @if (rec.ImmediateMode)
+                        {
+                            @:Selection context: strict first non-reset hit by selected player when available, then ranked by clears desc, final HP sum asc, then points desc.
+                        }
+                        else
+                        {
+                            @:Selection context: ranked by earliest selected-player attack asc, then resets desc, then final HP sum asc.
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.IsLeadershipUnlocked && rec.Runs.Any())
+        {
+            var defaultSelectedRun = rec.BestRun?.RunIndex ?? rec.Runs.Min(r => r.RunIndex);
+            <div class="card mb-3">
+                <div class="card-header"><strong>Leadership Simulation Details</strong></div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="selectedRunIndex"><strong>Selected Simulation</strong></label>
+                            <select class="form-select" id="selectedRunIndex">
+                                @foreach (var run in rec.Runs.OrderBy(r => r.RunIndex))
+                                {
+                                    <option value="@run.RunIndex" selected="@(run.RunIndex == defaultSelectedRun)">
+                                        Run @run.RunIndex (Seed @run.Seed, Resets @run.Resets, Source @(run.UsedDispatcher ? "Dispatcher" : "Fallback"))
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    @foreach (var run in rec.Runs.OrderBy(r => r.RunIndex))
+                    {
+                        var panelId = $"run-panel-{run.RunIndex}";
+                        <div id="@panelId" class="simulation-run-panel" style="display:@(run.RunIndex == defaultSelectedRun ? "block" : "none")">
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-2"><strong>Run:</strong> @run.RunIndex</div>
+                                <div class="col-md-2"><strong>Seed:</strong> @run.Seed</div>
+                                <div class="col-md-2"><strong>Source:</strong> @(run.UsedDispatcher ? "Dispatcher" : "Fallback")</div>
+                                <div class="col-md-2"><strong>Resets:</strong> @run.Resets</div>
+                                <div class="col-md-2"><strong>Final HP Sum:</strong> @run.FinalHpSum.ToString("F2")</div>
+                                <div class="col-md-2"><strong>Within Horizon:</strong> @(run.PlayerAttacksWithinHorizon ? "Yes" : "No")</div>
+                                <div class="col-md-2"><strong>Full Reset Seen:</strong> @(run.FullResetSeen ? "Yes" : "No")</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="fw-semibold mb-2">Final HP by Stage</div>
+                                <div class="row">
+                                    @foreach (var kvp in run.FinalHpByStage.OrderBy(k => (int)k.Key))
+                                    {
+                                        <div class="col-md-2 col-4 mb-2">
+                                            <div class="border rounded p-2 text-center">
+                                                <div class="small text-muted">S@((int)kvp.Key)</div>
+                                                <div class="fw-semibold">@kvp.Value.ToString("F1")%</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="fw-semibold mb-2">Attack Log</div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Player</th>
+                                                <th>Stage</th>
+                                                <th class="text-end">Damage %</th>
+                                                <th class="text-end">Remaining HP</th>
+                                                <th class="text-end">Points</th>
+                                                <th>Cleared</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (var i = 0; i < run.AttackLog.Count; i++)
+                                            {
+                                                var attack = run.AttackLog[i];
+                                                var isStartingHpRow = attack.IsReset && attack.PlayerName.Contains("Starting HP", StringComparison.OrdinalIgnoreCase);
+                                                var stageDisplay = (attack.IsReset && !isStartingHpRow) ? "-" : $"S{(int)attack.Stage}";
+                                                var remainingHpDisplay = (attack.IsReset && !isStartingHpRow) ? "-" : attack.RemainingHP.ToString("F1");
+                                                <tr>
+                                                    <td>@(i + 1)</td>
+                                                    <td>@attack.PlayerName</td>
+                                                    <td>@stageDisplay</td>
+                                                    <td class="text-end">@(attack.IsReset ? "-" : attack.Damage.ToString("F1"))</td>
+                                                    <td class="text-end">@remainingHpDisplay</td>
+                                                    <td class="text-end">@(attack.IsReset ? "-" : attack.EstimatedPoints.ToString("F1"))</td>
+                                                    <td>@(attack.IsReset ? "-" : (attack.Cleared ? "Yes" : "No"))</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<div class="modal fade" id="confirmAnalyzeModal" tabindex="-1" aria-labelledby="confirmAnalyzeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmAnalyzeModalLabel"><i class="fas fa-shield"></i> Confirm Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmAnalyzeText"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAnalyzeContinue">Continue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('shouldIAttackForm');
+            const guildSelect = document.getElementById('GoogleSheetUrl');
+            const playerSelect = document.getElementById('PlayerName');
+            const daySelect = document.getElementById('SelectedDay');
+            const detectedDayHint = document.getElementById('detectedDayHint');
+            const analyzeButton = document.getElementById('analyzeButton');
+            const confirmText = document.getElementById('confirmAnalyzeText');
+            const confirmContinue = document.getElementById('confirmAnalyzeContinue');
+            const confirmModalElement = document.getElementById('confirmAnalyzeModal');
+            const confirmModal = confirmModalElement ? new bootstrap.Modal(confirmModalElement) : null;
+            const playerLoadingIndicator = document.getElementById('playerLoadingIndicator');
+
+            async function loadPlayers() {
+                const guildUrl = guildSelect.value;
+                playerSelect.innerHTML = '<option value="">-- Select player --</option>';
+                playerSelect.disabled = true;
+
+                if (playerLoadingIndicator) {
+                    playerLoadingIndicator.style.display = guildUrl ? 'block' : 'none';
+                }
+
+                if (!guildUrl) {
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const token = form.querySelector('input[name="__RequestVerificationToken"]');
+                const response = await fetch('@Url.Page("/ShouldIAttack", "LoadPlayers")', {
+                    method: 'POST',
+                    headers: token ? { 'RequestVerificationToken': token.value } : {},
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    if (playerLoadingIndicator) {
+                        playerLoadingIndicator.style.display = 'none';
+                    }
+                    return;
+                }
+
+                const payload = await response.json();
+                const players = Array.isArray(payload) ? payload : (payload.players || []);
+                const detectedDay = Array.isArray(payload) ? null : payload.detectedDay;
+                players.forEach((name) => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    playerSelect.appendChild(option);
+                });
+
+                playerSelect.disabled = players.length === 0;
+
+                if (detectedDay && daySelect) {
+                    daySelect.value = String(detectedDay);
+                    if (detectedDayHint) {
+                        detectedDayHint.textContent = `Auto-detected day from sheet: Day ${detectedDay}. You can override before analyzing.`;
+                    }
+                }
+
+                if (playerLoadingIndicator) {
+                    playerLoadingIndicator.style.display = 'none';
+                }
+            }
+
+            guildSelect.addEventListener('change', loadPlayers);
+
+            if (analyzeButton && confirmModal && confirmContinue) {
+                analyzeButton.addEventListener('click', function () {
+                    const guildName = guildSelect.options[guildSelect.selectedIndex]?.text || 'No guild selected';
+                    const playerName = playerSelect.options[playerSelect.selectedIndex]?.text || 'No player selected';
+                    const selectedDay = daySelect?.value || 'Unknown';
+                    confirmText.textContent = `This will calculate battle states for ${guildName} with player ${playerName} on Day ${selectedDay}. Is this correct?`;
+                    confirmModal.show();
+                });
+
+                confirmContinue.addEventListener('click', function () {
+                    confirmModal.hide();
+                    form.submit();
+                });
+            }
+
+            const runSelect = document.getElementById('selectedRunIndex');
+            if (runSelect) {
+                runSelect.addEventListener('change', function () {
+                    const selected = this.value;
+                    document.querySelectorAll('.simulation-run-panel').forEach((panel) => {
+                        panel.style.display = panel.id === `run-panel-${selected}` ? 'block' : 'none';
+                    });
+                });
+            }
+        })();
+    </script>
+}

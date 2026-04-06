@@ -33,6 +33,30 @@
 - Purpose: validate whether weapon/costume entries are enriched from GearSearch data.
 - Helps identify missing enrichment/potency/R-ability data.
 
+## Should I Attack (`/ShouldIAttack`)
+- Purpose: recommend `Attack now` vs `Hold` for one selected player using simulation evidence.
+- Data source: selected guild sheet from `GoogleSheets:GuildBattleSheets`.
+- Day handling:
+  - auto-detected suggestion based on attempt history and remaining hit logic
+  - user-overridable day input (`Day 1-3`)
+- Run orchestration:
+  - executes `25` simulations per analysis
+  - dispatcher path is attempted first; engine fallback is used when dispatcher is unavailable/fails
+  - selected player is prioritized in dispatcher stage assignments and player list ordering before simulation
+- Recommendation behavior:
+  - standard mode: run selected by earliest selected-player attack, then resets desc, then final HP sum asc
+  - immediate mode: prefers runs where selected player is first non-reset attack when available, otherwise falls back to all-run ranking by clears desc, final HP sum asc, points desc
+  - immediate recommendation stage uses selected run's first player attack stage when available (run-aligned), with heuristic fallback stage retained for transparency
+- UI behavior:
+  - confirmation modal before analysis submit
+  - player-loading indicator after guild selection
+  - recommendation summary includes strict first-hit status, stage-hit summary, run source (dispatcher/fallback), and simulation caveat warning
+
+## Should I Attack Bulk Diagnostics (`/ShouldIAttackBulk`) [Leadership]
+- Purpose: leadership batch diagnostics for a selected guild sheet across all parsed players.
+- Produces per-player recommendation rows and aggregate counts (attack now, fallback usage, missing recommendations).
+- Intended for validation and operational review rather than direct end-user decision flow.
+
 ## Unlock (`/Unlock`)
 - Shared password gate for leadership-only pages.
 - Creates signed unlock cookie valid for configured duration.

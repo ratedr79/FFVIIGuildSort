@@ -1,3 +1,10 @@
+@using FFVIIEverCrisisAnalyzer.Services
+@inject SharedAccessGate SharedAccessGate
+@{
+    var leadershipUnlocked = Context.Request.Cookies.TryGetValue(SharedAccessGate.CookieName, out var leadershipToken)
+        && SharedAccessGate.IsValidToken(leadershipToken);
+}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,16 +36,6 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/PowerLevelAnalyzer">
-                                <i class="fas fa-futbol"></i> Power Levels <i class="fas fa-lock small text-warning" title="Leadership only"></i>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/DataDiagnostics">
-                                <i class="fas fa-list-check"></i> Data Diagnostics <i class="fas fa-lock small text-warning" title="Leadership only"></i>
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/GearSearch">
                                 <i class="fas fa-search"></i> Gear Search
                             </a>
@@ -49,19 +46,47 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/GuildBattle">
-                                <i class="fas fa-chess"></i> Guild Battle <i class="fas fa-lock small text-warning" title="Leadership only"></i>
+                            <a class="nav-link text-dark" asp-area="" asp-page="/ShouldIAttack">
+                                <i class="fas fa-shield"></i> Should I Attack?
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/GuildBattleTest">
-                                <i class="fas fa-flask"></i> GB Test <i class="fas fa-lock small text-warning" title="Leadership only"></i>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" id="leadershipToolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas @(leadershipUnlocked ? "fa-lock-open text-success" : "fa-lock text-warning")"></i> Leadership Tools
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/ZelarithAssignment">
-                                <i class="fas fa-terminal"></i> Zelarith <i class="fas fa-lock small text-warning" title="Leadership only"></i>
-                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="leadershipToolsDropdown">
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-page="/PowerLevelAnalyzer">
+                                        <i class="fas fa-futbol"></i> Power Levels
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-page="/DataDiagnostics">
+                                        <i class="fas fa-list-check"></i> Data Diagnostics
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-page="/GuildBattle">
+                                        <i class="fas fa-chess"></i> Guild Battle
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-page="/ShouldIAttackBulk">
+                                        <i class="fas fa-clipboard-list"></i> Attack Diagnostics
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-page="/GuildBattleTest">
+                                        <i class="fas fa-flask"></i> GB Test
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-page="/ZelarithAssignment">
+                                        <i class="fas fa-terminal"></i> Zelarith
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/Unlock">

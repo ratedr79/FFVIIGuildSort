@@ -22,6 +22,11 @@ A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, 
   - [Zelarith Assignment: What It Does](#zelarith-assignment-what-it-does)
   - [Zelarith Assignment: Inputs](#zelarith-assignment-inputs)
   - [Zelarith Assignment: Quick Walkthrough](#zelarith-assignment-quick-walkthrough)
+- [Should I Attack](#should-i-attack)
+  - [Should I Attack: What It Does](#should-i-attack-what-it-does)
+  - [Should I Attack: Inputs](#should-i-attack-inputs)
+  - [Should I Attack: Quick Walkthrough](#should-i-attack-quick-walkthrough)
+  - [Should I Attack: Quick Stats](#should-i-attack-quick-stats)
 - [Gear Search](#gear-search)
   - [Gear Search: What It Does](#gear-search-what-it-does)
   - [Gear Search: Inputs](#gear-search-inputs)
@@ -47,6 +52,7 @@ Some tools are leadership-only and require unlock through `/Unlock`:
 - Guild Battle
 - Guild Battle Test
 - Zelarith Assignment
+- Should I Attack Bulk Diagnostics
 
 Unlock uses a shared password and a temporary cookie session.
 
@@ -174,6 +180,48 @@ Expected output:
 - Raw dispatcher console output.
 - Parsed stage assignments extracted from dispatcher output.
 - Re-simulated battle summary/aggregate metrics for the parsed plan.
+
+---
+
+## Should I Attack
+### Should I Attack: What It Does
+Runs multi-simulation recommendation analysis for one selected player and advises `Attack now` vs `Hold` using simulation evidence.
+
+The page supports two paths:
+- Standard mode (unchecked): chooses a run based on earliest selected-player attack timing relative to reset horizon.
+- Immediate-use mode (checked): prioritizes runs where the selected player takes the first non-reset hit when possible, then chooses by clears/HP/points.
+
+### Should I Attack: Inputs
+| Input | Expected Value | Use |
+|---|---|---|
+| Guild | One configured `GoogleSheets:GuildBattleSheets` option | Source battle data |
+| Player | One parsed player from selected sheet | Target player for recommendation |
+| Day | Day 1/2/3 (auto-suggested, user-overridable) | Builds simulation state for selected day |
+| I need to use my attacks now | Checked/unchecked | Enables immediate-use recommendation path |
+
+### Should I Attack: Quick Walkthrough
+Required steps:
+1. Select a guild and wait for the player list to load.
+2. Select player and confirm/correct the day.
+3. Optionally enable `I need to use my attacks now`.
+4. Click `Analyze` and confirm in the modal prompt.
+
+Expected output:
+- Recommendation badge (`ATTACK NOW` or `HOLD`) with rationale.
+- Simulated stage-hit summary for selected player (including split-stage cases).
+- Best-run evidence snapshot (run source, resets, final HP, clears, points).
+- Immediate recommendation source details (run-aligned stage vs heuristic fallback when needed).
+
+### Should I Attack: Quick Stats
+- Simulation runs per analysis: `25`
+- Day range: `1-3`
+- Standard mode best-run selection: earliest selected-player attack, then resets, then final HP sum
+- Immediate-use best-run selection: strict first non-reset selected-player hit when available, then clears, then final HP sum, then points
+- Recommendation warning includes simulation variance and leadership check guidance
+
+### Should I Attack Bulk Diagnostics (Leadership)
+- Leadership-only batch page that evaluates all parsed players for one selected guild sheet.
+- Provides recommendation totals, fallback usage visibility, and per-player rationale output.
 
 ---
 

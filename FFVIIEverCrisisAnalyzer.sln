@@ -5,6 +5,8 @@ VisualStudioVersion = 18.3.11512.155 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFVIIEverCrisisAnalyzer", "FFVIIEverCrisisAnalyzer.csproj", "{CC1E60A0-C78D-A82E-02FD-AED71E0331CE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFVIIEverCrisisAnalyzer.Tests", "..\FFVIIEverCrisisAnalyzer.Tests\FFVIIEverCrisisAnalyzer.Tests.csproj", "{7E69EC6E-F06F-4C8E-8F57-A33E01B45B96}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{CC1E60A0-C78D-A82E-02FD-AED71E0331CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CC1E60A0-C78D-A82E-02FD-AED71E0331CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CC1E60A0-C78D-A82E-02FD-AED71E0331CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E69EC6E-F06F-4C8E-8F57-A33E01B45B96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E69EC6E-F06F-4C8E-8F57-A33E01B45B96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E69EC6E-F06F-4C8E-8F57-A33E01B45B96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E69EC6E-F06F-4C8E-8F57-A33E01B45B96}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,127 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.ShouldIAttackBulkModel
+@using FFVIIEverCrisisAnalyzer.Models
+@{
+    ViewData["Title"] = "Should I Attack Bulk Diagnostics";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-3"><i class="fas fa-clipboard-list"></i> Should I Attack Bulk Diagnostics</h1>
+    <p class="text-muted mb-3">Leadership-only batch diagnostics for one selected guild sheet. Runs recommendation analysis for all players and highlights anomalies.</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <form method="post" asp-page-handler="Analyze" class="card mb-3">
+        <div class="card-header"><strong>Diagnostics Input</strong></div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label" for="GoogleSheetUrl">Guild Sheet</label>
+                    <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                        <option value="">-- Select guild sheet --</option>
+                        @foreach (var sheet in Model.AvailableSheets)
+                        {
+                            <option value="@sheet.Url" selected="@(Model.GoogleSheetUrl == sheet.Url)">@sheet.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="SeedMode">Seed Mode</label>
+                    <select class="form-select" id="SeedMode" name="SeedMode">
+                        <option value="Auto" selected="@(Model.SeedMode == "Auto")">Auto</option>
+                        <option value="Fixed" selected="@(Model.SeedMode == "Fixed")">Fixed</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="NumberOfRuns">Runs</label>
+                    <input class="form-control" id="NumberOfRuns" name="NumberOfRuns" value="@Model.NumberOfRuns" min="1" max="20" />
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-play"></i> Run Bulk</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Rows.Any())
+    {
+        var total = Model.Rows.Count;
+        var attackNowCount = Model.Rows.Count(r => string.Equals(r.Recommendation, "Attack now", StringComparison.OrdinalIgnoreCase));
+        var fallbackCount = Model.Rows.Count(r => r.FallbackUsed);
+        var missingRecommendationCount = Model.Rows.Count(r => string.IsNullOrWhiteSpace(r.Recommendation));
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card"><div class="card-body"><div class="text-muted small">Players</div><div class="h4 mb-0">@total</div></div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card"><div class="card-body"><div class="text-muted small">Attack now</div><div class="h4 mb-0">@attackNowCount</div></div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card"><div class="card-body"><div class="text-muted small">Fallback used</div><div class="h4 mb-0">@fallbackCount</div></div></div>
+            </div>
+            <div class="col-md-3">
+                <div class="card"><div class="card-body"><div class="text-muted small">Missing recommendation</div><div class="h4 mb-0">@missingRecommendationCount</div></div></div>
+            </div>
+        </div>
+
+        @if (missingRecommendationCount > 0 || fallbackCount > (int)Math.Ceiling(total * 0.5))
+        {
+            <div class="alert alert-warning">
+                <strong>Alert:</strong>
+                @if (missingRecommendationCount > 0)
+                {
+                    <span>@missingRecommendationCount player(s) produced no recommendation. </span>
+                }
+                @if (fallbackCount > (int)Math.Ceiling(total * 0.5))
+                {
+                    <span>Fallback usage is higher than expected (@fallbackCount/@total).</span>
+                }
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-header"><strong>Batch Recommendations</strong></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0" id="bulkDiagnosticsTable">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Recommendation</th>
+                                <th>Assigned Stage</th>
+                                <th>Confidence</th>
+                                <th>Dispatcher</th>
+                                <th>Fallback</th>
+                                <th class="text-end">Resets</th>
+                                <th class="text-end">Final HP Sum</th>
+                                <th>Rationale</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td>@row.PlayerName</td>
+                                <td>
+                                    <span class="badge @(row.Recommendation == "Attack now" ? "bg-success" : "bg-secondary")">@row.Recommendation</span>
+                                </td>
+                                <td>@row.AssignedStage</td>
+                                <td>@row.Confidence</td>
+                                <td>@(row.DispatcherUsed ? "Yes" : "No")</td>
+                                <td>@(row.FallbackUsed ? "Yes" : "No")</td>
+                                <td class="text-end">@row.BestRunResets</td>
+                                <td class="text-end">@row.BestRunFinalHpSum.ToString("F2")</td>
+                                <td class="small">@row.Rationale</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

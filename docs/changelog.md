@@ -28,6 +28,9 @@ All notable changes to this project should be documented in this file.
 - Initial changelog scaffold (`docs/changelog.md`).
 - Gear Search now resolves passive-skill (`R Ability`) effects from FF7EC passive tables using OB/level point totals, including support for named passives that map to multiple effects.
 - Gear Search advanced filters now include a `Sub-R Abilities` panel (normalized passive-effect categories) with in-panel search, clear, and `No matches found.` feedback.
+- Added a new public `Should I Attack?` page to analyze a selected player from configured guild sheets and recommend `Attack now` vs `Hold` with simulation evidence.
+- Added a leadership-only `Should I Attack Bulk Diagnostics` page for single-sheet batch recommendation runs and aggregate alerting.
+- Added a new `FFVIIEverCrisisAnalyzer.Tests` xUnit project with orchestration-focused tests for `Should I Attack` tie-break, horizon, queue-priority, fallback, and immediate-mode behavior.
 
 ### Changed
 - End-user `README.md` rewritten with:
@@ -47,6 +50,11 @@ All notable changes to this project should be documented in this file.
 - Gear Search View Levels modal now adds a `Cust.` badge to customization-added `R Abilities` so optional unlock passives are clearly identified.
 - Enemy Stats results now render as cards (single-column on smaller screens, 3-column desktop), with `Show Details` opening a modal instead of expanding inline.
 - Enemy Stats search suggestions now use a custom mobile-friendly typeahead dropdown with outside-click dismiss and `Escape` close behavior.
+- Guild battle dispatcher execution is now wrapped in a synchronized runner service so concurrent requests do not corrupt shared `input.txt`, and `Should I Attack` paths automatically fall back to engine-based simulation when dispatcher execution fails.
+- `Should I Attack` now runs `25` simulations per analysis, exposes dispatcher/fallback run source in recommendation evidence, and applies mode-specific run selection:
+  - standard mode: earliest selected-player attack, then resets, then final HP sum
+  - immediate mode: strict first non-reset selected-player hit when available, then clears, final HP sum, and points
+- Immediate-use recommendations now prefer a run-aligned stage (selected run's first selected-player attack stage) and expose heuristic fallback stage/source when run-aligned stage is unavailable.
 
 ### Fixed
 - Weapon customization unlock behavior now enforces `OB1+` in simulation/UI surfaces:
@@ -63,3 +71,5 @@ All notable changes to this project should be documented in this file.
 - Added `Data Diagnostics` visibility for distinct `PassiveSkillType` values with representative sample outputs to help validate passive effect scaling behavior.
 - Updated end-user `README.md` walkthrough/input sections for Gear Search and Enemy Stats to reflect card-based results, modal details flow, and Enemy Stats typeahead usage.
 - Updated `docs/features/other-pages.md` entries for Gear Search and Enemy Stats to reflect current UI behavior.
+- Added end-user `README.md` documentation for `Should I Attack` and leadership `Should I Attack Bulk Diagnostics`, including a quick stats section for simulation/run-selection behavior.
+- Updated `docs/features/other-pages.md` with developer-facing details for `Should I Attack` orchestration, immediate-mode strict first-hit behavior, run-aligned stage recommendation, and bulk diagnostics intent.
