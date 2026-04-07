@@ -1924,6 +1924,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             tags.Add(changeName);
                         }
                         break;
+                    case 36:
+                        tags.Add("Overspeed Gauge");
+                        break;
+                    case 37:
+                        tags.Add("Gear C. Ability Uses");
+                        break;
                 }
             }
 
