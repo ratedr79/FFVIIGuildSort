@@ -151,6 +151,35 @@ namespace FFVIIEverCrisisAnalyzer.Services
             EnrichFromGearSearch();
         }
 
+        public void RefreshFromGearSearch()
+        {
+            ClearGearSearchEnrichment();
+            EnrichFromGearSearch();
+        }
+
+        private void ClearGearSearchEnrichment()
+        {
+            foreach (var weapon in _byWeaponName.Values)
+            {
+                weapon.PotPercentByOb.Clear();
+                weapon.GearSearchRAbilities.Clear();
+                weapon.GearSearchRAbilityDescriptions.Clear();
+                weapon.HasCustomizations = false;
+                weapon.CustomizationDescriptions.Clear();
+                weapon.GearSearchEnriched = false;
+                weapon.AdditionalAbility1 = string.Empty;
+                weapon.AdditionalAbility2 = string.Empty;
+                weapon.AdditionalAbility3 = string.Empty;
+            }
+
+            foreach (var costume in _byCostumeName.Values)
+            {
+                costume.GearSearchRAbilities.Clear();
+                costume.GearSearchEnriched = false;
+                costume.AdditionalAbilities = new List<string>();
+            }
+        }
+
         private void EnrichFromGearSearch()
         {
             // Enrich weapons with real pot% per OB and R abilities

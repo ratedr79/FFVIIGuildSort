@@ -31,6 +31,11 @@ All notable changes to this project should be documented in this file.
 - Added a new public `Should I Attack?` page to analyze a selected player from configured guild sheets and recommend `Attack now` vs `Hold` with simulation evidence.
 - Added a leadership-only `Should I Attack Bulk Diagnostics` page for single-sheet batch recommendation runs and aggregate alerting.
 - Added a new `FFVIIEverCrisisAnalyzer.Tests` xUnit project with orchestration-focused tests for `Should I Attack` tie-break, horizon, queue-priority, fallback, and immediate-mode behavior.
+- Added a new public `Support Team Builder` page backed by local UnknownX7 JSON data (`external/UnknownX7/FF7EC-Data`) with multi-effect filters, range/potency thresholds, max-character constraints, must-have/exclude character filters, and ranked team output.
+- Added `SupportTeamBuilderService` for effect matching, team assignment generation, duplicate filtering, and rank ordering aligned with support-builder precedence.
+- Added browser-local persistence (`support-team-builder-state-v1`) for per-weapon owned OB selections used by the support-team workflow.
+- Added leadership-triggered full UnknownX7 data reload support in `Data Diagnostics` via `WeaponSearchDataService.ReloadData()`.
+- Added integration-style tests for support-team-builder option loading and max-character assignment constraints.
 
 ### Changed
 - End-user `README.md` rewritten with:
@@ -55,6 +60,11 @@ All notable changes to this project should be documented in this file.
   - standard mode: earliest selected-player attack, then resets, then final HP sum
   - immediate mode: strict first non-reset selected-player hit when available, then clears, final HP sum, and points
 - Immediate-use recommendations now prefer a run-aligned stage (selected run's first selected-player attack stage) and expose heuristic fallback stage/source when run-aligned stage is unavailable.
+- `WeaponSearchDataService` now tracks reload metadata (`LastLoadedUtc`, `ReloadCount`) and supports synchronized in-process full data reload.
+- Support Team Builder matching-weapon `Owned OB` changes now auto-refresh ranked team results by auto-submitting search on selector change.
+- Support Team Builder now includes a top-level external-link action to the original reference builder and a visible beta-status notice.
+- Support Team Builder ranked team rows now allow opening weapon details modal from both main-hand and off-hand weapon names.
+- Data Diagnostics reload flow now performs post-reload catalog re-enrichment (`WeaponCatalog.RefreshFromGearSearch()`) after `WeaponSearchDataService.ReloadData()`.
 
 ### Fixed
 - Weapon customization unlock behavior now enforces `OB1+` in simulation/UI surfaces:
@@ -73,3 +83,7 @@ All notable changes to this project should be documented in this file.
 - Updated `docs/features/other-pages.md` entries for Gear Search and Enemy Stats to reflect current UI behavior.
 - Added end-user `README.md` documentation for `Should I Attack` and leadership `Should I Attack Bulk Diagnostics`, including a quick stats section for simulation/run-selection behavior.
 - Updated `docs/features/other-pages.md` with developer-facing details for `Should I Attack` orchestration, immediate-mode strict first-hit behavior, run-aligned stage recommendation, and bulk diagnostics intent.
+- Added end-user `README.md` documentation for `Support Team Builder` inputs and walkthrough, plus `Data Diagnostics` reload behavior.
+- Updated `docs/features/other-pages.md` with `Support Team Builder` architecture/data-flow details and leadership reload diagnostics behavior.
+- Updated `README.md` Support Team Builder section with a user-facing quick-start and current UI behavior notes (beta banner, original-tool link, automatic ranking refresh on Owned OB changes).
+- Updated `docs/features/other-pages.md` with technical behavior details for Support Team Builder modal entry points, auto-refresh interactions, and Data Diagnostics post-reload re-enrichment.

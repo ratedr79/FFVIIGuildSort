@@ -1,0 +1,419 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.SupportTeamBuilderModel
+@using FFVIIEverCrisisAnalyzer.Models
+@{
+    ViewData["Title"] = "Support Team Builder";
+}
+
+<div class="container mt-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+        <div>
+            <h1 class="mb-2"><i class="fas fa-users"></i> Support Team Builder</h1>
+            <p class="text-muted mb-0">Build support loadouts from UnknownX7 weapon data. Filters and owned OB selections are stored in your browser.</p>
+        </div>
+        <a class="btn btn-outline-primary" href="https://diogocastro.com/ff7ec-support-team-builder/" target="_blank" rel="noopener">
+            <i class="fas fa-arrow-up-right-from-square me-2"></i>Open original FF7EC Support Team Builder
+        </a>
+    </div>
+
+    <div class="alert alert-warning" role="alert">
+        <strong>Beta:</strong> Support Team Builder is currently in beta. Results and UI behavior may change as we continue parity and validation improvements.
+    </div>
+
+    <form method="post" asp-page-handler="Search" id="supportBuilderForm">
+        <input type="hidden" asp-for="OwnedObJson" id="ownedObJson" />
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Effect Filters</strong>
+                <button class="btn btn-sm btn-light text-dark border" type="button" id="addFilterBtn"><i class="fas fa-plus"></i> Add Filter</button>
+            </div>
+            <div class="card-body" id="filtersContainer">
+                @for (var i = 0; i < Model.Filters.Count; i++)
+                {
+                    <div class="row g-2 align-items-end filter-row mb-2" data-index="@i">
+                        <div class="col-md-4">
+                            <label class="form-label">Effect</label>
+                            <select class="form-select" name="Filters[@i].EffectType">
+                                <option value="">Select an effect...</option>
+                                @foreach (var effect in Model.Options.EffectTypes)
+                                {
+                                    <option value="@effect" selected="@(string.Equals(Model.Filters[i].EffectType, effect, StringComparison.OrdinalIgnoreCase))">@effect</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Range</label>
+                            <select class="form-select" name="Filters[@i].Range">
+                                <option value="All" selected="@(Model.Filters[i].Range == SupportFilterRange.All)">All</option>
+                                <option value="SingleTargetOrAll" selected="@(Model.Filters[i].Range == SupportFilterRange.SingleTargetOrAll)">Single / All</option>
+                                <option value="SelfOrSingleTargetOrAll" selected="@(Model.Filters[i].Range == SupportFilterRange.SelfOrSingleTargetOrAll)">Self / Single / All</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Min Base</label>
+                            <select class="form-select" name="Filters[@i].MinBasePotency">
+                                @foreach (var tier in Enum.GetValues<SupportPotencyTier>())
+                                {
+                                    <option value="@tier" selected="@(Model.Filters[i].MinBasePotency == tier)">@tier</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Min Max</label>
+                            <select class="form-select" name="Filters[@i].MinMaxPotency">
+                                @foreach (var tier in Enum.GetValues<SupportPotencyTier>())
+                                {
+                                    <option value="@tier" selected="@(Model.Filters[i].MinMaxPotency == tier)">@tier</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger w-100 remove-filter-btn" @(Model.Filters.Count <= 1 ? "disabled" : null)><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Max Characters</label>
+                <select asp-for="MaxCharacterCount" class="form-select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                </select>
+            </div>
+            <div class="col-md-9 d-flex align-items-end">
+                <button class="btn btn-success" type="submit"><i class="fas fa-wand-magic-sparkles"></i> Build Teams</button>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><strong>Character Constraints</strong></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Must Have</label>
+                        <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                            @foreach (var character in Model.Options.Characters)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="MustHaveCharacters" value="@character" checked="@Model.MustHaveCharacters.Contains(character, StringComparer.OrdinalIgnoreCase)" id="must_@character.Replace(" ", "_")" />
+                                    <label class="form-check-label" for="must_@character.Replace(" ", "_")">@character</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Exclude</label>
+                        <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                            @foreach (var character in Model.Options.Characters)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ExcludeCharacters" value="@character" checked="@Model.ExcludeCharacters.Contains(character, StringComparer.OrdinalIgnoreCase)" id="exc_@character.Replace(" ", "_")" />
+                                    <label class="form-check-label" for="exc_@character.Replace(" ", "_")">@character</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Result != null)
+    {
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Matching Weapons by Filter</strong>
+                <span class="badge bg-secondary">@Model.Result.FilterResults.Sum(f => f.MatchingWeapons.Count) weapons</span>
+            </div>
+            <div class="card-body">
+                @foreach (var filterResult in Model.Result.FilterResults)
+                {
+                    <div class="mb-3 pb-2 border-bottom">
+                        <div class="fw-semibold">@filterResult.Filter.EffectType (@filterResult.Filter.Range)</div>
+                        @if (filterResult.MatchingWeapons.Count == 0)
+                        {
+                            <div class="text-muted small">No matches.</div>
+                        }
+                        else
+                        {
+                            <div class="row g-2 mt-1">
+                                @foreach (var weapon in filterResult.MatchingWeapons.Take(24))
+                                {
+                                    <div class="col-md-4 col-lg-3">
+                                        <div class="border rounded p-2 h-100">
+                                            <div class="small fw-semibold">@weapon.WeaponName</div>
+                                            <div class="small text-muted">@weapon.Character • @weapon.Range</div>
+                                            <div class="small text-muted">Base: @weapon.BasePotency / Max: @weapon.MaxPotency</div>
+                                            <button
+                                                type="button"
+                                                class="btn btn-link btn-sm p-0 mt-1 weapon-details-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#weaponDetailsModal"
+                                                data-weapon-name="@weapon.WeaponName"
+                                                data-weapon-character="@weapon.Character"
+                                                data-weapon-range="@weapon.Range"
+                                                data-weapon-base="@weapon.BasePotency"
+                                                data-weapon-max="@weapon.MaxPotency"
+                                                data-weapon-ability="@weapon.AbilityText">
+                                                View details
+                                            </button>
+                                            <label class="form-label small mt-1 mb-1">Owned OB</label>
+                                            <select class="form-select form-select-sm weapon-ob-select" data-weapon-id="@weapon.WeaponId">
+                                                <option value="0" selected="@(weapon.OwnedObSelection == 0)">Not Owned</option>
+                                                <option value="1" selected="@(weapon.OwnedObSelection == 1)">OB0</option>
+                                                <option value="2" selected="@(weapon.OwnedObSelection == 2)">OB1-5</option>
+                                                <option value="3" selected="@(weapon.OwnedObSelection == 3)">OB6-9</option>
+                                                <option value="4" selected="@(weapon.OwnedObSelection == 4)">OB10</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            @if (filterResult.MatchingWeapons.Count > 24)
+                            {
+                                <div class="small text-muted mt-1">Showing first 24 matches.</div>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Ranked Teams</strong>
+                <span class="badge bg-primary">@Model.Result.Teams.Count teams</span>
+            </div>
+            <div class="card-body">
+                @if (Model.Result.Teams.Count == 0)
+                {
+                    <div class="alert alert-warning mb-0">No results found. Try reducing potency/range constraints or increasing max character count.</div>
+                }
+                else
+                {
+                    @for (var i = 0; i < Model.Result.Teams.Take(25).Count(); i++)
+                    {
+                        var team = Model.Result.Teams[i];
+                        <div class="border rounded p-3 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="fw-semibold">Team #@(i + 1)</div>
+                                <span class="badge bg-dark">Max @team.MaxPotenciesScore • Base @team.BasePotenciesScore • Chars @(-team.CharacterCountScore)</span>
+                            </div>
+                            <div class="mt-2">
+                                @foreach (var character in team.Characters.Values.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
+                                {
+                                    <div class="small">
+                                        <strong>@character.Name:</strong>
+                                        @if (character.MainHand != null)
+                                        {
+                                            <button
+                                                type="button"
+                                                class="btn btn-link btn-sm p-0 align-baseline weapon-details-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#weaponDetailsModal"
+                                                data-weapon-name="@character.MainHand.Weapon.Name"
+                                                data-weapon-character="@character.MainHand.Weapon.Character"
+                                                data-weapon-range="@character.MainHand.Weapon.Range"
+                                                data-weapon-base="@character.MainHand.BasePotency"
+                                                data-weapon-max="@character.MainHand.MaxPotency"
+                                                data-weapon-ability="@character.MainHand.Weapon.AbilityText">
+                                                @character.MainHand.Weapon.Name
+                                            </button>
+                                        }
+                                        @if (character.OffHand != null)
+                                        {
+                                            <text> / </text>
+                                            <button
+                                                type="button"
+                                                class="btn btn-link btn-sm p-0 align-baseline weapon-details-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#weaponDetailsModal"
+                                                data-weapon-name="@character.OffHand.Weapon.Name"
+                                                data-weapon-character="@character.OffHand.Weapon.Character"
+                                                data-weapon-range="@character.OffHand.Weapon.Range"
+                                                data-weapon-base="@character.OffHand.BasePotency"
+                                                data-weapon-max="@character.OffHand.MaxPotency"
+                                                data-weapon-ability="@character.OffHand.Weapon.AbilityText">
+                                                @character.OffHand.Weapon.Name
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="weaponDetailsModal" tabindex="-1" aria-labelledby="weaponDetailsTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="weaponDetailsTitle">Weapon Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2"><strong>Character:</strong> <span id="weaponDetailsCharacter"></span></div>
+                <div class="mb-2"><strong>Range:</strong> <span id="weaponDetailsRange"></span></div>
+                <div class="mb-2"><strong>Potency:</strong> Base <span id="weaponDetailsBase"></span> / Max <span id="weaponDetailsMax"></span></div>
+                <div><strong>Ability:</strong></div>
+                <div id="weaponDetailsAbility" class="small text-muted mt-1" style="white-space: pre-wrap;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const storageKey = 'support-team-builder-state-v1';
+    const form = document.getElementById('supportBuilderForm');
+    const ownedObInput = document.getElementById('ownedObJson');
+    const filtersContainer = document.getElementById('filtersContainer');
+    const addFilterBtn = document.getElementById('addFilterBtn');
+    const weaponDetailsTitle = document.getElementById('weaponDetailsTitle');
+    const weaponDetailsCharacter = document.getElementById('weaponDetailsCharacter');
+    const weaponDetailsRange = document.getElementById('weaponDetailsRange');
+    const weaponDetailsBase = document.getElementById('weaponDetailsBase');
+    const weaponDetailsMax = document.getElementById('weaponDetailsMax');
+    const weaponDetailsAbility = document.getElementById('weaponDetailsAbility');
+
+    function tryLoadState() {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return { ownedObByWeaponId: {} };
+            return JSON.parse(raw);
+        } catch {
+            return { ownedObByWeaponId: {} };
+        }
+    }
+
+    function saveState(state) {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function collectOwnedOb() {
+        const owned = {};
+        document.querySelectorAll('.weapon-ob-select').forEach(select => {
+            const weaponId = select.getAttribute('data-weapon-id');
+            if (!weaponId) return;
+            owned[weaponId] = Number.parseInt(select.value, 10) || 0;
+        });
+        return owned;
+    }
+
+    function hydrateOwnedOb() {
+        const state = tryLoadState();
+        const owned = state.ownedObByWeaponId || {};
+        document.querySelectorAll('.weapon-ob-select').forEach(select => {
+            const weaponId = select.getAttribute('data-weapon-id');
+            if (!weaponId) return;
+            if (Object.prototype.hasOwnProperty.call(owned, weaponId)) {
+                select.value = String(owned[weaponId]);
+            }
+            select.addEventListener('change', () => {
+                const nextState = tryLoadState();
+                nextState.ownedObByWeaponId = collectOwnedOb();
+                saveState(nextState);
+                writeOwnedObForSubmit();
+                form?.requestSubmit();
+            });
+        });
+    }
+
+    function writeOwnedObForSubmit() {
+        const state = tryLoadState();
+        state.ownedObByWeaponId = { ...state.ownedObByWeaponId, ...collectOwnedOb() };
+        saveState(state);
+        ownedObInput.value = JSON.stringify(state.ownedObByWeaponId || {});
+    }
+
+    function reindexFilters() {
+        const rows = filtersContainer.querySelectorAll('.filter-row');
+        rows.forEach((row, index) => {
+            row.setAttribute('data-index', index);
+            row.querySelectorAll('[name]').forEach(input => {
+                const name = input.getAttribute('name');
+                if (!name) return;
+                input.setAttribute('name', name.replace(/Filters\[\d+\]/, `Filters[${index}]`));
+            });
+        });
+
+        const removeButtons = filtersContainer.querySelectorAll('.remove-filter-btn');
+        removeButtons.forEach(btn => {
+            btn.disabled = rows.length <= 1;
+        });
+    }
+
+    function addFilterRow() {
+        const rows = filtersContainer.querySelectorAll('.filter-row');
+        if (rows.length >= 10) return;
+        const clone = rows[rows.length - 1].cloneNode(true);
+        clone.querySelectorAll('select').forEach((s, idx) => {
+            if (idx === 0) {
+                s.value = '';
+            } else {
+                s.selectedIndex = 0;
+            }
+        });
+        filtersContainer.appendChild(clone);
+        reindexFilters();
+    }
+
+    addFilterBtn?.addEventListener('click', addFilterRow);
+
+    filtersContainer?.addEventListener('click', (e) => {
+        const target = e.target.closest('.remove-filter-btn');
+        if (!target) return;
+        const row = target.closest('.filter-row');
+        if (!row) return;
+        row.remove();
+        reindexFilters();
+    });
+
+    form?.addEventListener('submit', () => {
+        writeOwnedObForSubmit();
+    });
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.weapon-details-btn');
+        if (!btn) return;
+
+        if (weaponDetailsTitle) {
+            weaponDetailsTitle.textContent = btn.getAttribute('data-weapon-name') || 'Weapon Details';
+        }
+
+        if (weaponDetailsCharacter) {
+            weaponDetailsCharacter.textContent = btn.getAttribute('data-weapon-character') || '';
+        }
+
+        if (weaponDetailsRange) {
+            weaponDetailsRange.textContent = btn.getAttribute('data-weapon-range') || '';
+        }
+
+        if (weaponDetailsBase) {
+            weaponDetailsBase.textContent = btn.getAttribute('data-weapon-base') || '';
+        }
+
+        if (weaponDetailsMax) {
+            weaponDetailsMax.textContent = btn.getAttribute('data-weapon-max') || '';
+        }
+
+        if (weaponDetailsAbility) {
+            weaponDetailsAbility.textContent = btn.getAttribute('data-weapon-ability') || '';
+        }
+    });
+
+    hydrateOwnedOb();
+    writeOwnedObForSubmit();
+})();
+</script>
+}

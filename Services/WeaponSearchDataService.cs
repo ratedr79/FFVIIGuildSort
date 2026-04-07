@@ -42,6 +42,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
         private readonly List<WeaponSearchItem> _allWeapons = new();
         private readonly Dictionary<string, string> _weaponNameToId = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object _reloadSync = new();
 
         // Lookup data retained for the snapshot API
         private Dictionary<int, WeaponRaw> _weaponsById = new();
@@ -83,11 +84,70 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>> _weaponEvolveWeaponSkills = new();
         private Dictionary<int, List<WeaponReleaseSettingRaw>> _weaponReleaseSettings = new();
 
+        public DateTimeOffset LastLoadedUtc { get; private set; }
+        public int ReloadCount { get; private set; }
+
         public WeaponSearchDataService(ILogger<WeaponSearchDataService> logger, IWebHostEnvironment environment)
         {
             _logger = logger;
             _environment = environment;
-            LoadData();
+            ReloadData();
+        }
+
+        public void ReloadData()
+        {
+            lock (_reloadSync)
+            {
+                ResetState();
+                LoadData();
+                LastLoadedUtc = DateTimeOffset.UtcNow;
+                ReloadCount++;
+            }
+        }
+
+        private void ResetState()
+        {
+            _allWeapons.Clear();
+            _weaponNameToId.Clear();
+
+            _weaponsById = new Dictionary<int, WeaponRaw>();
+            _charactersById = new Dictionary<int, string>();
+            _upgradesByWeapon = new Dictionary<int, List<WeaponUpgradeSkillRaw>>();
+            _weaponRarities = new Dictionary<int, WeaponRarityRaw>();
+            _rarityReleaseSkills = new Dictionary<int, List<WeaponRarityReleaseSkillRaw>>();
+            _statCalculator = null;
+            _locStore = null;
+            _skillWeapons = new Dictionary<int, SkillWeaponRaw>();
+            _skillActives = new Dictionary<int, SkillActiveRaw>();
+            _skillBases = new Dictionary<int, SkillBaseRaw>();
+            _skillEffectGroups = new Dictionary<long, List<SkillEffectGroupEntryRaw>>();
+            _skillEffects = new Dictionary<long, SkillEffectRaw>();
+            _skillEffectDescriptions = new Dictionary<long, SkillEffectDescriptionRaw>();
+            _skillEffectDescriptionGroups = new Dictionary<long, List<SkillEffectDescriptionGroupEntryRaw>>();
+            _skillDamageEffects = new Dictionary<long, SkillDamageEffectRaw>();
+            _skillAdditionalEffects = new Dictionary<long, SkillAdditionalEffectRaw>();
+            _skillStatusChangeEffects = new Dictionary<long, SkillStatusChangeEffectRaw>();
+            _skillStatusConditionEffects = new Dictionary<long, SkillStatusConditionEffectRaw>();
+            _skillBuffDebuffs = new Dictionary<long, SkillBuffDebuffRaw>();
+            _skillBuffDebuffEnhances = new Dictionary<long, SkillBuffDebuffEnhanceRaw>();
+            _skillCancelEffects = new Dictionary<long, SkillCancelEffectRaw>();
+            _skillAtbChanges = new Dictionary<long, SkillAtbChangeEffectRaw>();
+            _skillSpecialGaugeChanges = new Dictionary<long, SkillSpecialGaugeChangeEffectRaw>();
+            _skillTacticsGaugeChanges = new Dictionary<long, SkillTacticsGaugeChangeEffectRaw>();
+            _skillOveraccelGaugeChanges = new Dictionary<long, SkillOveraccelGaugeChangeEffectRaw>();
+            _skillCostumeCountChanges = new Dictionary<long, SkillCostumeCountChangeEffectRaw>();
+            _skillTriggerConditionHp = new Dictionary<long, SkillTriggerConditionHpRaw>();
+            _buffDebuffGroups = new Dictionary<long, List<int>>();
+            _statusConditionGroups = new Dictionary<long, List<int>>();
+            _statusChangeGroups = new Dictionary<long, List<int>>();
+            _skillPassives = new Dictionary<int, SkillPassiveRaw>();
+            _skillPassiveLevelsByPassiveId = new Dictionary<int, List<SkillPassiveLevelRaw>>();
+            _skillPassiveEffectGroupsById = new Dictionary<int, List<SkillPassiveEffectGroupRaw>>();
+            _skillPassiveEffectLevelsById = new Dictionary<int, List<SkillPassiveEffectLevelRaw>>();
+            _weaponEvolves = new Dictionary<int, List<WeaponEvolveRaw>>();
+            _weaponEvolveEffects = new Dictionary<int, List<WeaponEvolveEffectRaw>>();
+            _weaponEvolveWeaponSkills = new Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>>();
+            _weaponReleaseSettings = new Dictionary<int, List<WeaponReleaseSettingRaw>>();
         }
 
         public WeaponEnrichmentResult? GetWeaponEnrichment(string weaponName, int overboostLevel)

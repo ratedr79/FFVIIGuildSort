@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using FFVIIEverCrisisAnalyzer.Services;
 
@@ -7,11 +8,13 @@ public sealed class DataDiagnosticsModel : PageModel
 {
     private readonly WeaponCatalog _catalog;
     private readonly WeaponSearchDataService _weaponSearchData;
+    private readonly SharedAccessGate _sharedAccessGate;
 
-    public DataDiagnosticsModel(WeaponCatalog catalog, WeaponSearchDataService weaponSearchData)
+    public DataDiagnosticsModel(WeaponCatalog catalog, WeaponSearchDataService weaponSearchData, SharedAccessGate sharedAccessGate)
     {
         _catalog = catalog;
         _weaponSearchData = weaponSearchData;
+        _sharedAccessGate = sharedAccessGate;
     }
 
     public List<string> WeaponsNotEnriched { get; private set; } = new();
@@ -19,6 +22,10 @@ public sealed class DataDiagnosticsModel : PageModel
     public List<string> CostumesNotEnriched { get; private set; } = new();
     public List<string> CostumesEnriched { get; private set; } = new();
     public List<WeaponSearchDataService.PassiveSkillTypeDiagnosticRow> PassiveSkillTypeDiagnostics { get; private set; } = new();
+    public bool ReloadSucceeded { get; private set; }
+    public string ReloadMessage { get; private set; } = string.Empty;
+    public DateTimeOffset LastLoadedUtc => _weaponSearchData.LastLoadedUtc;
+    public int ReloadCount => _weaponSearchData.ReloadCount;
 
     public void OnGet()
     {
@@ -57,5 +64,29 @@ public sealed class DataDiagnosticsModel : PageModel
         }
 
         PassiveSkillTypeDiagnostics = _weaponSearchData.GetPassiveSkillTypeDiagnostics().ToList();
+    }
+
+    public IActionResult OnPostReloadData()
+    {
+        if (!Request.Cookies.TryGetValue(_sharedAccessGate.CookieName, out var token) || !_sharedAccessGate.IsValidToken(token))
+        {
+            return Forbid();
+        }
+
+        try
+        {
+            _weaponSearchData.ReloadData();
+            _catalog.RefreshFromGearSearch();
+            ReloadSucceeded = true;
+            ReloadMessage = $"Reload complete ({_weaponSearchData.ReloadCount} total reloads).";
+        }
+        catch (Exception ex)
+        {
+            ReloadSucceeded = false;
+            ReloadMessage = $"Reload failed: {ex.Message}";
+        }
+
+        OnGet();
+        return Page();
     }
 }

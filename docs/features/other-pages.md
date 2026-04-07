@@ -32,6 +32,31 @@
 ## Data Diagnostics (`/DataDiagnostics`) [Leadership]
 - Purpose: validate whether weapon/costume entries are enriched from GearSearch data.
 - Helps identify missing enrichment/potency/R-ability data.
+- Includes a leadership-triggered full UnknownX7 data reload action (`OnPostReloadData`) that calls `WeaponSearchDataService.ReloadData()`.
+- Reload flow also re-enriches `WeaponCatalog` from refreshed GearSearch snapshots (`WeaponCatalog.RefreshFromGearSearch()`) so diagnostics and downstream pages reflect newly loaded data without app restart.
+- Reload metadata (`LastLoadedUtc`, `ReloadCount`) is displayed on page.
+
+## Support Team Builder (`/SupportTeamBuilder`)
+- Purpose: build ranked support-team weapon assignments from local UnknownX7 data without Google Sheets.
+- Data source: `WeaponSearchDataService` (`external/UnknownX7/FF7EC-Data`) via `SupportTeamBuilderService`.
+- UI includes a beta notice banner and an external-link button to the original reference tool (`https://diogocastro.com/ff7ec-support-team-builder/`) for parity checks.
+- Input model:
+  - dynamic list of effect filters (`effect`, `range`, `min base potency`, `min max potency`)
+  - maximum character count (`1-3`)
+  - must-have / exclude character sets
+  - owned-OB selections from browser-local state
+- Search/ranking behavior mirrors original support-builder precedence:
+  - build assignments by folding filter matches into team candidates
+  - reject assignments exceeding 2 weapons per character or max character cap
+  - score order: `max potency` desc, `character count` asc, `weapon count` asc, `base potency` desc
+  - remove duplicate teams by assigned weapon-name set
+- Persistence:
+  - browser-local state key: `support-team-builder-state-v1`
+  - stores per-weapon owned OB selections and is posted back as JSON (`OwnedObJson`) on search
+- Interaction details:
+  - changing an `Owned OB` selector auto-submits the search form so ranked-team output refreshes immediately
+  - matching-weapon cards include a `View details` modal trigger
+  - ranked-team rows expose both main-hand and off-hand weapons as modal triggers into the same weapon-details dialog
 
 ## Should I Attack (`/ShouldIAttack`)
 - Purpose: recommend `Attack now` vs `Hold` for one selected player using simulation evidence.

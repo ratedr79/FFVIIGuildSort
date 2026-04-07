@@ -27,6 +27,11 @@ A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, 
   - [Should I Attack: Inputs](#should-i-attack-inputs)
   - [Should I Attack: Quick Walkthrough](#should-i-attack-quick-walkthrough)
   - [Should I Attack: Quick Stats](#should-i-attack-quick-stats)
+- [Support Team Builder](#support-team-builder)
+  - [Support Team Builder: What It Does](#support-team-builder-what-it-does)
+  - [Support Team Builder: Quick Start](#support-team-builder-quick-start)
+  - [Support Team Builder: Inputs](#support-team-builder-inputs)
+  - [Support Team Builder: Quick Walkthrough](#support-team-builder-quick-walkthrough)
 - [Gear Search](#gear-search)
   - [Gear Search: What It Does](#gear-search-what-it-does)
   - [Gear Search: Inputs](#gear-search-inputs)
@@ -225,6 +230,46 @@ Expected output:
 
 ---
 
+## Support Team Builder
+### Support Team Builder: What It Does
+Builds and ranks support-team weapon combinations from local UnknownX7 data (`external/UnknownX7/FF7EC-Data`) without requiring Google Sheets.
+
+The page mirrors the original support-builder flow with effect selectors, range/potency thresholds, character constraints, and ranked team output.
+
+### Support Team Builder: Quick Start
+1. Open `/SupportTeamBuilder` and confirm your effect filters.
+2. Click `Build Teams` once to generate initial rankings.
+3. Tune `Owned OB` values in matching weapon cards; rankings auto-refresh after each change.
+
+Quick notes:
+- A beta notice is shown at the top of the page; behavior may continue to evolve.
+- Use `Open original FF7EC Support Team Builder` for side-by-side comparison with the source experience.
+
+### Support Team Builder: Inputs
+| Input | Expected Value | Use |
+|---|---|---|
+| Effect Filters | One or more selected effects | Required effects to satisfy |
+| Range | All / Single+All / Self+Single+All | Range gate per filter |
+| Min Base Potency | Low/Mid/High/ExtraHigh | Base potency floor |
+| Min Max Potency | Low/Mid/High/ExtraHigh | Max potency floor |
+| Max Characters | 1/2/3 | Character-count cap in team assignments |
+| Must Have | Character checkboxes | Require selected characters in final teams |
+| Exclude | Character checkboxes | Block selected characters from teams |
+| Owned OB (per weapon) | Not Owned / OB0 / OB1-5 / OB6-9 / OB10 | Weapon availability and potency context |
+
+### Support Team Builder: Quick Walkthrough
+1. Add one or more effect filters.
+2. Choose range and potency thresholds for each filter.
+3. Set maximum characters and optional must-have/exclude character constraints.
+4. Click `Build Teams`.
+5. (Optional) adjust weapon `Owned OB` selectors; team rankings refresh automatically.
+
+Notes:
+- Owned OB selections are saved in browser local storage (`support-team-builder-state-v1`).
+- Ranking follows the current support-builder precedence: max potency score, fewer characters, fewer weapons, then base potency score.
+
+---
+
 ## Gear Search
 ### Gear Search: What It Does
 Provides searchable/filterable weapon/costume data with ability details, R abilities, sigils, compare mode, and level/OB snapshots.
@@ -295,7 +340,7 @@ Expected output:
 ## Data Diagnostics
 Leadership page used to verify gear enrichment status and detect missing weapon/costume enrichment data.
 
-No user input fields are required; open page and review generated lists.
+Includes a `Reload UnknownX7 Data` action for leadership users to trigger a full `WeaponSearchDataService` refresh without restarting the app.
 
 ---
 
