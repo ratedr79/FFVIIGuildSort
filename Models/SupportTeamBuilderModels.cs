@@ -43,6 +43,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
     {
         public List<string> EffectTypes { get; set; } = new();
         public List<string> Characters { get; set; } = new();
+        public Dictionary<string, bool> EffectHasPotency { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     public sealed class SupportWeaponMatch

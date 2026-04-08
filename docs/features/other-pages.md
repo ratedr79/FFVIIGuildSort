@@ -57,6 +57,8 @@
   - stores per-weapon owned OB selections and per-outfit owned selections, posted as JSON (`OwnedObJson`, `OwnedOutfitJson`) on search
 - Interaction details:
   - changing an `Owned OB` or outfit `Owned/Not Owned` selector auto-submits the search form so ranked-team output refreshes immediately
+  - effect options include server-computed potency-applicability metadata derived from explicit effect-line `[Pot]` / `[Max Pot]` tags across loaded entries
+  - when a selected effect has no explicit potency metadata, that filter row auto-sets `Min Base` and `Min Max` to `Low`, disables both dropdowns, and shows an inline explanatory note
   - matching-weapon cards include a `View details` modal trigger
   - matching-outfit cards are shown in a parallel `Matching Outfits by Filter` panel
   - ranked-team rows expose both main-hand and off-hand weapons as modal triggers into the same weapon-details dialog

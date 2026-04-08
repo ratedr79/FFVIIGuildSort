@@ -268,6 +268,7 @@ Quick notes:
 
 Notes:
 - Owned weapon/outfit selections are saved in browser local storage (`support-team-builder-state-v1`).
+- For effects that do not expose explicit potency tags (`[Pot]`/`[Max Pot]`) in source ability lines, potency dropdowns are auto-locked to `Low` and an inline note explains that potency thresholds are not applicable.
 - Ranking follows the current support-builder precedence: max potency score, fewer characters, fewer weapons, then base potency score.
 - Ranked team rows now show a character's selected outfit after weapon names when present.
 

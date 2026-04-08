@@ -16,24 +16,41 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         public SupportTeamBuilderOptionData GetOptionData()
         {
-            var weapons = _weaponSearchDataService
+            var entries = _weaponSearchDataService
                 .GetWeapons()
                 .ToList();
 
+            var effectTypes = entries
+                .SelectMany(w => w.EffectTags)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var effectHasPotency = effectTypes.ToDictionary(effect => effect, _ => false, StringComparer.OrdinalIgnoreCase);
+            foreach (var effect in effectTypes)
+            {
+                if (effect.Equals("Exploit Weakness", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (entries.Any(entry => ExtractEffectLineCandidates(entry.AbilityText, effect).Any(c => c.HasExplicitPotency)))
+                {
+                    effectHasPotency[effect] = true;
+                }
+            }
+
             return new SupportTeamBuilderOptionData
             {
-                EffectTypes = weapons
-                    .SelectMany(w => w.EffectTags)
-                    .Where(t => !string.IsNullOrWhiteSpace(t))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
-                    .ToList(),
-                Characters = weapons
+                EffectTypes = effectTypes,
+                Characters = entries
                     .Select(w => w.Character)
                     .Where(c => !string.IsNullOrWhiteSpace(c))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(c => c, StringComparer.OrdinalIgnoreCase)
-                    .ToList()
+                    .ToList(),
+                EffectHasPotency = effectHasPotency
             };
         }
 
@@ -523,14 +540,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                var basePotText = ExtractBracketValue(line, "Pot") ?? "Low";
-                var maxPotText = ExtractBracketValue(line, "Max Pot") ?? basePotText;
+                var basePotRaw = ExtractBracketValue(line, "Pot");
+                var maxPotRaw = ExtractBracketValue(line, "Max Pot");
+                var basePotText = basePotRaw ?? "Low";
+                var maxPotText = maxPotRaw ?? basePotText;
 
                 candidates.Add(new EffectLineCandidate
                 {
                     Range = range,
                     BasePotency = ParsePotencyToken(basePotText),
-                    MaxPotency = ParsePotencyToken(maxPotText)
+                    MaxPotency = ParsePotencyToken(maxPotText),
+                    HasExplicitPotency = basePotRaw != null || maxPotRaw != null
                 });
             }
 
@@ -569,6 +589,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public string Range { get; init; }
             public SupportPotencyTier BasePotency { get; init; }
             public SupportPotencyTier MaxPotency { get; init; }
+            public bool HasExplicitPotency { get; init; }
         }
     }
 }

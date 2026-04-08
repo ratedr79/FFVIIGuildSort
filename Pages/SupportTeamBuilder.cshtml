@@ -35,11 +35,12 @@
                     <div class="row g-2 align-items-end filter-row mb-2" data-index="@i">
                         <div class="col-md-4">
                             <label class="form-label">Effect</label>
-                            <select class="form-select" name="Filters[@i].EffectType">
+                            <select class="form-select effect-type-select" name="Filters[@i].EffectType">
                                 <option value="">Select an effect...</option>
                                 @foreach (var effect in Model.Options.EffectTypes)
                                 {
-                                    <option value="@effect" selected="@(string.Equals(Model.Filters[i].EffectType, effect, StringComparison.OrdinalIgnoreCase))">@effect</option>
+                                    var hasPotency = Model.Options.EffectHasPotency.TryGetValue(effect, out var effectHasPotency) && effectHasPotency;
+                                    <option value="@effect" data-has-potency="@(hasPotency ? "1" : "0")" selected="@(string.Equals(Model.Filters[i].EffectType, effect, StringComparison.OrdinalIgnoreCase))">@effect</option>
                                 }
                             </select>
                         </div>
@@ -53,7 +54,7 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Min Base</label>
-                            <select class="form-select" name="Filters[@i].MinBasePotency">
+                            <select class="form-select potency-base-select" name="Filters[@i].MinBasePotency">
                                 @foreach (var tier in Enum.GetValues<SupportPotencyTier>())
                                 {
                                     <option value="@tier" selected="@(Model.Filters[i].MinBasePotency == tier)">@tier</option>
@@ -62,7 +63,7 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Min Max</label>
-                            <select class="form-select" name="Filters[@i].MinMaxPotency">
+                            <select class="form-select potency-max-select" name="Filters[@i].MinMaxPotency">
                                 @foreach (var tier in Enum.GetValues<SupportPotencyTier>())
                                 {
                                     <option value="@tier" selected="@(Model.Filters[i].MinMaxPotency == tier)">@tier</option>
@@ -71,6 +72,11 @@
                         </div>
                         <div class="col-md-2">
                             <button type="button" class="btn btn-outline-danger w-100 remove-filter-btn" @(Model.Filters.Count <= 1 ? "disabled" : null)><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="w-100"></div>
+                        <div class="col-md-4"></div>
+                        <div class="col-md-6">
+                            <div class="form-text text-warning d-none potency-note">Potency thresholds are not used for this effect (no Pot/Max Pot data).</div>
                         </div>
                     </div>
                 }
@@ -464,6 +470,49 @@
         }
     }
 
+    function applyPotencyUiForRow(row) {
+        if (!row) return;
+
+        const effectSelect = row.querySelector('.effect-type-select');
+        const minBaseSelect = row.querySelector('.potency-base-select');
+        const minMaxSelect = row.querySelector('.potency-max-select');
+        const note = row.querySelector('.potency-note');
+
+        if (!effectSelect || !minBaseSelect || !minMaxSelect || !note) {
+            return;
+        }
+
+        const selectedOption = effectSelect.options[effectSelect.selectedIndex];
+        const hasPotency = selectedOption && selectedOption.getAttribute('data-has-potency') === '1';
+
+        if (effectSelect.value && !hasPotency) {
+            minBaseSelect.value = 'Low';
+            minMaxSelect.value = 'Low';
+            minBaseSelect.disabled = true;
+            minMaxSelect.disabled = true;
+            note.classList.remove('d-none');
+            return;
+        }
+
+        minBaseSelect.disabled = false;
+        minMaxSelect.disabled = false;
+        note.classList.add('d-none');
+    }
+
+    function initPotencyUi() {
+        filtersContainer?.querySelectorAll('.filter-row').forEach(row => {
+            const effectSelect = row.querySelector('.effect-type-select');
+            if (!effectSelect) return;
+
+            if (!effectSelect.dataset.potencyUiBound) {
+                effectSelect.addEventListener('change', () => applyPotencyUiForRow(row));
+                effectSelect.dataset.potencyUiBound = '1';
+            }
+
+            applyPotencyUiForRow(row);
+        });
+    }
+
     function reindexFilters() {
         const rows = filtersContainer.querySelectorAll('.filter-row');
         rows.forEach((row, index) => {
@@ -485,6 +534,9 @@
         const rows = filtersContainer.querySelectorAll('.filter-row');
         if (rows.length >= 10) return;
         const clone = rows[rows.length - 1].cloneNode(true);
+        clone.querySelectorAll('.effect-type-select').forEach(select => {
+            delete select.dataset.potencyUiBound;
+        });
         clone.querySelectorAll('select').forEach((s, idx) => {
             if (idx === 0) {
                 s.value = '';
@@ -494,6 +546,7 @@
         });
         filtersContainer.appendChild(clone);
         reindexFilters();
+        initPotencyUi();
     }
 
     addFilterBtn?.addEventListener('click', addFilterRow);
@@ -505,6 +558,7 @@
         if (!row) return;
         row.remove();
         reindexFilters();
+        initPotencyUi();
     });
 
     form?.addEventListener('submit', () => {
@@ -547,6 +601,7 @@
 
     hydrateOwnedOb();
     hydrateOwnedOutfits();
+    initPotencyUi();
     writeOwnedForSubmit();
 })();
 </script>
