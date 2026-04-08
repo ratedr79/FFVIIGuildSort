@@ -239,7 +239,7 @@ The page mirrors the original support-builder flow with effect selectors, range/
 ### Support Team Builder: Quick Start
 1. Open `/SupportTeamBuilder` and confirm your effect filters.
 2. Click `Build Teams` once to generate initial rankings.
-3. Tune `Owned OB` values in matching weapon cards; rankings auto-refresh after each change.
+3. Tune `Owned OB` values in matching weapon cards and `Owned/Not Owned` in matching outfit cards; rankings auto-refresh after each change.
 
 Quick notes:
 - A beta notice is shown at the top of the page; behavior may continue to evolve.
@@ -256,17 +256,20 @@ Quick notes:
 | Must Have | Character checkboxes | Require selected characters in final teams |
 | Exclude | Character checkboxes | Block selected characters from teams |
 | Owned OB (per weapon) | Not Owned / OB0 / OB1-5 / OB6-9 / OB10 | Weapon availability and potency context |
+| Owned Outfit (per outfit) | Owned / Not Owned | Outfit availability for support matching |
 
 ### Support Team Builder: Quick Walkthrough
 1. Add one or more effect filters.
 2. Choose range and potency thresholds for each filter.
 3. Set maximum characters and optional must-have/exclude character constraints.
 4. Click `Build Teams`.
-5. (Optional) adjust weapon `Owned OB` selectors; team rankings refresh automatically.
+5. (Optional) adjust weapon `Owned OB` and outfit `Owned/Not Owned` selectors; team rankings refresh automatically.
+6. Use `View details` on a weapon to inspect ability text and customization details in the modal.
 
 Notes:
-- Owned OB selections are saved in browser local storage (`support-team-builder-state-v1`).
+- Owned weapon/outfit selections are saved in browser local storage (`support-team-builder-state-v1`).
 - Ranking follows the current support-builder precedence: max potency score, fewer characters, fewer weapons, then base potency score.
+- Ranked team rows now show a character's selected outfit after weapon names when present.
 
 ---
 

@@ -22,6 +22,7 @@
 
     <form method="post" asp-page-handler="Search" id="supportBuilderForm">
         <input type="hidden" asp-for="OwnedObJson" id="ownedObJson" />
+        <input type="hidden" asp-for="OwnedOutfitJson" id="ownedOutfitJson" />
 
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -144,6 +145,9 @@
                             <div class="row g-2 mt-1">
                                 @foreach (var weapon in filterResult.MatchingWeapons.Take(24))
                                 {
+                                    var weaponCustomizationText = string.Join("\n", weapon.Weapon.Customizations
+                                        .Where(c => !string.IsNullOrWhiteSpace(c.Description))
+                                        .Select(c => $"{c.Slot}: {c.Description}"));
                                     <div class="col-md-4 col-lg-3">
                                         <div class="border rounded p-2 h-100">
                                             <div class="small fw-semibold">@weapon.WeaponName</div>
@@ -159,7 +163,8 @@
                                                 data-weapon-range="@weapon.Range"
                                                 data-weapon-base="@weapon.BasePotency"
                                                 data-weapon-max="@weapon.MaxPotency"
-                                                data-weapon-ability="@weapon.AbilityText">
+                                                data-weapon-ability="@weapon.AbilityText"
+                                                data-weapon-customizations="@weaponCustomizationText">
                                                 View details
                                             </button>
                                             <label class="form-label small mt-1 mb-1">Owned OB</label>
@@ -175,6 +180,49 @@
                                 }
                             </div>
                             @if (filterResult.MatchingWeapons.Count > 24)
+                            {
+                                <div class="small text-muted mt-1">Showing first 24 matches.</div>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Matching Outfits by Filter</strong>
+                <span class="badge bg-secondary">@Model.Result.FilterResults.Sum(f => f.MatchingOutfits.Count) outfits</span>
+            </div>
+            <div class="card-body">
+                @foreach (var filterResult in Model.Result.FilterResults)
+                {
+                    <div class="mb-3 pb-2 border-bottom">
+                        <div class="fw-semibold">@filterResult.Filter.EffectType (@filterResult.Filter.Range)</div>
+                        @if (filterResult.MatchingOutfits.Count == 0)
+                        {
+                            <div class="text-muted small">No matches.</div>
+                        }
+                        else
+                        {
+                            <div class="row g-2 mt-1">
+                                @foreach (var outfit in filterResult.MatchingOutfits.Take(24))
+                                {
+                                    <div class="col-md-4 col-lg-3">
+                                        <div class="border rounded p-2 h-100">
+                                            <div class="small fw-semibold">@outfit.OutfitName</div>
+                                            <div class="small text-muted">@outfit.Character • @outfit.Range</div>
+                                            <div class="small text-muted">Base: @outfit.BasePotency / Max: @outfit.MaxPotency</div>
+                                            <label class="form-label small mt-1 mb-1">Owned</label>
+                                            <select class="form-select form-select-sm outfit-owned-select" data-outfit-id="@outfit.OutfitId">
+                                                <option value="1" selected="@(outfit.OwnedSelection == 1)">Owned</option>
+                                                <option value="0" selected="@(outfit.OwnedSelection == 0)">Not Owned</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            @if (filterResult.MatchingOutfits.Count > 24)
                             {
                                 <div class="small text-muted mt-1">Showing first 24 matches.</div>
                             }
@@ -207,6 +255,21 @@
                             <div class="mt-2">
                                 @foreach (var character in team.Characters.Values.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
                                 {
+                                    var mainHandCustomizationText = character.MainHand == null
+                                        ? string.Empty
+                                        : string.Join("\n", character.MainHand.Weapon.Customizations
+                                            .Where(c => !string.IsNullOrWhiteSpace(c.Description))
+                                            .Select(c => $"{c.Slot}: {c.Description}"));
+                                    var offHandCustomizationText = character.OffHand == null
+                                        ? string.Empty
+                                        : string.Join("\n", character.OffHand.Weapon.Customizations
+                                            .Where(c => !string.IsNullOrWhiteSpace(c.Description))
+                                            .Select(c => $"{c.Slot}: {c.Description}"));
+                                    var outfitCustomizationText = character.Outfit == null
+                                        ? string.Empty
+                                        : string.Join("\n", character.Outfit.Outfit.Customizations
+                                            .Where(c => !string.IsNullOrWhiteSpace(c.Description))
+                                            .Select(c => $"{c.Slot}: {c.Description}"));
                                     <div class="small">
                                         <strong>@character.Name:</strong>
                                         @if (character.MainHand != null)
@@ -221,7 +284,8 @@
                                                 data-weapon-range="@character.MainHand.Weapon.Range"
                                                 data-weapon-base="@character.MainHand.BasePotency"
                                                 data-weapon-max="@character.MainHand.MaxPotency"
-                                                data-weapon-ability="@character.MainHand.Weapon.AbilityText">
+                                                data-weapon-ability="@character.MainHand.Weapon.AbilityText"
+                                                data-weapon-customizations="@mainHandCustomizationText">
                                                 @character.MainHand.Weapon.Name
                                             </button>
                                         }
@@ -238,8 +302,28 @@
                                                 data-weapon-range="@character.OffHand.Weapon.Range"
                                                 data-weapon-base="@character.OffHand.BasePotency"
                                                 data-weapon-max="@character.OffHand.MaxPotency"
-                                                data-weapon-ability="@character.OffHand.Weapon.AbilityText">
+                                                data-weapon-ability="@character.OffHand.Weapon.AbilityText"
+                                                data-weapon-customizations="@offHandCustomizationText">
                                                 @character.OffHand.Weapon.Name
+                                            </button>
+                                        }
+
+                                        @if (character.Outfit != null)
+                                        {
+                                            <text> <strong>Outfit:</strong> </text>
+                                            <button
+                                                type="button"
+                                                class="btn btn-link btn-sm p-0 align-baseline weapon-details-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#weaponDetailsModal"
+                                                data-weapon-name="@character.Outfit.Outfit.Name"
+                                                data-weapon-character="@character.Outfit.Outfit.Character"
+                                                data-weapon-range="@character.Outfit.Outfit.Range"
+                                                data-weapon-base="@character.Outfit.BasePotency"
+                                                data-weapon-max="@character.Outfit.MaxPotency"
+                                                data-weapon-ability="@character.Outfit.Outfit.AbilityText"
+                                                data-weapon-customizations="@outfitCustomizationText">
+                                                @character.Outfit.Outfit.Name
                                             </button>
                                         }
                                     </div>
@@ -266,6 +350,8 @@
                 <div class="mb-2"><strong>Potency:</strong> Base <span id="weaponDetailsBase"></span> / Max <span id="weaponDetailsMax"></span></div>
                 <div><strong>Ability:</strong></div>
                 <div id="weaponDetailsAbility" class="small text-muted mt-1" style="white-space: pre-wrap;"></div>
+                <div class="mt-3"><strong>Customizations:</strong></div>
+                <div id="weaponDetailsCustomizations" class="small text-muted mt-1" style="white-space: pre-wrap;"></div>
             </div>
         </div>
     </div>
@@ -277,6 +363,7 @@
     const storageKey = 'support-team-builder-state-v1';
     const form = document.getElementById('supportBuilderForm');
     const ownedObInput = document.getElementById('ownedObJson');
+    const ownedOutfitInput = document.getElementById('ownedOutfitJson');
     const filtersContainer = document.getElementById('filtersContainer');
     const addFilterBtn = document.getElementById('addFilterBtn');
     const weaponDetailsTitle = document.getElementById('weaponDetailsTitle');
@@ -285,14 +372,22 @@
     const weaponDetailsBase = document.getElementById('weaponDetailsBase');
     const weaponDetailsMax = document.getElementById('weaponDetailsMax');
     const weaponDetailsAbility = document.getElementById('weaponDetailsAbility');
+    const weaponDetailsCustomizations = document.getElementById('weaponDetailsCustomizations');
 
     function tryLoadState() {
         try {
             const raw = localStorage.getItem(storageKey);
-            if (!raw) return { ownedObByWeaponId: {} };
-            return JSON.parse(raw);
+            if (!raw) return { ownedObByWeaponId: {}, ownedOutfitById: {} };
+            const parsed = JSON.parse(raw) || {};
+            if (!parsed.ownedObByWeaponId || typeof parsed.ownedObByWeaponId !== 'object') {
+                parsed.ownedObByWeaponId = {};
+            }
+            if (!parsed.ownedOutfitById || typeof parsed.ownedOutfitById !== 'object') {
+                parsed.ownedOutfitById = {};
+            }
+            return parsed;
         } catch {
-            return { ownedObByWeaponId: {} };
+            return { ownedObByWeaponId: {}, ownedOutfitById: {} };
         }
     }
 
@@ -323,17 +418,50 @@
                 const nextState = tryLoadState();
                 nextState.ownedObByWeaponId = collectOwnedOb();
                 saveState(nextState);
-                writeOwnedObForSubmit();
+                writeOwnedForSubmit();
                 form?.requestSubmit();
             });
         });
     }
 
-    function writeOwnedObForSubmit() {
+    function collectOwnedOutfits() {
+        const owned = {};
+        document.querySelectorAll('.outfit-owned-select').forEach(select => {
+            const outfitId = select.getAttribute('data-outfit-id');
+            if (!outfitId) return;
+            owned[outfitId] = Number.parseInt(select.value, 10) || 0;
+        });
+        return owned;
+    }
+
+    function hydrateOwnedOutfits() {
+        const state = tryLoadState();
+        const owned = state.ownedOutfitById || {};
+        document.querySelectorAll('.outfit-owned-select').forEach(select => {
+            const outfitId = select.getAttribute('data-outfit-id');
+            if (!outfitId) return;
+            if (Object.prototype.hasOwnProperty.call(owned, outfitId)) {
+                select.value = String(owned[outfitId]);
+            }
+            select.addEventListener('change', () => {
+                const nextState = tryLoadState();
+                nextState.ownedOutfitById = collectOwnedOutfits();
+                saveState(nextState);
+                writeOwnedForSubmit();
+                form?.requestSubmit();
+            });
+        });
+    }
+
+    function writeOwnedForSubmit() {
         const state = tryLoadState();
         state.ownedObByWeaponId = { ...state.ownedObByWeaponId, ...collectOwnedOb() };
+        state.ownedOutfitById = { ...state.ownedOutfitById, ...collectOwnedOutfits() };
         saveState(state);
         ownedObInput.value = JSON.stringify(state.ownedObByWeaponId || {});
+        if (ownedOutfitInput) {
+            ownedOutfitInput.value = JSON.stringify(state.ownedOutfitById || {});
+        }
     }
 
     function reindexFilters() {
@@ -380,7 +508,7 @@
     });
 
     form?.addEventListener('submit', () => {
-        writeOwnedObForSubmit();
+        writeOwnedForSubmit();
     });
 
     document.addEventListener('click', (e) => {
@@ -410,10 +538,16 @@
         if (weaponDetailsAbility) {
             weaponDetailsAbility.textContent = btn.getAttribute('data-weapon-ability') || '';
         }
+
+        if (weaponDetailsCustomizations) {
+            const customizations = btn.getAttribute('data-weapon-customizations') || '';
+            weaponDetailsCustomizations.textContent = customizations || 'None';
+        }
     });
 
     hydrateOwnedOb();
-    writeOwnedObForSubmit();
+    hydrateOwnedOutfits();
+    writeOwnedForSubmit();
 })();
 </script>
 }

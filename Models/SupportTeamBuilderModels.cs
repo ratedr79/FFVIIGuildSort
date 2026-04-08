@@ -36,6 +36,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public HashSet<string> MustHaveCharacters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> ExcludeCharacters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, int> OwnedObByWeaponId { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, int> OwnedOutfitById { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     public sealed class SupportTeamBuilderOptionData
@@ -61,6 +62,20 @@ namespace FFVIIEverCrisisAnalyzer.Models
     {
         public SupportTeamFilter Filter { get; set; } = new();
         public List<SupportWeaponMatch> MatchingWeapons { get; set; } = new();
+        public List<SupportOutfitMatch> MatchingOutfits { get; set; } = new();
+    }
+
+    public sealed class SupportOutfitMatch
+    {
+        public WeaponSearchItem Outfit { get; set; } = null!;
+        public string OutfitId { get; set; } = string.Empty;
+        public string OutfitName { get; set; } = string.Empty;
+        public string Character { get; set; } = string.Empty;
+        public string Range { get; set; } = string.Empty;
+        public string AbilityText { get; set; } = string.Empty;
+        public SupportPotencyTier BasePotency { get; set; } = SupportPotencyTier.Low;
+        public SupportPotencyTier MaxPotency { get; set; } = SupportPotencyTier.Low;
+        public int OwnedSelection { get; set; } = 1;
     }
 
     public sealed class SupportEquippedWeapon
@@ -77,6 +92,16 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string Name { get; set; } = string.Empty;
         public SupportEquippedWeapon? MainHand { get; set; }
         public SupportEquippedWeapon? OffHand { get; set; }
+        public SupportEquippedOutfit? Outfit { get; set; }
+    }
+
+    public sealed class SupportEquippedOutfit
+    {
+        public WeaponSearchItem Outfit { get; set; } = null!;
+        public int OwnedSelection { get; set; }
+        public List<SupportTeamFilter> MatchedFilters { get; set; } = new();
+        public SupportPotencyTier BasePotency { get; set; } = SupportPotencyTier.Low;
+        public SupportPotencyTier MaxPotency { get; set; } = SupportPotencyTier.Low;
     }
 
     public sealed class SupportTeamResult
@@ -104,7 +129,19 @@ namespace FFVIIEverCrisisAnalyzer.Models
             }
         }
 
+        public IEnumerable<SupportEquippedOutfit> GetEquippedOutfits()
+        {
+            foreach (var character in Characters.Values)
+            {
+                if (character.Outfit != null)
+                {
+                    yield return character.Outfit;
+                }
+            }
+        }
+
         public HashSet<string> GetWeaponNames() => GetEquippedWeapons().Select(w => w.Weapon.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> GetOutfitNames() => GetEquippedOutfits().Select(o => o.Outfit.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     public sealed class SupportTeamBuilderResponse

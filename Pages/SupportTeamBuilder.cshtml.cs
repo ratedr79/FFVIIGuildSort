@@ -33,6 +33,9 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public string OwnedObJson { get; set; } = "{}";
 
+        [BindProperty]
+        public string OwnedOutfitJson { get; set; } = "{}";
+
         public SupportTeamBuilderOptionData Options { get; private set; } = new();
         public SupportTeamBuilderResponse? Result { get; private set; }
 
@@ -56,7 +59,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 MaxCharacterCount = MaxCharacterCount,
                 MustHaveCharacters = MustHaveCharacters.ToHashSet(StringComparer.OrdinalIgnoreCase),
                 ExcludeCharacters = ExcludeCharacters.ToHashSet(StringComparer.OrdinalIgnoreCase),
-                OwnedObByWeaponId = DeserializeOwnedOb(OwnedObJson)
+                OwnedObByWeaponId = DeserializeOwnedOb(OwnedObJson),
+                OwnedOutfitById = DeserializeOwnedOutfits(OwnedOutfitJson)
             };
 
             Result = _service.Search(request);
@@ -88,6 +92,35 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 }
 
                 return new Dictionary<string, int>(parsed, StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private static Dictionary<string, int> DeserializeOwnedOutfits(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+                if (parsed == null)
+                {
+                    return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                }
+
+                var normalized = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in parsed)
+                {
+                    normalized[entry.Key] = Math.Clamp(entry.Value, 0, 1);
+                }
+
+                return normalized;
             }
             catch
             {

@@ -18,7 +18,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             var weapons = _weaponSearchDataService
                 .GetWeapons()
-                .Where(w => !w.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             return new SupportTeamBuilderOptionData
@@ -50,12 +49,26 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return new SupportTeamBuilderResponse();
             }
 
-            var weapons = _weaponSearchDataService
+            var allEntries = _weaponSearchDataService
                 .GetWeapons()
+                .ToList();
+
+            var weapons = allEntries
                 .Where(w => !w.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            var filterResults = filters.Select(filter => FindMatchingWeapons(filter, weapons, request)).ToList();
+            var outfits = allEntries
+                .Where(w => w.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var filterResults = filters
+                .Select(filter => new SupportFilterResult
+                {
+                    Filter = filter,
+                    MatchingWeapons = FindMatchingWeapons(filter, weapons, request),
+                    MatchingOutfits = FindMatchingOutfits(filter, outfits, request)
+                })
+                .ToList();
             var teams = BuildTeams(filterResults, request.MaxCharacterCount, request.ExcludeCharacters);
             teams = FilterMustHaveCharacters(teams, request.MustHaveCharacters);
             teams = FilterDuplicates(teams);
@@ -67,7 +80,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             };
         }
 
-        private SupportFilterResult FindMatchingWeapons(SupportTeamFilter filter, List<WeaponSearchItem> weapons, SupportTeamRequest request)
+        private List<SupportWeaponMatch> FindMatchingWeapons(SupportTeamFilter filter, List<WeaponSearchItem> weapons, SupportTeamRequest request)
         {
             var matching = new List<SupportWeaponMatch>();
 
@@ -79,21 +92,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
 
                 var selectedOb = ResolveOwnedObSelection(weapon.Id, request.OwnedObByWeaponId);
-                if (selectedOb == 0)
-                {
-                    continue;
-                }
-
-                if (!MatchesRange(filter.Range, weapon.Range))
-                {
-                    continue;
-                }
-
                 var snapshot = _weaponSearchDataService.GetWeaponSnapshot(weapon.Id, SelectionToOverboost(selectedOb), 130);
                 var abilityText = snapshot?.AbilityText ?? weapon.AbilityText;
-                var (basePotency, maxPotency) = ParsePotencies(abilityText);
+                var effectCandidates = ExtractEffectLineCandidates(abilityText, filter.EffectType);
+                var candidate = effectCandidates
+                    .Where(c => MatchesRange(filter.Range, c.Range))
+                    .FirstOrDefault(c => c.BasePotency >= filter.MinBasePotency && c.MaxPotency >= filter.MinMaxPotency);
 
-                if (basePotency < filter.MinBasePotency || maxPotency < filter.MinMaxPotency)
+                if (candidate == default)
                 {
                     continue;
                 }
@@ -104,19 +110,55 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     WeaponId = weapon.Id,
                     WeaponName = weapon.Name,
                     Character = weapon.Character,
-                    Range = weapon.Range,
+                    Range = candidate.Range,
                     AbilityText = abilityText,
-                    BasePotency = basePotency,
-                    MaxPotency = maxPotency,
+                    BasePotency = candidate.BasePotency,
+                    MaxPotency = candidate.MaxPotency,
                     OwnedObSelection = selectedOb
                 });
             }
 
-            return new SupportFilterResult
+            return matching;
+        }
+
+        private static List<SupportOutfitMatch> FindMatchingOutfits(SupportTeamFilter filter, List<WeaponSearchItem> outfits, SupportTeamRequest request)
+        {
+            var matching = new List<SupportOutfitMatch>();
+
+            foreach (var outfit in outfits)
             {
-                Filter = filter,
-                MatchingWeapons = matching
-            };
+                if (!outfit.EffectTags.Any(t => t.Equals(filter.EffectType, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                var selected = ResolveOwnedOutfitSelection(outfit.Id, request.OwnedOutfitById);
+                var abilityText = outfit.AbilityText;
+                var effectCandidates = ExtractEffectLineCandidates(abilityText, filter.EffectType);
+                var candidate = effectCandidates
+                    .Where(c => MatchesRange(filter.Range, c.Range))
+                    .FirstOrDefault(c => c.BasePotency >= filter.MinBasePotency && c.MaxPotency >= filter.MinMaxPotency);
+
+                if (candidate == default)
+                {
+                    continue;
+                }
+
+                matching.Add(new SupportOutfitMatch
+                {
+                    Outfit = outfit,
+                    OutfitId = outfit.Id,
+                    OutfitName = outfit.Name,
+                    Character = outfit.Character,
+                    Range = candidate.Range,
+                    AbilityText = abilityText,
+                    BasePotency = candidate.BasePotency,
+                    MaxPotency = candidate.MaxPotency,
+                    OwnedSelection = selected
+                });
+            }
+
+            return matching;
         }
 
         private List<SupportTeamResult> BuildTeams(List<SupportFilterResult> filterResults, int maxCharacterCount, HashSet<string> excludeCharacters)
@@ -129,6 +171,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 foreach (var weaponMatch in filterResult.MatchingWeapons)
                 {
+                    if (weaponMatch.OwnedObSelection == 0)
+                    {
+                        continue;
+                    }
+
                     if (excludeCharacters.Contains(weaponMatch.Character))
                     {
                         continue;
@@ -137,6 +184,28 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     foreach (var existingTeam in teams)
                     {
                         var assigned = AssignWeapon(maxCharacterCount, filterResult.Filter, weaponMatch, existingTeam);
+                        if (assigned != null)
+                        {
+                            nextTeams.Add(assigned);
+                        }
+                    }
+                }
+
+                foreach (var outfitMatch in filterResult.MatchingOutfits)
+                {
+                    if (outfitMatch.OwnedSelection == 0)
+                    {
+                        continue;
+                    }
+
+                    if (excludeCharacters.Contains(outfitMatch.Character))
+                    {
+                        continue;
+                    }
+
+                    foreach (var existingTeam in teams)
+                    {
+                        var assigned = AssignOutfit(maxCharacterCount, filterResult.Filter, outfitMatch, existingTeam);
                         if (assigned != null)
                         {
                             nextTeams.Add(assigned);
@@ -220,11 +289,60 @@ namespace FFVIIEverCrisisAnalyzer.Services
             };
         }
 
+        private static SupportTeamResult? AssignOutfit(int maxCharacterCount, SupportTeamFilter filter, SupportOutfitMatch outfitMatch, SupportTeamResult existingTeam)
+        {
+            var cloned = CloneTeam(existingTeam);
+            var charKey = outfitMatch.Character;
+
+            if (!cloned.Characters.TryGetValue(charKey, out var character))
+            {
+                if (cloned.Characters.Count >= maxCharacterCount)
+                {
+                    return null;
+                }
+
+                cloned.Characters[charKey] = new SupportCharacterAssignment
+                {
+                    Name = outfitMatch.Character,
+                    Outfit = CreateEquippedOutfit(filter, outfitMatch)
+                };
+
+                return cloned;
+            }
+
+            if (character.Outfit == null)
+            {
+                character.Outfit = CreateEquippedOutfit(filter, outfitMatch);
+                return cloned;
+            }
+
+            if (character.Outfit.Outfit.Name.Equals(outfitMatch.OutfitName, StringComparison.OrdinalIgnoreCase))
+            {
+                character.Outfit.MatchedFilters.Add(filter);
+                return cloned;
+            }
+
+            return null;
+        }
+
+        private static SupportEquippedOutfit CreateEquippedOutfit(SupportTeamFilter filter, SupportOutfitMatch outfitMatch)
+        {
+            return new SupportEquippedOutfit
+            {
+                Outfit = outfitMatch.Outfit,
+                OwnedSelection = outfitMatch.OwnedSelection,
+                MatchedFilters = new List<SupportTeamFilter> { filter },
+                BasePotency = outfitMatch.BasePotency,
+                MaxPotency = outfitMatch.MaxPotency
+            };
+        }
+
         private static void ScoreTeam(SupportTeamResult team)
         {
             var equipped = team.GetEquippedWeapons().ToList();
-            team.MaxPotenciesScore = equipped.Sum(w => (int)w.MaxPotency);
-            team.BasePotenciesScore = equipped.Sum(w => (int)w.BasePotency);
+            var equippedOutfits = team.GetEquippedOutfits().ToList();
+            team.MaxPotenciesScore = equipped.Sum(w => (int)w.MaxPotency) + equippedOutfits.Sum(o => (int)o.MaxPotency);
+            team.BasePotenciesScore = equipped.Sum(w => (int)w.BasePotency) + equippedOutfits.Sum(o => (int)o.BasePotency);
             team.CharacterCountScore = -team.Characters.Count;
             team.WeaponCountScore = -equipped.Count;
         }
@@ -248,7 +366,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             foreach (var team in teams)
             {
-                var key = string.Join("|", team.GetWeaponNames().OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+                var weaponKey = string.Join("|", team.GetWeaponNames().OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+                var outfitKey = string.Join("|", team.GetOutfitNames().OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+                var key = $"{weaponKey}||{outfitKey}";
                 if (seen.Add(key))
                 {
                     output.Add(team);
@@ -267,7 +387,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     Name = kvp.Value.Name,
                     MainHand = kvp.Value.MainHand == null ? null : CloneWeapon(kvp.Value.MainHand),
-                    OffHand = kvp.Value.OffHand == null ? null : CloneWeapon(kvp.Value.OffHand)
+                    OffHand = kvp.Value.OffHand == null ? null : CloneWeapon(kvp.Value.OffHand),
+                    Outfit = kvp.Value.Outfit == null ? null : CloneOutfit(kvp.Value.Outfit)
                 };
             }
 
@@ -280,6 +401,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 Weapon = source.Weapon,
                 OwnedObSelection = source.OwnedObSelection,
+                MatchedFilters = source.MatchedFilters.ToList(),
+                BasePotency = source.BasePotency,
+                MaxPotency = source.MaxPotency
+            };
+        }
+
+        private static SupportEquippedOutfit CloneOutfit(SupportEquippedOutfit source)
+        {
+            return new SupportEquippedOutfit
+            {
+                Outfit = source.Outfit,
+                OwnedSelection = source.OwnedSelection,
                 MatchedFilters = source.MatchedFilters.ToList(),
                 BasePotency = source.BasePotency,
                 MaxPotency = source.MaxPotency
@@ -324,6 +457,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return 4;
         }
 
+        private static int ResolveOwnedOutfitSelection(string outfitId, Dictionary<string, int> selected)
+        {
+            if (selected.TryGetValue(outfitId, out var value))
+            {
+                return Math.Clamp(value, 0, 1);
+            }
+
+            return 1;
+        }
+
         private static int SelectionToOverboost(int selection)
         {
             return selection switch
@@ -351,6 +494,81 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return (tiers.Min(), tiers.Max());
+        }
+
+        private static List<EffectLineCandidate> ExtractEffectLineCandidates(string abilityText, string effectType)
+        {
+            var candidates = new List<EffectLineCandidate>();
+            if (string.IsNullOrWhiteSpace(abilityText) || string.IsNullOrWhiteSpace(effectType))
+            {
+                return candidates;
+            }
+
+            var lines = abilityText
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0)
+                .ToList();
+
+            foreach (var line in lines)
+            {
+                if (!line.Contains(effectType, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var range = ExtractBracketValue(line, "Rng.") ?? ExtractBracketValue(line, "Range");
+                if (string.IsNullOrWhiteSpace(range))
+                {
+                    continue;
+                }
+
+                var basePotText = ExtractBracketValue(line, "Pot") ?? "Low";
+                var maxPotText = ExtractBracketValue(line, "Max Pot") ?? basePotText;
+
+                candidates.Add(new EffectLineCandidate
+                {
+                    Range = range,
+                    BasePotency = ParsePotencyToken(basePotText),
+                    MaxPotency = ParsePotencyToken(maxPotText)
+                });
+            }
+
+            return candidates;
+        }
+
+        private static string? ExtractBracketValue(string line, string label)
+        {
+            var start = line.IndexOf($"[{label}:", StringComparison.OrdinalIgnoreCase);
+            if (start < 0)
+            {
+                return null;
+            }
+
+            var valueStart = start + label.Length + 2;
+            var valueEnd = line.IndexOf(']', valueStart);
+            if (valueEnd < 0)
+            {
+                return null;
+            }
+
+            var value = line[valueStart..valueEnd].Trim();
+            return value.Length == 0 ? null : value;
+        }
+
+        private static SupportPotencyTier ParsePotencyToken(string token)
+        {
+            if (token.Contains("Extra High", StringComparison.OrdinalIgnoreCase)) return SupportPotencyTier.ExtraHigh;
+            if (token.Contains("High", StringComparison.OrdinalIgnoreCase)) return SupportPotencyTier.High;
+            if (token.Contains("Mid", StringComparison.OrdinalIgnoreCase)) return SupportPotencyTier.Mid;
+            return SupportPotencyTier.Low;
+        }
+
+        private readonly record struct EffectLineCandidate
+        {
+            public string Range { get; init; }
+            public SupportPotencyTier BasePotency { get; init; }
+            public SupportPotencyTier MaxPotency { get; init; }
         }
     }
 }

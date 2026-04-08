@@ -37,26 +37,31 @@
 - Reload metadata (`LastLoadedUtc`, `ReloadCount`) is displayed on page.
 
 ## Support Team Builder (`/SupportTeamBuilder`)
-- Purpose: build ranked support-team weapon assignments from local UnknownX7 data without Google Sheets.
+- Purpose: build ranked support-team weapon + outfit assignments from local UnknownX7 data without Google Sheets.
 - Data source: `WeaponSearchDataService` (`external/UnknownX7/FF7EC-Data`) via `SupportTeamBuilderService`.
 - UI includes a beta notice banner and an external-link button to the original reference tool (`https://diogocastro.com/ff7ec-support-team-builder/`) for parity checks.
 - Input model:
   - dynamic list of effect filters (`effect`, `range`, `min base potency`, `min max potency`)
   - maximum character count (`1-3`)
   - must-have / exclude character sets
-  - owned-OB selections from browser-local state
+  - owned-OB selections for weapons + owned/not-owned selections for outfits from browser-local state
 - Search/ranking behavior mirrors original support-builder precedence:
-  - build assignments by folding filter matches into team candidates
+  - build assignments by folding both weapon and outfit matches into team candidates
   - reject assignments exceeding 2 weapons per character or max character cap
+  - reject assignments with more than one outfit on the same character
   - score order: `max potency` desc, `character count` asc, `weapon count` asc, `base potency` desc
-  - remove duplicate teams by assigned weapon-name set
+  - outfit potencies contribute to base/max score totals
+  - remove duplicate teams by combined `weapon-name set + outfit-name set`
 - Persistence:
   - browser-local state key: `support-team-builder-state-v1`
-  - stores per-weapon owned OB selections and is posted back as JSON (`OwnedObJson`) on search
+  - stores per-weapon owned OB selections and per-outfit owned selections, posted as JSON (`OwnedObJson`, `OwnedOutfitJson`) on search
 - Interaction details:
-  - changing an `Owned OB` selector auto-submits the search form so ranked-team output refreshes immediately
+  - changing an `Owned OB` or outfit `Owned/Not Owned` selector auto-submits the search form so ranked-team output refreshes immediately
   - matching-weapon cards include a `View details` modal trigger
+  - matching-outfit cards are shown in a parallel `Matching Outfits by Filter` panel
   - ranked-team rows expose both main-hand and off-hand weapons as modal triggers into the same weapon-details dialog
+  - ranked-team rows render selected outfit name after weapons when present
+  - weapon-details modal now includes a customization section under ability text
 
 ## Should I Attack (`/ShouldIAttack`)
 - Purpose: recommend `Attack now` vs `Hold` for one selected player using simulation evidence.

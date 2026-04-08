@@ -65,6 +65,9 @@ All notable changes to this project should be documented in this file.
 - Support Team Builder now includes a top-level external-link action to the original reference builder and a visible beta-status notice.
 - Support Team Builder ranked team rows now allow opening weapon details modal from both main-hand and off-hand weapon names.
 - Data Diagnostics reload flow now performs post-reload catalog re-enrichment (`WeaponCatalog.RefreshFromGearSearch()`) after `WeaponSearchDataService.ReloadData()`.
+- Support Team Builder now includes outfit-aware matching and ranking: per-filter matching outfit results, owned/not-owned outfit state, one-outfit-per-character assignment, outfit-inclusive potency scoring, and duplicate filtering by combined weapon/outfit composition.
+- Support Team Builder ranked-team rows now render selected outfit names after weapons when present.
+- Support Team Builder weapon-details modal now includes customization details beneath ability text.
 
 ### Fixed
 - Weapon customization unlock behavior now enforces `OB1+` in simulation/UI surfaces:
@@ -87,3 +90,5 @@ All notable changes to this project should be documented in this file.
 - Updated `docs/features/other-pages.md` with `Support Team Builder` architecture/data-flow details and leadership reload diagnostics behavior.
 - Updated `README.md` Support Team Builder section with a user-facing quick-start and current UI behavior notes (beta banner, original-tool link, automatic ranking refresh on Owned OB changes).
 - Updated `docs/features/other-pages.md` with technical behavior details for Support Team Builder modal entry points, auto-refresh interactions, and Data Diagnostics post-reload re-enrichment.
+- Updated `README.md` Support Team Builder walkthrough/inputs to document outfit ownership controls, ranked outfit display, and weapon modal customization details.
+- Updated `docs/features/other-pages.md` Support Team Builder internals to cover outfit assignment/scoring/dedupe logic and customization display in weapon details modal.
