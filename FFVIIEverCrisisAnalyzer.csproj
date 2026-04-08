@@ -7,13 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="external\dcastro\**" />
-    <Content Remove="external\dcastro\**" />
-    <EmbeddedResource Remove="external\dcastro\**" />
-    <None Remove="external\dcastro\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.1.0" />
   </ItemGroup>
 
