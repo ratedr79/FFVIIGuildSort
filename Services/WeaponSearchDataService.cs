@@ -820,6 +820,28 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     localization,
                     abilityDetails.DamagePercent);
 
+                var customizationEffectTags = ExtractCustomizationEffectTags(
+                    weapon,
+                    weaponRarities,
+                    weaponEvolves,
+                    weaponEvolveEffects,
+                    weaponEvolveWeaponSkills,
+                    skillWeapons,
+                    skillActives,
+                    skillBases,
+                    skillEffectGroups,
+                    skillEffects,
+                    skillStatusConditionEffects,
+                    skillBuffDebuffs,
+                    skillStatusChangeEffects);
+
+                var allEffectTags = effectTags
+                    .Concat(customizationEffectTags)
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
                 var searchItem = new WeaponSearchItem
                 {
                     Id = weapon.Id.ToString(),
@@ -841,7 +863,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     UpgradeSkills = upgradeSkillData,
                     MaxPassiveSkills = maxPassiveTotals,
                     MaxAbilityDescription = abilityDetails.Text,
-                    EffectTags = effectTags,
+                    EffectTags = allEffectTags,
                     PatkOb10Lv130 = statResult.PhysicalAttack,
                     MatkOb10Lv130 = statResult.MagicalAttack,
                     HealOb10Lv130 = statResult.HealingPower,
@@ -1934,6 +1956,117 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return tags.OrderBy(t => t).ToList();
+        }
+
+        private List<string> ExtractCustomizationEffectTags(
+            WeaponRaw weapon,
+            Dictionary<int, WeaponRarityRaw> weaponRarities,
+            Dictionary<int, List<WeaponEvolveRaw>> weaponEvolves,
+            Dictionary<int, List<WeaponEvolveEffectRaw>> weaponEvolveEffects,
+            Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>> weaponEvolveWeaponSkills,
+            Dictionary<int, SkillWeaponRaw> skillWeapons,
+            Dictionary<int, SkillActiveRaw> skillActives,
+            Dictionary<int, SkillBaseRaw> skillBases,
+            Dictionary<long, List<SkillEffectGroupEntryRaw>> skillEffectGroups,
+            Dictionary<long, SkillEffectRaw> skillEffects,
+            Dictionary<long, SkillStatusConditionEffectRaw> skillStatusConditionEffects,
+            Dictionary<long, SkillBuffDebuffRaw> skillBuffDebuffs,
+            Dictionary<long, SkillStatusChangeEffectRaw> skillStatusChangeEffects)
+        {
+            var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (weapon.WeaponEvolveGroupId == 0)
+            {
+                return tags.OrderBy(t => t, StringComparer.OrdinalIgnoreCase).ToList();
+            }
+
+            if (!weaponRarities.TryGetValue(weapon.Id, out var rarity) || rarity.RarityType < MinCustomizationRarityType)
+            {
+                return tags.OrderBy(t => t, StringComparer.OrdinalIgnoreCase).ToList();
+            }
+
+            if (!weaponEvolves.TryGetValue(weapon.WeaponEvolveGroupId, out var evolveEntries))
+            {
+                return tags.OrderBy(t => t, StringComparer.OrdinalIgnoreCase).ToList();
+            }
+
+            foreach (var evolve in evolveEntries)
+            {
+                if (!weaponEvolveEffects.TryGetValue(evolve.Id, out var effects))
+                {
+                    continue;
+                }
+
+                foreach (var effect in effects.Where(e => e.WeaponEvolveEffectType == 1))
+                {
+                    var skillGroupId = weaponEvolveWeaponSkills.ContainsKey(effect.TargetId)
+                        ? effect.TargetId
+                        : effect.WeaponEvolveId;
+
+                    if (!weaponEvolveWeaponSkills.TryGetValue(skillGroupId, out var upgrades) || upgrades.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (!upgrades.TryGetValue(MaxDisplayUpgradeLevel, out var upgradeEntry))
+                    {
+                        upgradeEntry = upgrades.OrderByDescending(kvp => kvp.Key).First().Value;
+                    }
+
+                    if (!skillWeapons.TryGetValue(upgradeEntry.WeaponSkillId, out var skillWeapon))
+                    {
+                        continue;
+                    }
+
+                    SkillBaseRaw? evolveBase = null;
+                    if (skillWeapon.SkillActiveId != 0 &&
+                        skillActives.TryGetValue(skillWeapon.SkillActiveId, out var active) &&
+                        skillBases.TryGetValue(active.SkillBaseId, out var baseRaw))
+                    {
+                        evolveBase = baseRaw;
+                    }
+
+                    if (evolveBase == null && skillWeapon.SkillActiveId != 0 &&
+                        skillBases.TryGetValue(skillWeapon.SkillActiveId, out var baseFromActiveId))
+                    {
+                        evolveBase = baseFromActiveId;
+                    }
+
+                    if (evolveBase == null && skillBases.TryGetValue(skillWeapon.Id, out var baseByWeaponSkill))
+                    {
+                        evolveBase = baseByWeaponSkill;
+                    }
+
+                    if (evolveBase == null)
+                    {
+                        continue;
+                    }
+
+                    var effectGroupId = (long)evolveBase.SkillEffectGroupId;
+                    var effectEntries = skillEffectGroups.TryGetValue(effectGroupId, out var entries)
+                        ? entries
+                        : new List<SkillEffectGroupEntryRaw>();
+
+                    if (effectEntries.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var extracted = ExtractEffectTags(
+                        effectEntries,
+                        skillEffects,
+                        skillStatusConditionEffects,
+                        skillBuffDebuffs,
+                        skillStatusChangeEffects);
+
+                    foreach (var tag in extracted)
+                    {
+                        tags.Add(tag);
+                    }
+                }
+            }
+
+            return tags.OrderBy(t => t, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         private List<SubRAbilityTag> BuildSubRAbilityTags(
