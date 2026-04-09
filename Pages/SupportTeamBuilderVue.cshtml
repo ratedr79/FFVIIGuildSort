@@ -12,6 +12,32 @@
         </div>
     </div>
 
+    <div class="sticky-action-bar mb-3">
+        <div class="border rounded bg-white shadow-sm px-3 py-2 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-sm btn-success" type="button" v-on:click="runSearch" :disabled="state.loading || !canBuildTeams">
+                    <i class="fas fa-wand-magic-sparkles"></i> Refresh Now
+                </button>
+                <span class="text-muted small" v-if="state.loading">Updating results...</span>
+                <span class="text-muted small" v-else-if="state.isAutoRefreshQueued">Auto-update queued...</span>
+                <span class="text-muted small" v-else-if="state.lastUpdatedText">Updated {{ state.lastUpdatedText }}</span>
+                <span class="text-warning small" v-if="!canBuildTeams">Select at least one effect.</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap" v-if="activeSummaryItems.length > 0">
+                <span class="small text-muted">Active:</span>
+                <span class="badge rounded-pill sticky-summary-pill" v-for="item in stickySummaryItems" :key="`sticky-${item}`">{{ item }}</span>
+                <button
+                    class="btn btn-sm rounded-pill py-0 px-2 sticky-summary-toggle"
+                    type="button"
+                    v-if="canToggleStickySummary"
+                    v-on:click="toggleStickySummary"
+                >
+                    {{ state.showAllStickySummary ? 'Show less' : `+${hiddenStickySummaryCount} more` }}
+                </button>
+            </div>
+        </div>
+    </div>
+
     @Html.AntiForgeryToken()
 
     <div class="card mb-3">
@@ -68,9 +94,11 @@
             </select>
         </div>
         <div class="col-md-9 d-flex align-items-end gap-2">
-            <button class="btn btn-success" type="button" v-on:click="runSearch" :disabled="state.loading"><i class="fas fa-wand-magic-sparkles"></i> Build Teams</button>
+            <button class="btn btn-success" type="button" v-on:click="runSearch" :disabled="state.loading || !canBuildTeams"><i class="fas fa-wand-magic-sparkles"></i> Refresh Now</button>
             <span class="text-muted small" v-if="state.loading">Updating results...</span>
+            <span class="text-muted small" v-else-if="state.isAutoRefreshQueued">Auto-update queued...</span>
             <span class="text-muted small" v-else-if="state.lastUpdatedText">Updated {{ state.lastUpdatedText }}</span>
+            <span class="text-warning small" v-if="!canBuildTeams">Select at least one effect to refresh results.</span>
         </div>
     </div>
 
@@ -82,8 +110,21 @@
             <button class="btn btn-outline-secondary" type="button" v-on:click="triggerImportState">
                 <i class="fas fa-file-import me-1"></i>Import Data
             </button>
+            <button class="btn btn-outline-danger" type="button" v-on:click="resetFiltersAndConstraints">
+                <i class="fas fa-rotate-left me-1"></i>Reset Filters/Constraints
+            </button>
+            <button class="btn btn-outline-danger" type="button" v-on:click="resetOwnership">
+                <i class="fas fa-rotate-left me-1"></i>Reset Ownership
+            </button>
             <input id="supportBuilderImportFile" type="file" class="d-none" accept=".json,application/json" v-on:change="importStateFromFile" />
             <span class="small text-muted align-self-center">Export/import saves filters, constraints, ownership, and panel preferences.</span>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3" v-if="activeSummaryItems.length > 0">
+        <div class="col-12 d-flex flex-wrap align-items-center gap-2">
+            <span class="small text-muted">Active constraints:</span>
+            <span class="badge rounded-pill sticky-summary-pill" v-for="item in activeSummaryItems" :key="item">{{ item }}</span>
         </div>
     </div>
 
@@ -264,7 +305,7 @@
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script>
 (function () {
-    const { createApp, reactive, computed, onMounted, watch } = Vue;
+    const { createApp, reactive, computed, onMounted, onBeforeUnmount, watch } = Vue;
     const storageKey = 'support-team-builder-state-v1';
     const exportSchemaVersion = 1;
     const antiForgeryTokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
@@ -441,6 +482,9 @@
                 error: '',
                 lastUpdatedText: '',
                 lastUpdatedEpochMs: 0,
+                isAutoRefreshQueued: false,
+                isNarrowViewport: window.innerWidth < 768,
+                showAllStickySummary: false,
                 details: {
                     name: '',
                     character: '',
@@ -457,6 +501,7 @@
             let activeSearchController = null;
             let searchSequence = 0;
             let lastUpdatedTimer = null;
+            let hasCompletedInitialLoad = false;
 
             const totalMatchingWeapons = computed(() => {
                 if (!state.result || !Array.isArray(state.result.filterResults)) {
@@ -473,6 +518,58 @@
 
                 return state.result.filterResults.reduce((sum, filterResult) => sum + ((filterResult.matchingOutfits || []).length), 0);
             });
+
+            const selectedEffects = computed(() =>
+                (state.filters || [])
+                    .map(filter => String(filter?.effectType || '').trim())
+                    .filter(effect => effect.length > 0)
+            );
+
+            const canBuildTeams = computed(() => selectedEffects.value.length > 0);
+
+            const activeSummaryItems = computed(() => {
+                const items = [];
+                items.push(`${selectedEffects.value.length} effect filter${selectedEffects.value.length === 1 ? '' : 's'}`);
+                items.push(`Max chars: ${clampInt(state.maxCharacterCount, 1, 3, 2)}`);
+
+                if (state.mustHaveCharacters.length > 0) {
+                    items.push(`Must-have: ${state.mustHaveCharacters.length}`);
+                }
+
+                if (state.excludeCharacters.length > 0) {
+                    items.push(`Exclude: ${state.excludeCharacters.length}`);
+                }
+
+                const customWeaponOwnershipCount = Object.values(state.ownedObByWeaponId || {})
+                    .filter(value => clampInt(value, 0, 4, 0) !== 4)
+                    .length;
+                if (customWeaponOwnershipCount > 0) {
+                    items.push(`Weapon ownership edits: ${customWeaponOwnershipCount}`);
+                }
+
+                const customOutfitOwnershipCount = Object.values(state.ownedOutfitById || {})
+                    .filter(value => clampInt(value, 0, 1, 1) !== 1)
+                    .length;
+                if (customOutfitOwnershipCount > 0) {
+                    items.push(`Outfit ownership edits: ${customOutfitOwnershipCount}`);
+                }
+
+                return items;
+            });
+
+            const stickySummaryItems = computed(() =>
+                state.isNarrowViewport && !state.showAllStickySummary
+                    ? activeSummaryItems.value.slice(0, 2)
+                    : activeSummaryItems.value
+            );
+
+            const hiddenStickySummaryCount = computed(() =>
+                Math.max(0, activeSummaryItems.value.length - 2)
+            );
+
+            const canToggleStickySummary = computed(() =>
+                state.isNarrowViewport && hiddenStickySummaryCount.value > 0
+            );
 
             function slug(text) {
                 return String(text || '').replace(/\s+/g, '_');
@@ -794,23 +891,64 @@
             }
 
             function queueAutoRefresh() {
+                if (!hasCompletedInitialLoad) {
+                    return;
+                }
+
                 if (autoRefreshTimer) {
                     clearTimeout(autoRefreshTimer);
                 }
 
+                state.isAutoRefreshQueued = true;
+
                 autoRefreshTimer = setTimeout(() => {
+                    autoRefreshTimer = null;
+
+                    if (!canBuildTeams.value) {
+                        state.isAutoRefreshQueued = false;
+                        state.result = null;
+                        state.error = '';
+                        state.lastUpdatedEpochMs = 0;
+                        state.lastUpdatedText = '';
+                        return;
+                    }
+
                     runSearch();
-                }, 200);
+                }, 300);
             }
 
             function updateWeaponOwnership(weaponId, value) {
                 state.ownedObByWeaponId[weaponId] = Number.parseInt(value, 10) || 0;
-                queueAutoRefresh();
             }
 
             function updateOutfitOwnership(outfitId, value) {
                 state.ownedOutfitById[outfitId] = Number.parseInt(value, 10) || 0;
-                queueAutoRefresh();
+            }
+
+            function resetFiltersAndConstraints() {
+                if (!window.confirm('Reset all filters and character constraints?')) {
+                    return;
+                }
+
+                state.filters = [createDefaultFilter()];
+                state.maxCharacterCount = 2;
+                state.mustHaveCharacters = [];
+                state.excludeCharacters = [];
+                state.ui.matchingWeaponsVisibleByFilter = {};
+                state.ui.matchingOutfitsVisibleByFilter = {};
+                state.result = null;
+                state.error = '';
+                state.lastUpdatedEpochMs = 0;
+                state.lastUpdatedText = '';
+            }
+
+            function resetOwnership() {
+                if (!window.confirm('Reset all weapon and outfit ownership selections?')) {
+                    return;
+                }
+
+                state.ownedObByWeaponId = {};
+                state.ownedOutfitById = {};
             }
 
             function normalizeFilters() {
@@ -878,6 +1016,21 @@
                 }, 1000);
             }
 
+            function updateViewportState() {
+                state.isNarrowViewport = window.innerWidth < 768;
+                if (!state.isNarrowViewport) {
+                    state.showAllStickySummary = false;
+                }
+            }
+
+            function toggleStickySummary() {
+                if (!canToggleStickySummary.value) {
+                    return;
+                }
+
+                state.showAllStickySummary = !state.showAllStickySummary;
+            }
+
             async function loadOptions() {
                 const response = await fetch('?handler=Options', {
                     method: 'GET',
@@ -914,9 +1067,15 @@
                     activeSearchController.abort();
                 }
 
+                if (autoRefreshTimer) {
+                    clearTimeout(autoRefreshTimer);
+                    autoRefreshTimer = null;
+                }
+
                 activeSearchController = new AbortController();
                 state.loading = true;
                 state.error = '';
+                state.isAutoRefreshQueued = false;
 
                 normalizeFilters();
 
@@ -1005,6 +1164,25 @@
                     state.maxCharacterCount,
                     state.mustHaveCharacters,
                     state.excludeCharacters,
+                    state.ownedObByWeaponId,
+                    state.ownedOutfitById
+                ],
+                () => {
+                    if (!hasCompletedInitialLoad) {
+                        return;
+                    }
+
+                    queueAutoRefresh();
+                },
+                { deep: true }
+            );
+
+            watch(
+                () => [
+                    state.filters,
+                    state.maxCharacterCount,
+                    state.mustHaveCharacters,
+                    state.excludeCharacters,
                     state.ui,
                     state.ownedObByWeaponId,
                     state.ownedOutfitById
@@ -1016,12 +1194,20 @@
             );
 
             onMounted(async () => {
+                updateViewportState();
+                window.addEventListener('resize', updateViewportState);
+
                 try {
                     await loadOptions();
                     await runSearch();
+                    hasCompletedInitialLoad = true;
                 } catch (error) {
                     state.error = error && error.message ? error.message : 'Unexpected initialization error.';
                 }
+            });
+
+            onBeforeUnmount(() => {
+                window.removeEventListener('resize', updateViewportState);
             });
 
             return {
@@ -1030,6 +1216,11 @@
                 potencyOptions,
                 totalMatchingWeapons,
                 totalMatchingOutfits,
+                canBuildTeams,
+                activeSummaryItems,
+                stickySummaryItems,
+                hiddenStickySummaryCount,
+                canToggleStickySummary,
                 addFilter,
                 removeFilter,
                 runSearch,
@@ -1037,6 +1228,9 @@
                 isEffectPotencyApplicable,
                 updateWeaponOwnership,
                 updateOutfitOwnership,
+                resetFiltersAndConstraints,
+                resetOwnership,
+                toggleStickySummary,
                 openDetails,
                 exportStateToFile,
                 triggerImportState,
@@ -1065,5 +1259,36 @@
 </script>
 <style>
 [v-cloak] { display: none; }
+
+.sticky-action-bar {
+    position: sticky;
+    top: 0.75rem;
+    z-index: 1020;
+}
+
+.sticky-summary-pill {
+    background-color: #f8f9fa;
+    color: #212529;
+    border: 1px solid #ced4da;
+}
+
+.sticky-summary-toggle {
+    background-color: #f1f3f5;
+    color: #212529;
+    border: 1px solid #adb5bd;
+}
+
+.sticky-summary-toggle:hover,
+.sticky-summary-toggle:focus {
+    background-color: #e9ecef;
+    color: #212529;
+    border-color: #9aa1a9;
+}
+
+@@media (max-width: 991.98px) {
+    .sticky-action-bar {
+        top: 0.5rem;
+    }
+}
 </style>
 }

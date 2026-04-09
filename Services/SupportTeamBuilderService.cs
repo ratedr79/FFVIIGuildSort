@@ -37,6 +37,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             "Single-Tgt. Phys. Dmg. Rcvd. Up",
             "Torpor",
             "Veil",
+            "Water Damage Bonus",
             "Water Weakness",
             "Water Weapon Boost"
         };
