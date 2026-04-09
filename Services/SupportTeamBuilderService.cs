@@ -8,6 +8,38 @@ namespace FFVIIEverCrisisAnalyzer.Services
     public sealed class SupportTeamBuilderService
     {
         private readonly WeaponSearchDataService _weaponSearchDataService;
+        private static readonly HashSet<string> ManualStatusEffectsWithoutPotency = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "All-Tgt. Phys. Dmg. Rcvd. Up",
+            "Amp. Mag. Abilities",
+            "Amp. Phys. Abilities",
+            "Earth Damage Bonus",
+            "Earth Weakness",
+            "Earth Weapon Boost",
+            "Exploit Weakness",
+            "Fire Damage Bonus",
+            "Fire Weakness",
+            "Fire Weapon Boost",
+            "Ice Damage Bonus",
+            "Ice Weakness",
+            "Ice Weapon Boost",
+            "Lightning Damage Bonus",
+            "Lightning Weapon Boost",
+            "Mag. Damage Bonus",
+            "Mag. Weapon Boost",
+            "Magic Resistance Increased",
+            "Overspeed Gauge",
+            "Phys. Damage Bonus",
+            "Phys. Weapon Boost",
+            "Physical Resistance Increased",
+            "Regen",
+            "Single-Tgt. Mag. Dmg. Rcvd. Up",
+            "Single-Tgt. Phys. Dmg. Rcvd. Up",
+            "Torpor",
+            "Veil",
+            "Water Weakness",
+            "Water Weapon Boost"
+        };
 
         public SupportTeamBuilderService(WeaponSearchDataService weaponSearchDataService)
         {
@@ -30,7 +62,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var effectHasPotency = effectTypes.ToDictionary(effect => effect, _ => false, StringComparer.OrdinalIgnoreCase);
             foreach (var effect in effectTypes)
             {
-                if (effect.Equals("Exploit Weakness", StringComparison.OrdinalIgnoreCase))
+                if (IsManualStatusEffectWithoutPotency(effect))
                 {
                     continue;
                 }
@@ -540,8 +572,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                var basePotRaw = ExtractBracketValue(line, "Pot");
-                var maxPotRaw = ExtractBracketValue(line, "Max Pot");
+                var treatAsStatusEffect = IsManualStatusEffectWithoutPotency(effectType);
+                var basePotRaw = treatAsStatusEffect ? null : ExtractBracketValue(line, "Pot");
+                var maxPotRaw = treatAsStatusEffect ? null : ExtractBracketValue(line, "Max Pot");
                 var basePotText = basePotRaw ?? "Low";
                 var maxPotText = maxPotRaw ?? basePotText;
 
@@ -555,6 +588,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return candidates;
+        }
+
+        private static bool IsManualStatusEffectWithoutPotency(string effectType)
+        {
+            return ManualStatusEffectsWithoutPotency.Contains(effectType);
         }
 
         private static string? ExtractBracketValue(string line, string label)

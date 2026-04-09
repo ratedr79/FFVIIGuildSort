@@ -3,6 +3,14 @@
 @using FFVIIEverCrisisAnalyzer.Models
 @{
     ViewData["Title"] = "Support Team Builder";
+
+    string RangeLabel(SupportFilterRange range) => range switch
+    {
+        SupportFilterRange.All => "All",
+        SupportFilterRange.SingleTargetOrAll => "Single / All",
+        SupportFilterRange.SelfOrSingleTargetOrAll => "Self / Single / All",
+        _ => "All"
+    };
 }
 
 <div class="container mt-4">
@@ -11,9 +19,14 @@
             <h1 class="mb-2"><i class="fas fa-users"></i> Support Team Builder</h1>
             <p class="text-muted mb-0">Build support loadouts from UnknownX7 weapon data. Filters and owned OB selections are stored in your browser.</p>
         </div>
-        <a class="btn btn-outline-primary" href="https://diogocastro.com/ff7ec-support-team-builder/" target="_blank" rel="noopener">
-            <i class="fas fa-arrow-up-right-from-square me-2"></i>Open original FF7EC Support Team Builder
-        </a>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-info" href="/SupportTeamBuilderVue">
+                <i class="fab fa-vuejs me-2"></i>Open Vue Beta
+            </a>
+            <a class="btn btn-outline-primary" href="https://diogocastro.com/ff7ec-support-team-builder/" target="_blank" rel="noopener">
+                <i class="fas fa-arrow-up-right-from-square me-2"></i>Open original FF7EC Support Team Builder
+            </a>
+        </div>
     </div>
 
     <div class="alert alert-warning" role="alert">
@@ -141,7 +154,7 @@
                 @foreach (var filterResult in Model.Result.FilterResults)
                 {
                     <div class="mb-3 pb-2 border-bottom">
-                        <div class="fw-semibold">@filterResult.Filter.EffectType (@filterResult.Filter.Range)</div>
+                        <div><strong>@filterResult.Filter.EffectType</strong> (@RangeLabel(filterResult.Filter.Range))</div>
                         @if (filterResult.MatchingWeapons.Count == 0)
                         {
                             <div class="text-muted small">No matches.</div>
@@ -204,7 +217,7 @@
                 @foreach (var filterResult in Model.Result.FilterResults)
                 {
                     <div class="mb-3 pb-2 border-bottom">
-                        <div class="fw-semibold">@filterResult.Filter.EffectType (@filterResult.Filter.Range)</div>
+                        <div><strong>@filterResult.Filter.EffectType</strong> (@RangeLabel(filterResult.Filter.Range))</div>
                         @if (filterResult.MatchingOutfits.Count == 0)
                         {
                             <div class="text-muted small">No matches.</div>

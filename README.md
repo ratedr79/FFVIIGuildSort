@@ -236,6 +236,10 @@ Builds and ranks support-team weapon combinations from local UnknownX7 data (`ex
 
 The page mirrors the original support-builder flow with effect selectors, range/potency thresholds, character constraints, and ranked team output.
 
+Reactive beta page:
+- `/SupportTeamBuilderVue` hosts a Vue-based client that uses the same backend matching/ranking logic with in-page updates instead of full postback refreshes.
+- `/SupportTeamBuilder` remains available as the legacy Razor-postback implementation during phased migration.
+
 ### Support Team Builder: Quick Start
 1. Open `/SupportTeamBuilder` and confirm your effect filters.
 2. Click `Build Teams` once to generate initial rankings.
@@ -265,6 +269,10 @@ Quick notes:
 4. Click `Build Teams`.
 5. (Optional) adjust weapon `Owned OB` and outfit `Owned/Not Owned` selectors; team rankings refresh automatically.
 6. Use `View details` on a weapon to inspect ability text and customization details in the modal.
+
+Vue beta notes:
+- Ownership selector changes trigger in-page refreshes through API calls (no full page reload).
+- `Build Teams` still performs an explicit full recalculation using your current filter + constraint state.
 
 Notes:
 - Owned weapon/outfit selections are saved in browser local storage (`support-team-builder-state-v1`).

@@ -1,0 +1,1069 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.SupportTeamBuilderVueModel
+@{
+    ViewData["Title"] = "Support Team Builder";
+}
+
+<div class="container mt-4" id="supportTeamBuilderVueApp" v-cloak>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+        <div>
+            <h1 class="mb-2"><i class="fas fa-users"></i> Support Team Builder</h1>
+            <p class="text-muted mb-0">Reactive support-team builder powered by Vue. Uses the same backend scoring and matching logic as the legacy page.</p>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Effect Filters</strong>
+            <button class="btn btn-sm btn-light text-dark border" type="button" v-on:click="addFilter" :disabled="state.filters.length >= 10"><i class="fas fa-plus"></i> Add Filter</button>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 align-items-end filter-row mb-2" v-for="(filter, index) in state.filters" :key="`filter-${index}`">
+                <div class="col-md-4">
+                    <label class="form-label">Effect</label>
+                    <select class="form-select" v-model="filter.effectType" v-on:change="onEffectChanged(filter)">
+                        <option value="">Select an effect...</option>
+                        <option v-for="effect in state.options.effectTypes" :key="effect" :value="effect">{{ effect }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Range</label>
+                    <select class="form-select" v-model.number="filter.range">
+                        <option v-for="option in rangeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Min Base</label>
+                    <select class="form-select" v-model.number="filter.minBasePotency" :disabled="!isEffectPotencyApplicable(filter.effectType)">
+                        <option v-for="option in potencyOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Min Max</label>
+                    <select class="form-select" v-model.number="filter.minMaxPotency" :disabled="!isEffectPotencyApplicable(filter.effectType)">
+                        <option v-for="option in potencyOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-danger w-100" v-on:click="removeFilter(index)" :disabled="state.filters.length <= 1"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="w-100"></div>
+                <div class="col-md-4"></div>
+                <div class="col-md-6">
+                    <div class="form-text text-warning" v-if="filter.effectType && !isEffectPotencyApplicable(filter.effectType)">Potency thresholds are not used for this effect (no Pot/Max Pot data).</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <label class="form-label">Max Characters</label>
+            <select class="form-select" v-model.number="state.maxCharacterCount">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+            </select>
+        </div>
+        <div class="col-md-9 d-flex align-items-end gap-2">
+            <button class="btn btn-success" type="button" v-on:click="runSearch" :disabled="state.loading"><i class="fas fa-wand-magic-sparkles"></i> Build Teams</button>
+            <span class="text-muted small" v-if="state.loading">Updating results...</span>
+            <span class="text-muted small" v-else-if="state.lastUpdatedText">Updated {{ state.lastUpdatedText }}</span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-secondary" type="button" v-on:click="exportStateToFile">
+                <i class="fas fa-file-export me-1"></i>Export Data
+            </button>
+            <button class="btn btn-outline-secondary" type="button" v-on:click="triggerImportState">
+                <i class="fas fa-file-import me-1"></i>Import Data
+            </button>
+            <input id="supportBuilderImportFile" type="file" class="d-none" accept=".json,application/json" v-on:change="importStateFromFile" />
+            <span class="small text-muted align-self-center">Export/import saves filters, constraints, ownership, and panel preferences.</span>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><strong>Character Constraints</strong></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Must Have</label>
+                    <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                        <div class="form-check" v-for="character in state.options.characters" :key="`must-${character}`">
+                            <input class="form-check-input" type="checkbox" :value="character" :id="`must_${slug(character)}`" v-model="state.mustHaveCharacters" />
+                            <label class="form-check-label" :for="`must_${slug(character)}`">{{ character }}</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Exclude</label>
+                    <div class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
+                        <div class="form-check" v-for="character in state.options.characters" :key="`exc-${character}`">
+                            <input class="form-check-input" type="checkbox" :value="character" :id="`exc_${slug(character)}`" v-model="state.excludeCharacters" />
+                            <label class="form-check-label" :for="`exc_${slug(character)}`">{{ character }}</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-danger" role="alert" v-if="state.error">{{ state.error }}</div>
+
+    <template v-if="state.result">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Matching Weapons by Filter</strong>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary">{{ totalMatchingWeapons }} weapons</span>
+                    <span class="small text-muted" v-if="state.loading"><i class="fas fa-spinner fa-spin me-1"></i>Refreshing</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="togglePanel('matchingWeaponsExpanded')">{{ state.ui.panels.matchingWeaponsExpanded ? 'Hide' : 'Show' }}</button>
+                </div>
+            </div>
+            <div class="card-body" v-if="state.ui.panels.matchingWeaponsExpanded">
+                <div class="mb-3 pb-2 border-bottom" v-for="(filterResult, index) in state.result.filterResults" :key="`mw-${index}`">
+                    <div><strong>{{ filterResult.filter.effectType }}</strong> ({{ rangeLabel(filterResult.filter.range) }})</div>
+                    <div class="text-muted small" v-if="!filterResult.matchingWeapons || filterResult.matchingWeapons.length === 0">No matches.</div>
+                    <template v-else>
+                        <div class="row g-2 mt-1">
+                            <div class="col-md-4 col-lg-3" v-for="weapon in filterResult.matchingWeapons.slice(0, visibleWeaponsForFilter(filterResult, index))" :key="weapon.weaponId">
+                                <div class="border rounded p-2 h-100">
+                                    <div class="small fw-semibold">{{ weapon.weaponName }}</div>
+                                    <div class="small text-muted">{{ weapon.character }} • {{ weapon.range }}</div>
+                                    <div class="small text-muted">Base: {{ potencyLabel(weapon.basePotency) }} / Max: {{ potencyLabel(weapon.maxPotency) }}</div>
+                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1" v-on:click="openDetails(weapon.weapon, weapon.character, weapon.range, weapon.basePotency, weapon.maxPotency)">View details</button>
+                                    <label class="form-label small mt-1 mb-1">Owned OB</label>
+                                    <select class="form-select form-select-sm" :value="ownedObFor(weapon.weaponId, weapon.ownedObSelection)" v-on:change="updateWeaponOwnership(weapon.weaponId, $event.target.value)">
+                                        <option value="0">Not Owned</option>
+                                        <option value="1">OB0</option>
+                                        <option value="2">OB1-5</option>
+                                        <option value="3">OB6-9</option>
+                                        <option value="4">OB10</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mt-1" v-if="filterResult.matchingWeapons.length > 24">
+                            <div class="small text-muted">Showing first {{ visibleWeaponsForFilter(filterResult, index) }} matches.</div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowMoreWeapons(filterResult, index)" v-on:click="showMoreWeapons(filterResult, index)">Show 24 more</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowLessWeapons(filterResult, index)" v-on:click="showLessWeapons(filterResult, index)">Show less</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Matching Outfits by Filter</strong>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary">{{ totalMatchingOutfits }} outfits</span>
+                    <span class="small text-muted" v-if="state.loading"><i class="fas fa-spinner fa-spin me-1"></i>Refreshing</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="togglePanel('matchingOutfitsExpanded')">{{ state.ui.panels.matchingOutfitsExpanded ? 'Hide' : 'Show' }}</button>
+                </div>
+            </div>
+            <div class="card-body" v-if="state.ui.panels.matchingOutfitsExpanded">
+                <div class="mb-3 pb-2 border-bottom" v-for="(filterResult, index) in state.result.filterResults" :key="`mo-${index}`">
+                    <div><strong>{{ filterResult.filter.effectType }}</strong> ({{ rangeLabel(filterResult.filter.range) }})</div>
+                    <div class="text-muted small" v-if="!filterResult.matchingOutfits || filterResult.matchingOutfits.length === 0">No matches.</div>
+                    <template v-else>
+                        <div class="row g-2 mt-1">
+                            <div class="col-md-4 col-lg-3" v-for="outfit in filterResult.matchingOutfits.slice(0, visibleOutfitsForFilter(filterResult, index))" :key="outfit.outfitId">
+                                <div class="border rounded p-2 h-100">
+                                    <div class="small fw-semibold">{{ outfit.outfitName }}</div>
+                                    <div class="small text-muted">{{ outfit.character }} • {{ outfit.range }}</div>
+                                    <div class="small text-muted">Base: {{ potencyLabel(outfit.basePotency) }} / Max: {{ potencyLabel(outfit.maxPotency) }}</div>
+                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1" v-on:click="openDetails(outfit.outfit, outfit.character, outfit.range, outfit.basePotency, outfit.maxPotency)">View details</button>
+                                    <label class="form-label small mt-1 mb-1">Owned</label>
+                                    <select class="form-select form-select-sm" :value="ownedOutfitFor(outfit.outfitId, outfit.ownedSelection)" v-on:change="updateOutfitOwnership(outfit.outfitId, $event.target.value)">
+                                        <option value="1">Owned</option>
+                                        <option value="0">Not Owned</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mt-1" v-if="filterResult.matchingOutfits.length > 24">
+                            <div class="small text-muted">Showing first {{ visibleOutfitsForFilter(filterResult, index) }} matches.</div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowMoreOutfits(filterResult, index)" v-on:click="showMoreOutfits(filterResult, index)">Show 24 more</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowLessOutfits(filterResult, index)" v-on:click="showLessOutfits(filterResult, index)">Show less</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Ranked Teams</strong>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary">{{ state.result.teams.length }} teams</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="togglePanel('rankedTeamsExpanded')">{{ state.ui.panels.rankedTeamsExpanded ? 'Hide' : 'Show' }}</button>
+                </div>
+            </div>
+            <div class="card-body" v-if="state.ui.panels.rankedTeamsExpanded">
+                <div class="alert alert-warning mb-0" v-if="state.result.teams.length === 0">No results found. Try reducing potency/range constraints or increasing max character count.</div>
+                <template v-else>
+                    <div class="border rounded p-3 mb-2" v-for="(team, teamIndex) in state.result.teams.slice(0, 25)" :key="`team-${teamIndex}`">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="fw-semibold">Team #{{ teamIndex + 1 }}</div>
+                            <span class="badge bg-dark">Max {{ team.maxPotenciesScore }} • Base {{ team.basePotenciesScore }} • Chars {{ -team.characterCountScore }}</span>
+                        </div>
+                        <div class="mt-2">
+                            <div class="small" v-for="character in sortedCharacters(team.characters)" :key="character.name">
+                                <strong>{{ character.name }}:</strong>
+                                <template v-if="character.mainHand">
+                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline" v-on:click="openDetails(character.mainHand.weapon, character.mainHand.weapon.character, character.mainHand.weapon.range, character.mainHand.basePotency, character.mainHand.maxPotency)">{{ character.mainHand.weapon.name }}</button>
+                                </template>
+                                <template v-if="character.offHand">
+                                    <span> / </span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline" v-on:click="openDetails(character.offHand.weapon, character.offHand.weapon.character, character.offHand.weapon.range, character.offHand.basePotency, character.offHand.maxPotency)">{{ character.offHand.weapon.name }}</button>
+                                </template>
+                                <template v-if="character.outfit">
+                                    <span> <strong>Outfit:</strong> </span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline" v-on:click="openDetails(character.outfit.outfit, character.outfit.outfit.character, character.outfit.outfit.range, character.outfit.basePotency, character.outfit.maxPotency)">{{ character.outfit.outfit.name }}</button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+
+    <div class="modal fade" id="weaponDetailsModalVue" tabindex="-1" aria-labelledby="weaponDetailsTitleVue" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="weaponDetailsTitleVue">{{ state.details.name || 'Weapon Details' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2"><strong>Character:</strong> {{ state.details.character || '' }}</div>
+                    <div class="mb-2"><strong>Range:</strong> {{ state.details.range || '' }}</div>
+                    <div class="mb-2"><strong>Potency:</strong> Base {{ potencyLabel(state.details.basePotency) }} / Max {{ potencyLabel(state.details.maxPotency) }}</div>
+                    <div><strong>Ability:</strong></div>
+                    <div class="small text-muted mt-1" style="white-space: pre-wrap;">{{ state.details.abilityText || '' }}</div>
+                    <div class="mt-3"><strong>Customizations:</strong></div>
+                    <div class="small text-muted mt-1" style="white-space: pre-wrap;">{{ state.details.customizationsText || 'None' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+(function () {
+    const { createApp, reactive, computed, onMounted, watch } = Vue;
+    const storageKey = 'support-team-builder-state-v1';
+    const exportSchemaVersion = 1;
+    const antiForgeryTokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    const antiForgeryToken = antiForgeryTokenInput ? antiForgeryTokenInput.value : '';
+
+    const rangeOptions = [
+        { value: 0, label: 'All' },
+        { value: 1, label: 'Single / All' },
+        { value: 2, label: 'Self / Single / All' }
+    ];
+
+    const potencyOptions = [
+        { value: 1, label: 'Low' },
+        { value: 2, label: 'Mid' },
+        { value: 3, label: 'High' },
+        { value: 4, label: 'ExtraHigh' }
+    ];
+
+    const potencyLabels = {
+        1: 'Low',
+        2: 'Mid',
+        3: 'High',
+        4: 'ExtraHigh'
+    };
+
+    function createDefaultFilter() {
+        return {
+            effectType: '',
+            range: 1,
+            minBasePotency: 1,
+            minMaxPotency: 1
+        };
+    }
+
+    function clampInt(value, min, max, fallback) {
+        const parsed = Number.parseInt(value, 10);
+        if (Number.isNaN(parsed)) {
+            return fallback;
+        }
+
+        return Math.max(min, Math.min(max, parsed));
+    }
+
+    function normalizePersistedFilter(rawFilter) {
+        return {
+            effectType: typeof rawFilter?.effectType === 'string' ? rawFilter.effectType : '',
+            range: clampInt(rawFilter?.range, 0, 2, 1),
+            minBasePotency: clampInt(rawFilter?.minBasePotency, 1, 4, 1),
+            minMaxPotency: clampInt(rawFilter?.minMaxPotency, 1, 4, 1)
+        };
+    }
+
+    function createDefaultUiState() {
+        return {
+            panels: {
+                matchingWeaponsExpanded: true,
+                matchingOutfitsExpanded: true,
+                rankedTeamsExpanded: true
+            },
+            matchingWeaponsVisibleByFilter: {},
+            matchingOutfitsVisibleByFilter: {}
+        };
+    }
+
+    function normalizeVisibleByFilterMap(value) {
+        if (!value || typeof value !== 'object') {
+            return {};
+        }
+
+        const normalized = {};
+        for (const [key, rawCount] of Object.entries(value)) {
+            normalized[key] = Math.max(24, clampInt(rawCount, 24, 240, 24));
+        }
+
+        return normalized;
+    }
+
+    function tryLoadState() {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) {
+                return {
+                    filters: [createDefaultFilter()],
+                    maxCharacterCount: 2,
+                    mustHaveCharacters: [],
+                    excludeCharacters: [],
+                    ui: createDefaultUiState(),
+                    ownedObByWeaponId: {},
+                    ownedOutfitById: {}
+                };
+            }
+
+            const parsed = JSON.parse(raw) || {};
+            if (!Array.isArray(parsed.filters) || parsed.filters.length === 0) {
+                parsed.filters = [createDefaultFilter()];
+            } else {
+                parsed.filters = parsed.filters
+                    .slice(0, 10)
+                    .map(normalizePersistedFilter);
+            }
+            parsed.maxCharacterCount = clampInt(parsed.maxCharacterCount, 1, 3, 2);
+            if (!Array.isArray(parsed.mustHaveCharacters)) {
+                parsed.mustHaveCharacters = [];
+            }
+            if (!Array.isArray(parsed.excludeCharacters)) {
+                parsed.excludeCharacters = [];
+            }
+            const defaultUiState = createDefaultUiState();
+            if (!parsed.ui || typeof parsed.ui !== 'object') {
+                parsed.ui = defaultUiState;
+            }
+
+            parsed.ui.panels = {
+                matchingWeaponsExpanded: parsed.ui.panels?.matchingWeaponsExpanded !== false,
+                matchingOutfitsExpanded: parsed.ui.panels?.matchingOutfitsExpanded !== false,
+                rankedTeamsExpanded: parsed.ui.panels?.rankedTeamsExpanded !== false
+            };
+            parsed.ui.matchingWeaponsVisibleByFilter = normalizeVisibleByFilterMap(parsed.ui.matchingWeaponsVisibleByFilter);
+            parsed.ui.matchingOutfitsVisibleByFilter = normalizeVisibleByFilterMap(parsed.ui.matchingOutfitsVisibleByFilter);
+            if (!parsed.ownedObByWeaponId || typeof parsed.ownedObByWeaponId !== 'object') {
+                parsed.ownedObByWeaponId = {};
+            }
+            if (!parsed.ownedOutfitById || typeof parsed.ownedOutfitById !== 'object') {
+                parsed.ownedOutfitById = {};
+            }
+
+            return parsed;
+        } catch {
+            return {
+                filters: [createDefaultFilter()],
+                maxCharacterCount: 2,
+                mustHaveCharacters: [],
+                excludeCharacters: [],
+                ui: createDefaultUiState(),
+                ownedObByWeaponId: {},
+                ownedOutfitById: {}
+            };
+        }
+    }
+
+    function saveState(state) {
+        localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function toCustomizationText(item) {
+        if (!item || !Array.isArray(item.customizations) || item.customizations.length === 0) {
+            return '';
+        }
+
+        return item.customizations
+            .filter(x => x && x.description)
+            .map(x => `${x.slot}: ${x.description}`)
+            .join('\n');
+    }
+
+    createApp({
+        setup() {
+            const persisted = tryLoadState();
+            const state = reactive({
+                options: {
+                    effectTypes: [],
+                    characters: [],
+                    effectHasPotency: {}
+                },
+                filters: persisted.filters,
+                maxCharacterCount: persisted.maxCharacterCount,
+                mustHaveCharacters: persisted.mustHaveCharacters,
+                excludeCharacters: persisted.excludeCharacters,
+                ui: persisted.ui,
+                ownedObByWeaponId: { ...persisted.ownedObByWeaponId },
+                ownedOutfitById: { ...persisted.ownedOutfitById },
+                result: null,
+                loading: false,
+                error: '',
+                lastUpdatedText: '',
+                lastUpdatedEpochMs: 0,
+                details: {
+                    name: '',
+                    character: '',
+                    range: '',
+                    basePotency: 1,
+                    maxPotency: 1,
+                    abilityText: '',
+                    customizationsText: ''
+                }
+            });
+
+            let detailsModal = null;
+            let autoRefreshTimer = null;
+            let activeSearchController = null;
+            let searchSequence = 0;
+            let lastUpdatedTimer = null;
+
+            const totalMatchingWeapons = computed(() => {
+                if (!state.result || !Array.isArray(state.result.filterResults)) {
+                    return 0;
+                }
+
+                return state.result.filterResults.reduce((sum, filterResult) => sum + ((filterResult.matchingWeapons || []).length), 0);
+            });
+
+            const totalMatchingOutfits = computed(() => {
+                if (!state.result || !Array.isArray(state.result.filterResults)) {
+                    return 0;
+                }
+
+                return state.result.filterResults.reduce((sum, filterResult) => sum + ((filterResult.matchingOutfits || []).length), 0);
+            });
+
+            function slug(text) {
+                return String(text || '').replace(/\s+/g, '_');
+            }
+
+            function potencyLabel(value) {
+                return potencyLabels[value] || 'Low';
+            }
+
+            function rangeLabel(value) {
+                const found = rangeOptions.find(x => Number(x.value) === Number(value));
+                return found ? found.label : 'All';
+            }
+
+            function isEffectPotencyApplicable(effectType) {
+                if (!effectType) {
+                    return true;
+                }
+
+                return !!state.options.effectHasPotency[effectType];
+            }
+
+            function normalizeFilterPotency(filter) {
+                if (!filter) {
+                    return;
+                }
+
+                if (filter.effectType && !isEffectPotencyApplicable(filter.effectType)) {
+                    filter.minBasePotency = 1;
+                    filter.minMaxPotency = 1;
+                }
+            }
+
+            function onEffectChanged(filter) {
+                normalizeFilterPotency(filter);
+            }
+
+            function addFilter() {
+                if (state.filters.length >= 10) {
+                    return;
+                }
+
+                state.filters.push(createDefaultFilter());
+            }
+
+            function removeFilter(index) {
+                if (state.filters.length <= 1) {
+                    return;
+                }
+
+                state.filters.splice(index, 1);
+            }
+
+            function persistState() {
+                saveState({
+                    filters: state.filters.map(normalizePersistedFilter).slice(0, 10),
+                    maxCharacterCount: clampInt(state.maxCharacterCount, 1, 3, 2),
+                    mustHaveCharacters: [...state.mustHaveCharacters],
+                    excludeCharacters: [...state.excludeCharacters],
+                    ui: {
+                        panels: {
+                            matchingWeaponsExpanded: state.ui.panels.matchingWeaponsExpanded !== false,
+                            matchingOutfitsExpanded: state.ui.panels.matchingOutfitsExpanded !== false,
+                            rankedTeamsExpanded: state.ui.panels.rankedTeamsExpanded !== false
+                        },
+                        matchingWeaponsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingWeaponsVisibleByFilter),
+                        matchingOutfitsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingOutfitsVisibleByFilter)
+                    },
+                    ownedObByWeaponId: { ...state.ownedObByWeaponId },
+                    ownedOutfitById: { ...state.ownedOutfitById }
+                });
+            }
+
+            function normalizeOwnershipMap(raw, min, max) {
+                if (!raw || typeof raw !== 'object') {
+                    return {};
+                }
+
+                const normalized = {};
+                for (const [key, value] of Object.entries(raw)) {
+                    if (!key) {
+                        continue;
+                    }
+
+                    normalized[key] = clampInt(value, min, max, min);
+                }
+
+                return normalized;
+            }
+
+            function buildCurrentStateSnapshot() {
+                return {
+                    filters: state.filters.map(normalizePersistedFilter).slice(0, 10),
+                    maxCharacterCount: clampInt(state.maxCharacterCount, 1, 3, 2),
+                    mustHaveCharacters: [...new Set((state.mustHaveCharacters || []).filter(x => typeof x === 'string' && x.trim().length > 0))],
+                    excludeCharacters: [...new Set((state.excludeCharacters || []).filter(x => typeof x === 'string' && x.trim().length > 0))],
+                    ui: {
+                        panels: {
+                            matchingWeaponsExpanded: state.ui.panels.matchingWeaponsExpanded !== false,
+                            matchingOutfitsExpanded: state.ui.panels.matchingOutfitsExpanded !== false,
+                            rankedTeamsExpanded: state.ui.panels.rankedTeamsExpanded !== false
+                        },
+                        matchingWeaponsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingWeaponsVisibleByFilter),
+                        matchingOutfitsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingOutfitsVisibleByFilter)
+                    },
+                    ownedObByWeaponId: normalizeOwnershipMap(state.ownedObByWeaponId, 0, 4),
+                    ownedOutfitById: normalizeOwnershipMap(state.ownedOutfitById, 0, 1)
+                };
+            }
+
+            function createExportPayload() {
+                return {
+                    schema: 'support-team-builder-state',
+                    schemaVersion: exportSchemaVersion,
+                    exportedAtUtc: new Date().toISOString(),
+                    data: buildCurrentStateSnapshot()
+                };
+            }
+
+            function exportStateToFile() {
+                const payload = createExportPayload();
+                const json = JSON.stringify(payload, null, 2);
+                const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+                anchor.href = url;
+                anchor.download = `support-team-builder-state-${stamp}.json`;
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+                URL.revokeObjectURL(url);
+            }
+
+            function triggerImportState() {
+                const input = document.getElementById('supportBuilderImportFile');
+                if (!input) {
+                    return;
+                }
+
+                input.value = '';
+                input.click();
+            }
+
+            function normalizeImportedPayload(rawPayload) {
+                const rawData = rawPayload && typeof rawPayload === 'object' && rawPayload.data && typeof rawPayload.data === 'object'
+                    ? rawPayload.data
+                    : rawPayload;
+
+                const normalized = {
+                    filters: Array.isArray(rawData?.filters)
+                        ? rawData.filters.slice(0, 10).map(normalizePersistedFilter)
+                        : [createDefaultFilter()],
+                    maxCharacterCount: clampInt(rawData?.maxCharacterCount, 1, 3, 2),
+                    mustHaveCharacters: Array.isArray(rawData?.mustHaveCharacters)
+                        ? [...new Set(rawData.mustHaveCharacters.filter(x => typeof x === 'string' && x.trim().length > 0))]
+                        : [],
+                    excludeCharacters: Array.isArray(rawData?.excludeCharacters)
+                        ? [...new Set(rawData.excludeCharacters.filter(x => typeof x === 'string' && x.trim().length > 0))]
+                        : [],
+                    ui: {
+                        panels: {
+                            matchingWeaponsExpanded: rawData?.ui?.panels?.matchingWeaponsExpanded !== false,
+                            matchingOutfitsExpanded: rawData?.ui?.panels?.matchingOutfitsExpanded !== false,
+                            rankedTeamsExpanded: rawData?.ui?.panels?.rankedTeamsExpanded !== false
+                        },
+                        matchingWeaponsVisibleByFilter: normalizeVisibleByFilterMap(rawData?.ui?.matchingWeaponsVisibleByFilter),
+                        matchingOutfitsVisibleByFilter: normalizeVisibleByFilterMap(rawData?.ui?.matchingOutfitsVisibleByFilter)
+                    },
+                    ownedObByWeaponId: normalizeOwnershipMap(rawData?.ownedObByWeaponId, 0, 4),
+                    ownedOutfitById: normalizeOwnershipMap(rawData?.ownedOutfitById, 0, 1)
+                };
+
+                if (normalized.filters.length === 0) {
+                    normalized.filters = [createDefaultFilter()];
+                }
+
+                normalized.excludeCharacters = normalized.excludeCharacters
+                    .filter(character => !normalized.mustHaveCharacters.includes(character));
+
+                return normalized;
+            }
+
+            function applyImportedState(imported) {
+                state.filters = imported.filters;
+                state.maxCharacterCount = imported.maxCharacterCount;
+                state.mustHaveCharacters = imported.mustHaveCharacters;
+                state.excludeCharacters = imported.excludeCharacters;
+                state.ui.panels = imported.ui.panels;
+                state.ui.matchingWeaponsVisibleByFilter = imported.ui.matchingWeaponsVisibleByFilter;
+                state.ui.matchingOutfitsVisibleByFilter = imported.ui.matchingOutfitsVisibleByFilter;
+                state.ownedObByWeaponId = imported.ownedObByWeaponId;
+                state.ownedOutfitById = imported.ownedOutfitById;
+
+                sanitizePersistedSelectionsAgainstOptions();
+                normalizeFilters();
+            }
+
+            async function importStateFromFile(event) {
+                try {
+                    const file = event?.target?.files?.[0];
+                    if (!file) {
+                        return;
+                    }
+
+                    const text = await file.text();
+                    const parsed = JSON.parse(text);
+                    const normalized = normalizeImportedPayload(parsed);
+                    applyImportedState(normalized);
+                    persistState();
+                    state.error = '';
+                    await runSearch();
+                } catch {
+                    state.error = 'Failed to import data. Please use a valid Support Team Builder export JSON file.';
+                } finally {
+                    if (event?.target) {
+                        event.target.value = '';
+                    }
+                }
+            }
+
+            function getFilterPagingKey(filterResult, index) {
+                return `${filterResult?.filter?.effectType || ''}|${filterResult?.filter?.range || 0}|${index}`;
+            }
+
+            function visibleWeaponsForFilter(filterResult, index) {
+                const total = (filterResult.matchingWeapons || []).length;
+                const key = getFilterPagingKey(filterResult, index);
+                const configured = state.ui.matchingWeaponsVisibleByFilter[key] || 24;
+                return Math.min(Math.max(24, configured), total);
+            }
+
+            function visibleOutfitsForFilter(filterResult, index) {
+                const total = (filterResult.matchingOutfits || []).length;
+                const key = getFilterPagingKey(filterResult, index);
+                const configured = state.ui.matchingOutfitsVisibleByFilter[key] || 24;
+                return Math.min(Math.max(24, configured), total);
+            }
+
+            function canShowMoreWeapons(filterResult, index) {
+                return visibleWeaponsForFilter(filterResult, index) < (filterResult.matchingWeapons || []).length;
+            }
+
+            function canShowLessWeapons(filterResult, index) {
+                return visibleWeaponsForFilter(filterResult, index) > 24;
+            }
+
+            function showMoreWeapons(filterResult, index) {
+                const key = getFilterPagingKey(filterResult, index);
+                state.ui.matchingWeaponsVisibleByFilter[key] = visibleWeaponsForFilter(filterResult, index) + 24;
+            }
+
+            function showLessWeapons(filterResult, index) {
+                const key = getFilterPagingKey(filterResult, index);
+                state.ui.matchingWeaponsVisibleByFilter[key] = 24;
+            }
+
+            function canShowMoreOutfits(filterResult, index) {
+                return visibleOutfitsForFilter(filterResult, index) < (filterResult.matchingOutfits || []).length;
+            }
+
+            function canShowLessOutfits(filterResult, index) {
+                return visibleOutfitsForFilter(filterResult, index) > 24;
+            }
+
+            function showMoreOutfits(filterResult, index) {
+                const key = getFilterPagingKey(filterResult, index);
+                state.ui.matchingOutfitsVisibleByFilter[key] = visibleOutfitsForFilter(filterResult, index) + 24;
+            }
+
+            function showLessOutfits(filterResult, index) {
+                const key = getFilterPagingKey(filterResult, index);
+                state.ui.matchingOutfitsVisibleByFilter[key] = 24;
+            }
+
+            function togglePanel(panelName) {
+                state.ui.panels[panelName] = !state.ui.panels[panelName];
+            }
+
+            function prunePagingStateForResult(result) {
+                const nextWeaponMap = {};
+                const nextOutfitMap = {};
+                const filters = Array.isArray(result?.filterResults) ? result.filterResults : [];
+
+                filters.forEach((filterResult, index) => {
+                    const key = getFilterPagingKey(filterResult, index);
+                    const weaponTotal = (filterResult.matchingWeapons || []).length;
+                    const outfitTotal = (filterResult.matchingOutfits || []).length;
+
+                    if (weaponTotal > 24) {
+                        const configured = state.ui.matchingWeaponsVisibleByFilter[key] || 24;
+                        nextWeaponMap[key] = Math.min(Math.max(24, configured), weaponTotal);
+                    }
+
+                    if (outfitTotal > 24) {
+                        const configured = state.ui.matchingOutfitsVisibleByFilter[key] || 24;
+                        nextOutfitMap[key] = Math.min(Math.max(24, configured), outfitTotal);
+                    }
+                });
+
+                state.ui.matchingWeaponsVisibleByFilter = nextWeaponMap;
+                state.ui.matchingOutfitsVisibleByFilter = nextOutfitMap;
+            }
+
+            function ownedObFor(weaponId, fallbackValue) {
+                if (Object.prototype.hasOwnProperty.call(state.ownedObByWeaponId, weaponId)) {
+                    return String(state.ownedObByWeaponId[weaponId]);
+                }
+
+                return String(fallbackValue ?? 4);
+            }
+
+            function ownedOutfitFor(outfitId, fallbackValue) {
+                if (Object.prototype.hasOwnProperty.call(state.ownedOutfitById, outfitId)) {
+                    return String(state.ownedOutfitById[outfitId]);
+                }
+
+                return String(fallbackValue ?? 1);
+            }
+
+            function queueAutoRefresh() {
+                if (autoRefreshTimer) {
+                    clearTimeout(autoRefreshTimer);
+                }
+
+                autoRefreshTimer = setTimeout(() => {
+                    runSearch();
+                }, 200);
+            }
+
+            function updateWeaponOwnership(weaponId, value) {
+                state.ownedObByWeaponId[weaponId] = Number.parseInt(value, 10) || 0;
+                queueAutoRefresh();
+            }
+
+            function updateOutfitOwnership(outfitId, value) {
+                state.ownedOutfitById[outfitId] = Number.parseInt(value, 10) || 0;
+                queueAutoRefresh();
+            }
+
+            function normalizeFilters() {
+                state.filters.forEach(filter => normalizeFilterPotency(filter));
+            }
+
+            function sanitizePersistedSelectionsAgainstOptions() {
+                const effectTypeSet = new Set(state.options.effectTypes || []);
+                state.filters = (state.filters || [])
+                    .slice(0, 10)
+                    .map(filter => {
+                        const normalized = normalizePersistedFilter(filter);
+                        if (normalized.effectType && !effectTypeSet.has(normalized.effectType)) {
+                            normalized.effectType = '';
+                        }
+                        return normalized;
+                    });
+
+                if (state.filters.length === 0) {
+                    state.filters = [createDefaultFilter()];
+                }
+
+                const characters = new Set(state.options.characters || []);
+                const uniqueMustHave = [...new Set((state.mustHaveCharacters || []).filter(c => characters.has(c)))];
+                const uniqueExclude = [...new Set((state.excludeCharacters || []).filter(c => characters.has(c) && !uniqueMustHave.includes(c)))];
+                state.mustHaveCharacters = uniqueMustHave;
+                state.excludeCharacters = uniqueExclude;
+                state.maxCharacterCount = clampInt(state.maxCharacterCount, 1, 3, 2);
+            }
+
+            function computeRelativeTimeText(epochMs) {
+                if (!epochMs) {
+                    return '';
+                }
+
+                const elapsedSeconds = Math.max(0, Math.floor((Date.now() - epochMs) / 1000));
+                if (elapsedSeconds < 5) {
+                    return 'just now';
+                }
+
+                if (elapsedSeconds < 60) {
+                    return `${elapsedSeconds}s ago`;
+                }
+
+                const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+                if (elapsedMinutes < 60) {
+                    return `${elapsedMinutes}m ago`;
+                }
+
+                const elapsedHours = Math.floor(elapsedMinutes / 60);
+                return `${elapsedHours}h ago`;
+            }
+
+            function updateLastUpdatedText() {
+                state.lastUpdatedText = computeRelativeTimeText(state.lastUpdatedEpochMs);
+            }
+
+            function startLastUpdatedTicker() {
+                if (lastUpdatedTimer) {
+                    return;
+                }
+
+                lastUpdatedTimer = setInterval(() => {
+                    updateLastUpdatedText();
+                }, 1000);
+            }
+
+            async function loadOptions() {
+                const response = await fetch('?handler=Options', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load options.');
+                }
+
+                const options = await response.json();
+                state.options.effectTypes = options.effectTypes || [];
+                state.options.characters = options.characters || [];
+                state.options.effectHasPotency = options.effectHasPotency || {};
+                sanitizePersistedSelectionsAgainstOptions();
+                normalizeFilters();
+            }
+
+            async function extractErrorMessage(response, fallbackMessage) {
+                try {
+                    const data = await response.json();
+                    if (data && typeof data.error === 'string' && data.error.trim().length > 0) {
+                        return data.error;
+                    }
+                } catch {
+                }
+
+                return fallbackMessage;
+            }
+
+            async function runSearch() {
+                const currentSearchSequence = ++searchSequence;
+                if (activeSearchController) {
+                    activeSearchController.abort();
+                }
+
+                activeSearchController = new AbortController();
+                state.loading = true;
+                state.error = '';
+
+                normalizeFilters();
+
+                try {
+                    const payload = {
+                        filters: state.filters,
+                        maxCharacterCount: state.maxCharacterCount,
+                        mustHaveCharacters: state.mustHaveCharacters,
+                        excludeCharacters: state.excludeCharacters,
+                        ownedObByWeaponId: state.ownedObByWeaponId,
+                        ownedOutfitById: state.ownedOutfitById
+                    };
+
+                    const response = await fetch('?handler=Search', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        signal: activeSearchController.signal,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': antiForgeryToken
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await extractErrorMessage(response, 'Failed to build teams.');
+                        throw new Error(errorText);
+                    }
+
+                    const nextResult = await response.json();
+                    if (currentSearchSequence !== searchSequence) {
+                        return;
+                    }
+
+                    state.result = nextResult;
+                    prunePagingStateForResult(nextResult);
+                    state.lastUpdatedEpochMs = Date.now();
+                    updateLastUpdatedText();
+                    startLastUpdatedTicker();
+                } catch (error) {
+                    if (error && error.name === 'AbortError') {
+                        return;
+                    }
+
+                    state.error = error && error.message ? error.message : 'Unexpected error while searching.';
+                } finally {
+                    if (currentSearchSequence === searchSequence) {
+                        state.loading = false;
+                    }
+                }
+            }
+
+            function openDetails(item, character, range, basePotency, maxPotency) {
+                state.details.name = item?.name || 'Weapon Details';
+                state.details.character = character || item?.character || '';
+                state.details.range = range || item?.range || '';
+                state.details.basePotency = Number(basePotency || 1);
+                state.details.maxPotency = Number(maxPotency || 1);
+                state.details.abilityText = item?.abilityText || '';
+                state.details.customizationsText = toCustomizationText(item) || 'None';
+
+                if (!detailsModal) {
+                    const modalElement = document.getElementById('weaponDetailsModalVue');
+                    if (modalElement) {
+                        detailsModal = new bootstrap.Modal(modalElement);
+                    }
+                }
+
+                if (detailsModal) {
+                    detailsModal.show();
+                }
+            }
+
+            function sortedCharacters(charactersMap) {
+                if (!charactersMap) {
+                    return [];
+                }
+
+                return Object.values(charactersMap)
+                    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+            }
+
+            watch(
+                () => [
+                    state.filters,
+                    state.maxCharacterCount,
+                    state.mustHaveCharacters,
+                    state.excludeCharacters,
+                    state.ui,
+                    state.ownedObByWeaponId,
+                    state.ownedOutfitById
+                ],
+                () => {
+                    persistState();
+                },
+                { deep: true }
+            );
+
+            onMounted(async () => {
+                try {
+                    await loadOptions();
+                    await runSearch();
+                } catch (error) {
+                    state.error = error && error.message ? error.message : 'Unexpected initialization error.';
+                }
+            });
+
+            return {
+                state,
+                rangeOptions,
+                potencyOptions,
+                totalMatchingWeapons,
+                totalMatchingOutfits,
+                addFilter,
+                removeFilter,
+                runSearch,
+                onEffectChanged,
+                isEffectPotencyApplicable,
+                updateWeaponOwnership,
+                updateOutfitOwnership,
+                openDetails,
+                exportStateToFile,
+                triggerImportState,
+                importStateFromFile,
+                togglePanel,
+                potencyLabel,
+                rangeLabel,
+                visibleWeaponsForFilter,
+                visibleOutfitsForFilter,
+                canShowMoreWeapons,
+                canShowLessWeapons,
+                showMoreWeapons,
+                showLessWeapons,
+                canShowMoreOutfits,
+                canShowLessOutfits,
+                showMoreOutfits,
+                showLessOutfits,
+                ownedObFor,
+                ownedOutfitFor,
+                sortedCharacters,
+                slug
+            };
+        }
+    }).mount('#supportTeamBuilderVueApp');
+})();
+</script>
+<style>
+[v-cloak] { display: none; }
+</style>
+}

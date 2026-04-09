@@ -65,6 +65,19 @@
   - ranked-team rows render selected outfit name after weapons when present
   - weapon-details modal now includes a customization section under ability text
 
+## Support Team Builder Vue Beta (`/SupportTeamBuilderVue`)
+- Purpose: phased reactive migration of Support Team Builder using a Vue client while preserving backend scoring/matching parity.
+- Host pattern: Razor page shell + Vue app mounted client-side (hybrid approach).
+- API handlers on same page model (`SupportTeamBuilderVue.cshtml.cs`):
+  - `GET ?handler=Options` -> `SupportTeamBuilderOptionData`
+  - `POST ?handler=Search` -> `SupportTeamBuilderResponse`
+- Backend logic remains centralized in `SupportTeamBuilderService` (no ranking logic duplicated in client).
+- Client behavior:
+  - in-page fetch updates for search results and ownership changes (no full postback reload)
+  - local storage key reuse: `support-team-builder-state-v1`
+  - same potency-applicability UX rules and Exploit Weakness non-potency override behavior
+  - same matching panels, ranked-team rendering, and weapon/outfit details modal content
+
 ## Should I Attack (`/ShouldIAttack`)
 - Purpose: recommend `Attack now` vs `Hold` for one selected player using simulation evidence.
 - Data source: selected guild sheet from `GoogleSheets:GuildBattleSheets`.
