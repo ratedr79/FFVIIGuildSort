@@ -13,10 +13,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
     public sealed class SupportTeamBuilderVueModel : PageModel
     {
         private readonly SupportTeamBuilderService _service;
+        private readonly SupportTeamPresetCatalog _presetCatalog;
 
-        public SupportTeamBuilderVueModel(SupportTeamBuilderService service)
+        public SupportTeamBuilderVueModel(SupportTeamBuilderService service, SupportTeamPresetCatalog presetCatalog)
         {
             _service = service;
+            _presetCatalog = presetCatalog;
         }
 
         public void OnGet()
@@ -25,7 +27,9 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
         public JsonResult OnGetOptions()
         {
-            return new JsonResult(_service.GetOptionData());
+            var options = _service.GetOptionData();
+            options.Presets = _presetCatalog.GetPresets();
+            return new JsonResult(options);
         }
 
         public async Task<IActionResult> OnPostSearchAsync()

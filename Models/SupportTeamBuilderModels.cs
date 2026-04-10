@@ -44,6 +44,18 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<string> EffectTypes { get; set; } = new();
         public List<string> Characters { get; set; } = new();
         public Dictionary<string, bool> EffectHasPotency { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<SupportTeamPreset> Presets { get; set; } = new();
+    }
+
+    public sealed class SupportTeamPreset
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<string> Effects { get; set; } = new();
+    }
+
+    public sealed class SupportTeamPresetConfiguration
+    {
+        public List<SupportTeamPreset> Presets { get; set; } = new();
     }
 
     public sealed class SupportWeaponMatch

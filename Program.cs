@@ -22,6 +22,7 @@ builder.Services.AddSingleton<StagePointEstimator>();
 builder.Services.AddSingleton<IDispatcherRunner, DispatcherRunnerService>();
 builder.Services.AddScoped<ShouldIAttackService>();
 builder.Services.AddSingleton<SupportTeamBuilderService>();
+builder.Services.AddSingleton<SupportTeamPresetCatalog>();
 builder.Services.Configure<SharedAccessOptions>(builder.Configuration.GetSection(SharedAccessOptions.SectionName));
 builder.Services.AddSingleton<SharedAccessGate>();
 

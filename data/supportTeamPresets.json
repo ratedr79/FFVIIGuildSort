@@ -1,0 +1,94 @@
+{
+  "presets": [
+    {
+      "name": "Magic Water",
+      "effects": [
+        "MATK Up",
+        "MDEF Down",
+        "Water Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Magic Fire",
+      "effects": [
+        "MATK Up",
+        "MDEF Down",
+        "Fire Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Magic Earth",
+      "effects": [
+        "MATK Up",
+        "MDEF Down",
+        "Earth Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Magic Wind",
+      "effects": [
+        "MATK Up",
+        "MDEF Down",
+        "Wind Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Magic Lightning",
+      "effects": [
+        "MATK Up",
+        "MDEF Down",
+        "Lightning Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Phys. Water",
+      "effects": [
+        "PATK Up",
+        "PDEF Down",
+        "Water Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Phys. Fire",
+      "effects": [
+        "PATK Up",
+        "PDEF Down",
+        "Fire Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Phys. Earth",
+      "effects": [
+        "PATK Up",
+        "PDEF Down",
+        "Earth Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Phys. Wind",
+      "effects": [
+        "PATK Up",
+        "PDEF Down",
+        "Wind Resistance Down",
+        "Exploit Weakness"
+      ]
+    },
+    {
+      "name": "Phys. Lightning",
+      "effects": [
+        "PATK Up",
+        "PDEF Down",
+        "Lightning Resistance Down",
+        "Exploit Weakness"
+      ]
+    }
+  ]
+}

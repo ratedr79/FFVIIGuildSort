@@ -18,10 +18,7 @@
                 <button class="btn btn-sm btn-success" type="button" v-on:click="runSearch" :disabled="state.loading || !canBuildTeams">
                     <i class="fas fa-wand-magic-sparkles"></i> Refresh Now
                 </button>
-                <span class="text-muted small" v-if="state.loading">Updating results...</span>
-                <span class="text-muted small" v-else-if="state.isAutoRefreshQueued">Auto-update queued...</span>
-                <span class="text-muted small" v-else-if="state.lastUpdatedText">Updated {{ state.lastUpdatedText }}</span>
-                <span class="text-warning small" v-if="!canBuildTeams">Select at least one effect.</span>
+                <span class="badge rounded-pill refresh-status-chip" :class="`refresh-status-${refreshStatus.tone}`">{{ refreshStatus.text }}</span>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap" v-if="activeSummaryItems.length > 0">
                 <span class="small text-muted">Active:</span>
@@ -38,15 +35,62 @@
         </div>
     </div>
 
+    <div class="alert alert-warning" role="alert" v-if="hasRestrictiveConstraintsWarning">
+        No ranked teams found with current constraints. Try reducing filters/potency limits, removing must-have requirements, or increasing max characters.
+    </div>
+
+    <div class="d-flex gap-2 mb-3" v-if="state.result">
+        <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="setAllPanelsExpanded(true)">Expand all panels</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="setAllPanelsExpanded(false)">Collapse all panels</button>
+    </div>
+
     @Html.AntiForgeryToken()
 
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Effect Filters</strong>
-            <button class="btn btn-sm btn-light text-dark border" type="button" v-on:click="addFilter" :disabled="state.filters.length >= 10"><i class="fas fa-plus"></i> Add Filter</button>
         </div>
         <div class="card-body">
-            <div class="row g-2 align-items-end filter-row mb-2" v-for="(filter, index) in state.filters" :key="`filter-${index}`">
+            <div class="mb-3" v-if="state.options.presets.length > 0">
+                <div class="small text-muted mb-1">Presets</div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        class="btn btn-sm preset-btn"
+                        v-for="preset in state.options.presets"
+                        :key="`preset-${preset.name}`"
+                        v-on:click="applyPreset(preset)"
+                    >
+                        {{ preset.name }}
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                    <span class="small text-muted">Preset apply mode:</span>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Preset apply mode">
+                        <button
+                            type="button"
+                            class="btn"
+                            :class="state.ui.presetApplyMode === 'replace' ? 'btn-primary' : 'btn-outline-secondary'"
+                            v-on:click="setPresetApplyMode('replace')"
+                        >
+                            Replace filters
+                        </button>
+                        <button
+                            type="button"
+                            class="btn"
+                            :class="state.ui.presetApplyMode === 'append' ? 'btn-primary' : 'btn-outline-secondary'"
+                            v-on:click="setPresetApplyMode('append')"
+                        >
+                            Append missing
+                        </button>
+                    </div>
+                </div>
+                <div class="small text-muted mt-1">
+                    Replace filters swaps your current list with the preset. Append missing keeps existing filters and adds any preset effects not already selected.
+                </div>
+            </div>
+
+            <div class="row g-2 align-items-end filter-row mb-2 filter-row-card" v-for="(filter, index) in state.filters" :key="`filter-${index}`">
                 <div class="col-md-4">
                     <label class="form-label">Effect</label>
                     <select class="form-select" v-model="filter.effectType" v-on:change="onEffectChanged(filter)">
@@ -80,6 +124,19 @@
                 <div class="col-md-6">
                     <div class="form-text text-warning" v-if="filter.effectType && !isEffectPotencyApplicable(filter.effectType)">Potency thresholds are not used for this effect (no Pot/Max Pot data).</div>
                 </div>
+                <div class="col-md-2 d-flex justify-content-md-end">
+                    <span class="badge filter-validation-badge bg-warning-subtle text-dark" v-if="!filter.effectType">No effect selected</span>
+                    <span class="badge filter-validation-badge bg-info-subtle text-dark" v-else-if="!isEffectPotencyApplicable(filter.effectType)">Potency ignored</span>
+                </div>
+                <div class="col-12" v-if="filter.effectType && filterResultSummary(filter)">
+                    <div class="small text-muted">
+                        Matches: {{ filterResultSummary(filter).matchingWeapons }} weapons • {{ filterResultSummary(filter).matchingOutfits }} outfits
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <button class="btn btn-sm btn-light text-dark border" type="button" v-on:click="addFilter" :disabled="state.filters.length >= 10"><i class="fas fa-plus"></i> Add Filter</button>
             </div>
         </div>
     </div>
@@ -93,12 +150,8 @@
                 <option value="3">3</option>
             </select>
         </div>
-        <div class="col-md-9 d-flex align-items-end gap-2">
-            <button class="btn btn-success" type="button" v-on:click="runSearch" :disabled="state.loading || !canBuildTeams"><i class="fas fa-wand-magic-sparkles"></i> Refresh Now</button>
-            <span class="text-muted small" v-if="state.loading">Updating results...</span>
-            <span class="text-muted small" v-else-if="state.isAutoRefreshQueued">Auto-update queued...</span>
-            <span class="text-muted small" v-else-if="state.lastUpdatedText">Updated {{ state.lastUpdatedText }}</span>
-            <span class="text-warning small" v-if="!canBuildTeams">Select at least one effect to refresh results.</span>
+        <div class="col-md-9 d-flex align-items-end">
+            <span class="text-muted small">Results auto-update when filters, constraints, or ownership change. Use <strong>Refresh Now</strong> if you want to force an immediate refresh.</span>
         </div>
     </div>
 
@@ -110,12 +163,15 @@
             <button class="btn btn-outline-secondary" type="button" v-on:click="triggerImportState">
                 <i class="fas fa-file-import me-1"></i>Import Data
             </button>
-            <button class="btn btn-outline-danger" type="button" v-on:click="resetFiltersAndConstraints">
-                <i class="fas fa-rotate-left me-1"></i>Reset Filters/Constraints
-            </button>
-            <button class="btn btn-outline-danger" type="button" v-on:click="resetOwnership">
-                <i class="fas fa-rotate-left me-1"></i>Reset Ownership
-            </button>
+            <div class="btn-group">
+                <button class="btn btn-outline-danger dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-triangle-exclamation me-1"></i>Reset
+                </button>
+                <ul class="dropdown-menu">
+                    <li><button class="dropdown-item text-danger" type="button" v-on:click="resetFiltersAndConstraints">Reset Filters/Constraints</button></li>
+                    <li><button class="dropdown-item text-danger" type="button" v-on:click="resetOwnership">Reset Ownership</button></li>
+                </ul>
+            </div>
             <input id="supportBuilderImportFile" type="file" class="d-none" accept=".json,application/json" v-on:change="importStateFromFile" />
             <span class="small text-muted align-self-center">Export/import saves filters, constraints, ownership, and panel preferences.</span>
         </div>
@@ -156,6 +212,27 @@
 
     <div class="alert alert-danger" role="alert" v-if="state.error">{{ state.error }}</div>
 
+    <div class="row g-2 mb-3" v-if="state.result">
+        <div class="col-md-4">
+            <div class="border rounded p-2 result-snapshot-card">
+                <div class="small text-muted">Matching Weapons</div>
+                <div class="fw-semibold">{{ totalMatchingWeapons }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded p-2 result-snapshot-card">
+                <div class="small text-muted">Matching Outfits</div>
+                <div class="fw-semibold">{{ totalMatchingOutfits }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded p-2 result-snapshot-card">
+                <div class="small text-muted">Ranked Teams</div>
+                <div class="fw-semibold">{{ state.result.teams.length }}</div>
+            </div>
+        </div>
+    </div>
+
     <template v-if="state.result">
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -163,7 +240,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-secondary">{{ totalMatchingWeapons }} weapons</span>
                     <span class="small text-muted" v-if="state.loading"><i class="fas fa-spinner fa-spin me-1"></i>Refreshing</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="togglePanel('matchingWeaponsExpanded')">{{ state.ui.panels.matchingWeaponsExpanded ? 'Hide' : 'Show' }}</button>
+                    <button type="button" class="btn btn-sm panel-toggle-btn" v-on:click="togglePanel('matchingWeaponsExpanded')">{{ state.ui.panels.matchingWeaponsExpanded ? 'Hide' : 'Show' }}</button>
                 </div>
             </div>
             <div class="card-body" v-if="state.ui.panels.matchingWeaponsExpanded">
@@ -189,11 +266,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="d-flex align-items-center justify-content-between mt-1" v-if="filterResult.matchingWeapons.length > 24">
+                        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-1" v-if="filterResult.matchingWeapons.length > 24">
                             <div class="small text-muted">Showing first {{ visibleWeaponsForFilter(filterResult, index) }} matches.</div>
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowMoreWeapons(filterResult, index)" v-on:click="showMoreWeapons(filterResult, index)">Show 24 more</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowLessWeapons(filterResult, index)" v-on:click="showLessWeapons(filterResult, index)">Show less</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary paging-control-btn" v-if="canShowMoreWeapons(filterResult, index)" v-on:click="showMoreWeapons(filterResult, index)">Show 24 more</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary paging-control-btn" v-if="canShowLessWeapons(filterResult, index)" v-on:click="showLessWeapons(filterResult, index)">Show less</button>
                             </div>
                         </div>
                     </template>
@@ -207,7 +284,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-secondary">{{ totalMatchingOutfits }} outfits</span>
                     <span class="small text-muted" v-if="state.loading"><i class="fas fa-spinner fa-spin me-1"></i>Refreshing</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="togglePanel('matchingOutfitsExpanded')">{{ state.ui.panels.matchingOutfitsExpanded ? 'Hide' : 'Show' }}</button>
+                    <button type="button" class="btn btn-sm panel-toggle-btn" v-on:click="togglePanel('matchingOutfitsExpanded')">{{ state.ui.panels.matchingOutfitsExpanded ? 'Hide' : 'Show' }}</button>
                 </div>
             </div>
             <div class="card-body" v-if="state.ui.panels.matchingOutfitsExpanded">
@@ -230,11 +307,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="d-flex align-items-center justify-content-between mt-1" v-if="filterResult.matchingOutfits.length > 24">
+                        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-1" v-if="filterResult.matchingOutfits.length > 24">
                             <div class="small text-muted">Showing first {{ visibleOutfitsForFilter(filterResult, index) }} matches.</div>
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowMoreOutfits(filterResult, index)" v-on:click="showMoreOutfits(filterResult, index)">Show 24 more</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" v-if="canShowLessOutfits(filterResult, index)" v-on:click="showLessOutfits(filterResult, index)">Show less</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary paging-control-btn" v-if="canShowMoreOutfits(filterResult, index)" v-on:click="showMoreOutfits(filterResult, index)">Show 24 more</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary paging-control-btn" v-if="canShowLessOutfits(filterResult, index)" v-on:click="showLessOutfits(filterResult, index)">Show less</button>
                             </div>
                         </div>
                     </template>
@@ -247,7 +324,7 @@
                 <strong>Ranked Teams</strong>
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-primary">{{ state.result.teams.length }} teams</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="togglePanel('rankedTeamsExpanded')">{{ state.ui.panels.rankedTeamsExpanded ? 'Hide' : 'Show' }}</button>
+                    <button type="button" class="btn btn-sm panel-toggle-btn" v-on:click="togglePanel('rankedTeamsExpanded')">{{ state.ui.panels.rankedTeamsExpanded ? 'Hide' : 'Show' }}</button>
                 </div>
             </div>
             <div class="card-body" v-if="state.ui.panels.rankedTeamsExpanded">
@@ -365,6 +442,7 @@
                 matchingOutfitsExpanded: true,
                 rankedTeamsExpanded: true
             },
+            presetApplyMode: 'replace',
             matchingWeaponsVisibleByFilter: {},
             matchingOutfitsVisibleByFilter: {}
         };
@@ -423,6 +501,7 @@
                 matchingOutfitsExpanded: parsed.ui.panels?.matchingOutfitsExpanded !== false,
                 rankedTeamsExpanded: parsed.ui.panels?.rankedTeamsExpanded !== false
             };
+            parsed.ui.presetApplyMode = parsed.ui.presetApplyMode === 'append' ? 'append' : 'replace';
             parsed.ui.matchingWeaponsVisibleByFilter = normalizeVisibleByFilterMap(parsed.ui.matchingWeaponsVisibleByFilter);
             parsed.ui.matchingOutfitsVisibleByFilter = normalizeVisibleByFilterMap(parsed.ui.matchingOutfitsVisibleByFilter);
             if (!parsed.ownedObByWeaponId || typeof parsed.ownedObByWeaponId !== 'object') {
@@ -468,7 +547,8 @@
                 options: {
                     effectTypes: [],
                     characters: [],
-                    effectHasPotency: {}
+                    effectHasPotency: {},
+                    presets: []
                 },
                 filters: persisted.filters,
                 maxCharacterCount: persisted.maxCharacterCount,
@@ -527,6 +607,26 @@
 
             const canBuildTeams = computed(() => selectedEffects.value.length > 0);
 
+            const refreshStatus = computed(() => {
+                if (!canBuildTeams.value) {
+                    return { tone: 'warning', text: 'Select at least one effect to refresh results.' };
+                }
+
+                if (state.loading) {
+                    return { tone: 'working', text: 'Updating results...' };
+                }
+
+                if (state.isAutoRefreshQueued) {
+                    return { tone: 'queued', text: 'Auto-update queued...' };
+                }
+
+                if (state.lastUpdatedText) {
+                    return { tone: 'updated', text: `Updated ${state.lastUpdatedText}` };
+                }
+
+                return { tone: 'idle', text: 'Ready to refresh.' };
+            });
+
             const activeSummaryItems = computed(() => {
                 const items = [];
                 items.push(`${selectedEffects.value.length} effect filter${selectedEffects.value.length === 1 ? '' : 's'}`);
@@ -556,6 +656,31 @@
 
                 return items;
             });
+
+            const filterResultSummaryMap = computed(() => {
+                const map = {};
+                const filterResults = state.result?.filterResults || [];
+                for (const filterResult of filterResults) {
+                    const filter = filterResult?.filter;
+                    if (!filter || !filter.effectType) {
+                        continue;
+                    }
+
+                    const key = `${filter.effectType}|${filter.range}|${filter.minBasePotency}|${filter.minMaxPotency}`;
+                    map[key] = {
+                        matchingWeapons: (filterResult.matchingWeapons || []).length,
+                        matchingOutfits: (filterResult.matchingOutfits || []).length
+                    };
+                }
+
+                return map;
+            });
+
+            const hasRestrictiveConstraintsWarning = computed(() =>
+                canBuildTeams.value
+                && !!state.result
+                && state.result.teams.length === 0
+            );
 
             const stickySummaryItems = computed(() =>
                 state.isNarrowViewport && !state.showAllStickySummary
@@ -607,6 +732,53 @@
                 normalizeFilterPotency(filter);
             }
 
+            function buildFilterFromEffect(effectType) {
+                const filter = createDefaultFilter();
+                filter.effectType = effectType;
+                normalizeFilterPotency(filter);
+                return filter;
+            }
+
+            function applyPreset(preset) {
+                if (!preset || !Array.isArray(preset.effects)) {
+                    return;
+                }
+
+                const availableEffects = new Set(state.options.effectTypes || []);
+                const effects = [...new Set(
+                    preset.effects
+                        .filter(effect => typeof effect === 'string' && effect.trim().length > 0)
+                        .map(effect => effect.trim())
+                        .filter(effect => availableEffects.has(effect))
+                )].slice(0, 10);
+
+                if (effects.length === 0) {
+                    return;
+                }
+
+                if (state.ui.presetApplyMode === 'append') {
+                    const existingEffects = new Set((state.filters || []).map(filter => String(filter?.effectType || '').trim()).filter(Boolean));
+                    const nextFilters = [...(state.filters || []).map(normalizePersistedFilter)];
+                    for (const effect of effects) {
+                        if (existingEffects.has(effect) || nextFilters.length >= 10) {
+                            continue;
+                        }
+
+                        nextFilters.push(buildFilterFromEffect(effect));
+                        existingEffects.add(effect);
+                    }
+
+                    state.filters = nextFilters.length > 0 ? nextFilters : [createDefaultFilter()];
+                    return;
+                }
+
+                state.filters = effects.map(buildFilterFromEffect);
+            }
+
+            function setPresetApplyMode(mode) {
+                state.ui.presetApplyMode = mode === 'append' ? 'append' : 'replace';
+            }
+
             function addFilter() {
                 if (state.filters.length >= 10) {
                     return;
@@ -635,6 +807,7 @@
                             matchingOutfitsExpanded: state.ui.panels.matchingOutfitsExpanded !== false,
                             rankedTeamsExpanded: state.ui.panels.rankedTeamsExpanded !== false
                         },
+                        presetApplyMode: state.ui.presetApplyMode === 'append' ? 'append' : 'replace',
                         matchingWeaponsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingWeaponsVisibleByFilter),
                         matchingOutfitsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingOutfitsVisibleByFilter)
                     },
@@ -672,6 +845,7 @@
                             matchingOutfitsExpanded: state.ui.panels.matchingOutfitsExpanded !== false,
                             rankedTeamsExpanded: state.ui.panels.rankedTeamsExpanded !== false
                         },
+                        presetApplyMode: state.ui.presetApplyMode === 'append' ? 'append' : 'replace',
                         matchingWeaponsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingWeaponsVisibleByFilter),
                         matchingOutfitsVisibleByFilter: normalizeVisibleByFilterMap(state.ui.matchingOutfitsVisibleByFilter)
                     },
@@ -736,6 +910,7 @@
                             matchingOutfitsExpanded: rawData?.ui?.panels?.matchingOutfitsExpanded !== false,
                             rankedTeamsExpanded: rawData?.ui?.panels?.rankedTeamsExpanded !== false
                         },
+                        presetApplyMode: rawData?.ui?.presetApplyMode === 'append' ? 'append' : 'replace',
                         matchingWeaponsVisibleByFilter: normalizeVisibleByFilterMap(rawData?.ui?.matchingWeaponsVisibleByFilter),
                         matchingOutfitsVisibleByFilter: normalizeVisibleByFilterMap(rawData?.ui?.matchingOutfitsVisibleByFilter)
                     },
@@ -759,6 +934,7 @@
                 state.mustHaveCharacters = imported.mustHaveCharacters;
                 state.excludeCharacters = imported.excludeCharacters;
                 state.ui.panels = imported.ui.panels;
+                state.ui.presetApplyMode = imported.ui.presetApplyMode === 'append' ? 'append' : 'replace';
                 state.ui.matchingWeaponsVisibleByFilter = imported.ui.matchingWeaponsVisibleByFilter;
                 state.ui.matchingOutfitsVisibleByFilter = imported.ui.matchingOutfitsVisibleByFilter;
                 state.ownedObByWeaponId = imported.ownedObByWeaponId;
@@ -847,6 +1023,21 @@
 
             function togglePanel(panelName) {
                 state.ui.panels[panelName] = !state.ui.panels[panelName];
+            }
+
+            function setAllPanelsExpanded(expanded) {
+                state.ui.panels.matchingWeaponsExpanded = expanded;
+                state.ui.panels.matchingOutfitsExpanded = expanded;
+                state.ui.panels.rankedTeamsExpanded = expanded;
+            }
+
+            function filterResultSummary(filter) {
+                if (!filter || !filter.effectType) {
+                    return null;
+                }
+
+                const key = `${filter.effectType}|${filter.range}|${filter.minBasePotency}|${filter.minMaxPotency}`;
+                return filterResultSummaryMap.value[key] || { matchingWeapons: 0, matchingOutfits: 0 };
             }
 
             function prunePagingStateForResult(result) {
@@ -1045,6 +1236,7 @@
                 state.options.effectTypes = options.effectTypes || [];
                 state.options.characters = options.characters || [];
                 state.options.effectHasPotency = options.effectHasPotency || {};
+                state.options.presets = Array.isArray(options.presets) ? options.presets : [];
                 sanitizePersistedSelectionsAgainstOptions();
                 normalizeFilters();
             }
@@ -1217,10 +1409,14 @@
                 totalMatchingWeapons,
                 totalMatchingOutfits,
                 canBuildTeams,
+                refreshStatus,
                 activeSummaryItems,
+                hasRestrictiveConstraintsWarning,
                 stickySummaryItems,
                 hiddenStickySummaryCount,
                 canToggleStickySummary,
+                applyPreset,
+                setPresetApplyMode,
                 addFilter,
                 removeFilter,
                 runSearch,
@@ -1236,6 +1432,8 @@
                 triggerImportState,
                 importStateFromFile,
                 togglePanel,
+                setAllPanelsExpanded,
+                filterResultSummary,
                 potencyLabel,
                 rangeLabel,
                 visibleWeaponsForFilter,
@@ -1285,9 +1483,94 @@
     border-color: #9aa1a9;
 }
 
+.preset-btn {
+    background-color: #eef2ff;
+    color: #1f3b8a;
+    border: 1px solid #c7d2fe;
+}
+
+.preset-btn:hover,
+.preset-btn:focus {
+    background-color: #e0e7ff;
+    color: #1e40af;
+    border-color: #a5b4fc;
+}
+
+.filter-row-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background-color: #fcfcfd;
+}
+
+.filter-validation-badge {
+    font-weight: 500;
+}
+
+.result-snapshot-card {
+    background-color: #f8f9fa;
+}
+
+.refresh-status-chip {
+    border: 1px solid transparent;
+    font-weight: 500;
+}
+
+.refresh-status-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+    border-color: #ffecb5;
+}
+
+.refresh-status-working {
+    background-color: #cff4fc;
+    color: #055160;
+    border-color: #b6effb;
+}
+
+.refresh-status-queued {
+    background-color: #e2e3e5;
+    color: #41464b;
+    border-color: #d3d6d8;
+}
+
+.refresh-status-updated {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border-color: #badbcc;
+}
+
+.refresh-status-idle {
+    background-color: #f8f9fa;
+    color: #212529;
+    border-color: #ced4da;
+}
+
+.panel-toggle-btn {
+    background-color: #f8f9fa;
+    color: #212529;
+    border: 1px solid #ced4da;
+}
+
+.panel-toggle-btn:hover,
+.panel-toggle-btn:focus {
+    background-color: #e9ecef;
+    color: #212529;
+    border-color: #adb5bd;
+}
+
+.paging-control-btn {
+    min-height: 2rem;
+    font-weight: 500;
+}
+
 @@media (max-width: 991.98px) {
     .sticky-action-bar {
         top: 0.5rem;
+    }
+
+    .paging-control-btn {
+        min-height: 2.25rem;
     }
 }
 </style>
