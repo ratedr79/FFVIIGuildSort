@@ -22,6 +22,7 @@ public sealed class DataDiagnosticsModel : PageModel
     public List<string> CostumesNotEnriched { get; private set; } = new();
     public List<string> CostumesEnriched { get; private set; } = new();
     public List<WeaponSearchDataService.PassiveSkillTypeDiagnosticRow> PassiveSkillTypeDiagnostics { get; private set; } = new();
+    public List<CharacterIdGapDiagnosticGroup> CharacterIdGapDiagnostics { get; private set; } = new();
     public bool ReloadSucceeded { get; private set; }
     public string ReloadMessage { get; private set; } = string.Empty;
     public DateTimeOffset LastLoadedUtc => _weaponSearchData.LastLoadedUtc;
@@ -64,6 +65,7 @@ public sealed class DataDiagnosticsModel : PageModel
         }
 
         PassiveSkillTypeDiagnostics = _weaponSearchData.GetPassiveSkillTypeDiagnostics().ToList();
+        CharacterIdGapDiagnostics = BuildCharacterIdGapDiagnostics();
     }
 
     public IActionResult OnPostReloadData()
@@ -88,5 +90,115 @@ public sealed class DataDiagnosticsModel : PageModel
 
         OnGet();
         return Page();
+    }
+
+    private List<CharacterIdGapDiagnosticGroup> BuildCharacterIdGapDiagnostics()
+    {
+        var allItems = _weaponSearchData.GetWeapons();
+        return allItems
+            .GroupBy(item => item.Character, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var costumeItems = group.Where(item => item.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase));
+                var weaponItems = group.Where(item => !item.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase));
+
+                return new CharacterIdGapDiagnosticGroup
+                {
+                    CharacterName = group.Key,
+                    CostumeRows = BuildIdRows(costumeItems),
+                    WeaponRows = BuildIdRows(weaponItems)
+                };
+            })
+            .ToList();
+    }
+
+    private static List<CharacterIdGapDiagnosticRow> BuildIdRows(IEnumerable<FFVIIEverCrisisAnalyzer.Models.WeaponSearchItem> items)
+    {
+        var idToName = items
+            .Select(item =>
+            {
+                var parsed = TryExtractNumericId(item.Id, out var id);
+                return new { Parsed = parsed, Id = id, item.Name };
+            })
+            .Where(entry => entry.Parsed)
+            .GroupBy(entry => entry.Id)
+            .OrderBy(group => group.Key)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .Select(x => x.Name)
+                    .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
+                    ?? string.Empty);
+
+        if (idToName.Count == 0)
+        {
+            return new List<CharacterIdGapDiagnosticRow>();
+        }
+
+        var minId = idToName.Keys.Min();
+        var maxId = idToName.Keys.Max();
+        var rows = new List<CharacterIdGapDiagnosticRow>(maxId - minId + 1);
+        for (var currentId = minId; currentId <= maxId; currentId++)
+        {
+            if (idToName.TryGetValue(currentId, out var name))
+            {
+                rows.Add(new CharacterIdGapDiagnosticRow
+                {
+                    Id = currentId,
+                    Name = name,
+                    IsMissing = false
+                });
+
+                continue;
+            }
+
+            rows.Add(new CharacterIdGapDiagnosticRow
+            {
+                Id = currentId,
+                Name = "MISSING",
+                IsMissing = true
+            });
+        }
+
+        return rows;
+    }
+
+    private static bool TryExtractNumericId(string? rawId, out int id)
+    {
+        id = 0;
+        if (string.IsNullOrWhiteSpace(rawId))
+        {
+            return false;
+        }
+
+        if (int.TryParse(rawId, out id))
+        {
+            return true;
+        }
+
+        var segments = rawId.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length == 0)
+        {
+            return false;
+        }
+
+        return int.TryParse(segments[^1], out id);
+    }
+
+    public sealed class CharacterIdGapDiagnosticGroup
+    {
+        public string CharacterName { get; set; } = string.Empty;
+        public List<CharacterIdGapDiagnosticRow> CostumeRows { get; set; } = new();
+        public List<CharacterIdGapDiagnosticRow> WeaponRows { get; set; } = new();
+        public int MissingCostumeCount => CostumeRows.Count(row => row.IsMissing);
+        public int MissingWeaponCount => WeaponRows.Count(row => row.IsMissing);
+    }
+
+    public sealed class CharacterIdGapDiagnosticRow
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public bool IsMissing { get; set; }
     }
 }

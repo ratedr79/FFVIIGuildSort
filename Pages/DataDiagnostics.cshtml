@@ -191,5 +191,118 @@
                 </div>
             </div>
         </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#characterIdGapDiagnosticsCollapse" aria-expanded="false" aria-controls="characterIdGapDiagnosticsCollapse">
+                    Character weapon/costume ID sequence diagnostics (@Model.CharacterIdGapDiagnostics.Count)
+                </button>
+            </h2>
+            <div id="characterIdGapDiagnosticsCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+                <div class="accordion-body">
+                    <div class="small text-muted mb-2">Shows each character's weapon/costume numeric ID timeline and inserts explicit <code>MISSING</code> rows where IDs are skipped.</div>
+                    @if (Model.CharacterIdGapDiagnostics.Count == 0)
+                    {
+                        <div class="text-muted">No character ID sequence diagnostics available.</div>
+                    }
+                    else
+                    {
+                        <div class="accordion" id="characterIdGapAccordion">
+                            @for (var index = 0; index < Model.CharacterIdGapDiagnostics.Count; index++)
+                            {
+                                var group = Model.CharacterIdGapDiagnostics[index];
+                                var headingId = $"characterIdGapHeading{index}";
+                                var collapseId = $"characterIdGapCollapse{index}";
+                                <div class="accordion-item mb-2">
+                                    <h3 class="accordion-header" id="@headingId">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="true" aria-controls="@collapseId">
+                                            @group.CharacterName
+                                            <span class="ms-2 small text-muted">(Costume missing: @group.MissingCostumeCount, Weapon missing: @group.MissingWeaponCount)</span>
+                                        </button>
+                                    </h3>
+                                    <div id="@collapseId" class="accordion-collapse collapse show" aria-labelledby="@headingId">
+                                        <div class="accordion-body">
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" id="showMissingOnly-@index" onchange="toggleMissingRows(@index, this.checked)">
+                                                <label class="form-check-label small" for="showMissingOnly-@index">Show only missing</label>
+                                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-lg-6">
+                                                    <h4 class="h6 mb-2">Costumes</h4>
+                                                    @if (group.CostumeRows.Count == 0)
+                                                    {
+                                                        <div class="text-muted small">No costume IDs found.</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <ul class="list-unstyled mb-0 small">
+                                                            @foreach (var row in group.CostumeRows)
+                                                            {
+                                                                <li class="id-gap-row @(row.IsMissing ? "missing-row" : "present-row")" data-character-index="@index">
+                                                                    <span class="font-monospace">@row.Id:</span>
+                                                                    @if (row.IsMissing)
+                                                                    {
+                                                                        <span class="text-danger fw-semibold">MISSING</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span>@row.Name</span>
+                                                                    }
+                                                                </li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <h4 class="h6 mb-2">Weapons</h4>
+                                                    @if (group.WeaponRows.Count == 0)
+                                                    {
+                                                        <div class="text-muted small">No weapon IDs found.</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <ul class="list-unstyled mb-0 small">
+                                                            @foreach (var row in group.WeaponRows)
+                                                            {
+                                                                <li class="id-gap-row @(row.IsMissing ? "missing-row" : "present-row")" data-character-index="@index">
+                                                                    <span class="font-monospace">@row.Id:</span>
+                                                                    @if (row.IsMissing)
+                                                                    {
+                                                                        <span class="text-danger fw-semibold">MISSING</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span>@row.Name</span>
+                                                                    }
+                                                                </li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+    function toggleMissingRows(characterIndex, showOnlyMissing) {
+        const selector = `.id-gap-row.present-row[data-character-index="${characterIndex}"]`;
+        const rows = document.querySelectorAll(selector);
+        rows.forEach(row => {
+            if (showOnlyMissing) {
+                row.classList.add('d-none');
+                return;
+            }
+
+            row.classList.remove('d-none');
+        });
+    }
+</script>

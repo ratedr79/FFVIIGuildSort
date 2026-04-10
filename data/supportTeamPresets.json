@@ -89,6 +89,18 @@
         "Lightning Resistance Down",
         "Exploit Weakness"
       ]
+    },
+    {
+      "name": "DR 2: Demon Masamune",
+      "effects": [
+        "MATK Up",
+        "MDEF Down",
+        "Water Resistance Down",
+        "Exploit Weakness",
+        "Water Damage Up",
+        "Water Damage Bonus",
+        "Mag. Damage Bonus"
+      ]
     }
   ]
 }
