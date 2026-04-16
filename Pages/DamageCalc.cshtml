@@ -1,0 +1,427 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.DamageCalcModel
+@{
+    ViewData["Title"] = "Damage Calc";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-3"><i class="fas fa-bolt"></i> Damage Calc</h1>
+
+    <form id="damageCalcForm" method="post" asp-page-handler="Calculate" class="card mb-3 dc-form-shell dc-form-with-sticky" novalidate>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <strong>Damage Inputs</strong>
+            <span class="small">Follow sections top to bottom</span>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">Use percent values as whole numbers or up to 2 decimals (for example: <code>30</code> or <code>30.25</code> for 30% / 30.25%).</p>
+            <div class="dc-quickstart mb-3">
+                <span class="dc-chip dc-chip-priority">Start here</span>
+                Fill required combat stats first, then add optional multipliers as needed.
+            </div>
+
+            <div class="accordion dc-accordion" id="damageCalcAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingCore">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCore" aria-expanded="true" aria-controls="collapseCore">
+                            1. Core Attack Setup
+                        </button>
+                    </h2>
+                    <div id="collapseCore" class="accordion-collapse collapse show" aria-labelledby="headingCore" data-bs-parent="#damageCalcAccordion">
+                        <div class="accordion-body">
+                            <p class="dc-section-hint">Required baseline inputs for every calculation.</p>
+                            <div class="row g-3 mb-3">
+                                <div class="col-12 col-md-4"><label class="form-label dc-priority-label" for="Input_DamageType">Damage Type <span class="dc-chip dc-chip-priority">Required</span></label><select class="form-select" id="Input_DamageType" asp-for="Input.DamageType"><option>Physical</option><option>Magical</option><option>Physical/Magical</option></select><div class="form-text">Physical: <code>P.Atk</code> + <code>Enemy PDEF</code>; Magical: <code>M.Atk</code> + <code>Enemy MDEF</code>; Physical/Magical: all four.</div></div>
+                                <div class="col-6 col-md-4"><label class="form-label dc-priority-label dc-mode-label" for="Input_PhysicalAttackStat">P.Atk <span class="dc-chip dc-chip-mode">Mode-based</span></label><input class="form-control" type="number" step="1" id="Input_PhysicalAttackStat" asp-for="Input.PhysicalAttackStat" /></div>
+                                <div class="col-6 col-md-4"><label class="form-label dc-priority-label dc-mode-label" for="Input_MagicalAttackStat">M.Atk <span class="dc-chip dc-chip-mode">Mode-based</span></label><input class="form-control" type="number" step="1" id="Input_MagicalAttackStat" asp-for="Input.MagicalAttackStat" /></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-0">
+                                <div class="col-12 col-md-4"><label class="form-label dc-priority-label" for="Input_WeaponAbilityPotency">Weapon C.Ability Potency <span class="dc-chip dc-chip-priority">Required</span></label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_WeaponAbilityPotency" asp-for="Input.WeaponAbilityPotency" required /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_HighwindWeaponPotencyBonus">Highwind Wpn C. Ability Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_HighwindWeaponPotencyBonus" asp-for="Input.HighwindWeaponPotencyBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_SumElementalPotencyFromMateria">Sum Elemental Potency from Materia</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_SumElementalPotencyFromMateria" asp-for="Input.SumElementalPotencyFromMateria" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingBuild">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBuild" aria-expanded="false" aria-controls="collapseBuild">
+                            2. Build Multipliers
+                        </button>
+                    </h2>
+                    <div id="collapseBuild" class="accordion-collapse collapse" aria-labelledby="headingBuild" data-bs-parent="#damageCalcAccordion">
+                        <div class="accordion-body">
+                            <p class="dc-section-hint">Common build multipliers that usually matter most after core stats.</p>
+                            <h6 class="mb-2">R.Ability</h6>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_AbilityPotencyTier">Ability Potency</label><select class="form-select" id="Input_AbilityPotencyTier" asp-for="Input.AbilityPotencyTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.AbilityPotencyTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_PhysicalAbilityPotencyTier">Phys. Ability Potency</label><select class="form-select" id="Input_PhysicalAbilityPotencyTier" asp-for="Input.PhysicalAbilityPotencyTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.PhysicalMagicalAbilityPotencyTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_MagicalAbilityPotencyTier">Mag. Ability Potency</label><select class="form-select" id="Input_MagicalAbilityPotencyTier" asp-for="Input.MagicalAbilityPotencyTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.PhysicalMagicalAbilityPotencyTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_ElementalPotencyTier">Elemental Potency</label><select class="form-select" id="Input_ElementalPotencyTier" asp-for="Input.ElementalPotencyTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.ElementalPotencyTierOptions){<option value="@option">@option</option>}</select></div>
+                            </div>
+
+                            <h6 class="mb-2">Outfit / Memoria / Overspeed</h6>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_OutfitAbilityBonus">Outfit Ability</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_OutfitAbilityBonus" asp-for="Input.OutfitAbilityBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_OutfitPhysCmdStanceBonus">Outfit Phys Cmd Stance Dmg</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_OutfitPhysCmdStanceBonus" asp-for="Input.OutfitPhysCmdStanceBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_OutfitMagCmdStanceBonus">Outfit Mag Cmd Stance Dmg</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_OutfitMagCmdStanceBonus" asp-for="Input.OutfitMagCmdStanceBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_BoostElementalPotAllies">Boost Elemental Pot (All Allies)</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_BoostElementalPotAllies" asp-for="Input.BoostElementalPotAllies" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_MemoriaElementalPotencyBonus">Memoria Elemental Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_MemoriaElementalPotencyBonus" asp-for="Input.MemoriaElementalPotencyBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_MemoriaPhysicalAbilityBonus">Memoria Phys Ability Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_MemoriaPhysicalAbilityBonus" asp-for="Input.MemoriaPhysicalAbilityBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_MemoriaMagicalAbilityBonus">Memoria Mag Ability Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_MemoriaMagicalAbilityBonus" asp-for="Input.MemoriaMagicalAbilityBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_MemoriaSpeciesPotencyBonus">Memoria Species Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_MemoriaSpeciesPotencyBonus" asp-for="Input.MemoriaSpeciesPotencyBonus" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-0">
+                                <div class="col-12 col-md-6"><label class="form-label" for="Input_OverspeedPassiveElementalPotency">Overspeed Passive Elemental Potency</label><select class="form-select" id="Input_OverspeedPassiveElementalPotency" asp-for="Input.OverspeedPassiveElementalPotency"><option value="0">0%</option><option value="10">10%</option></select></div>
+                                <div class="col-12 col-md-6"><label class="form-label" for="Input_OverspeedBuffTier">Overspeed Buff</label><select class="form-select" id="Input_OverspeedBuffTier" asp-for="Input.OverspeedBuffTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.OverspeedBuffTierOptions){<option value="@option">@option</option>}</select></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingEnemy">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEnemy" aria-expanded="false" aria-controls="collapseEnemy">
+                            3. Enemy & Debuffs
+                        </button>
+                    </h2>
+                    <div id="collapseEnemy" class="accordion-collapse collapse" aria-labelledby="headingEnemy" data-bs-parent="#damageCalcAccordion">
+                        <div class="accordion-body">
+                            <p class="dc-section-hint">Enemy defenses and debuffs. Set these before comparing builds.</p>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-6 col-md-3"><label class="form-label dc-priority-label dc-mode-label" for="Input_EnemyPhysicalDefense">Enemy PDEF <span class="dc-chip dc-chip-mode">Mode-based</span></label><input class="form-control" type="number" step="1" id="Input_EnemyPhysicalDefense" asp-for="Input.EnemyPhysicalDefense" /></div>
+                                <div class="col-6 col-md-3"><label class="form-label dc-priority-label dc-mode-label" for="Input_EnemyMagicDefense">Enemy MDEF <span class="dc-chip dc-chip-mode">Mode-based</span></label><input class="form-control" type="number" step="1" id="Input_EnemyMagicDefense" asp-for="Input.EnemyMagicDefense" /></div>
+                                <div class="col-12 col-md-3"><label class="form-label" for="Input_PhysicalDefenseDebuffTier">PDEF Debuff</label><select class="form-select" id="Input_PhysicalDefenseDebuffTier" asp-for="Input.PhysicalDefenseDebuffTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.DefenseDebuffTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-3"><label class="form-label" for="Input_MagicDefenseDebuffTier">MDEF Debuff</label><select class="form-select" id="Input_MagicDefenseDebuffTier" asp-for="Input.MagicDefenseDebuffTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.DefenseDebuffTierOptions){<option value="@option">@option</option>}</select></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_EnemyElementalResistanceModifier">Initial Elemental Weakness / Debuff</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_EnemyElementalResistanceModifier" asp-for="Input.EnemyElementalResistanceModifier" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_ElementalResistanceDebuffTier">Elemental Resistance Debuff</label><select class="form-select" id="Input_ElementalResistanceDebuffTier" asp-for="Input.ElementalResistanceDebuffTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.ElementalResistanceDebuffTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_Torpor">Torpor</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_Torpor" asp-for="Input.Torpor" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6"><label class="form-label" for="Input_PhysMagDamageReceivedUp">Single/Multi-Tgt Phys/Mag Damage Received Up</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_PhysMagDamageReceivedUp" asp-for="Input.PhysMagDamageReceivedUp" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6"><label class="form-label" for="Input_ElementalDamageReceivedUp">Elemental Damage Received Up</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_ElementalDamageReceivedUp" asp-for="Input.ElementalDamageReceivedUp" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-0">
+                                <div class="col-12 col-md-6"><label class="form-label" for="Output_EnemyPhysicalDefenseAfterMulti">Enemy PDEF after Multi</label><input class="form-control" type="text" id="Output_EnemyPhysicalDefenseAfterMulti" value="@(Model.Result?.PhysicalDefenseDenominator.ToString("N2") ?? string.Empty)" readonly /></div>
+                                <div class="col-12 col-md-6"><label class="form-label" for="Output_EnemyMagicDefenseAfterMulti">Enemy MDEF after Multi</label><input class="form-control" type="text" id="Output_EnemyMagicDefenseAfterMulti" value="@(Model.Result?.MagicDefenseDenominator.ToString("N2") ?? string.Empty)" readonly /></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingSummon">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummon" aria-expanded="false" aria-controls="collapseSummon">
+                            4. Summon / Limit Break
+                        </button>
+                    </h2>
+                    <div id="collapseSummon" class="accordion-collapse collapse" aria-labelledby="headingSummon" data-bs-parent="#damageCalcAccordion">
+                        <div class="accordion-body">
+                            <p class="dc-section-hint">Only needed for summon or limit break scenarios.</p>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_SummonLimitBreakDamageType">Summon / Limit Break Damage Type</label><select class="form-select" id="Input_SummonLimitBreakDamageType" asp-for="Input.SummonLimitBreakDamageType"><option>Physical</option><option>Magical</option><option>Physical/Magical</option></select></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_HighwindLimitPotencyBonus">Highwind Limit Ability Pot.</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_HighwindLimitPotencyBonus" asp-for="Input.HighwindLimitPotencyBonus" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_SkillPotencyValue">Skill Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_SkillPotencyValue" asp-for="Input.SkillPotencyValue" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-0">
+                                <div class="col-12"><label class="form-label" for="Input_LimitComboTier">Limit Combo</label><select class="form-select" id="Input_LimitComboTier" asp-for="Input.LimitComboTier"><option value="100%">100%</option><option value="110%">110%</option><option value="125%">125%</option></select></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingAdvanced">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdvanced" aria-expanded="false" aria-controls="collapseAdvanced">
+                            5. Advanced (Optional)
+                        </button>
+                    </h2>
+                    <div id="collapseAdvanced" class="accordion-collapse collapse" aria-labelledby="headingAdvanced" data-bs-parent="#damageCalcAccordion">
+                        <div class="accordion-body">
+                            <p class="dc-section-hint">Optional deep-tuning fields. Leave at defaults unless your setup needs them.</p>
+                            <h6 class="mb-2">Buffs & Amplification</h6>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_PhysicalAttackBuffTier">P.Atk Buff</label><select class="form-select" id="Input_PhysicalAttackBuffTier" asp-for="Input.PhysicalAttackBuffTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.GenericBuffTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_MagicalAttackBuffTier">M.Atk Buff</label><select class="form-select" id="Input_MagicalAttackBuffTier" asp-for="Input.MagicalAttackBuffTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.GenericBuffTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_ElementalPotUpBuffTier">Elemental Potency Up Buff</label><select class="form-select" id="Input_ElementalPotUpBuffTier" asp-for="Input.ElementalPotUpBuffTier">@foreach (var option in FFVIIEverCrisisAnalyzer.Services.DamageCalcService.ElementalPotUpTierOptions){<option value="@option">@option</option>}</select></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_ExploitWeaknessBonus">Exploit Weakness</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_ExploitWeaknessBonus" asp-for="Input.ExploitWeaknessBonus" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_PhysMagWeaponBuffTier">Phys/Mag Weapon Buff</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_PhysMagWeaponBuffTier" asp-for="Input.PhysMagWeaponBuffTier" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_ElementalWeaponBuffTier">Elemental Weapon Buff</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_ElementalWeaponBuffTier" asp-for="Input.ElementalWeaponBuffTier" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_AmplificationPhysicalAbility">Amplification Phys/Mag Ability</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_AmplificationPhysicalAbility" asp-for="Input.AmplificationPhysicalAbility" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_ElementalAmplification">Elemental Amplification</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_ElementalAmplification" asp-for="Input.ElementalAmplification" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6"><label class="form-label" for="Input_PhysMagBonusAdditionalDamage">Phys/Mag Additional Bonus Dmg</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_PhysMagBonusAdditionalDamage" asp-for="Input.PhysMagBonusAdditionalDamage" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6"><label class="form-label" for="Input_ElementalBonusAdditionalDamage">Elemental Additional Bonus Dmg</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_ElementalBonusAdditionalDamage" asp-for="Input.ElementalBonusAdditionalDamage" /><span class="input-group-text">%</span></div></div>
+                            </div>
+
+                            <h6 class="mb-2">Interruption & Guild Battle</h6>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_InterruptionSigilDamageBoost">Interruption Sigil Damage Boost</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_InterruptionSigilDamageBoost" asp-for="Input.InterruptionSigilDamageBoost" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_InterruptionRAbilities">Interruption R.Abilities</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_InterruptionRAbilities" asp-for="Input.InterruptionRAbilities" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_InterruptionMastery">Interruption Mastery</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_InterruptionMastery" asp-for="Input.InterruptionMastery" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-6 col-lg-3"><label class="form-label" for="Input_InterruptionArcanum">Interruption Arcanum</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_InterruptionArcanum" asp-for="Input.InterruptionArcanum" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                            <div class="row g-3 align-items-end mb-0">
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_GuildBattleMagAbilityPotency">Guild Battle Mag Ability Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_GuildBattleMagAbilityPotency" asp-for="Input.GuildBattleMagAbilityPotency" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_GuildBattlePhysAbilityPotency">Guild Battle Phys Ability Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_GuildBattlePhysAbilityPotency" asp-for="Input.GuildBattlePhysAbilityPotency" /><span class="input-group-text">%</span></div></div>
+                                <div class="col-12 col-md-4"><label class="form-label" for="Input_GuildBattleElementalPotency">Guild Battle Elemental Potency</label><div class="input-group"><input class="form-control" type="number" step="1" id="Input_GuildBattleElementalPotency" asp-for="Input.GuildBattleElementalPotency" /><span class="input-group-text">%</span></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-none d-md-flex justify-content-end gap-2">
+                <a class="btn btn-outline-secondary" href="/DamageCalc">Reset</a>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-calculator"></i> Calculate</button>
+            </div>
+
+            <div class="dc-mobile-actionbar d-md-none" role="region" aria-label="Damage calculator actions">
+                <a class="btn btn-outline-secondary" href="/DamageCalc">Reset</a>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-calculator"></i> Calculate</button>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Result != null)
+    {
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center"><strong>Result</strong><span class="badge bg-secondary">@Model.Result.FormulaVersion</span></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3"><div class="border rounded p-3"><div class="text-muted small">Damage Range</div><div class="h5 mb-0">@Model.Result.DamageRange</div></div></div>
+                    <div class="col-md-3"><div class="border rounded p-3"><div class="text-muted small">Average Damage</div><div class="h5 mb-0">@Model.Result.AverageDamage.ToString("N0")</div></div></div>
+                    <div class="col-md-3"><div class="border rounded p-3"><div class="text-muted small">Additional Bonus Damage</div><div class="h5 mb-0">@Model.Result.AdditionalBonusDamage.ToString("N0")</div></div></div>
+                    <div class="col-md-3"><div class="border rounded p-3"><div class="text-muted small">Total Damage</div><div class="h5 mb-0">@Model.Result.TotalDamage.ToString("N0")</div></div></div>
+                    <div class="col-md-3"><div class="border rounded p-3"><div class="text-muted small">Average LB/Summon Damage</div><div class="h5 mb-0">@Model.Result.AverageLbSummonDamage.ToString("N0")</div></div></div>
+                </div>
+                <details class="mt-3">
+                    <summary class="fw-semibold">Diagnostics</summary>
+                    <div class="small text-muted mt-2">Includes workbook helper outputs and unlabeled internals where needed.</div>
+                    <ul class="mb-0">
+                        <li>Workbook Physical Path: @Model.Result.WorkbookPhysicalPathDamage.ToString("N2")</li>
+                        <li>Workbook Magical Path: @Model.Result.WorkbookMagicalPathDamage.ToString("N2")</li>
+                        <li>Workbook Branch Damage: @Model.Result.WorkbookBranchDamage.ToString("N2")</li>
+                        <li>Interruption Phase Damage Range: @Model.Result.InterruptionPhaseDamageRange</li>
+                    </ul>
+                </details>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById("damageCalcForm");
+            if (!form) {
+                return;
+            }
+
+            const storageKey = "damage-calc-state-v1";
+
+            const damageTypeSelect = document.getElementById("Input_DamageType");
+            const physicalAttackField = document.getElementById("Input_PhysicalAttackStat");
+            const magicalAttackField = document.getElementById("Input_MagicalAttackStat");
+            const enemyPhysicalDefenseField = document.getElementById("Input_EnemyPhysicalDefense");
+            const enemyMagicDefenseField = document.getElementById("Input_EnemyMagicDefense");
+
+            const tryLoadState = () => {
+                try {
+                    const raw = localStorage.getItem(storageKey);
+                    if (!raw) {
+                        return {};
+                    }
+
+                    const parsed = JSON.parse(raw);
+                    if (!parsed || typeof parsed !== "object") {
+                        return {};
+                    }
+
+                    return parsed;
+                } catch {
+                    return {};
+                }
+            };
+
+            const saveState = (state) => {
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(state));
+                } catch {
+                    // Ignore storage failures (private mode/quota/security policy).
+                }
+            };
+
+            const collectInputState = () => {
+                const state = {};
+                const inputElements = form.querySelectorAll("[id^='Input_']");
+                for (const element of inputElements) {
+                    const key = element.id;
+                    if (!key) {
+                        continue;
+                    }
+
+                    if (element instanceof HTMLInputElement && (element.type === "checkbox" || element.type === "radio")) {
+                        state[key] = element.checked;
+                    } else {
+                        state[key] = element.value;
+                    }
+                }
+
+                return state;
+            };
+
+            const applySavedInputState = () => {
+                const state = tryLoadState();
+                if (!state || typeof state !== "object") {
+                    return;
+                }
+
+                for (const [key, value] of Object.entries(state)) {
+                    if (!key.startsWith("Input_")) {
+                        continue;
+                    }
+
+                    const element = form.querySelector(`#${key}`);
+                    if (!element) {
+                        continue;
+                    }
+
+                    if (element instanceof HTMLInputElement && (element.type === "checkbox" || element.type === "radio")) {
+                        element.checked = Boolean(value);
+                    } else {
+                        element.value = value == null ? "" : String(value);
+                    }
+                }
+            };
+
+            let saveTimerId;
+            const scheduleSaveState = () => {
+                window.clearTimeout(saveTimerId);
+                saveTimerId = window.setTimeout(() => {
+                    saveState(collectInputState());
+                }, 180);
+            };
+
+            const conditionalRequirements = [
+                { element: physicalAttackField, requiredFor: ["physical", "physical/magical"] },
+                { element: magicalAttackField, requiredFor: ["magical", "physical/magical"] },
+                { element: enemyPhysicalDefenseField, requiredFor: ["physical", "physical/magical"] },
+                { element: enemyMagicDefenseField, requiredFor: ["magical", "physical/magical"] }
+            ];
+
+            const applyDamageTypeRequirements = () => {
+                const selectedDamageType = (damageTypeSelect?.value ?? "").toLowerCase();
+                for (const rule of conditionalRequirements) {
+                    if (!rule.element) {
+                        continue;
+                    }
+
+                    const isRequired = rule.requiredFor.includes(selectedDamageType);
+                    const label = form.querySelector(`label[for="${rule.element.id}"]`);
+                    const modeChip = label?.querySelector(".dc-chip-mode");
+
+                    rule.element.toggleAttribute("required", isRequired);
+                    rule.element.setAttribute("aria-required", isRequired ? "true" : "false");
+                    rule.element.classList.toggle("dc-mode-input-active", isRequired);
+                    label?.classList.toggle("dc-mode-active", isRequired);
+                    modeChip?.classList.toggle("dc-chip-mode-active", isRequired);
+                }
+            };
+
+            applySavedInputState();
+            applyDamageTypeRequirements();
+            damageTypeSelect?.addEventListener("change", applyDamageTypeRequirements);
+
+            const persistableElements = form.querySelectorAll("[id^='Input_']");
+            for (const element of persistableElements) {
+                element.addEventListener("input", scheduleSaveState);
+                element.addEventListener("change", scheduleSaveState);
+            }
+
+            const percentInputIds = [
+                "Input_WeaponAbilityPotency",
+                "Input_HighwindWeaponPotencyBonus",
+                "Input_SumElementalPotencyFromMateria",
+                "Input_OutfitAbilityBonus",
+                "Input_OutfitPhysCmdStanceBonus",
+                "Input_OutfitMagCmdStanceBonus",
+                "Input_BoostElementalPotAllies",
+                "Input_MemoriaElementalPotencyBonus",
+                "Input_MemoriaPhysicalAbilityBonus",
+                "Input_MemoriaMagicalAbilityBonus",
+                "Input_MemoriaSpeciesPotencyBonus",
+                "Input_EnemyElementalResistanceModifier",
+                "Input_Torpor",
+                "Input_PhysMagDamageReceivedUp",
+                "Input_ElementalDamageReceivedUp",
+                "Input_HighwindLimitPotencyBonus",
+                "Input_SkillPotencyValue",
+                "Input_ExploitWeaknessBonus",
+                "Input_PhysMagWeaponBuffTier",
+                "Input_ElementalWeaponBuffTier",
+                "Input_AmplificationPhysicalAbility",
+                "Input_ElementalAmplification",
+                "Input_PhysMagBonusAdditionalDamage",
+                "Input_ElementalBonusAdditionalDamage",
+                "Input_InterruptionSigilDamageBoost",
+                "Input_InterruptionRAbilities",
+                "Input_InterruptionMastery",
+                "Input_InterruptionArcanum",
+                "Input_GuildBattleMagAbilityPotency",
+                "Input_GuildBattlePhysAbilityPotency",
+                "Input_GuildBattleElementalPotency"
+            ];
+
+            for (const id of percentInputIds) {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.setAttribute("step", "0.01");
+                }
+            }
+
+            const resetLink = form.querySelector("a[href='/DamageCalc']");
+            resetLink?.addEventListener("click", () => {
+                try {
+                    localStorage.removeItem(storageKey);
+                } catch {
+                    // Ignore storage failures.
+                }
+            });
+
+            form.addEventListener("submit", (event) => {
+                applyDamageTypeRequirements();
+                saveState(collectInputState());
+                if (form.checkValidity()) {
+                    return;
+                }
+
+                event.preventDefault();
+                const firstInvalidField = form.querySelector(":invalid");
+                if (!firstInvalidField) {
+                    form.reportValidity();
+                    return;
+                }
+
+                const section = firstInvalidField.closest(".accordion-collapse");
+                if (section && !section.classList.contains("show") && window.bootstrap?.Collapse) {
+                    const collapse = window.bootstrap.Collapse.getOrCreateInstance(section, { toggle: false });
+                    collapse.show();
+                }
+
+                window.requestAnimationFrame(() => {
+                    firstInvalidField.focus({ preventScroll: true });
+                    firstInvalidField.scrollIntoView({ behavior: "smooth", block: "center" });
+                    form.reportValidity();
+                });
+            });
+        })();
+    </script>
+}

@@ -254,8 +254,8 @@
                                     <div class="small fw-semibold">{{ weapon.weaponName }}</div>
                                     <div class="small text-muted">{{ weapon.character }} • {{ weapon.range }}</div>
                                     <div class="small text-muted">Base: {{ potencyLabel(weapon.basePotency) }} / Max: {{ potencyLabel(weapon.maxPotency) }}</div>
-                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1" v-on:click="openDetails(weapon.weapon, weapon.character, weapon.range, weapon.basePotency, weapon.maxPotency)">View details</button>
-                                    <label class="form-label small mt-1 mb-1">Owned OB</label>
+                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1 d-block" v-on:click="openDetails(weapon.weapon, weapon.character, weapon.range, weapon.basePotency, weapon.maxPotency)">View details</button>
+                                    <label class="form-label small mt-1 mb-1 d-block">Owned OB</label>
                                     <select class="form-select form-select-sm" :value="ownedObFor(weapon.weaponId, weapon.ownedObSelection)" v-on:change="updateWeaponOwnership(weapon.weaponId, $event.target.value)">
                                         <option value="0">Not Owned</option>
                                         <option value="1">OB0</option>
@@ -298,8 +298,8 @@
                                     <div class="small fw-semibold">{{ outfit.outfitName }}</div>
                                     <div class="small text-muted">{{ outfit.character }} • {{ outfit.range }}</div>
                                     <div class="small text-muted">Base: {{ potencyLabel(outfit.basePotency) }} / Max: {{ potencyLabel(outfit.maxPotency) }}</div>
-                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1" v-on:click="openDetails(outfit.outfit, outfit.character, outfit.range, outfit.basePotency, outfit.maxPotency)">View details</button>
-                                    <label class="form-label small mt-1 mb-1">Owned</label>
+                                    <button type="button" class="btn btn-link btn-sm p-0 mt-1 d-block" v-on:click="openDetails(outfit.outfit, outfit.character, outfit.range, outfit.basePotency, outfit.maxPotency)">View details</button>
+                                    <label class="form-label small mt-1 mb-1 d-block">Owned</label>
                                     <select class="form-select form-select-sm" :value="ownedOutfitFor(outfit.outfitId, outfit.ownedSelection)" v-on:change="updateOutfitOwnership(outfit.outfitId, $event.target.value)">
                                         <option value="1">Owned</option>
                                         <option value="0">Not Owned</option>

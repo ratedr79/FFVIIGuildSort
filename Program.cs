@@ -23,6 +23,7 @@ builder.Services.AddSingleton<IDispatcherRunner, DispatcherRunnerService>();
 builder.Services.AddScoped<ShouldIAttackService>();
 builder.Services.AddSingleton<SupportTeamBuilderService>();
 builder.Services.AddSingleton<SupportTeamPresetCatalog>();
+builder.Services.AddScoped<DamageCalcService>();
 builder.Services.Configure<SharedAccessOptions>(builder.Configuration.GetSection(SharedAccessOptions.SectionName));
 builder.Services.AddSingleton<SharedAccessGate>();
 

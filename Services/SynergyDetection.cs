@@ -183,6 +183,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return HasAnyToken(weapon, "Enliven", "Status Ailment: Enliven");
         }
 
+        public static bool ProvidesTorpor(WeaponInfo weapon)
+        {
+            // Torpor temporarily incapacitates a target and increases damage taken.
+            // Current known source is short duration (~8s), so we value it below the strongest long-lived debuffs.
+            return HasAnyToken(weapon, "Torpor", "Status Ailment: Torpor");
+        }
+
         public static bool ProvidesWeaponBoost(WeaponInfo weapon, DamageType preferred)
         {
             return preferred switch
@@ -788,6 +795,29 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 });
             }
 
+            // Torpor: short-duration status that increases damage taken (known current value ~50%).
+            // Strong burst-window utility, but weighted below persistent received-up effects.
+            if (ProvidesTorpor(weapon))
+            {
+                var pot = TryGetEffectPotScaled(weapon.EffectTextBlob, "Torpor", overboostLevel);
+                if (pot.HasValue)
+                {
+                    score += ApplyBonus(ctx, "Torpor", Math.Min(260, 4.0 * pot.Value));
+                }
+                else
+                {
+                    var tier = GetEffectiveTierFromPotMax(weapon.EffectTextBlob, "Torpor", overboostLevel);
+                    score += ApplyBonus(ctx, "Torpor", tier switch
+                    {
+                        Tier.ExtraHigh => 220,
+                        Tier.High => 200,
+                        Tier.Mid => 185,
+                        Tier.Low => 165,
+                        _ => 200
+                    });
+                }
+            }
+
             // Medium: limited-use Amp abilities. Slightly lower weight than other top-tier buffs.
             // Base amp score is derived from Pot and Count, then scaled by 0.75.
             if (ProvidesAmpAbilities(weapon, ctx.PreferredDamageType))
@@ -956,7 +986,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                                ProvidesDefenseDown(weapon, ctx.PreferredDamageType) ||
                                ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
                                ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
-                               ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType);
+                               ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
+                               ProvidesTorpor(weapon);
 
             if (isBuffLike && !isDebuffLike)
             {
@@ -1075,6 +1106,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 reasons.Add("Enliven (raises damage buffs)");
             }
 
+            if (ProvidesTorpor(weapon))
+            {
+                reasons.Add("Torpor (short burst damage vulnerability)");
+            }
+
             if (ProvidesAppliedStatsDebuffTierIncreased(weapon))
             {
                 reasons.Add("Applied debuff tier increased");
@@ -1148,6 +1184,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (HasToken(effectTextBlob, "Exploit Weakness")) matches.Add(new Match("exploit_weakness", "Exploit Weakness"));
             if (HasToken(effectTextBlob, "Enfeeble") || HasToken(effectTextBlob, "Status Ailment: Enfeeble"))
                 matches.Add(new Match("enfeeble", "Enfeeble (lower weight)"));
+            if (HasToken(effectTextBlob, "Torpor") || HasToken(effectTextBlob, "Status Ailment: Torpor"))
+                matches.Add(new Match("torpor", "Torpor (short burst damage vulnerability)"));
             if (ctx.PreferredDamageType == DamageType.Physical && HasToken(effectTextBlob, "Phys. ATB Conservation Effect"))
                 matches.Add(new Match("phys_atb_conservation", "Physical ATB conservation"));
             if (ctx.PreferredDamageType == DamageType.Magical && HasToken(effectTextBlob, "Mag. ATB Conservation Effect"))
