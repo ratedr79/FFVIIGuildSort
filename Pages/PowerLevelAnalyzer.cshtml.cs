@@ -83,8 +83,18 @@ public class PowerLevelAnalyzerModel : PageModel
 
     private void LoadAvailableSheets()
     {
-        AvailableSheets = _configuration.GetSection("GoogleSheets:SurveySheets")
+        var configuredSheets = _configuration.GetSection("GoogleSheets:SurveySheets")
             .Get<List<SheetDefinition>>() ?? new List<SheetDefinition>();
+
+        var seenKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        AvailableSheets = configuredSheets
+            .Where(s => !string.IsNullOrWhiteSpace(s.Name) && !string.IsNullOrWhiteSpace(s.Url))
+            .Where(s =>
+            {
+                var key = $"{s.Name.Trim()}|{s.Url.Trim()}";
+                return seenKeys.Add(key);
+            })
+            .ToList();
     }
 
     private async Task<Stream?> GetCsvStreamAsync()
