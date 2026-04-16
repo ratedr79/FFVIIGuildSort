@@ -111,7 +111,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             ColumnName = columnName,
                             RawValue = rawValue,
                             InferredKind = "Outfit?",
-                            Notes = "Column value indicates ownership, but item was not found in weaponData.tsv as a Costume."
+                            Notes = "Column value indicates ownership, but item was not found in the weapon catalog as a Costume."
                         });
                     }
                     else if (maybeOb != null)
@@ -121,7 +121,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             ColumnName = columnName,
                             RawValue = rawValue,
                             InferredKind = "Weapon?",
-                            Notes = "Column value looks like an owned weapon (OB/5 Star), but item was not found in weaponData.tsv as a Weapon."
+                            Notes = "Column value looks like an owned weapon (OB/5 Star), but item was not found in the weapon catalog as a Weapon."
                         });
                     }
 
@@ -184,7 +184,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             Slot = "Ultimate",
                             IsUltimate = true,
                             OverboostLevel = ultimateOwnership.OverboostLevel ?? 0,
-                            SelectionReason = "Ultimate weapon (not found in weaponData.tsv)"
+                            SelectionReason = "Ultimate weapon (not found in weapon catalog)"
                         };
                     }
                 }

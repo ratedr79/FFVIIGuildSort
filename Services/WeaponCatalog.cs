@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace FFVIIEverCrisisAnalyzer.Services
 {
@@ -17,138 +18,195 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public IReadOnlyDictionary<string, WeaponInfo> ByWeaponName => _byWeaponName;
         public IReadOnlyDictionary<string, CostumeInfo> ByCostumeName => _byCostumeName;
 
-        public WeaponCatalog(IWebHostEnvironment env, NameCorrectionService nameCorrectionService, WeaponSearchDataService weaponSearchDataService)
+        public WeaponCatalog(
+            IWebHostEnvironment env,
+            NameCorrectionService nameCorrectionService,
+            WeaponSearchDataService weaponSearchDataService,
+            IOptions<WeaponCatalogOptions>? options = null)
         {
             _nameCorrectionService = nameCorrectionService;
             _weaponSearchDataService = weaponSearchDataService;
 
+            var useWeaponServiceForPowerAnalyzer = options?.Value?.UseWeaponServiceForPowerAnalyzer ?? false;
+            if (useWeaponServiceForPowerAnalyzer)
+            {
+                LoadFromWeaponService();
+            }
+            else
+            {
+                LoadFromTsv(env);
+            }
+
+            EnrichFromGearSearch();
+        }
+
+        private void LoadFromWeaponService()
+        {
+            foreach (var item in _weaponSearchDataService.GetWeapons())
+            {
+                if (string.IsNullOrWhiteSpace(item.Name))
+                {
+                    continue;
+                }
+
+                var effectTextParts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(item.AbilityText))
+                {
+                    effectTextParts.Add(item.AbilityText.Trim());
+                }
+
+                if (item.EffectTags.Count > 0)
+                {
+                    effectTextParts.AddRange(item.EffectTags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()));
+                }
+
+                var synergyEffectNames = item.EffectTags
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                var effectText = string.Join(" | ", effectTextParts
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct(StringComparer.OrdinalIgnoreCase));
+
+                AddWeaponOrCostume(
+                    item.Name.Trim(),
+                    item.Character.Trim(),
+                    item.EquipmentType.Trim(),
+                    item.Element.Trim(),
+                    item.AbilityType.Trim(),
+                    item.Range.Trim(),
+                    item.DamagePercent,
+                    0,
+                    effectText,
+                    synergyEffectNames);
+            }
+        }
+
+        private void LoadFromTsv(IWebHostEnvironment env)
+        {
             var preferredPath = Path.Combine(env.ContentRootPath, "external", "CypherSignal", "ff7ec", "weaponData.tsv");
             var fallbackPath = Path.Combine(env.ContentRootPath, "data", "weaponData.tsv");
             var dataPath = File.Exists(preferredPath) ? preferredPath : fallbackPath;
-            if (File.Exists(dataPath))
+            if (!File.Exists(dataPath))
             {
-                using var stream = File.OpenRead(dataPath);
-                using var reader = new StreamReader(stream);
+                return;
+            }
 
-                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            using var stream = File.OpenRead(dataPath);
+            using var reader = new StreamReader(stream);
+
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = "\t",
+                HasHeaderRecord = true,
+                MissingFieldFound = null,
+                HeaderValidated = null,
+                BadDataFound = null,
+            };
+
+            using var csv = new CsvReader(reader, config);
+            csv.Read();
+            csv.ReadHeader();
+
+            while (csv.Read())
+            {
+                var name = (csv.GetField("Name") ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(name))
                 {
-                    Delimiter = "\t",
-                    HasHeaderRecord = true,
-                    MissingFieldFound = null,
-                    HeaderValidated = null,
-                    BadDataFound = null,
-                };
+                    continue;
+                }
 
-                using var csv = new CsvReader(reader, config);
-                csv.Read();
-                csv.ReadHeader();
+                var character = (csv.GetField("Character") ?? string.Empty).Trim();
+                var equipmentType = (csv.GetField("GachaType") ?? string.Empty).Trim();
+                var abilityElement = (csv.GetField("Ability Element") ?? string.Empty).Trim();
+                var abilityType = (csv.GetField("Ability Type") ?? string.Empty).Trim();
+                var abilityRange = (csv.GetField("Ability Range") ?? string.Empty).Trim();
+                var abilityText = (csv.GetField("Ability Text") ?? string.Empty).Trim();
+                var abilityPotRaw = (csv.GetField("Ability Pot. %") ?? string.Empty).Trim();
 
-                while (csv.Read())
+                double? abilityPotPercent = null;
+                if (double.TryParse(abilityPotRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out var potParsed))
                 {
-                    var name = (csv.GetField("Name") ?? string.Empty).Trim();
-                    if (string.IsNullOrWhiteSpace(name))
+                    abilityPotPercent = potParsed;
+                }
+
+                double multiplyDamageBonusPercent = 0;
+                for (int i = 0; i <= 3; i++)
+                {
+                    var effect = (csv.GetField($"Effect{i}") ?? string.Empty).Trim();
+                    if (!effect.Equals("Multiply Damage", StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
 
-                    var character = (csv.GetField("Character") ?? string.Empty).Trim();
-                    var equipmentType = (csv.GetField("GachaType") ?? string.Empty).Trim();
-                    var abilityElement = (csv.GetField("Ability Element") ?? string.Empty).Trim();
-                    var abilityType = (csv.GetField("Ability Type") ?? string.Empty).Trim();
-                    var abilityRange = (csv.GetField("Ability Range") ?? string.Empty).Trim();
-                    var abilityText = (csv.GetField("Ability Text") ?? string.Empty).Trim();
-                    var abilityPotRaw = (csv.GetField("Ability Pot. %") ?? string.Empty).Trim();
+                    var potRaw = (csv.GetField($"Effect{i}_Pot") ?? string.Empty).Trim();
+                    var potMaxRaw = (csv.GetField($"Effect{i}_PotMax") ?? string.Empty).Trim();
 
-                    double? abilityPotPercent = null;
-                    if (double.TryParse(abilityPotRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out var potParsed))
+                    var chosenRaw = !string.IsNullOrWhiteSpace(potMaxRaw) ? potMaxRaw : potRaw;
+                    if (double.TryParse(chosenRaw.TrimEnd('%'), NumberStyles.Any, CultureInfo.InvariantCulture, out var bonusParsed))
                     {
-                        abilityPotPercent = potParsed;
+                        multiplyDamageBonusPercent += bonusParsed;
                     }
-
-                    // Some weapons have additional "Multiply Damage" effects that add to ability potency.
-                    // We treat the corresponding *_Pot / *_PotMax as an additive percentage.
-                    double multiplyDamageBonusPercent = 0;
-                    for (int i = 0; i <= 3; i++)
-                    {
-                        var effect = (csv.GetField($"Effect{i}") ?? string.Empty).Trim();
-                        if (!effect.Equals("Multiply Damage", StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        var potRaw = (csv.GetField($"Effect{i}_Pot") ?? string.Empty).Trim();
-                        var potMaxRaw = (csv.GetField($"Effect{i}_PotMax") ?? string.Empty).Trim();
-
-                        var chosenRaw = !string.IsNullOrWhiteSpace(potMaxRaw) ? potMaxRaw : potRaw;
-                        if (double.TryParse(chosenRaw.TrimEnd('%'), NumberStyles.Any, CultureInfo.InvariantCulture, out var bonusParsed))
-                        {
-                            multiplyDamageBonusPercent += bonusParsed;
-                        }
-                    }
-
-                    // Collect effect columns into a searchable blob.
-                    var effectFields = new[]
-                    {
-                        "Effect0", "Effect0_Type", "Effect1", "Effect1_Type", "Effect2", "Effect2_Type", "Effect3", "Effect3_Type"
-                    };
-
-                    var effectText = string.Join(" | ", effectFields
-                        .Select(f => (csv.GetField(f) ?? string.Empty).Trim())
-                        .Where(v => !string.IsNullOrWhiteSpace(v))
-                    );
-
-                    if (!string.IsNullOrWhiteSpace(abilityText))
-                    {
-                        effectText = string.Join(" | ", new[] { effectText, abilityText }
-                            .Where(s => !string.IsNullOrWhiteSpace(s)));
-                    }
-
-                    // Collect individual effect names for display (e.g. "Fire Damage Up", "Exploit Weakness")
-                    var synergyEffectNames = new List<string>();
-                    // Include effect metadata (potency + count) so we can score limited-use effects like Amp abilities.
-                    var metaParts = new List<string>();
-                    for (int i = 0; i <= 3; i++)
-                    {
-                        var eff = (csv.GetField($"Effect{i}") ?? string.Empty).Trim();
-                        if (string.IsNullOrWhiteSpace(eff))
-                        {
-                            continue;
-                        }
-
-                        if (!eff.Equals("Multiply Damage", StringComparison.OrdinalIgnoreCase))
-                        {
-                            synergyEffectNames.Add(eff);
-                        }
-
-                        var pot = (csv.GetField($"Effect{i}_Pot") ?? string.Empty).Trim();
-                        var potMax = (csv.GetField($"Effect{i}_PotMax") ?? string.Empty).Trim();
-                        var count = (csv.GetField($"Effect{i}_EffectCount") ?? string.Empty).Trim();
-                        var custom = (csv.GetField($"Effect{i}_Custom") ?? string.Empty).Trim();
-                        if (!string.IsNullOrWhiteSpace(pot))
-                        {
-                            metaParts.Add($"{eff} Pot={pot}");
-                        }
-                        if (!string.IsNullOrWhiteSpace(potMax))
-                        {
-                            metaParts.Add($"{eff} PotMax={potMax}");
-                        }
-                        if (!string.IsNullOrWhiteSpace(count))
-                        {
-                            metaParts.Add($"{eff} Count={count}");
-                        }
-                    }
-
-                    if (metaParts.Count > 0)
-                    {
-                        effectText = string.Join(" | ", new[] { effectText, string.Join(" | ", metaParts) }
-                            .Where(s => !string.IsNullOrWhiteSpace(s)));
-                    }
-
-                    AddWeaponOrCostume(name, character, equipmentType, abilityElement, abilityType, abilityRange, abilityPotPercent, multiplyDamageBonusPercent, effectText, synergyEffectNames);
                 }
-            }
 
-            EnrichFromGearSearch();
+                var effectFields = new[]
+                {
+                    "Effect0", "Effect0_Type", "Effect1", "Effect1_Type", "Effect2", "Effect2_Type", "Effect3", "Effect3_Type"
+                };
+
+                var effectText = string.Join(" | ", effectFields
+                    .Select(f => (csv.GetField(f) ?? string.Empty).Trim())
+                    .Where(v => !string.IsNullOrWhiteSpace(v))
+                );
+
+                if (!string.IsNullOrWhiteSpace(abilityText))
+                {
+                    effectText = string.Join(" | ", new[] { effectText, abilityText }
+                        .Where(s => !string.IsNullOrWhiteSpace(s)));
+                }
+
+                var synergyEffectNames = new List<string>();
+                var metaParts = new List<string>();
+                for (int i = 0; i <= 3; i++)
+                {
+                    var eff = (csv.GetField($"Effect{i}") ?? string.Empty).Trim();
+                    if (string.IsNullOrWhiteSpace(eff))
+                    {
+                        continue;
+                    }
+
+                    if (!eff.Equals("Multiply Damage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        synergyEffectNames.Add(eff);
+                    }
+
+                    var pot = (csv.GetField($"Effect{i}_Pot") ?? string.Empty).Trim();
+                    var potMax = (csv.GetField($"Effect{i}_PotMax") ?? string.Empty).Trim();
+                    var count = (csv.GetField($"Effect{i}_EffectCount") ?? string.Empty).Trim();
+                    if (!string.IsNullOrWhiteSpace(pot))
+                    {
+                        metaParts.Add($"{eff} Pot={pot}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(potMax))
+                    {
+                        metaParts.Add($"{eff} PotMax={potMax}");
+                    }
+                    if (!string.IsNullOrWhiteSpace(count))
+                    {
+                        metaParts.Add($"{eff} Count={count}");
+                    }
+                }
+
+                if (metaParts.Count > 0)
+                {
+                    effectText = string.Join(" | ", new[] { effectText, string.Join(" | ", metaParts) }
+                        .Where(s => !string.IsNullOrWhiteSpace(s)));
+                }
+
+                AddWeaponOrCostume(name, character, equipmentType, abilityElement, abilityType, abilityRange, abilityPotPercent, multiplyDamageBonusPercent, effectText, synergyEffectNames);
+            }
         }
 
         public void RefreshFromGearSearch()

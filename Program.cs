@@ -7,6 +7,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddScoped<PowerLevelCalculator>();
 builder.Services.AddScoped<CsvProcessor>();
 builder.Services.AddSingleton<NameCorrectionService>();
+builder.Services.Configure<WeaponCatalogOptions>(builder.Configuration.GetSection("FeatureFlags"));
 builder.Services.AddSingleton<WeaponSearchDataService>();
 builder.Services.AddSingleton<WeaponCatalog>();
 builder.Services.AddSingleton<SummonCatalog>();

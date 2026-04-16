@@ -4,6 +4,26 @@ namespace FFVIIEverCrisisAnalyzer.Services
 {
     public static class SynergyDetection
     {
+        private static readonly System.Text.RegularExpressions.Regex PotInlineRegex = new(
+            @"(?<!Max\s)Pot\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)%?",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex PotMaxInlineRegex = new(
+            @"(?:PotMax\s*=|Max\s*Pot\s*:)\s*([A-Za-z\s]+|[0-9]+(?:\.[0-9]+)?%?)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex PotTierInlineRegex = new(
+            @"(?<!Max\s)Pot\s*[:=]\s*(Low|Mid|High|Extra\s*High)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex AmpCountInlineRegex = new(
+            @"Count\s*[:=]\s*(\d+)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex AmpDamageInlineRegex = new(
+            @"Damage\s*\+\s*([0-9]+(?:\.[0-9]+)?)%",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
         private sealed record Match(string Key, string Reason);
 
         private enum Tier
@@ -312,21 +332,26 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             foreach (var part in effectTextBlob.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                if (!part.StartsWith(effectName, StringComparison.OrdinalIgnoreCase))
+                if (part.IndexOf(effectName, StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     continue;
                 }
 
                 var potIdx = part.IndexOf("Pot=", StringComparison.OrdinalIgnoreCase);
-                if (potIdx < 0)
+                if (potIdx >= 0)
                 {
-                    continue;
+                    var potRaw = part[(potIdx + 4)..].Trim();
+                    if (double.TryParse(potRaw.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var potParsed))
+                    {
+                        return ApplyObPotScaling(potParsed, overboostLevel);
+                    }
                 }
 
-                var potRaw = part[(potIdx + 4)..].Trim();
-                if (double.TryParse(potRaw.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var potParsed))
+                var potInlineMatch = PotInlineRegex.Match(part);
+                if (potInlineMatch.Success &&
+                    double.TryParse(potInlineMatch.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var inlinePot))
                 {
-                    return ApplyObPotScaling(potParsed, overboostLevel);
+                    return ApplyObPotScaling(inlinePot, overboostLevel);
                 }
             }
 
@@ -363,14 +388,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return null;
             }
 
-            // WeaponCatalog appends meta parts like:
+            // TSV path appends meta parts like:
             // "Amp. Phys. Abilities Pot=30%" and "Amp. Phys. Abilities Count=3".
+            // Service path may keep inline ability text like:
+            // "Applies Amp. Mag. Abilities [Count: 1] [Damage +40% up to 1 time(s)]".
             double pot = 0;
             int count = 0;
 
             foreach (var part in effectTextBlob.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                if (!part.StartsWith(ampToken, StringComparison.OrdinalIgnoreCase))
+                if (part.IndexOf(ampToken, StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     continue;
                 }
@@ -392,6 +419,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     if (int.TryParse(countRaw, out var countParsed))
                     {
                         count = countParsed;
+                    }
+                }
+
+                if (count <= 0)
+                {
+                    var inlineCount = AmpCountInlineRegex.Match(part);
+                    if (inlineCount.Success && int.TryParse(inlineCount.Groups[1].Value, out var inlineCountParsed))
+                    {
+                        count = inlineCountParsed;
+                    }
+                }
+
+                if (pot <= 0)
+                {
+                    var inlineDamage = AmpDamageInlineRegex.Match(part);
+                    if (inlineDamage.Success &&
+                        double.TryParse(inlineDamage.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var inlinePotParsed))
+                    {
+                        pot = ApplyObPotScaling(inlinePotParsed, overboostLevel);
                     }
                 }
             }
@@ -898,58 +944,89 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             foreach (var part in effectTextBlob.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                if (!part.StartsWith(effectName, StringComparison.OrdinalIgnoreCase))
+                if (part.IndexOf(effectName, StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     continue;
                 }
 
                 var idx = part.IndexOf("PotMax=", StringComparison.OrdinalIgnoreCase);
-                if (idx < 0)
+                if (idx >= 0)
                 {
-                    continue;
+                    var raw = part[(idx + 7)..].Trim();
+                    var parsed = ParseTierFromRaw(raw, effectName);
+                    if (parsed != Tier.None)
+                    {
+                        return parsed;
+                    }
                 }
 
-                var raw = part[(idx + 7)..].Trim();
-                if (raw.Equals("Low", StringComparison.OrdinalIgnoreCase)) return Tier.Low;
-                if (raw.Equals("Mid", StringComparison.OrdinalIgnoreCase)) return Tier.Mid;
-                if (raw.Equals("High", StringComparison.OrdinalIgnoreCase)) return Tier.High;
-                if (raw.Equals("Extra High", StringComparison.OrdinalIgnoreCase) || raw.Equals("ExtraHigh", StringComparison.OrdinalIgnoreCase)) return Tier.ExtraHigh;
-
-                if (double.TryParse(raw.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var pct))
+                var potMaxInlineMatch = PotMaxInlineRegex.Match(part);
+                if (potMaxInlineMatch.Success)
                 {
-                    // Fallback heuristic if TSV provides numeric PotMax: map to closest tier by effect family.
-                    if (effectName.Contains("Resistance Down", StringComparison.OrdinalIgnoreCase))
+                    var parsed = ParseTierFromRaw(potMaxInlineMatch.Groups[1].Value, effectName);
+                    if (parsed != Tier.None)
                     {
-                        if (pct >= 75) return Tier.ExtraHigh;
-                        if (pct >= 50) return Tier.High;
-                        if (pct >= 30) return Tier.Mid;
-                        return Tier.Low;
-                    }
-
-                    if (effectName.Contains("Damage Up", StringComparison.OrdinalIgnoreCase) || effectName.Contains("Damage Bonus", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (pct >= 60) return Tier.ExtraHigh;
-                        if (pct >= 40) return Tier.High;
-                        if (pct >= 25) return Tier.Mid;
-                        return Tier.Low;
-                    }
-
-                    if (effectName.Contains("DEF Down", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (pct >= 60) return Tier.ExtraHigh;
-                        if (pct >= 45) return Tier.High;
-                        if (pct >= 30) return Tier.Mid;
-                        return Tier.Low;
-                    }
-
-                    if (effectName.Contains("ATK Up", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (pct >= 40) return Tier.ExtraHigh;
-                        if (pct >= 30) return Tier.High;
-                        if (pct >= 20) return Tier.Mid;
-                        return Tier.Low;
+                        return parsed;
                     }
                 }
+
+                var potTierInlineMatch = PotTierInlineRegex.Match(part);
+                if (potTierInlineMatch.Success)
+                {
+                    var parsed = ParseTierFromRaw(potTierInlineMatch.Groups[1].Value, effectName);
+                    if (parsed != Tier.None)
+                    {
+                        return parsed;
+                    }
+                }
+            }
+
+            return Tier.None;
+        }
+
+        private static Tier ParseTierFromRaw(string raw, string effectName)
+        {
+            var value = raw.Trim();
+            if (value.Equals("Low", StringComparison.OrdinalIgnoreCase)) return Tier.Low;
+            if (value.Equals("Mid", StringComparison.OrdinalIgnoreCase)) return Tier.Mid;
+            if (value.Equals("High", StringComparison.OrdinalIgnoreCase)) return Tier.High;
+            if (value.Equals("Extra High", StringComparison.OrdinalIgnoreCase) || value.Equals("ExtraHigh", StringComparison.OrdinalIgnoreCase)) return Tier.ExtraHigh;
+
+            if (!double.TryParse(value.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var pct))
+            {
+                return Tier.None;
+            }
+
+            if (effectName.Contains("Resistance Down", StringComparison.OrdinalIgnoreCase))
+            {
+                if (pct >= 75) return Tier.ExtraHigh;
+                if (pct >= 50) return Tier.High;
+                if (pct >= 30) return Tier.Mid;
+                return Tier.Low;
+            }
+
+            if (effectName.Contains("Damage Up", StringComparison.OrdinalIgnoreCase) || effectName.Contains("Damage Bonus", StringComparison.OrdinalIgnoreCase))
+            {
+                if (pct >= 60) return Tier.ExtraHigh;
+                if (pct >= 40) return Tier.High;
+                if (pct >= 25) return Tier.Mid;
+                return Tier.Low;
+            }
+
+            if (effectName.Contains("DEF Down", StringComparison.OrdinalIgnoreCase))
+            {
+                if (pct >= 60) return Tier.ExtraHigh;
+                if (pct >= 45) return Tier.High;
+                if (pct >= 30) return Tier.Mid;
+                return Tier.Low;
+            }
+
+            if (effectName.Contains("ATK Up", StringComparison.OrdinalIgnoreCase))
+            {
+                if (pct >= 40) return Tier.ExtraHigh;
+                if (pct >= 30) return Tier.High;
+                if (pct >= 20) return Tier.Mid;
+                return Tier.Low;
             }
 
             return Tier.None;
