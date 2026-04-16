@@ -64,6 +64,7 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 - Elemental: resistance down/weakness infliction, elemental damage bonus/up, elemental weapon boost.
 - Damage-type: weapon boost, damage bonus, PATK/MATK up, PDEF/MDEF down.
 - Damage-received modifiers: single-target, all-target, and generic variants.
+- Torpor: short-duration burst vulnerability effect that increases damage taken; scored as a debuff-like synergy, with potency-aware parsing when explicit `% Pot` data exists and tier fallback otherwise.
 - Tempo/utility: `ATB+N`, Haste, ATB conservation, Exploit Weakness, Enfeeble.
 - Tier amplifiers: applied debuff tier increased, applied buff tier increased, Enliven.
 - Amp abilities: parsed by potency/count metadata and bounded before scoring.
@@ -98,6 +99,7 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 - `AtbConservationEffect`
 - `Enfeeble`
 - `Enliven`
+- `Torpor`
 - `AppliedStatsDebuffTierIncreased`
 - `AppliedStatsBuffTierIncreased`
 - `AmpAbilities`

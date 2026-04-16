@@ -38,6 +38,9 @@ All notable changes to this project should be documented in this file.
 - Added integration-style tests for support-team-builder option loading and max-character assignment constraints.
 
 ### Changed
+- Damage Calc UX now persists calculator input state in browser local storage (`damage-calc-state-v1`), restores on revisit, and clears persisted state on `Reset`.
+- Damage Calc percentage-oriented inputs now accept up to two decimal places while integer combat stat fields remain whole-number style.
+- Damage Calc result layout now shows `Average LB/Summon Damage` in the result pane (instead of the summon input section).
 - End-user `README.md` rewritten with:
   - table of contents
   - per-tool walkthroughs
@@ -79,6 +82,9 @@ All notable changes to this project should be documented in this file.
 - Gear Search snapshot modal now shows `Customizations unlock at OB1.` hint when `OB0` is selected.
 
 ### Docs
+- Added end-user `README.md` documentation for `Damage Calc` with input expectations, conditional required-field behavior summary, and local persistence notes.
+- Updated `docs/features/other-pages.md` with developer-facing `Damage Calc` architecture/behavior details (validation flow, persistence, percent input formatting, and formula version badge intent).
+- Updated Power Analyzer docs (`README.md`, `docs/features/power-analyzer.md`) to document `Torpor` synergy support and override-key availability.
 - Captured advanced logic and maintenance notes for:
   - Power Analyzer scoring and guild assignment behavior
   - Guild Battle simulation, aggregation, and dispatcher integration

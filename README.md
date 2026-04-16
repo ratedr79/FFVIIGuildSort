@@ -10,6 +10,10 @@ A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, 
   - [Power Level Analyzer: What It Does](#power-level-analyzer-what-it-does)
   - [Power Level Analyzer: Inputs](#power-level-analyzer-inputs)
   - [Power Level Analyzer: Quick Walkthrough](#power-level-analyzer-quick-walkthrough)
+- [Damage Calc](#damage-calc)
+  - [Damage Calc: What It Does](#damage-calc-what-it-does)
+  - [Damage Calc: Inputs](#damage-calc-inputs)
+  - [Damage Calc: Quick Walkthrough](#damage-calc-quick-walkthrough)
 - [Guild Battle](#guild-battle)
   - [Guild Battle: What It Does](#guild-battle-what-it-does)
   - [Guild Battle: Inputs](#guild-battle-inputs)
@@ -82,6 +86,9 @@ Builds and scores 3-character teams from guild survey data, ranks players, and a
 | Team template checkboxes | Enable one or more templates | Limits valid team composition patterns |
 | Synergy effect bonus selects | 0% to +500% per effect | Applies extra weight to selected buffs/debuffs |
 
+Synergy note:
+- `Torpor` is available in the synergy bonus override panel as a short-duration damage-vulnerability effect.
+
 ### Power Level Analyzer: Quick Walkthrough
 Required steps:
 1. Select a survey sheet or upload a CSV file.
@@ -92,6 +99,37 @@ Expected output:
 - Ranked player/team results sorted by score.
 - Guild assignment output based on configured guild rules.
 - Per-player context fields (for example submitted guild/banner response) shown in results.
+
+---
+
+## Damage Calc
+### Damage Calc: What It Does
+Calculates expected damage values for physical, magical, and mixed command abilities using workbook-aligned formulas, with optional summon/limit-break and advanced multiplier inputs.
+
+### Damage Calc: Inputs
+| Input | Expected Value | Use |
+|---|---|---|
+| Damage Type | Physical / Magical / Physical/Magical | Controls which attack/defense fields are required |
+| P.Atk / M.Atk | Whole number | Main attack stats for physical/magical paths |
+| Enemy PDEF / Enemy MDEF | Whole number | Enemy defense stats for physical/magical paths |
+| Weapon C.Ability Potency | Percent (whole or up to 2 decimals) | Core ability multiplier |
+| Build/Enemy/Advanced percent fields | Percent (whole or up to 2 decimals) | Optional buffs, debuffs, and multipliers |
+| Summon / Limit Break fields | Mixed selects + percentages | Optional summon/LB path tuning |
+
+### Damage Calc: Quick Walkthrough
+Required steps:
+1. Set `Damage Type`.
+2. Fill required core fields (`P.Atk`/`M.Atk` and `Enemy PDEF`/`Enemy MDEF` based on mode), plus `Weapon C.Ability Potency`.
+3. Add optional build/enemy/advanced inputs as needed.
+4. Click `Calculate`.
+
+Expected output:
+- Damage range, average damage, bonus damage, total damage, and average LB/summon damage.
+- Workbook helper diagnostics in the expandable `Diagnostics` section.
+
+Notes:
+- Damage Calc saves your `Input_*` values in browser local storage (`damage-calc-state-v1`) and restores them on revisit.
+- `Reset` clears both form values and saved local browser state for this page.
 
 ---
 

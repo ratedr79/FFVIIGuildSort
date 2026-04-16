@@ -1,5 +1,29 @@
 # Other Pages and Tools
 
+## Damage Calc (`/DamageCalc`)
+- Purpose: workbook-parity damage calculator for physical/magical/mixed command paths with optional summon/LB and advanced multiplier tuning.
+- Entry points:
+  - UI page: `Pages/DamageCalc.cshtml`
+  - Page model: `Pages/DamageCalc.cshtml.cs`
+  - Core formulas: `Services/DamageCalcService.cs`
+  - Request/result contracts: `Models/DamageCalcModels.cs`
+- UI/validation behavior:
+  - accordion sections for progressive disclosure across core/build/enemy/summon/advanced inputs
+  - dynamic required-field rules driven by `Damage Type` (mode-based requirement toggling for `P.Atk`, `M.Atk`, `Enemy PDEF`, `Enemy MDEF`)
+  - first-invalid-field submit behavior expands the relevant accordion section and focuses/scrolls to the invalid control
+- Input formatting behavior:
+  - integer stat fields remain whole-number style (`P.Atk`, `M.Atk`, `Enemy PDEF`, `Enemy MDEF`)
+  - percentage fields accept whole numbers or up to 2 decimal places (client `step=0.01`)
+  - percent inputs are normalized in service logic before formula application (UI accepts human-friendly percentages)
+- Persistence behavior:
+  - browser-local state key: `damage-calc-state-v1`
+  - all `Input_*` fields are restored on load
+  - state saves on submit and debounced `input/change` events
+  - `Reset` clears local storage state for this page
+- Output/diagnostics behavior:
+  - result card includes `FormulaVersion` badge (current default: `excel-dmgcalc-v1`) to identify formula revision used
+  - diagnostics panel surfaces workbook helper internals (including branch path numbers and interruption range)
+
 ## Gear Search (`/GearSearch`)
 - Purpose: searchable gear index with rich filters and detail views.
 - Data source: `WeaponSearchDataService` + catalog enrichment.
