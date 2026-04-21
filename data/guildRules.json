@@ -4,7 +4,8 @@
   "lockedPlayers": [
     { "player": "Domi", "guild": 1 },
     { "player": "DDelaneyCA", "guild": 1 },
-    { "player": "DrakeSky", "guild": 2 }
+    { "player": "DrakeSky", "guild": 2 },
+    { "player": "Stormzy", "guild": 2 }
   ],
   "playerGuildExclusions": [
     { "player": "Mikey4Life", "excludedGuilds": [ 1 ] },
