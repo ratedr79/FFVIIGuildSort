@@ -146,6 +146,18 @@ This section documents the advanced scoring and assignment behavior used by `Pow
   - catalog enrichment status (`DataDiagnostics`)
   - guild rules file validity
 
+## Player Gear Modal (Submitted Gear Viewer)
+- Trigger: clicking a player's in-game name in the ranked results table.
+- Data source: `PlayerGearByName` built in `PowerLevelAnalyzer.cshtml.cs` from raw submission columns (`ItemResponsesByColumnName`) for full ownership coverage (not only optimizer-selected items).
+- Grouping: weapons/costumes by character, utility collections (summons/enemy abilities/memoria), materia counts, and missing catalog hints.
+
+### Stability notes (important)
+- Render modal markup outside table row/cell structures. Avoid nesting modal containers inside `tbody` row hosts.
+- On page load, move `.js-gear-modal` nodes under `document.body` to avoid ancestor layout/stacking side effects.
+- Open modals via explicit JS (`bootstrap.Modal.getOrCreateInstance(...).show()`) rather than mixed toggle paths.
+- Use guarded hide handling so only explicit close actions dismiss the gear modal.
+- While modal is open, disable `.card:hover` transform/transition effects on this page to prevent pointer-move-induced flicker.
+
 ## Common Maintenance Tasks
 - Update `data/teamTemplates.json` for evolving composition strategies.
 - Update `data/guildRules.json` when roster constraints change.

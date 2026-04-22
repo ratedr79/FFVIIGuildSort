@@ -74,12 +74,14 @@ All notable changes to this project should be documented in this file.
 - Support Team Builder effect-filter potency controls now clearly handle non-potency effects: rows with effects lacking explicit `[Pot]`/`[Max Pot]` metadata auto-lock potency filters to `Low` and show inline guidance.
 - Added a new hybrid Vue beta page at `/SupportTeamBuilderVue` with reactive in-page updates while preserving server-side matching/ranking logic via JSON handlers backed by `SupportTeamBuilderService`.
 - Legacy `/SupportTeamBuilder` now includes a quick-link button to open the Vue beta page during phased migration.
+- Power Analyzer ranked results now include a player-name gear modal showing submitted ownership details (weapons/costumes by character, utility items, materia summary, and missing-catalog hints).
 
 ### Fixed
 - Weapon customization unlock behavior now enforces `OB1+` in simulation/UI surfaces:
   - snapshot customization generation suppressed at `OB0`
   - power analyzer customization indicators suppressed at `OB0`
 - Gear Search snapshot modal now shows `Customizations unlock at OB1.` hint when `OB0` is selected.
+- Power Analyzer player gear modal stability issues causing repeated flashing/open-close loops on pointer movement were fixed by moving modals under `document.body`, avoiding invalid table-hosted modal markup, and guarding modal open/close handling.
 
 ### Docs
 - Added end-user `README.md` documentation for `Damage Calc` with input expectations, conditional required-field behavior summary, and local persistence notes.
@@ -103,3 +105,4 @@ All notable changes to this project should be documented in this file.
 - Updated `docs/features/other-pages.md` Support Team Builder internals to cover outfit assignment/scoring/dedupe logic and customization display in weapon details modal.
 - Updated `README.md` and `docs/features/other-pages.md` Support Team Builder sections to document potency-filter applicability behavior and inline non-potency guidance.
 - Added `README.md` and `docs/features/other-pages.md` documentation for the new `/SupportTeamBuilderVue` reactive beta flow and its shared backend parity model.
+- Updated `docs/features/power-analyzer.md` with a `Player Gear Modal` section documenting data source expectations and UI stability guardrails to prevent modal flicker regressions.

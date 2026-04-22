@@ -4,6 +4,14 @@
     ViewData["Title"] = "Blitzball Fantasy League Manager";
 }
 
+<style>
+    .modal-open .card,
+    .modal-open .card:hover {
+        transform: none !important;
+        transition: none !important;
+    }
+</style>
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
@@ -326,6 +334,8 @@
                                             var team = displayTeams[i];
                                             var collapseId = $"details_{i}";
                                             var altCollapseId = $"alt_{i}";
+                                            var gearModalId = $"gear_{i}";
+                                            var hasGearSummary = Model.PlayerGearByName.TryGetValue(team.InGameName, out var gearSummary);
 
                                             if (team.GuildNumber != currentGuild)
                                             {
@@ -354,7 +364,16 @@
                                                 <td>@team.GuildNumber</td>
                                                 <td>
                                                     <div>
-                                                        @team.InGameName
+                                                        @if (hasGearSummary && gearSummary != null)
+                                                        {
+                                                            <button class="btn btn-link btn-sm p-0 align-baseline js-open-gear-modal" type="button" data-gear-modal-id="@gearModalId">
+                                                                @team.InGameName
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            @team.InGameName
+                                                        }
                                                         @if (!string.IsNullOrWhiteSpace(team.DiscordName))
                                                         {
                                                             <text> (@team.DiscordName)</text>
@@ -412,6 +431,7 @@
                                                     }
                                                 </td>
                                             </tr>
+
                                             <tr class="collapse" id="@collapseId">
                                                 <td colspan="6">
                                                 @if (team.Breakdown == null)
@@ -1046,6 +1066,256 @@
                                 </tbody>
                             </table>
                         </div>
+                        @{
+                            var modalTeams = Model.RankedTeams
+                                .OrderBy(t => t.GuildNumber)
+                                .ThenByDescending(t => t.Score)
+                                .ThenBy(t => t.InGameName, StringComparer.OrdinalIgnoreCase)
+                                .ToList();
+                        }
+                        @for (int i = 0; i < modalTeams.Count; i++)
+                        {
+                            var team = modalTeams[i];
+                            var gearModalId = $"gear_{i}";
+                            if (!Model.PlayerGearByName.TryGetValue(team.InGameName, out var gearSummary) || gearSummary == null)
+                            {
+                                continue;
+                            }
+
+                            <div class="modal fade js-gear-modal" id="@gearModalId" tabindex="-1" aria-labelledby="@(gearModalId + "_label")" aria-hidden="true">
+                                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <div>
+                                                <h5 class="modal-title" id="@(gearModalId + "_label")">@gearSummary.InGameName - Submitted Gear</h5>
+                                                <small class="text-muted">
+                                                    Score: @gearSummary.Score.ToString("N0")
+                                                    @if (gearSummary.BestTeamCharacters.Count > 0)
+                                                    {
+                                                        <text> | Best Team: @string.Join(", ", gearSummary.BestTeamCharacters)</text>
+                                                    }
+                                                </small>
+                                            </div>
+                                            <button type="button" class="btn-close js-close-gear-modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="accordion" id="@(gearModalId + "_accordion")">
+                                                <div class="accordion-item">
+                                                    <h2 class="accordion-header" id="@(gearModalId + "_w_hdr")">
+                                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_w")" aria-expanded="true" aria-controls="@(gearModalId + "_w")">
+                                                            Weapons by Character
+                                                        </button>
+                                                    </h2>
+                                                    <div id="@(gearModalId + "_w")" class="accordion-collapse collapse show" aria-labelledby="@(gearModalId + "_w_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                                        <div class="accordion-body">
+                                                            @if (gearSummary.WeaponsByCharacter.Count == 0)
+                                                            {
+                                                                <div class="text-muted">No owned weapons found in submission.</div>
+                                                            }
+                                                            else
+                                                            {
+                                                                @foreach (var weaponGroup in gearSummary.WeaponsByCharacter.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+                                                                {
+                                                                    <div class="mb-2"><strong>@weaponGroup.Key</strong></div>
+                                                                    <div class="table-responsive mb-3">
+                                                                        <table class="table table-sm table-striped mb-0">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Weapon</th>
+                                                                                    <th>OB</th>
+                                                                                    <th>Type</th>
+                                                                                    <th>Pot%</th>
+                                                                                    <th>Synergy</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                @foreach (var w in weaponGroup.Value)
+                                                                                {
+                                                                                    <tr>
+                                                                                        <td>@w.WeaponName</td>
+                                                                                        <td>@w.OverboostLevel</td>
+                                                                                        <td>@(w.IsUltimate ? "Ultimate" : "Weapon")</td>
+                                                                                        <td>@(w.AbilityPotPercent?.ToString("N1") ?? "-")</td>
+                                                                                        <td><small class="text-muted">@(string.IsNullOrWhiteSpace(w.SynergyReason) ? "-" : w.SynergyReason)</small></td>
+                                                                                    </tr>
+                                                                                }
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                }
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="accordion-item">
+                                                    <h2 class="accordion-header" id="@(gearModalId + "_c_hdr")">
+                                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_c")" aria-expanded="false" aria-controls="@(gearModalId + "_c")">
+                                                            Costumes by Character
+                                                        </button>
+                                                    </h2>
+                                                    <div id="@(gearModalId + "_c")" class="accordion-collapse collapse" aria-labelledby="@(gearModalId + "_c_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                                        <div class="accordion-body">
+                                                            @if (gearSummary.CostumesByCharacter.Count == 0)
+                                                            {
+                                                                <div class="text-muted">No owned costumes found in submission.</div>
+                                                            }
+                                                            else
+                                                            {
+                                                                @foreach (var costumeGroup in gearSummary.CostumesByCharacter.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+                                                                {
+                                                                    <div class="mb-1"><strong>@costumeGroup.Key</strong></div>
+                                                                    <ul class="mb-3">
+                                                                        @foreach (var c in costumeGroup.Value)
+                                                                        {
+                                                                            <li>@c.CostumeName</li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="accordion-item">
+                                                    <h2 class="accordion-header" id="@(gearModalId + "_u_hdr")">
+                                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_u")" aria-expanded="false" aria-controls="@(gearModalId + "_u")">
+                                                            Summons, Enemy Abilities, Memoria, Materia
+                                                        </button>
+                                                    </h2>
+                                                    <div id="@(gearModalId + "_u")" class="accordion-collapse collapse" aria-labelledby="@(gearModalId + "_u_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                                        <div class="accordion-body">
+                                                            <div class="row g-3">
+                                                                <div class="col-md-4">
+                                                                    <div><strong>Summons</strong></div>
+                                                                    @if (gearSummary.Summons.Count == 0)
+                                                                    {
+                                                                        <div class="text-muted">None</div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <ul class="mb-0">
+                                                                            @foreach (var s in gearSummary.Summons)
+                                                                            {
+                                                                                <li>@s.Name <span class="text-muted">(Lv @s.Level/@s.MaxLevel)</span></li>
+                                                                            }
+                                                                        </ul>
+                                                                    }
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div><strong>Enemy Abilities</strong></div>
+                                                                    @if (gearSummary.EnemyAbilities.Count == 0)
+                                                                    {
+                                                                        <div class="text-muted">None</div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <ul class="mb-0">
+                                                                            @foreach (var a in gearSummary.EnemyAbilities)
+                                                                            {
+                                                                                <li>@a.Name <span class="text-muted">(Lv @a.Level/@a.MaxLevel)</span></li>
+                                                                            }
+                                                                        </ul>
+                                                                    }
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div><strong>Memoria</strong></div>
+                                                                    @if (gearSummary.Memoria.Count == 0)
+                                                                    {
+                                                                        <div class="text-muted">None</div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <ul class="mb-0">
+                                                                            @foreach (var m in gearSummary.Memoria)
+                                                                            {
+                                                                                <li>@m.Name <span class="text-muted">(Lv @m.Level/@m.MaxLevel)</span></li>
+                                                                            }
+                                                                        </ul>
+                                                                    }
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="mt-3"><strong>Materia</strong></div>
+                                                            @if (gearSummary.Materia.Count == 0)
+                                                            {
+                                                                <div class="text-muted">None</div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-sm mb-0">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>Materia</th>
+                                                                                <th>11%+</th>
+                                                                                <th>8-10%</th>
+                                                                                <th>0-7%</th>
+                                                                                <th>Total</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            @foreach (var m in gearSummary.Materia)
+                                                                            {
+                                                                                <tr>
+                                                                                    <td>@m.MateriaName</td>
+                                                                                    <td>@m.CountPot11Plus</td>
+                                                                                    <td>@m.CountPot8To10</td>
+                                                                                    <td>@m.CountPot0To7</td>
+                                                                                    <td>@m.TotalCount</td>
+                                                                                </tr>
+                                                                            }
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                @if (gearSummary.MissingCatalogItems.Count > 0)
+                                                {
+                                                    <div class="accordion-item">
+                                                        <h2 class="accordion-header" id="@(gearModalId + "_m_hdr")">
+                                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_m")" aria-expanded="false" aria-controls="@(gearModalId + "_m")">
+                                                                Missing Catalog Items (@gearSummary.MissingCatalogItems.Count)
+                                                            </button>
+                                                        </h2>
+                                                        <div id="@(gearModalId + "_m")" class="accordion-collapse collapse" aria-labelledby="@(gearModalId + "_m_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                                            <div class="accordion-body">
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-sm mb-0">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>Item</th>
+                                                                                <th>Raw Value</th>
+                                                                                <th>Kind</th>
+                                                                                <th>Notes</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            @foreach (var m in gearSummary.MissingCatalogItems)
+                                                                            {
+                                                                                <tr>
+                                                                                    <td>@m.ColumnName</td>
+                                                                                    <td>@m.RawValue</td>
+                                                                                    <td>@m.InferredKind</td>
+                                                                                    <td>@m.Notes</td>
+                                                                                </tr>
+                                                                            }
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                         <script>
                             (function () {
                                 function wireCollapseToggleText() {
@@ -1065,10 +1335,87 @@
                                     });
                                 }
 
+                                function mountGearModalsToBody() {
+                                    var modalEls = document.querySelectorAll('.js-gear-modal');
+                                    modalEls.forEach(function (modalEl) {
+                                        if (modalEl.dataset.appendedToBody === 'true') {
+                                            return;
+                                        }
+
+                                        document.body.appendChild(modalEl);
+                                        modalEl.dataset.appendedToBody = 'true';
+                                    });
+                                }
+
+                                function wireGearModalOpenButtons() {
+                                    var openButtons = document.querySelectorAll('button.js-open-gear-modal[data-gear-modal-id]');
+                                    openButtons.forEach(function (btn) {
+                                        btn.addEventListener('click', function (e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+
+                                            var modalId = btn.getAttribute('data-gear-modal-id');
+                                            if (!modalId || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                                                return;
+                                            }
+
+                                            var modalEl = document.getElementById(modalId);
+                                            if (!modalEl) {
+                                                return;
+                                            }
+
+                                            if (modalEl.dataset.guardWired !== 'true') {
+                                                modalEl.addEventListener('hide.bs.modal', function (evt) {
+                                                    if (modalEl.dataset.allowHide === 'true') {
+                                                        modalEl.dataset.allowHide = 'false';
+                                                        return;
+                                                    }
+
+                                                    evt.preventDefault();
+                                                });
+
+                                                modalEl.dataset.allowHide = 'false';
+                                                modalEl.dataset.guardWired = 'true';
+                                            }
+
+                                            var modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                                                backdrop: 'static',
+                                                keyboard: false,
+                                                focus: true
+                                            });
+                                            modalEl.dataset.allowHide = 'false';
+                                            modal.show();
+                                        });
+                                    });
+
+                                    var closeButtons = document.querySelectorAll('button.js-close-gear-modal');
+                                    closeButtons.forEach(function (btn) {
+                                        btn.addEventListener('click', function (e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+
+                                            var modalEl = btn.closest('.js-gear-modal');
+                                            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                                                return;
+                                            }
+
+                                            modalEl.dataset.allowHide = 'true';
+                                            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                                            modal.hide();
+                                        });
+                                    });
+                                }
+
                                 if (document.readyState === 'loading') {
-                                    document.addEventListener('DOMContentLoaded', wireCollapseToggleText);
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        mountGearModalsToBody();
+                                        wireCollapseToggleText();
+                                        wireGearModalOpenButtons();
+                                    });
                                 } else {
+                                    mountGearModalsToBody();
                                     wireCollapseToggleText();
+                                    wireGearModalOpenButtons();
                                 }
                             })();
                         </script>

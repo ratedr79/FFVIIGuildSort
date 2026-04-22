@@ -13,6 +13,51 @@ public class PlayerSubmissionInfo
     public string Guild { get; set; } = string.Empty;
 }
 
+public sealed class PlayerGearWeaponEntry
+{
+    public string WeaponName { get; set; } = string.Empty;
+    public int OverboostLevel { get; set; }
+    public bool IsUltimate { get; set; }
+    public double? AbilityPotPercent { get; set; }
+    public string? SynergyReason { get; set; }
+}
+
+public sealed class PlayerGearCostumeEntry
+{
+    public string CostumeName { get; set; } = string.Empty;
+}
+
+public sealed class PlayerGearLeveledEntry
+{
+    public string Name { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public int MaxLevel { get; set; }
+}
+
+public sealed class PlayerGearMateriaEntry
+{
+    public string MateriaName { get; set; } = string.Empty;
+    public int CountPot11Plus { get; set; }
+    public int CountPot8To10 { get; set; }
+    public int CountPot0To7 { get; set; }
+    public int TotalCount => CountPot11Plus + CountPot8To10 + CountPot0To7;
+}
+
+public sealed class PlayerGearSummary
+{
+    public string InGameName { get; set; } = string.Empty;
+    public string? DiscordName { get; set; }
+    public double Score { get; set; }
+    public List<string> BestTeamCharacters { get; set; } = new();
+    public Dictionary<string, List<PlayerGearWeaponEntry>> WeaponsByCharacter { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, List<PlayerGearCostumeEntry>> CostumesByCharacter { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<PlayerGearLeveledEntry> Summons { get; set; } = new();
+    public List<PlayerGearLeveledEntry> EnemyAbilities { get; set; } = new();
+    public List<PlayerGearLeveledEntry> Memoria { get; set; } = new();
+    public List<PlayerGearMateriaEntry> Materia { get; set; } = new();
+    public List<MissingCatalogItemBreakdown> MissingCatalogItems { get; set; } = new();
+}
+
 public class PowerLevelAnalyzerModel : PageModel
 {
     private readonly ILogger<PowerLevelAnalyzerModel> _logger;
@@ -21,8 +66,11 @@ public class PowerLevelAnalyzerModel : PageModel
     private readonly GuildAssigner _guildAssigner;
     private readonly WeaponCatalog _weaponCatalog;
     private readonly TeamTemplateCatalog _teamTemplateCatalog;
+    private readonly SummonCatalog _summonCatalog;
+    private readonly EnemyAbilityCatalog _enemyAbilityCatalog;
+    private readonly MemoriaCatalog _memoriaCatalog;
 
-    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, IConfiguration configuration, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog)
+    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, IConfiguration configuration, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog, SummonCatalog summonCatalog, EnemyAbilityCatalog enemyAbilityCatalog, MemoriaCatalog memoriaCatalog)
     {
         _logger = logger;
         _configuration = configuration;
@@ -30,6 +78,9 @@ public class PowerLevelAnalyzerModel : PageModel
         _guildAssigner = guildAssigner;
         _weaponCatalog = weaponCatalog;
         _teamTemplateCatalog = teamTemplateCatalog;
+        _summonCatalog = summonCatalog;
+        _enemyAbilityCatalog = enemyAbilityCatalog;
+        _memoriaCatalog = memoriaCatalog;
     }
 
     public WeaponCatalog WeaponCatalog => _weaponCatalog;
@@ -69,6 +120,7 @@ public class PowerLevelAnalyzerModel : PageModel
     public List<string> DuplicateSubmitters { get; set; } = new();
     public List<PlayerSubmissionInfo> AllPlayerSubmissions { get; set; } = new();
     public List<SheetDefinition> AvailableSheets { get; set; } = new();
+    public Dictionary<string, PlayerGearSummary> PlayerGearByName { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public void OnGet()
     {
@@ -175,14 +227,17 @@ public class PowerLevelAnalyzerModel : PageModel
                 .Select(kvp => kvp.Key)
                 .ToList();
 
-            RankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, new BattleContext
+            var battleContext = new BattleContext
             {
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
                 TargetScenario = TargetScenario,
                 SynergyEffectBonusPercents = SynergyEffectBonusPercents,
                 EnabledTeamTemplates = enabledTemplateNames
-            });
+            };
+
+            RankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, battleContext);
+            PlayerGearByName = BuildPlayerGearSummaries(accounts, RankedTeams, battleContext);
 
             // Reload templates for display
             AvailableTeamTemplates = _teamTemplateCatalog.GetAllTemplates();
@@ -417,5 +472,351 @@ public class PowerLevelAnalyzerModel : PageModel
         }
 
         return value;
+    }
+
+    private Dictionary<string, PlayerGearSummary> BuildPlayerGearSummaries(IReadOnlyList<AccountRow> accounts, IReadOnlyList<BestTeamResult> teams, BattleContext context)
+    {
+        var summaries = new Dictionary<string, PlayerGearSummary>(StringComparer.OrdinalIgnoreCase);
+        var accountByName = accounts
+            .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
+            .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var team in teams)
+        {
+            if (!accountByName.TryGetValue(team.InGameName, out var account))
+            {
+                continue;
+            }
+
+            var summary = new PlayerGearSummary
+            {
+                InGameName = team.InGameName,
+                DiscordName = team.DiscordName,
+                Score = team.Score,
+                BestTeamCharacters = team.Characters?.ToList() ?? new List<string>(),
+                MissingCatalogItems = team.Breakdown?.MissingCatalogItems?.ToList() ?? new List<MissingCatalogItemBreakdown>()
+            };
+
+            var weaponsByCharacter = new Dictionary<string, List<PlayerGearWeaponEntry>>(StringComparer.OrdinalIgnoreCase);
+            var costumesByCharacter = new Dictionary<string, List<PlayerGearCostumeEntry>>(StringComparer.OrdinalIgnoreCase);
+            var memoriaEntries = new List<PlayerGearLeveledEntry>();
+            var summonEntries = new List<PlayerGearLeveledEntry>();
+            var enemyAbilityEntries = new List<PlayerGearLeveledEntry>();
+            var materiaByName = new Dictionary<string, PlayerGearMateriaEntry>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var kvp in account.ItemResponsesByColumnName)
+            {
+                var columnName = kvp.Key;
+                var rawValue = kvp.Value;
+
+                if (_weaponCatalog.TryGetWeapon(columnName, out var weaponInfo))
+                {
+                    var ob = ParseWeaponOverboost(rawValue);
+                    if (ob.HasValue)
+                    {
+                        if (!weaponsByCharacter.TryGetValue(weaponInfo.Character, out var weaponList))
+                        {
+                            weaponList = new List<PlayerGearWeaponEntry>();
+                            weaponsByCharacter[weaponInfo.Character] = weaponList;
+                        }
+
+                        double? abilityPotPercent = null;
+                        if (weaponInfo.PotPercentByOb.TryGetValue(ob.Value, out var potAtOb))
+                        {
+                            abilityPotPercent = potAtOb;
+                        }
+                        else if (ob.Value == 10)
+                        {
+                            abilityPotPercent = weaponInfo.AbilityPotPercentAtOb10;
+                        }
+
+                        string? synergyReason = null;
+                        if (SynergyDetection.CountSynergyMatches(weaponInfo.EffectTextBlob, context) > 0)
+                        {
+                            synergyReason = SynergyDetection.DescribeSynergyMatches(weaponInfo.EffectTextBlob, context);
+                        }
+
+                        weaponList.Add(new PlayerGearWeaponEntry
+                        {
+                            WeaponName = weaponInfo.Name,
+                            OverboostLevel = ob.Value,
+                            IsUltimate = weaponInfo.IsUltimate,
+                            AbilityPotPercent = abilityPotPercent,
+                            SynergyReason = synergyReason
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (_weaponCatalog.TryGetCostume(columnName, out var costumeInfo) && IsOwnedValue(rawValue))
+                {
+                    if (!costumesByCharacter.TryGetValue(costumeInfo.Character, out var costumeList))
+                    {
+                        costumeList = new List<PlayerGearCostumeEntry>();
+                        costumesByCharacter[costumeInfo.Character] = costumeList;
+                    }
+
+                    costumeList.Add(new PlayerGearCostumeEntry { CostumeName = costumeInfo.Name });
+                    continue;
+                }
+
+                if (_summonCatalog.TryGetSummon(columnName, out var summonDef))
+                {
+                    var level = ParseLevel(rawValue);
+                    if (level.HasValue && level.Value > 0)
+                    {
+                        summonEntries.Add(new PlayerGearLeveledEntry
+                        {
+                            Name = summonDef.Name,
+                            Level = level.Value,
+                            MaxLevel = Math.Max(1, summonDef.MaxLevel)
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (_enemyAbilityCatalog.TryGetEnemyAbility(columnName, out var enemyAbilityDef))
+                {
+                    var level = ParseLevel(rawValue);
+                    if (level.HasValue && level.Value > 0)
+                    {
+                        enemyAbilityEntries.Add(new PlayerGearLeveledEntry
+                        {
+                            Name = enemyAbilityDef.Name,
+                            Level = level.Value,
+                            MaxLevel = Math.Max(1, enemyAbilityDef.MaxLevel)
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (_memoriaCatalog.TryGetMemoria(columnName, out var memoriaDef))
+                {
+                    var level = ParseLevel(rawValue);
+                    if (level.HasValue && level.Value > 0)
+                    {
+                        memoriaEntries.Add(new PlayerGearLeveledEntry
+                        {
+                            Name = memoriaDef.Name,
+                            Level = level.Value,
+                            MaxLevel = Math.Max(1, memoriaDef.MaxLevel)
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (TryParseMateriaColumn(columnName, out var materiaName, out var tier))
+                {
+                    var count = ParseCountValue(rawValue);
+                    if (count <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (!materiaByName.TryGetValue(materiaName, out var materiaEntry))
+                    {
+                        materiaEntry = new PlayerGearMateriaEntry { MateriaName = materiaName };
+                        materiaByName[materiaName] = materiaEntry;
+                    }
+
+                    switch (tier)
+                    {
+                        case MateriaTier.Pot11Plus:
+                            materiaEntry.CountPot11Plus += count;
+                            break;
+                        case MateriaTier.Pot8To10:
+                            materiaEntry.CountPot8To10 += count;
+                            break;
+                        case MateriaTier.Pot0To7:
+                            materiaEntry.CountPot0To7 += count;
+                            break;
+                    }
+                }
+            }
+
+            summary.WeaponsByCharacter = weaponsByCharacter
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value
+                        .OrderByDescending(w => w.OverboostLevel)
+                        .ThenBy(w => w.WeaponName, StringComparer.OrdinalIgnoreCase)
+                        .ToList(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            summary.CostumesByCharacter = costumesByCharacter
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.OrderBy(c => c.CostumeName, StringComparer.OrdinalIgnoreCase).ToList(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            summary.Summons = summonEntries
+                .OrderByDescending(s => s.Level)
+                .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            summary.EnemyAbilities = enemyAbilityEntries
+                .OrderByDescending(e => e.Level)
+                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            summary.Memoria = memoriaEntries
+                .OrderByDescending(m => m.Level)
+                .ThenBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            summary.Materia = materiaByName.Values
+                .OrderByDescending(m => m.TotalCount)
+                .ThenBy(m => m.MateriaName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            summaries[team.InGameName] = summary;
+        }
+
+        return summaries;
+    }
+
+    private static bool IsOwnedValue(string rawValue)
+    {
+        return rawValue.Equals("Own", StringComparison.OrdinalIgnoreCase)
+               || rawValue.Equals("Owned", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int? ParseLevel(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        raw = raw.Trim();
+        if (raw.Equals("Do Not Own", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (raw.StartsWith("Level", StringComparison.OrdinalIgnoreCase))
+        {
+            var parts = raw.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length >= 2 && int.TryParse(parts[1], out var parsedLevel))
+            {
+                return parsedLevel;
+            }
+        }
+
+        return int.TryParse(raw, out var numericLevel) ? numericLevel : null;
+    }
+
+    private static bool TryParseMateriaColumn(string columnName, out string materiaName, out MateriaTier tier)
+    {
+        materiaName = string.Empty;
+        tier = MateriaTier.Unknown;
+
+        if (string.IsNullOrWhiteSpace(columnName))
+        {
+            return false;
+        }
+
+        if (!columnName.EndsWith(" Owned", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var materiaIndex = columnName.IndexOf(" Materia (", StringComparison.OrdinalIgnoreCase);
+        if (materiaIndex < 0)
+        {
+            return false;
+        }
+
+        var closeParenIndex = columnName.IndexOf(')', materiaIndex);
+        if (closeParenIndex < 0)
+        {
+            return false;
+        }
+
+        materiaName = columnName.Substring(0, materiaIndex).Trim();
+        var tierText = columnName.Substring(materiaIndex + " Materia (".Length, closeParenIndex - (materiaIndex + " Materia (".Length)).Trim();
+
+        if (tierText.Contains("11%", StringComparison.OrdinalIgnoreCase) || tierText.Contains("or higher", StringComparison.OrdinalIgnoreCase))
+        {
+            tier = MateriaTier.Pot11Plus;
+            return !string.IsNullOrWhiteSpace(materiaName);
+        }
+
+        if (tierText.Contains("8-10%", StringComparison.OrdinalIgnoreCase) || tierText.Contains("8–10%", StringComparison.OrdinalIgnoreCase))
+        {
+            tier = MateriaTier.Pot8To10;
+            return !string.IsNullOrWhiteSpace(materiaName);
+        }
+
+        if (tierText.Contains("0-7%", StringComparison.OrdinalIgnoreCase) || tierText.Contains("0–7%", StringComparison.OrdinalIgnoreCase))
+        {
+            tier = MateriaTier.Pot0To7;
+            return !string.IsNullOrWhiteSpace(materiaName);
+        }
+
+        return false;
+    }
+
+    private static int ParseCountValue(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return 0;
+        }
+
+        raw = raw.Trim();
+
+        if (raw.EndsWith("+", StringComparison.OrdinalIgnoreCase))
+        {
+            var num = raw[..^1];
+            if (int.TryParse(num, out var plusVal))
+            {
+                return Math.Max(0, plusVal);
+            }
+        }
+
+        if (int.TryParse(raw, out var val))
+        {
+            return Math.Max(0, val);
+        }
+
+        return 0;
+    }
+
+    private static int? ParseWeaponOverboost(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        raw = raw.Trim();
+
+        if (raw.Equals("Do Not Own", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (raw.Equals("Own", StringComparison.OrdinalIgnoreCase) || raw.Equals("Owned", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (raw.Equals("5 Star", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (raw.StartsWith("OB", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(raw[2..], out var ob)
+            && ob >= 0
+            && ob <= 10)
+        {
+            return ob;
+        }
+
+        return null;
     }
 }

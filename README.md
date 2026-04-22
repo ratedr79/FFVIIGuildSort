@@ -99,6 +99,7 @@ Expected output:
 - Ranked player/team results sorted by score.
 - Guild assignment output based on configured guild rules.
 - Per-player context fields (for example submitted guild/banner response) shown in results.
+- Click a player's in-game name in the ranked table to open a submitted-gear modal (weapons/costumes by character, utility items, materia summary, and missing-catalog hints).
 
 ---
 
