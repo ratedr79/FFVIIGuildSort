@@ -29,7 +29,7 @@
 - Data source: `WeaponSearchDataService` + catalog enrichment.
 - Results UI uses card-based rendering across mobile and desktop breakpoints.
 - Includes View Levels modal with dynamic OB/level snapshots, with the max level resolved from loaded FF7EC weapon/release data rather than hard-coded in the page.
-- Customization unlock note: customizations are unavailable at OB0 (5★), unlock at OB1.
+- Customization unlock note: customizations unlock once the selected weapon level reaches 80, including 5★/OB0 weapons.
 - Passive-skill (`R Ability`) effects are resolved from FF7EC passive data tables using current passive points:
   - `SkillPassive` → `SkillPassiveLevel` (point-to-level mapping)
   - `SkillPassiveEffectGroup` → `SkillPassiveEffectLevel` (level-specific effect values)

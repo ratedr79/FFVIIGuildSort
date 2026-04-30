@@ -127,8 +127,8 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 - Utility list is capped to top contributors in final score.
 
 ### Customization Rule (Important)
-- Weapon customizations only unlock at `OB1+`.
-- At `OB0/5★`, customization badges/details should not be counted in analyzer UI output.
+- Weapon customizations unlock at `Lv80+`.
+- Analyzer customization badges/details should not be suppressed solely because a weapon is `OB0/5★`.
 
 ## Guild Assignment Logic
 - Loads `GuildRulesConfig` from `data/guildRules.json`.

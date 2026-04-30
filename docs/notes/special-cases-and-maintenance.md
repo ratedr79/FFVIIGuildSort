@@ -10,9 +10,9 @@ This document captures nuanced behavior that should be retained unless intention
 - Survey dedupe uses latest `Timestamp` per in-game name.
 - Missing configured players (guild rules) can be inserted with placeholder score 0.
 - Team scoring strongly favors DPS + weapon potency context; this is intentional.
-- OB customization behavior:
-  - customizations should only count/display at `OB1+`
-  - OB0 customization display in analyzer should remain suppressed
+- Weapon customization behavior:
+  - customizations unlock once a weapon reaches `Lv80+`
+  - analyzer/UI surfaces should not suppress customization display solely because a weapon is `OB0`
 
 ## Guild Battle Simulation Notes
 - `CurrentDay` is critical input; incorrect day skews remaining-hit and HP assumptions.

@@ -13,6 +13,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
     public sealed class WeaponSearchDataService
     {
         private const int DefaultMaxWeaponLevel = 140;
+        private const int MinCustomizationUnlockLevel = 80;
         private const int MaxDisplayUpgradeLevel = 10;
         private const int MinCustomizationRarityType = 3;
 
@@ -522,14 +523,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .Average();
             if (snapshotPassiveProgress <= 0)
             {
-                var releaseProgress = maxReleaseCount > 0
-                    ? Math.Clamp((double)releaseCount / maxReleaseCount, 0.0, 1.0)
-                    : 0.0;
-                var upgradeProgress = Math.Clamp((double)upgradeCount / MaxDisplayUpgradeLevel, 0.0, 1.0);
-                snapshotPassiveProgress = (releaseProgress + upgradeProgress) / 2.0;
+                if (releaseCount > 0 && maxReleaseCount > 0)
+                {
+                    var releaseProgress = Math.Clamp((double)releaseCount / maxReleaseCount, 0.0, 1.0);
+                    var upgradeProgress = Math.Clamp((double)upgradeCount / MaxDisplayUpgradeLevel, 0.0, 1.0);
+                    snapshotPassiveProgress = (releaseProgress + upgradeProgress) / 2.0;
+                }
             }
 
-            var customizations = BuildCustomizationsAtLevel(weapon, upgradeCount, damagePercent, snapshotPassiveProgress);
+            var customizations = BuildCustomizationsAtLevel(weapon, level, upgradeCount, damagePercent, snapshotPassiveProgress);
 
             return new WeaponSnapshotResult
             {
@@ -1524,13 +1526,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private List<WeaponCustomization> BuildCustomizationsAtLevel(
             WeaponRaw weapon,
+            int targetLevel,
             int targetUpgradeCount,
             double baseDamagePercent,
             double snapshotPassiveProgressHint = 1.0)
         {
             var results = new List<WeaponCustomization>();
 
-            if (targetUpgradeCount < 1) return results;
+            if (targetLevel < MinCustomizationUnlockLevel) return results;
             if (weapon.WeaponEvolveGroupId == 0) return results;
             if (!_weaponRarities.TryGetValue(weapon.Id, out var rarity) || rarity.RarityType < MinCustomizationRarityType) return results;
             if (!_weaponEvolves.TryGetValue(weapon.WeaponEvolveGroupId, out var evolveEntries)) return results;

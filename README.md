@@ -350,8 +350,8 @@ Expected output:
 - Compare panel updates as items are added.
 
 ### Important UI Note
-- Customizations unlock at `OB1+`.
-- At `5★/OB0`, customizations are intentionally unavailable.
+- Customizations unlock at `Lv80+`.
+- At levels below `80`, customization effects remain locked even at `5★/OB0`.
 - View Levels modal `R Abilities` show `+points/name` on the first line and one-or-more resolved effect lines beneath.
 - View Levels modal includes customization-added `R Abilities` in the same `R Abilities` list with the same points/effect presentation behavior.
 - View Levels modal labels customization-added `R Abilities` with a `Cust.` badge to distinguish optional unlocks from base passives.

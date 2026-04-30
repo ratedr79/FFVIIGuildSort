@@ -1790,7 +1790,7 @@
                             <option value="10" selected>OB10</option>
                         </select>
                         <div id="snapshotOverboostNa" class="form-control-plaintext text-muted d-none">N/A</div>
-                        <div id="snapshotCustomizationUnlockHint" class="form-text text-muted d-none">Customizations unlock at OB1.</div>
+                        <div id="snapshotCustomizationUnlockHint" class="form-text text-muted d-none">Customizations unlock at Lv. 80.</div>
                     </div>
                     <div class="col-sm-6">
                         <label for="snapshotLevel" class="form-label fw-semibold">Level</label>
@@ -3028,8 +3028,10 @@
             const snapshotError = document.getElementById('snapshotError');
             const snapshotCustomizationUnlockHint = document.getElementById('snapshotCustomizationUnlockHint');
             const defaultSnapshotLevel = @Model.DefaultWeaponLevel;
+            const customizationUnlockLevel = 80;
 
             let currentWeaponId = null;
+            let currentWeaponSupportsCustomizations = false;
             let snapshotDebounceTimer = null;
             let snapshotAbortController = null;
 
@@ -3047,7 +3049,8 @@
             };
 
             const updateSnapshotCustomizationUnlockHint = () => {
-                const showHint = !snapshotOverboost.classList.contains('d-none') && snapshotOverboost.value === '0';
+                const currentLevel = Number(snapshotLevel.value || '0');
+                const showHint = currentWeaponSupportsCustomizations && currentLevel > 0 && currentLevel < customizationUnlockLevel;
                 snapshotCustomizationUnlockHint.classList.toggle('d-none', !showHint);
             };
 
@@ -3070,6 +3073,7 @@
                     snapshotLevel.value = data.level.toString();
                     snapshotLevelRange.value = data.level.toString();
                 }
+                updateSnapshotCustomizationUnlockHint();
 
                 // R Abilities
                 const rAbilitiesEl = document.getElementById('snapshotRAbilities');
@@ -3183,15 +3187,19 @@
             };
 
             snapshotOverboost.addEventListener('change', () => {
+                debouncedFetchSnapshot();
+            });
+            snapshotLevel.addEventListener('change', () => {
                 updateSnapshotCustomizationUnlockHint();
                 debouncedFetchSnapshot();
             });
-            snapshotLevel.addEventListener('change', debouncedFetchSnapshot);
             snapshotLevel.addEventListener('input', () => {
                 snapshotLevelRange.value = snapshotLevel.value;
+                updateSnapshotCustomizationUnlockHint();
             });
             snapshotLevelRange.addEventListener('input', () => {
                 snapshotLevel.value = snapshotLevelRange.value;
+                updateSnapshotCustomizationUnlockHint();
                 debouncedFetchSnapshot();
             });
 
@@ -3228,6 +3236,8 @@
                 const character = btn.getAttribute('data-character');
                 const weapon = btn.getAttribute('data-weapon');
                 const equipment = btn.getAttribute('data-equipment');
+                const row = btn.closest('tr');
+                currentWeaponSupportsCustomizations = row?.getAttribute('data-has-customizations') === 'true';
 
                 document.getElementById('snapshotCharacter').textContent = character;
                 document.getElementById('snapshotWeaponName').textContent = weapon;

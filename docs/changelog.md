@@ -78,10 +78,8 @@ All notable changes to this project should be documented in this file.
 - Power Analyzer ranked results now include a player-name gear modal showing submitted ownership details (weapons/costumes by character, utility items, materia summary, and missing-catalog hints).
 
 ### Fixed
-- Weapon customization unlock behavior now enforces `OB1+` in simulation/UI surfaces:
-  - snapshot customization generation suppressed at `OB0`
-  - power analyzer customization indicators suppressed at `OB0`
-- Gear Search snapshot modal now shows `Customizations unlock at OB1.` hint when `OB0` is selected.
+- Weapon customization unlock behavior now follows the actual level gate of `Lv80+`, so `5★/OB0` weapons can expose customizations once they reach level 80.
+- Gear Search snapshot modal now shows the customization unlock hint while the selected level is below `80`, and clears it once the weapon reaches the unlock threshold.
 - Power Analyzer player gear modal stability issues causing repeated flashing/open-close loops on pointer movement were fixed by moving modals under `document.body`, avoiding invalid table-hosted modal markup, and guarding modal open/close handling.
 
 ### Docs
