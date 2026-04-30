@@ -334,7 +334,7 @@ Provides searchable/filterable weapon/costume data with ability details, R abili
 | Advanced filter checkboxes | Element, ability, range, equipment, effects, R abilities, Sub-R abilities, sigils, etc. | Narrow results |
 | Has Customizations | Checkbox | Show only entries with customization data |
 | View Levels modal Overboost | 5★ (OB0) to OB10 | Snapshot at specific overboost |
-| View Levels modal Level | 1-130 (slider/number) | Snapshot at specific weapon level |
+| View Levels modal Level | 1-140 (or lower effective level if a weapon clamps to its supported max) | Snapshot at specific weapon level |
 
 ### Gear Search: Quick Walkthrough
 Required steps:

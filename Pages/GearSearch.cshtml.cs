@@ -30,6 +30,9 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public int PageSize { get; set; } = 50;
 
         public IReadOnlyList<WeaponSearchItem> Weapons { get; private set; } = new List<WeaponSearchItem>();
+        public int DefaultWeaponLevel => 140;
+        public int UiMaxWeaponLevel => 140;
+        public int MaxWeaponLevel => _weaponSearchService.MaxWeaponLevel;
         public int TotalItems { get; private set; }
         public int TotalPages => 1;
         public bool HasPreviousPage => false;

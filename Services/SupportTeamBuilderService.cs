@@ -142,7 +142,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
 
                 var selectedOb = ResolveOwnedObSelection(weapon.Id, request.OwnedObByWeaponId);
-                var snapshot = _weaponSearchDataService.GetWeaponSnapshot(weapon.Id, SelectionToOverboost(selectedOb), 130);
+                var snapshot = _weaponSearchDataService.GetWeaponSnapshot(
+                    weapon.Id,
+                    SelectionToOverboost(selectedOb),
+                    _weaponSearchDataService.MaxWeaponLevel);
                 var abilityText = snapshot?.AbilityText ?? weapon.AbilityText;
                 var effectCandidates = ExtractEffectLineCandidates(abilityText, filter.EffectType);
                 var candidate = effectCandidates

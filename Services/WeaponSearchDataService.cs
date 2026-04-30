@@ -12,10 +12,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 {
     public sealed class WeaponSearchDataService
     {
-        private const int MaxDisplayReleaseCount = 11; // Lv.130 / OB10
+        private const int DefaultMaxWeaponLevel = 140;
         private const int MaxDisplayUpgradeLevel = 10;
-        private const int MaxDisplayLevel = 130;
-        private const string MaxPassiveSourceLabel = "Lv.130 / OB10";
         private const int MinCustomizationRarityType = 3;
 
         private static readonly Dictionary<int, string> WeaponEvolveSlotNames = new()
@@ -82,10 +80,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private Dictionary<int, List<WeaponEvolveRaw>> _weaponEvolves = new();
         private Dictionary<int, List<WeaponEvolveEffectRaw>> _weaponEvolveEffects = new();
         private Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>> _weaponEvolveWeaponSkills = new();
+        private Dictionary<int, int> _maxWeaponLevelsByLevelGroup = new();
         private Dictionary<int, List<WeaponReleaseSettingRaw>> _weaponReleaseSettings = new();
 
         public DateTimeOffset LastLoadedUtc { get; private set; }
         public int ReloadCount { get; private set; }
+        public int MaxWeaponLevel { get; private set; } = DefaultMaxWeaponLevel;
 
         public WeaponSearchDataService(ILogger<WeaponSearchDataService> logger, IWebHostEnvironment environment)
         {
@@ -147,7 +147,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             _weaponEvolves = new Dictionary<int, List<WeaponEvolveRaw>>();
             _weaponEvolveEffects = new Dictionary<int, List<WeaponEvolveEffectRaw>>();
             _weaponEvolveWeaponSkills = new Dictionary<int, Dictionary<int, WeaponEvolveWeaponSkillRaw>>();
+            _maxWeaponLevelsByLevelGroup = new Dictionary<int, int>();
             _weaponReleaseSettings = new Dictionary<int, List<WeaponReleaseSettingRaw>>();
+            MaxWeaponLevel = DefaultMaxWeaponLevel;
         }
 
         public WeaponEnrichmentResult? GetWeaponEnrichment(string weaponName, int overboostLevel)
@@ -166,7 +168,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 weaponId = match.Value;
             }
 
-            var snapshot = GetWeaponSnapshot(weaponId, overboostLevel, 130);
+            var snapshot = GetWeaponSnapshot(weaponId, overboostLevel, MaxWeaponLevel);
             if (snapshot == null)
                 return null;
 
@@ -197,7 +199,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 weaponId = match.Value;
             }
 
-            var snapshot = GetWeaponSnapshot(weaponId, overboostLevel, 130);
+            var snapshot = GetWeaponSnapshot(weaponId, overboostLevel, MaxWeaponLevel);
             if (snapshot == null)
                 return null;
 
@@ -266,6 +268,68 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     w.Name.ToLowerInvariant().Contains(query) ||
                     w.AbilityText.ToLowerInvariant().Contains(query))
                 .ToList();
+        }
+
+        private static int GetMaxLevelForWeapon(
+            WeaponRaw weapon,
+            IReadOnlyDictionary<int, int> maxWeaponLevelsByLevelGroup,
+            IReadOnlyDictionary<int, List<WeaponReleaseSettingRaw>> weaponReleaseSettings)
+        {
+            var maxLevelFromLevelGroup = maxWeaponLevelsByLevelGroup.TryGetValue(weapon.WeaponLevelGroupId, out var levelFromGroup)
+                ? levelFromGroup
+                : 0;
+
+            var maxLevelFromReleaseSettings = weapon.WeaponReleaseSettingGroupId != 0 &&
+                weaponReleaseSettings.TryGetValue(weapon.WeaponReleaseSettingGroupId, out var settings) &&
+                settings.Count > 0
+                    ? settings.Max(s => s.LevelLimit)
+                    : 0;
+
+            if (maxLevelFromLevelGroup > 0 && maxLevelFromReleaseSettings > 0)
+            {
+                return Math.Min(maxLevelFromLevelGroup, maxLevelFromReleaseSettings);
+            }
+
+            if (maxLevelFromLevelGroup > 0)
+            {
+                return maxLevelFromLevelGroup;
+            }
+
+            if (maxLevelFromReleaseSettings > 0)
+            {
+                return maxLevelFromReleaseSettings;
+            }
+
+            return DefaultMaxWeaponLevel;
+        }
+
+        private int GetMaxLevelForWeapon(WeaponRaw weapon)
+        {
+            return GetMaxLevelForWeapon(weapon, _maxWeaponLevelsByLevelGroup, _weaponReleaseSettings);
+        }
+
+        private int GetMaxReleaseCountForWeapon(WeaponRaw weapon)
+        {
+            if (_weaponRarities.TryGetValue(weapon.Id, out var rarity) &&
+                _rarityReleaseSkills.TryGetValue(rarity.Id, out var releases) &&
+                releases.Count > 0)
+            {
+                return releases.Max(r => r.ReleaseCount);
+            }
+
+            if (weapon.WeaponReleaseSettingGroupId != 0 &&
+                _weaponReleaseSettings.TryGetValue(weapon.WeaponReleaseSettingGroupId, out var settings) &&
+                settings.Count > 0)
+            {
+                return settings.Max(s => s.ReleaseCount);
+            }
+
+            return 0;
+        }
+
+        private static string BuildMaxPassiveSourceLabel(int maxWeaponLevel)
+        {
+            return $"Lv.{maxWeaponLevel} / OB{MaxDisplayUpgradeLevel}";
         }
 
         public sealed class PassiveSkillTypeDiagnosticRow
@@ -364,7 +428,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var isUltimate = weapon.WeaponEquipmentType == 1;
             var upgradeCount = isUltimate ? 0 : Math.Clamp(overboostLevel, 0, 10);
-            var level = Math.Clamp(weaponLevel, 1, 130);
+            var maxWeaponLevel = GetMaxLevelForWeapon(weapon);
+            var level = Math.Clamp(weaponLevel, 1, maxWeaponLevel);
 
             if (!_upgradesByWeapon.TryGetValue(numericId, out var weaponUpgrades))
                 return null;
@@ -437,6 +502,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             // Compute R Abilities at the requested OB and level
             var releaseCount = GetReleaseCountForLevel(weapon, level);
+            var maxReleaseCount = GetMaxReleaseCountForWeapon(weapon);
             var passiveTotals = ComputePassiveTotalsAtLevel(weapon, weaponUpgrades, releaseCount, upgradeCount);
 
             // Compute customizations at the requested OB/level context
@@ -456,7 +522,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .Average();
             if (snapshotPassiveProgress <= 0)
             {
-                var releaseProgress = Math.Clamp((double)releaseCount / MaxDisplayReleaseCount, 0.0, 1.0);
+                var releaseProgress = maxReleaseCount > 0
+                    ? Math.Clamp((double)releaseCount / maxReleaseCount, 0.0, 1.0)
+                    : 0.0;
                 var upgradeProgress = Math.Clamp((double)upgradeCount / MaxDisplayUpgradeLevel, 0.0, 1.0);
                 snapshotPassiveProgress = (releaseProgress + upgradeProgress) / 2.0;
             }
@@ -468,6 +536,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 Character = item.Character,
                 Name = item.Name,
                 EquipmentType = item.EquipmentType,
+                Level = level,
+                MaxLevel = maxWeaponLevel,
                 AbilityText = abilityText,
                 DamagePercent = damagePercent,
                 Patk = statResult.PhysicalAttack,
@@ -506,6 +576,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var weaponLevels = LoadList<WeaponLevelRaw>(Path.Combine(masterPath, "WeaponLevel.json"));
             var weaponUpgradeParameters = LoadList<WeaponUpgradeParameterRaw>(Path.Combine(masterPath, "WeaponUpgradeParameter.json"));
+            var maxWeaponLevelsByLevelGroup = weaponLevels
+                .GroupBy(l => l.WeaponLevelGroupId)
+                .ToDictionary(g => g.Key, g => g.Max(l => l.Level));
+            var weaponReleaseSettings = LoadList<WeaponReleaseSettingRaw>(Path.Combine(masterPath, "WeaponReleaseSetting.json"))
+                .GroupBy(r => r.WeaponReleaseSettingGroupId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => r.ReleaseCount).ToList());
 
             var weaponRarities = LoadList<WeaponRarityRaw>(Path.Combine(masterPath, "WeaponRarity.json"))
                 .GroupBy(r => r.WeaponId)
@@ -611,6 +687,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             _skillPassiveLevelsByPassiveId = skillPassiveLevels;
             _skillPassiveEffectGroupsById = skillPassiveEffectGroups;
             _skillPassiveEffectLevelsById = skillPassiveEffectLevels;
+            _weaponReleaseSettings = weaponReleaseSettings;
+            _maxWeaponLevelsByLevelGroup = maxWeaponLevelsByLevelGroup;
+            MaxWeaponLevel = weapons
+                .Select(w => GetMaxLevelForWeapon(w, maxWeaponLevelsByLevelGroup, weaponReleaseSettings))
+                .DefaultIfEmpty(DefaultMaxWeaponLevel)
+                .Max();
 
             foreach (var weapon in weapons)
             {
@@ -752,6 +834,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     ? mat2
                     : materiaFallback;
 
+                var maxLevelForWeapon = GetMaxLevelForWeapon(weapon);
                 var upgradeSkillData = BuildUpgradeSkillData(weapon, weaponUpgrades, skillPassives, localization);
                 var maxPassiveTotals = BuildMaxPassiveTotals(
                     weapon,
@@ -759,7 +842,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     weaponRarities,
                     rarityReleaseSkills,
                     skillPassives,
-                    localization);
+                    localization,
+                    maxLevelForWeapon);
 
                 if (weapon.Id == 1001)
                 {
@@ -774,7 +858,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var upgradeCountForStats = isUltimate ? 0 : MaxDisplayUpgradeLevel;
                 var statResult = statCalculator.ComputeStats(
                     weapon,
-                    MaxDisplayLevel,
+                    maxLevelForWeapon,
                     upgradeCountForStats,
                     upgradeTypeForStats);
 
@@ -864,9 +948,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     MaxPassiveSkills = maxPassiveTotals,
                     MaxAbilityDescription = abilityDetails.Text,
                     EffectTags = allEffectTags,
-                    PatkOb10Lv130 = statResult.PhysicalAttack,
-                    MatkOb10Lv130 = statResult.MagicalAttack,
-                    HealOb10Lv130 = statResult.HealingPower,
+                    MaxLevel = maxLevelForWeapon,
+                    PatkAtMaxLevel = statResult.PhysicalAttack,
+                    MatkAtMaxLevel = statResult.MagicalAttack,
+                    HealAtMaxLevel = statResult.HealingPower,
                     Customizations = customizations,
                     Sigils = BuildSigils(commandSigil,
                         weapon.WeaponMateriaSupportId0,
@@ -949,9 +1034,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             _weaponEvolves = weaponEvolves;
             _weaponEvolveEffects = weaponEvolveEffects;
             _weaponEvolveWeaponSkills = weaponEvolveWeaponSkills;
-            _weaponReleaseSettings = LoadList<WeaponReleaseSettingRaw>(Path.Combine(masterPath, "WeaponReleaseSetting.json"))
-                .GroupBy(r => r.WeaponReleaseSettingGroupId)
-                .ToDictionary(g => g.Key, g => g.OrderBy(r => r.ReleaseCount).ToList());
 
             _logger.LogInformation("Loaded {Count} gear entries from JSON master data", _allWeapons.Count);
         }
@@ -1097,9 +1179,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     MaxPassiveSkills = costumePassiveTotals,
                     MaxAbilityDescription = abilityText,
                     EffectTags = effectTags,
-                    PatkOb10Lv130 = 0,
-                    MatkOb10Lv130 = 0,
-                    HealOb10Lv130 = 0,
+                    MaxLevel = MaxWeaponLevel,
+                    PatkAtMaxLevel = 0,
+                    MatkAtMaxLevel = 0,
+                    HealAtMaxLevel = 0,
                     Customizations = new List<WeaponCustomization>(),
                     Sigils = BuildSigils(commandSigil, 0, 0, 0),
                     SubRAbilityTags = BuildSubRAbilityTags(costumePassiveTotals)
@@ -1249,7 +1332,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             Dictionary<int, WeaponRarityRaw> weaponRarities,
             Dictionary<int, List<WeaponRarityReleaseSkillRaw>> rarityReleaseSkills,
             Dictionary<int, SkillPassiveRaw> skillPassives,
-            LocalizationStore localization)
+            LocalizationStore localization,
+            int maxWeaponLevel)
         {
             var totals = new List<PassiveSkillTotal>();
             var passiveIds = new[] { weapon.PassiveSkillId0, weapon.PassiveSkillId1, weapon.PassiveSkillId2 };
@@ -1261,7 +1345,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return totals;
             }
 
-            var releaseEntry = releases.FirstOrDefault(r => r.ReleaseCount == MaxDisplayReleaseCount)
+            var maxReleaseCount = releases.Max(r => r.ReleaseCount);
+            var releaseEntry = releases.FirstOrDefault(r => r.ReleaseCount == maxReleaseCount)
                 ?? releases.LastOrDefault();
 
             var baseSlots = releaseEntry != null
@@ -1317,7 +1402,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     UpgradePoints = upgradePoints,
                     TotalPoints = totalPoints,
                     SkillSlot = slot,
-                    SourceLabel = MaxPassiveSourceLabel,
+                    SourceLabel = BuildMaxPassiveSourceLabel(maxWeaponLevel),
                     Effects = ResolvePassiveEffects(passiveId, totalPoints)
                 });
             }

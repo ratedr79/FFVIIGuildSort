@@ -46,8 +46,9 @@ All notable changes to this project should be documented in this file.
   - per-tool walkthroughs
   - UI input reference tables
   - configuration and accuracy notes
+- Gear Search now uses Lv140 as the default/fallback weapon level for release readiness, while View Levels continues to reflect a lower effective level when a specific weapon clamps to its supported max.
 - Gear Search advanced filters now include in-panel search + clear controls for long `R Abilities` and `Effects` lists, with `No matches found.` feedback while preserving selected checkbox state.
-- Gear Search table `R Abilities` now expose hover details showing resolved OB10/Lv130 passive effects.
+- Gear Search table `R Abilities` now expose hover details showing resolved OB10/max-level passive effects.
 - Gear Search `R Ability` effect details now use tap/click-friendly popovers on mobile/touch devices (with outside-tap dismiss), while preserving hover/focus behavior on desktop.
 - Gear Search View Levels modal now renders `R Abilities` in two-line format (`+points/name` plus one-or-more resolved effect lines) that updates as OB/level changes.
 - Passive `R Ability` effect percentage rendering now supports `PassiveSkillType`-specific coefficient scaling (including `Type 8` resist-style values), fixing over-scaled percentage output.

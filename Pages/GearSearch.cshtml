@@ -1602,14 +1602,14 @@
                             <td>
                                 @if (costumeNoAbility)
                                 {
-                                    @:N/A
+                                    <span class="text-muted">N/A</span>
                                 }
                                 else
                                 {
-                                    <div class="stat-stack">
-                                        <div><nobr>@string.Format("P: {0:N0}", weapon.PatkOb10Lv130)</nobr></div>
-                                        <div><nobr>@string.Format("M: {0:N0}", weapon.MatkOb10Lv130)</nobr></div>
-                                        <div><nobr>@string.Format("H: {0:N0}", weapon.HealOb10Lv130)</nobr></div>
+                                    <div class="stat-stack" title="Lv. @weapon.MaxLevel / OB10">
+                                        <div><nobr>@string.Format("P: {0:N0}", weapon.PatkAtMaxLevel)</nobr></div>
+                                        <div><nobr>@string.Format("M: {0:N0}", weapon.MatkAtMaxLevel)</nobr></div>
+                                        <div><nobr>@string.Format("H: {0:N0}", weapon.HealAtMaxLevel)</nobr></div>
                                     </div>
                                 }
                             </td>
@@ -1795,8 +1795,8 @@
                     <div class="col-sm-6">
                         <label for="snapshotLevel" class="form-label fw-semibold">Level</label>
                         <div class="d-flex align-items-center gap-2">
-                            <input type="range" class="form-range flex-grow-1" id="snapshotLevelRange" min="1" max="130" value="130" />
-                            <input type="number" class="form-control" id="snapshotLevel" min="1" max="130" value="130" style="width: 5rem;" />
+                            <input type="range" class="form-range flex-grow-1" id="snapshotLevelRange" min="1" max="@Model.UiMaxWeaponLevel" value="@Model.DefaultWeaponLevel" />
+                            <input type="number" class="form-control" id="snapshotLevel" min="1" max="@Model.UiMaxWeaponLevel" value="@Model.DefaultWeaponLevel" style="width: 5rem;" />
                         </div>
                     </div>
                 </div>
@@ -3027,6 +3027,7 @@
             const snapshotSpinner = document.getElementById('snapshotSpinner');
             const snapshotError = document.getElementById('snapshotError');
             const snapshotCustomizationUnlockHint = document.getElementById('snapshotCustomizationUnlockHint');
+            const defaultSnapshotLevel = @Model.DefaultWeaponLevel;
 
             let currentWeaponId = null;
             let snapshotDebounceTimer = null;
@@ -3065,6 +3066,10 @@
                 document.getElementById('snapshotPatk').textContent = formatNumber(data.patk);
                 document.getElementById('snapshotMatk').textContent = formatNumber(data.matk);
                 document.getElementById('snapshotHeal').textContent = formatNumber(data.heal);
+                if (typeof data.level === 'number') {
+                    snapshotLevel.value = data.level.toString();
+                    snapshotLevelRange.value = data.level.toString();
+                }
 
                 // R Abilities
                 const rAbilitiesEl = document.getElementById('snapshotRAbilities');
@@ -3235,8 +3240,8 @@
 
                 // Reset controls to defaults
                 snapshotOverboost.value = '10';
-                snapshotLevel.value = '130';
-                snapshotLevelRange.value = '130';
+                snapshotLevel.value = defaultSnapshotLevel.toString();
+                snapshotLevelRange.value = defaultSnapshotLevel.toString();
                 updateSnapshotCustomizationUnlockHint();
 
                 // Clear previous content

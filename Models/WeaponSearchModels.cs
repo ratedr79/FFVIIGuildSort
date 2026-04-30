@@ -24,9 +24,10 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required List<PassiveSkillTotal> MaxPassiveSkills { get; init; }
         public required string MaxAbilityDescription { get; init; }
         public required List<string> EffectTags { get; init; }
-        public required int PatkOb10Lv130 { get; init; }
-        public required int MatkOb10Lv130 { get; init; }
-        public required int HealOb10Lv130 { get; init; }
+        public required int MaxLevel { get; init; }
+        public required int PatkAtMaxLevel { get; init; }
+        public required int MatkAtMaxLevel { get; init; }
+        public required int HealAtMaxLevel { get; init; }
         public required List<WeaponCustomization> Customizations { get; init; }
         public required List<SigilInfo> Sigils { get; init; }
         public required List<SubRAbilityTag> SubRAbilityTags { get; init; }
@@ -99,6 +100,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string Character { get; init; }
         public required string Name { get; init; }
         public required string EquipmentType { get; init; }
+        public required int Level { get; init; }
+        public required int MaxLevel { get; init; }
         public required string AbilityText { get; init; }
         public required double DamagePercent { get; init; }
         public required int Patk { get; init; }

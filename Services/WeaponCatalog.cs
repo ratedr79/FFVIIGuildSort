@@ -245,7 +245,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 var weapon = kvp.Value;
 
-                // Get R abilities and customizations at OB10 / Lv130
+                // Get R abilities and customizations at OB10 / max level
                 var ob10Enrichment = _weaponSearchDataService.GetWeaponEnrichmentAtOb(weapon.Name, 10);
                 if (ob10Enrichment == null)
                     continue;

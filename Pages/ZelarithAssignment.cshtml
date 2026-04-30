@@ -256,14 +256,22 @@
         <!-- Dispatcher Raw Output (collapsible) -->
         <div class="card mb-3">
             <div class="card-header">
-                <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#dispatcherOutputCollapse" role="button" aria-expanded="false" aria-controls="dispatcherOutputCollapse">
-                    <strong><i class="fas fa-terminal"></i> Dispatcher Output</strong>
-                    <i class="fas fa-chevron-down"></i>
-                </a>
+                <div class="d-flex justify-content-between align-items-center gap-2">
+                    <a class="text-decoration-none text-dark d-flex justify-content-between align-items-center flex-grow-1" data-bs-toggle="collapse" href="#dispatcherOutputCollapse" role="button" aria-expanded="false" aria-controls="dispatcherOutputCollapse">
+                        <strong><i class="fas fa-terminal"></i> Dispatcher Output</strong>
+                        <i class="fas fa-chevron-down"></i>
+                    </a>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="dispatcherCopyStatus" class="small d-none px-2 py-1 rounded bg-light text-dark" aria-live="polite"></span>
+                        <button type="button" id="copyDispatcherOutputButton" class="btn btn-sm btn-light text-dark border-0" data-copy-target="dispatcherOutputText">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="collapse" id="dispatcherOutputCollapse">
                 <div class="card-body p-0">
-                    <pre class="mb-0 p-3" style="background: #1e1e1e; color: #d4d4d4; font-size: 0.85rem; max-height: 600px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">@Model.Output</pre>
+                    <pre id="dispatcherOutputText" class="mb-0 p-3" style="background: #1e1e1e; color: #d4d4d4; font-size: 0.85rem; max-height: 600px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">@Model.Output</pre>
                 </div>
             </div>
         </div>
@@ -683,3 +691,73 @@
         }
     }
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const copyButton = document.getElementById('copyDispatcherOutputButton');
+            const copyStatus = document.getElementById('dispatcherCopyStatus');
+
+            if (!copyButton) {
+                return;
+            }
+
+            const setStatus = function (message, isError) {
+                if (!copyStatus) {
+                    return;
+                }
+
+                copyStatus.textContent = message;
+                copyStatus.classList.remove('d-none', 'bg-light', 'text-dark', 'bg-danger', 'text-white');
+                copyStatus.classList.add(isError ? 'bg-danger' : 'bg-light');
+                copyStatus.classList.add(isError ? 'text-white' : 'text-dark');
+
+                window.setTimeout(function () {
+                    copyStatus.classList.add('d-none');
+                }, 2000);
+            };
+
+            const copyText = async function (text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return;
+                }
+
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.setAttribute('readonly', 'readonly');
+                textArea.style.position = 'absolute';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                textArea.setSelectionRange(0, textArea.value.length);
+
+                const copied = document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                if (!copied) {
+                    throw new Error('Copy command failed.');
+                }
+            };
+
+            copyButton.addEventListener('click', async function () {
+                const targetId = copyButton.getAttribute('data-copy-target');
+                const target = targetId ? document.getElementById(targetId) : null;
+                const text = target ? target.textContent || '' : '';
+
+                if (!text.trim()) {
+                    setStatus('Nothing to copy.', true);
+                    return;
+                }
+
+                try {
+                    await copyText(text);
+                    setStatus('Copied!', false);
+                }
+                catch {
+                    setStatus('Copy failed.', true);
+                }
+            });
+        });
+    </script>
+}
