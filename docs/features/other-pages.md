@@ -30,6 +30,7 @@
 - Results UI uses card-based rendering across mobile and desktop breakpoints.
 - Includes View Levels modal with dynamic OB/level snapshots, with the max level resolved from loaded FF7EC weapon/release data rather than hard-coded in the page.
 - Customization unlock note: customizations unlock once the selected weapon level reaches 80, including 5★/OB0 weapons.
+- Ability/customization effect text resolves localized status-condition/status-change names from FF7EC effect tables so the UI does not fall back to raw internal IDs for mapped effects.
 - Passive-skill (`R Ability`) effects are resolved from FF7EC passive data tables using current passive points:
   - `SkillPassive` → `SkillPassiveLevel` (point-to-level mapping)
   - `SkillPassiveEffectGroup` → `SkillPassiveEffectLevel` (level-specific effect values)

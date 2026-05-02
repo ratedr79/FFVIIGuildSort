@@ -37,6 +37,9 @@ All notable changes to this project should be documented in this file.
 - Added leadership-triggered full UnknownX7 data reload support in `Data Diagnostics` via `WeaponSearchDataService.ReloadData()`.
 - Added integration-style tests for support-team-builder option loading and max-character assignment constraints.
 
+### Fixed
+- Gear Search ability/customization text now resolves additional status-change labels instead of leaking raw IDs for affected items such as `Elegant Gloves`, `Elegant Dress`, and `Crimson Blitz` customizations; stale amp-healing and ATB-conservation formatter cases in `WeaponSearchDataService` were corrected at the same time.
+
 ### Changed
 - Damage Calc UX now persists calculator input state in browser local storage (`damage-calc-state-v1`), restores on revisit, and clears persisted state on `Reset`.
 - Damage Calc percentage-oriented inputs now accept up to two decimal places while integer combat stat fields remain whole-number style.
@@ -68,6 +71,9 @@ All notable changes to this project should be documented in this file.
 - Support Team Builder matching-weapon `Owned OB` changes now auto-refresh ranked team results by auto-submitting search on selector change.
 - Support Team Builder now includes a top-level external-link action to the original reference builder and a visible beta-status notice.
 - Support Team Builder ranked team rows now allow opening weapon details modal from both main-hand and off-hand weapon names.
+
+### Docs
+- Updated the user-facing Gear Search README section and developer docs to note that mapped status-condition/status-change effects now render localized names instead of raw internal IDs in ability/customization text.
 - Data Diagnostics reload flow now performs post-reload catalog re-enrichment (`WeaponCatalog.RefreshFromGearSearch()`) after `WeaponSearchDataService.ReloadData()`.
 - Support Team Builder now includes outfit-aware matching and ranking: per-filter matching outfit results, owned/not-owned outfit state, one-outfit-per-character assignment, outfit-inclusive potency scoring, and duplicate filtering by combined weapon/outfit composition.
 - Support Team Builder ranked-team rows now render selected outfit names after weapons when present.

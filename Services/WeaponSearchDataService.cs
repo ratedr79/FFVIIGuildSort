@@ -2672,10 +2672,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 6 => $"[Pot: +{value / 10.0:0.#}% of target's max HP]",
                 10 => $"[When triggered: restores {value / 10.0:0.#}% of target's max HP]",
-                12 or 13 => $"[Damage +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
-                14 => $"[Healing +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
+                12 or 13 or 14 or 15 or 16 or 17 or 18 => $"[Damage +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
+                23 => $"[Healing +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
                 44 => $"[Phys Weapon/Gear ATB Cost: -{value}]",
                 45 => $"[Mag Weapon/Gear ATB Cost: -{value}]",
+                47 => $"[Ice Weapon/Gear ATB Cost: -{value}]",
+                49 => $"[Earth Weapon/Gear ATB Cost: -{value}]",
                 _ when value != 0 => $"[Pot: {value / 10.0:0.#}%]",
                 _ => string.Empty
             };
@@ -3087,9 +3089,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static readonly Dictionary<int, string> StatusEffectTypes = new()
         {
             { 1, "Poison" },
+            { 2, "Sedate" },
             { 3, "Silence" },
             { 4, "Darkness" },
             { 5, "Stun" },
+            { 6, "Fatigue" },
+            { 7, "Fog" },
+            { 8, "Sleep" },
+            { 9, "Confusion" },
+            { 10, "Slow" },
+            { 11, "Doom" },
+            { 12, "Dread" },
+            { 13, "Venom" },
+            { 14, "Pain" },
+            { 15, "Agony" },
             { 16, "Enfeeble" },
             { 17, "Stop" },
             { 18, "Fire Weakness" },
@@ -3098,10 +3111,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 21, "Earth Weakness" },
             { 22, "Water Weakness" },
             { 23, "Wind Weakness" },
-            { 27, "Single-Tgt. Phys. Dmg. Rcvd. Up" },
+            { 26, "Single-Tgt. Phys. Dmg. Rcvd. Up" },
+            { 27, "All-Tgt. Phys. Dmg. Rcvd. Up" },
             { 28, "Single-Tgt. Mag. Dmg. Rcvd. Up" },
-            { 29, "All-Tgt. Phys. Dmg. Rcvd. Up" },
-            { 30, "All-Tgt. Mag. Dmg. Rcvd. Up" },
+            { 29, "All-Tgt. Mag. Dmg. Rcvd. Up" },
+            { 30, "Single-Tgt. Fire Dmg. Rcvd. Up" },
+            { 31, "All-Tgt. Fire Dmg. Rcvd. Up" },
+            { 32, "Single-Tgt. Ice Dmg. Rcvd. Up" },
+            { 33, "All-Tgt. Ice Dmg. Rcvd. Up" },
+            { 34, "Single-Tgt. Lightning Dmg. Rcvd. Up" },
+            { 35, "All-Tgt. Lightning Dmg. Rcvd. Up" },
+            { 36, "Single-Tgt. Earth Dmg. Rcvd. Up" },
+            { 37, "All-Tgt. Earth Dmg. Rcvd. Up" },
+            { 38, "Single-Tgt. Water Dmg. Rcvd. Up" },
+            { 39, "All-Tgt. Water Dmg. Rcvd. Up" },
+            { 40, "Single-Tgt. Wind Dmg. Rcvd. Up" },
+            { 41, "All-Tgt. Wind Dmg. Rcvd. Up" },
             { 43, "Torpor" }
         };
 
@@ -3138,7 +3163,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 35, "Water Damage Up" },
             { 36, "Water Damage Down" },
             { 37, "Wind Damage Up" },
-            { 38, "Wind Damage Down" }
+            { 38, "Wind Damage Down" },
+            { 44, "Physical Resistance Up" },
+            { 45, "Magic Resistance Up" },
+            { 49, "Physical Resistance Down" },
+            { 50, "Magic Resistance Down" }
         };
 
         private static readonly Dictionary<int, string> StatusChangeTypes = new()
@@ -3147,12 +3176,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 4, "Regen" },
             { 5, "Haste" },
             { 6, "Veil" },
+            { 7, "Reprieve" },
             { 8, "Physical Resistance Increased" },
             { 9, "Magic Resistance Increased" },
             { 10, "HP Gain" },
             { 11, "Exploit Weakness" },
             { 12, "Amp. Phys. Abilities" },
             { 13, "Amp. Mag. Abilities" },
+            { 14, "Amp. Fire Abilities" },
+            { 15, "Amp. Ice Abilities" },
+            { 16, "Amp. Lightning Abilities" },
+            { 17, "Amp. Earth Abilities" },
+            { 18, "Amp. Water Abilities" },
             { 23, "Amp. Healing Abilities" },
             { 24, "Phys. Damage Bonus" },
             { 25, "Mag. Damage Bonus" },
@@ -3172,6 +3207,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 41, "Wind Weapon Boost" },
             { 44, "Phys. ATB Conservation Effect" },
             { 45, "Mag. ATB Conservation Effect" },
+            { 47, "Ice ATB Conservation Effect" },
+            { 49, "Earth ATB Conservation Effect" },
             { 52, "Enliven" }
         };
 

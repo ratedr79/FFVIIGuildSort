@@ -352,6 +352,7 @@ Expected output:
 ### Important UI Note
 - Customizations unlock at `Lv80+`.
 - At levels below `80`, customization effects remain locked even at `5★/OB0`.
+- Gear Search ability text resolves localized status names for costume/weapon effects and customizations instead of leaking raw internal IDs like `Status 31` or `Status Change 47`.
 - View Levels modal `R Abilities` show `+points/name` on the first line and one-or-more resolved effect lines beneath.
 - View Levels modal includes customization-added `R Abilities` in the same `R Abilities` list with the same points/effect presentation behavior.
 - View Levels modal labels customization-added `R Abilities` with a `Cust.` badge to distinguish optional unlocks from base passives.
