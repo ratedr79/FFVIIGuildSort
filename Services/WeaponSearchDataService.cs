@@ -3164,14 +3164,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 36, "Water Damage Down" },
             { 37, "Wind Damage Up" },
             { 38, "Wind Damage Down" },
-            { 44, "Physical Resistance Up" },
-            { 45, "Magic Resistance Up" },
-            { 49, "Physical Resistance Down" },
-            { 50, "Magic Resistance Down" }
+            { 43, "Circle Sigil Resistance Up" },
+            { 44, "Triangle Sigil Resistance Up" },
+            { 45, "X Sigil Resistance Up" },
+            { 46, "Diamond Sigil Resistance Up" },
+            { 48, "Circle Sigil Resistance Down" },
+            { 49, "Triangle Sigil Resistance Down" },
+            { 50, "X Sigil Resistance Down" },
+            { 51, "Diamond Sigil Resistance Down" }
         };
 
         private static readonly Dictionary<int, string> StatusChangeTypes = new()
         {
+            { 1, "Regen" },
             { 2, "Provoke" },
             { 4, "Regen" },
             { 5, "Haste" },

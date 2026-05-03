@@ -10,6 +10,7 @@ This folder contains onboarding, architecture, feature, and maintenance document
 - [Guild Battle Simulation Deep Dive](./features/guild-battle-simulation.md)
 - [Other Pages and Tools](./features/other-pages.md)
 - [Special Cases and Maintenance Notes](./notes/special-cases-and-maintenance.md)
+- [Sigil Effect Mapping Inference Note](./notes/sigil-effect-mapping-inference.md)
 - [Changelog](./changelog.md)
 
 ## Recommended Reading Order
@@ -19,3 +20,4 @@ This folder contains onboarding, architecture, feature, and maintenance document
 4. `features/power-analyzer.md`
 5. `features/guild-battle-simulation.md`
 6. `notes/special-cases-and-maintenance.md`
+7. `notes/sigil-effect-mapping-inference.md`

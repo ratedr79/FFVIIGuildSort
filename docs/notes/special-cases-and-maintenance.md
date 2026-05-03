@@ -24,6 +24,7 @@ This document captures nuanced behavior that should be retained unless intention
 - Stage-based search intentionally returns multiple enemies per stage/wave context.
 - Keep elemental mapping aligned with canonical IDs (regression-sensitive area).
 - Keep status immunities and buff/debuff resistances separated to avoid misclassification.
+- Sigil resistance backfills in `WeaponSearchDataService` are partially footage-derived; see `docs/notes/sigil-effect-mapping-inference.md` before changing `BuffDebuffType` IDs `43-52`.
 
 ## Data/Catalog Maintenance
 - Keep `nameCorrections.json` synchronized with survey naming drift.

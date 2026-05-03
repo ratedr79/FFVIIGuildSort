@@ -25,6 +25,7 @@ All notable changes to this project should be documented in this file.
   - `docs/features/other-pages.md`
   - `docs/notes/special-cases-and-maintenance.md`
   - `docs/README.md`
+- Added `docs/notes/sigil-effect-mapping-inference.md` to document the confirmed vs inferred Ultima Weapon sigil-resistance ID mappings.
 - Initial changelog scaffold (`docs/changelog.md`).
 - Gear Search now resolves passive-skill (`R Ability`) effects from FF7EC passive tables using OB/level point totals, including support for named passives that map to multiple effects.
 - Gear Search advanced filters now include a `Sub-R Abilities` panel (normalized passive-effect categories) with in-panel search, clear, and `No matches found.` feedback.
@@ -38,6 +39,7 @@ All notable changes to this project should be documented in this file.
 - Added integration-style tests for support-team-builder option loading and max-character assignment constraints.
 
 ### Fixed
+- Updated `WeaponSearchDataService` sigil-resistance backfills to use the confirmed/inferred Circle/Triangle/X/Diamond mappings instead of the earlier physical/magic resistance assumptions.
 - Gear Search ability/customization text now resolves additional status-change labels instead of leaking raw IDs for affected items such as `Elegant Gloves`, `Elegant Dress`, and `Crimson Blitz` customizations; stale amp-healing and ATB-conservation formatter cases in `WeaponSearchDataService` were corrected at the same time.
 
 ### Changed
