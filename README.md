@@ -347,7 +347,10 @@ Expected output:
 - Filtered weapon results in card layout with key stats/effects.
 - Card actions for `View Levels`, `Show Ability Details`, and compare selection.
 - Quick filter pills for common `Element + Phys./Mag.` combinations that can be stacked without broadening into the wrong element/type cross-product.
-- Result headers use a stronger weapon-title emphasis and an editorial-style character overline so the weapon name and owner read separately from the equipment tag.
+- Element rows now show the matching elemental, non-elemental, or heal icon beside the element text in the same compact inline style used for stat icons.
+- Result headers now use portrait-led panels with cropped character portraits, per-character accent styling, stronger weapon-title emphasis, and cleaner metadata pills so the weapon, owner, and equipment details scan separately on both desktop and mobile.
+- The metadata pills under each weapon name now use a more consistent size and alignment across equipment, element, and type labels.
+- The `View Levels` snapshot modal reuses the same streamlined portrait-led header treatment, including the iconized metadata pills, so the selected weapon context stays visually consistent after opening the detail view.
 - `R Abilities` shown inline on desktop cards, with tap/click affordances on mobile.
 - Customization-added `R Abilities` mirror base `R Abilities` by showing `+points` and resolved effect details.
 - Compare panel updates as items are added.

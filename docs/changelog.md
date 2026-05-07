@@ -44,7 +44,10 @@ All notable changes to this project should be documented in this file.
 
 ### Changed
 - Gear Search quick filters now include dedicated `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo buttons for faster element-specific physical/magical browsing.
-- Gear Search result headers now give weapon names stronger visual emphasis and use an editorial-style character overline so the character name reads separately from the equipment type on both desktop and mobile layouts.
+- Gear Search element rows now render matching elemental/non-elemental icons, plus the shared heal icon for `Heal`, alongside the text label using the same compact inline styling as the stat icon row on desktop and mobile cards.
+- Gear Search result and snapshot headers now use streamlined portrait-led panels with cropped character portraits, per-character accent styling, stronger weapon-name emphasis, and cleaner metadata pills across desktop, mobile, and `View Levels` modal layouts.
+- Gear Search metadata pills under weapon titles now use normalized height, padding, and alignment so equipment, element, and type pills appear more visually consistent.
+- Gear Search snapshot headers now use the same iconized metadata pill treatment as the desktop and mobile result headers for element/heal values.
 - Damage Calc UX now persists calculator input state in browser local storage (`damage-calc-state-v1`), restores on revisit, and clears persisted state on `Reset`.
 - Damage Calc percentage-oriented inputs now accept up to two decimal places while integer combat stat fields remain whole-number style.
 - Damage Calc result layout now shows `Average LB/Summon Damage` in the result pane (instead of the summon input section).
