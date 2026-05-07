@@ -16,6 +16,7 @@ All notable changes to this project should be documented in this file.
 ## Unreleased
 
 ### Added
+- Added `docs/notes/buff-debuff-reference.md` as a user-readable reference for observed ally/enemy buff-debuff tier scaling and special status notes.
 - Developer documentation set under `docs/`:
   - `docs/getting-started/onboarding.md`
   - `docs/architecture/application-overview.md`
@@ -45,6 +46,7 @@ All notable changes to this project should be documented in this file.
 - Gear Search ability/customization text now resolves additional status-change labels instead of leaking raw IDs for affected items such as `Elegant Gloves`, `Elegant Dress`, and `Crimson Blitz` customizations; stale amp-healing and ATB-conservation formatter cases in `WeaponSearchDataService` were corrected at the same time.
 
 ### Changed
+- Gear Search now includes a top-level `Buff/Debuff Notes` button that opens an in-page modal with ally-vs-enemy tier tables and special status notes for quick lookup while browsing gear.
 - Gear Search quick filters now include dedicated `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo buttons for faster element-specific physical/magical browsing.
 - Gear Search quick filters now also include `Circle`, `Triangle`, `X`, and `Diamond` sigil pills, wired as shortcuts over the existing advanced sigil checkbox filter state.
 - Gear Search element rows now render matching elemental/non-elemental icons, plus the shared heal icon for `Heal`, alongside the text label using the same compact inline styling as the stat icon row on desktop and mobile cards.
@@ -87,6 +89,7 @@ All notable changes to this project should be documented in this file.
 - Support Team Builder ranked team rows now allow opening weapon details modal from both main-hand and off-hand weapon names.
 
 ### Docs
+- Updated `README.md`, `docs/README.md`, and `docs/features/other-pages.md` to document the new Gear Search Buff/Debuff Notes modal and the supporting buff/debuff reference note.
 - Updated the user-facing Gear Search README section and developer docs to note that mapped status-condition/status-change effects now render localized names instead of raw internal IDs in ability/customization text.
 - Data Diagnostics reload flow now performs post-reload catalog re-enrichment (`WeaponCatalog.RefreshFromGearSearch()`) after `WeaponSearchDataService.ReloadData()`.
 - Support Team Builder now includes outfit-aware matching and ranking: per-filter matching outfit results, owned/not-owned outfit state, one-outfit-per-character assignment, outfit-inclusive potency scoring, and duplicate filtering by combined weapon/outfit composition.

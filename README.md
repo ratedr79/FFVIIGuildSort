@@ -331,6 +331,7 @@ Provides searchable/filterable weapon/costume data with ability details, R abili
 | Character checkboxes | One or more characters | Character filtering |
 | Search | Free text | Name/ability/effect search |
 | Rows per page | 25/50/100/200 | Card result paging |
+| Buff/Debuff Notes | Button | Opens the in-page reference modal with ally/enemy tier and status notes |
 | Quick Filters | Equipment shortcuts plus `Earth/Fire/Ice/Lightning/Water/Wind` paired with `Phys.` or `Mag.` | One-click combo filtering for common element + damage-type searches |
 | Advanced filter checkboxes | Element, ability, range, equipment, effects, R abilities, Sub-R abilities, sigils, etc. | Narrow results |
 | Has Customizations | Checkbox | Show only entries with customization data |
@@ -346,6 +347,7 @@ Required steps:
 Expected output:
 - Filtered weapon results in card layout with key stats/effects.
 - Card actions for `View Levels`, `Show Ability Details`, and compare selection.
+- A `Buff/Debuff Notes` button near the page title that opens a quick-reference modal for ally/enemy buff tiers and special status notes.
 - Quick filter pills for common `Element + Phys./Mag.` combinations that can be stacked without broadening into the wrong element/type cross-product.
 - Quick filter pills also include `Circle`, `Triangle`, `X`, and `Diamond` sigil shortcuts that stay synced with the advanced sigil checkbox filter.
 - Element rows now show the matching elemental, non-elemental, or heal icon beside the element text in the same compact inline style used for stat icons.

@@ -9,6 +9,7 @@ This folder contains onboarding, architecture, feature, and maintenance document
 - [Power Analyzer Deep Dive](./features/power-analyzer.md)
 - [Guild Battle Simulation Deep Dive](./features/guild-battle-simulation.md)
 - [Other Pages and Tools](./features/other-pages.md)
+- [Buff and Debuff Reference](./notes/buff-debuff-reference.md)
 - [Special Cases and Maintenance Notes](./notes/special-cases-and-maintenance.md)
 - [Sigil Effect Mapping Inference Note](./notes/sigil-effect-mapping-inference.md)
 - [Changelog](./changelog.md)
@@ -19,5 +20,7 @@ This folder contains onboarding, architecture, feature, and maintenance document
 3. `configuration/configuration-reference.md`
 4. `features/power-analyzer.md`
 5. `features/guild-battle-simulation.md`
-6. `notes/special-cases-and-maintenance.md`
-7. `notes/sigil-effect-mapping-inference.md`
+6. `notes/buff-debuff-reference.md`
+7. `notes/special-cases-and-maintenance.md`
+8. `notes/sigil-effect-mapping-inference.md`
+

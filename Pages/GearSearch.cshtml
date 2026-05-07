@@ -131,6 +131,57 @@
         ("Wind", "Phys.", "Wind Phys."),
         ("Wind", "Mag.", "Wind Mag.")
     };
+
+    var buffDebuffReferenceSections = new[]
+    {
+        new
+        {
+            Title = "Allies / Us",
+            Description = "These buff/debuff families are affected by buff/debuff extension and use ally-side scaling.",
+            Rows = new[]
+            {
+                new { Family = "Attack", BuffTiers = "10%, 20%, 30%, 40%, 50%, 60%, 70%", DebuffTiers = "-10%, -20%, -30%, -40%, -50%, -60%, -70%" },
+                new { Family = "Defense", BuffTiers = "20%, 50%, 80%, 110%, 150%, 200%, 250%", DebuffTiers = "-15%, -30%, -45%, -60%, -75%, -85%, -95%" },
+                new { Family = "Elemental Damage", BuffTiers = "10%, 25%, 40%, 60%, 80%, 100%, 120%", DebuffTiers = "-10%, -25%, -40%, -55%, -70%, -85%, -95%" },
+                new { Family = "Elemental Resistance", BuffTiers = "25%, 37.5%, 50%, 62.5%, 75%, 85%, 90%", DebuffTiers = "-15%, -30%, -50%, -75%, -100%, -125%, -150%" }
+            }
+        },
+        new
+        {
+            Title = "Enemies",
+            Description = "Enemy-side scaling differs from ally-side scaling even when the named tier is the same.",
+            Rows = new[]
+            {
+                new { Family = "Attack", BuffTiers = "15%, 30%, 50%, 75%, 100%, 125%, 150%", DebuffTiers = "-10%, -20%, -30%, -40%, -50%, -60%" },
+                new { Family = "Defense", BuffTiers = "15%, 30%, 50%, 75%, 100%, 125%, 150%", DebuffTiers = "-15%, -25%, -35%, -45%, -55%, -65%" },
+                new { Family = "Elemental Damage", BuffTiers = "15%, 30%, 50%, 75%, 100%, 125%, 150%", DebuffTiers = "-10%, -25%, -40%, -55%, -70%, -80%" },
+                new { Family = "Elemental Resistance", BuffTiers = "20%, 40%, 60%, 80%, 100%, 100%, 100%", DebuffTiers = "-15%, -30%, -50%, -75%, -100%, -125%" },
+                new { Family = "Sigil Resistance", BuffTiers = "1, 2, 3, 4, 5, 6, 7", DebuffTiers = "-1, -2, -3, -4, -5, -6" }
+            }
+        }
+    };
+
+    var buffDebuffStatusNotes = new[]
+    {
+        new { Effect = "Poison / Venom", Notes = "4% max HP / 1.9s on allies; 2% max HP / 4.9s on enemies." },
+        new { Effect = "Sadness", Notes = "-50% LB / summon gain." },
+        new { Effect = "Pain / Fog (wait-time effect)", Notes = "Adds 3s of waiting time on enemies." },
+        new { Effect = "Confusion", Notes = "50% chance, 10% self-damage, damage type still uncertain; each self-hit appears to add +25% chance to end confusion." },
+        new { Effect = "Sleep", Notes = "x2 damage received." },
+        new { Effect = "Slow", Notes = "-50% ATB gain." },
+        new { Effect = "Block Rec.", Notes = "15s max duration on enemies." },
+        new { Effect = "Pain (HP damage-over-time effect)", Notes = "7.5% max HP on allies; 1.5% max HP on enemies." },
+        new { Effect = "Agony", Notes = "Pain, but doubled." },
+        new { Effect = "Dread", Notes = "-50%, -60%, or -70% tactics gauge gain rate based on affected character count; -50% in multiplayer." },
+        new { Effect = "Enfeeble", Notes = "+2 debuff effect tiers on allies; +1 debuff effect tier on enemies." },
+        new { Effect = "Stop", Notes = "-25% duration per application (minimum -3s); may still always apply for at least 1s." },
+        new { Effect = "Regeneration (non-heal)", Notes = "5% max HP / 2.9s." },
+        new { Effect = "Regen", Notes = "15% heal / 2.9s." },
+        new { Effect = "Haste", Notes = "+50% ATB gain." },
+        new { Effect = "Exploit Weakness", Notes = "Damage buff on attacks that display the 'Weakness' text." },
+        new { Effect = "Enliven", Notes = "+2 buff effect tiers." },
+        new { Effect = "Reflect", Notes = "Unreleased." }
+    };
 }
 
 <style>
@@ -1562,6 +1613,30 @@
         border-bottom: 2px solid #b28bff;
     }
 
+    #buffDebuffNotesModal .modal-header {
+        background: linear-gradient(90deg, rgba(92, 29, 155, 0.08), rgba(92, 29, 155, 0.02));
+        border-bottom: 2px solid #b28bff;
+    }
+
+    #buffDebuffNotesModal .buff-notes-section + .buff-notes-section {
+        margin-top: 1rem;
+    }
+
+    #buffDebuffNotesModal .buff-notes-table th,
+    #buffDebuffNotesModal .buff-notes-table td {
+        vertical-align: top;
+    }
+
+    #buffDebuffNotesModal .buff-notes-table td:nth-child(2),
+    #buffDebuffNotesModal .buff-notes-table td:nth-child(3) {
+        min-width: 16rem;
+    }
+
+    #buffDebuffNotesModal .buff-notes-note {
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+
     #compareTable {
         font-size: 0.88rem;
     }
@@ -1803,9 +1878,14 @@
             <h1 class="mb-3"><i class="fas fa-search"></i> Gear Search</h1>
             <p class="text-muted mb-0">Browse all weapons with passive skills and advanced filters.</p>
         </div>
-        <a class="btn btn-outline-primary" href="https://cyphersignal.github.io/ff7ec/" target="_blank" rel="noopener">
-            <i class="fas fa-arrow-up-right-from-square me-2"></i>Open original FF7EC Equipment Database
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#buffDebuffNotesModal">
+                <i class="fas fa-book-open me-2"></i>Buff/Debuff Notes
+            </button>
+            <a class="btn btn-outline-primary" href="https://cyphersignal.github.io/ff7ec/" target="_blank" rel="noopener">
+                <i class="fas fa-arrow-up-right-from-square me-2"></i>Open original FF7EC Equipment Database
+            </a>
+        </div>
     </div>
 
     <div class="card mb-4 sticky-gear-controls" id="mainSearchCard">
@@ -2461,6 +2541,78 @@
 </div>
 
 <!-- View Levels Modal -->
+<div class="modal fade" id="buffDebuffNotesModal" tabindex="-1" aria-labelledby="buffDebuffNotesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="buffDebuffNotesModalLabel">Buff / Debuff Notes</h5>
+                    <div class="text-muted small">Observed ally-versus-enemy tier differences and special status notes.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-light border mb-3 buff-notes-note">
+                    Tier tables below cover buff/debuff families affected by buff/debuff extension. Named tiers can scale differently on allies versus enemies, so both target sides are listed separately.
+                </div>
+
+                @foreach (var referenceSection in buffDebuffReferenceSections)
+                {
+                    <section class="buff-notes-section">
+                        <h6 class="fw-semibold mb-1">@referenceSection.Title</h6>
+                        <div class="text-muted small mb-2">@referenceSection.Description</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered buff-notes-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Family</th>
+                                        <th>Buff tiers</th>
+                                        <th>Debuff tiers</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in referenceSection.Rows)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@row.Family</td>
+                                            <td><code>@row.BuffTiers</code></td>
+                                            <td><code>@row.DebuffTiers</code></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                }
+
+                <section class="buff-notes-section mt-4">
+                    <h6 class="fw-semibold mb-1">Status and Special-Case Notes</h6>
+                    <div class="text-muted small mb-2">Unreleased or uncertain observations are preserved as notes rather than normalized away.</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered buff-notes-table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Effect</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var note in buffDebuffStatusNotes)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@note.Effect</td>
+                                        <td>@note.Notes</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="viewLevelsModal" tabindex="-1" aria-labelledby="viewLevelsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">

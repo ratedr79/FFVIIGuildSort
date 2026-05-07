@@ -28,6 +28,8 @@
 - Purpose: searchable gear index with rich filters and detail views.
 - Data source: `WeaponSearchDataService` + catalog enrichment.
 - Results UI uses card-based rendering across mobile and desktop breakpoints.
+- Gear Search now includes a top-level `Buff/Debuff Notes` button that opens an in-page Bootstrap modal with ally-vs-enemy tier tables and special status notes for quick reference during gear review.
+- The modal content is mirrored in `docs/notes/buff-debuff-reference.md` so the reference remains readable outside the UI as well.
 - Quick Filters now include fixed `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo pills for common searches.
 - Quick Filters also include `Circle`, `Triangle`, `X`, and `Diamond` sigil shortcut pills that toggle the existing advanced sigil checkbox state instead of introducing a separate sigil filter path.
 - Element/damage-type quick filters are implemented as explicit combo filters in the page script rather than by just toggling independent advanced checkboxes, so multiple selected quick filters preserve pair-wise matching instead of widening into a cross-product.
