@@ -28,6 +28,9 @@
 - Purpose: searchable gear index with rich filters and detail views.
 - Data source: `WeaponSearchDataService` + catalog enrichment.
 - Results UI uses card-based rendering across mobile and desktop breakpoints.
+- Quick Filters now include fixed `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo pills for common searches.
+- Element/damage-type quick filters are implemented as explicit combo filters in the page script rather than by just toggling independent advanced checkboxes, so multiple selected quick filters preserve pair-wise matching instead of widening into a cross-product.
+- Result headers now use a stronger typographic treatment for weapon names plus an editorial-style character overline, applied in both desktop banner rows and mobile card headers.
 - Includes View Levels modal with dynamic OB/level snapshots, with the max level resolved from loaded FF7EC weapon/release data rather than hard-coded in the page.
 - Customization unlock note: customizations unlock once the selected weapon level reaches 80, including 5★/OB0 weapons.
 - Ability/customization effect text resolves localized status-condition/status-change names from FF7EC effect tables so the UI does not fall back to raw internal IDs for mapped effects.

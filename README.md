@@ -323,7 +323,7 @@ Notes:
 
 ## Gear Search
 ### Gear Search: What It Does
-Provides searchable/filterable weapon/costume data with ability details, R abilities, sigils, compare mode, and level/OB snapshots.
+Provides searchable/filterable weapon/costume data with ability details, R abilities, sigils, compare mode, level/OB snapshots, quick combo filters for common elemental physical/magical searches, and emphasized result headers that make weapon titles and character identity easier to scan.
 
 ### Gear Search: Inputs
 | Input | Expected Value | Use |
@@ -331,6 +331,7 @@ Provides searchable/filterable weapon/costume data with ability details, R abili
 | Character checkboxes | One or more characters | Character filtering |
 | Search | Free text | Name/ability/effect search |
 | Rows per page | 25/50/100/200 | Card result paging |
+| Quick Filters | Equipment shortcuts plus `Earth/Fire/Ice/Lightning/Water/Wind` paired with `Phys.` or `Mag.` | One-click combo filtering for common element + damage-type searches |
 | Advanced filter checkboxes | Element, ability, range, equipment, effects, R abilities, Sub-R abilities, sigils, etc. | Narrow results |
 | Has Customizations | Checkbox | Show only entries with customization data |
 | View Levels modal Overboost | 5★ (OB0) to OB10 | Snapshot at specific overboost |
@@ -345,6 +346,8 @@ Required steps:
 Expected output:
 - Filtered weapon results in card layout with key stats/effects.
 - Card actions for `View Levels`, `Show Ability Details`, and compare selection.
+- Quick filter pills for common `Element + Phys./Mag.` combinations that can be stacked without broadening into the wrong element/type cross-product.
+- Result headers use a stronger weapon-title emphasis and an editorial-style character overline so the weapon name and owner read separately from the equipment tag.
 - `R Abilities` shown inline on desktop cards, with tap/click affordances on mobile.
 - Customization-added `R Abilities` mirror base `R Abilities` by showing `+points` and resolved effect details.
 - Compare panel updates as items are added.

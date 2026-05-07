@@ -43,6 +43,8 @@ All notable changes to this project should be documented in this file.
 - Gear Search ability/customization text now resolves additional status-change labels instead of leaking raw IDs for affected items such as `Elegant Gloves`, `Elegant Dress`, and `Crimson Blitz` customizations; stale amp-healing and ATB-conservation formatter cases in `WeaponSearchDataService` were corrected at the same time.
 
 ### Changed
+- Gear Search quick filters now include dedicated `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo buttons for faster element-specific physical/magical browsing.
+- Gear Search result headers now give weapon names stronger visual emphasis and use an editorial-style character overline so the character name reads separately from the equipment type on both desktop and mobile layouts.
 - Damage Calc UX now persists calculator input state in browser local storage (`damage-calc-state-v1`), restores on revisit, and clears persisted state on `Reset`.
 - Damage Calc percentage-oriented inputs now accept up to two decimal places while integer combat stat fields remain whole-number style.
 - Damage Calc result layout now shows `Average LB/Summon Damage` in the result pane (instead of the summon input section).

@@ -68,6 +68,22 @@
         ("Cross", "✕"),
         ("Diamond", "◊"),
     };
+
+    var elementalQuickFilters = new List<(string Element, string AbilityType, string Label)>
+    {
+        ("Earth", "Phys.", "Earth Phys."),
+        ("Earth", "Mag.", "Earth Mag."),
+        ("Fire", "Phys.", "Fire Phys."),
+        ("Fire", "Mag.", "Fire Mag."),
+        ("Ice", "Phys.", "Ice Phys."),
+        ("Ice", "Mag.", "Ice Mag."),
+        ("Lightning", "Phys.", "Lightning Phys."),
+        ("Lightning", "Mag.", "Lightning Mag."),
+        ("Water", "Phys.", "Water Phys."),
+        ("Water", "Mag.", "Water Mag."),
+        ("Wind", "Phys.", "Wind Phys."),
+        ("Wind", "Mag.", "Wind Mag.")
+    };
 }
 
 <style>
@@ -108,17 +124,27 @@
 
     .weapon-banner-meta {
         display: inline-flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.45rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.42rem;
         margin-right: 0.5rem;
+        min-width: 0;
+        flex: 1 1 320px;
+    }
+
+    .weapon-banner-titleblock {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.42rem;
+        min-width: 0;
     }
 
     .weapon-banner-pills {
         display: inline-flex;
         flex-wrap: wrap;
-        align-items: center;
-        gap: 0.35rem;
+        align-items: flex-start;
+        gap: 0.42rem;
     }
 
     .weapon-banner-actions {
@@ -133,39 +159,102 @@
     .weapon-banner-character {
         display: inline-flex;
         align-items: center;
-        border-radius: 999px;
-        padding: 0.14rem 0.52rem;
-        border: 1px solid #cab7e8;
-        background: #f0e8fb;
+        gap: 0.46rem;
+        min-height: 0.85rem;
         font-size: 0.68rem;
         font-weight: 700;
-        letter-spacing: 0.06em;
-        color: #5f487f;
+        letter-spacing: 0.12em;
+        color: #705b8f;
         text-transform: uppercase;
-        line-height: 1.2;
+        line-height: 1;
+        position: relative;
+        padding-left: 0.02rem;
+    }
+
+    .weapon-banner-character::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1.65rem;
+        height: 0.16rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(122, 53, 216, 0.98), rgba(199, 106, 255, 0.82) 66%, rgba(67, 214, 255, 0.54));
+        box-shadow: 0 2px 8px rgba(122, 53, 216, 0.18);
+    }
+
+    .weapon-banner-character-label {
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #8c78aa;
+        line-height: 1;
+        padding-left: 2.02rem;
+    }
+
+    .weapon-banner-character-value {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        color: #3f2e5e;
+        text-transform: none;
     }
 
     .weapon-banner-name {
-        font-size: 1.05rem;
-        font-weight: 700;
+        display: inline-block;
+        max-width: 100%;
+        position: relative;
+        padding: 0.03rem 0.2rem 0.28rem 0;
+        font-size: 1.26rem;
+        font-weight: 800;
         font-family: "Barlow Semi Condensed", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-        letter-spacing: 0.01em;
-        color: #332b42;
+        letter-spacing: 0.015em;
+        line-height: 1.02;
+        color: #241a36;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72), 0 10px 24px rgba(92, 29, 155, 0.12);
+        text-wrap: balance;
+        z-index: 0;
+    }
+
+    .weapon-banner-name::before {
+        content: "";
+        position: absolute;
+        inset: -0.12rem -0.24rem 0.08rem -0.3rem;
+        border-radius: 0.9rem;
+        background: radial-gradient(circle at left center, rgba(138, 61, 255, 0.14), rgba(138, 61, 255, 0.02) 62%, rgba(138, 61, 255, 0));
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .weapon-banner-name::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: min(100%, 12rem);
+        height: 0.24rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(122, 53, 216, 0.95), rgba(199, 106, 255, 0.9) 68%, rgba(67, 214, 255, 0.45));
+        box-shadow: 0 4px 10px rgba(122, 53, 216, 0.18);
     }
 
     .weapon-banner-equipment {
         display: inline-flex;
         align-items: center;
         border-radius: 999px;
-        padding: 0.14rem 0.52rem;
-        border: 1px solid #d7cced;
-        background: #f9f7fd;
+        padding: 0.22rem 0.62rem;
+        border: 1px solid rgba(215, 204, 237, 0.96);
+        background: rgba(255, 255, 255, 0.82);
         font-size: 0.68rem;
         font-weight: 700;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #75648f;
         line-height: 1.2;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
     .advanced-toggle-btn {
@@ -328,7 +417,44 @@
     }
 
     .stat-stack {
-        line-height: 1.2;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        line-height: 1;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #35264f;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stat-stack-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.18rem;
+        min-width: 0;
+        padding: 0.14rem 0.32rem 0.14rem 0.24rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(245, 239, 253, 0.92));
+        border: 1px solid rgba(214, 202, 235, 0.9);
+        box-shadow: 0 1px 2px rgba(92, 29, 155, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+
+    .stat-stack-icon {
+        width: 1.2rem;
+        height: 1.2rem;
+        object-fit: contain;
+        flex: 0 0 auto;
+        transform: translateY(-0.01rem);
+        border-radius: 0.28rem;
+        filter: drop-shadow(0 1px 2px rgba(92, 29, 155, 0.12));
+    }
+
+    .stat-stack-value {
+        display: inline-block;
+        line-height: 1;
+        letter-spacing: 0.01em;
     }
 
     .sigil-badges {
@@ -570,21 +696,88 @@
         align-items: flex-start;
         justify-content: space-between;
         gap: 0.4rem;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.45rem;
+    }
+
+    .gear-mobile-card-titleblock {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        min-width: 0;
     }
 
     .gear-mobile-card-name {
-        font-size: 0.92rem;
-        font-weight: 700;
-        color: #2f2840;
-        line-height: 1.25;
+        display: inline-block;
+        position: relative;
+        width: fit-content;
+        max-width: 100%;
+        padding: 0.02rem 0.18rem 0.22rem 0;
+        font-size: 1rem;
+        font-weight: 800;
+        color: #261d38;
+        line-height: 1.12;
+        letter-spacing: 0.01em;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 18px rgba(92, 29, 155, 0.1);
+        text-wrap: balance;
+    }
+
+    .gear-mobile-card-name::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: min(100%, 8.5rem);
+        height: 0.2rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(122, 53, 216, 0.96), rgba(208, 109, 255, 0.86) 72%, rgba(67, 214, 255, 0.42));
     }
 
     .gear-mobile-card-pills {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.3rem;
-        margin-top: 0.2rem;
+        gap: 0.42rem;
+        margin-top: 0;
+        align-items: flex-start;
+    }
+
+    .gear-mobile-character-mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        position: relative;
+        padding-left: 0.02rem;
+    }
+
+    .gear-mobile-character-mark::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1.1rem;
+        height: 0.14rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(122, 53, 216, 0.98), rgba(199, 106, 255, 0.82) 66%, rgba(67, 214, 255, 0.54));
+        box-shadow: 0 2px 8px rgba(122, 53, 216, 0.18);
+    }
+
+    .gear-mobile-character-label {
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #8c78aa;
+        line-height: 1;
+        padding-left: 1.42rem;
+    }
+
+    .gear-mobile-character-value {
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        color: #3f2e5e;
+        text-transform: none;
     }
 
     .gear-mobile-pill {
@@ -598,6 +791,15 @@
         color: #5f4d7d;
         background: #f7f4fc;
         line-height: 1.2;
+    }
+
+    .gear-mobile-pill-equipment {
+        padding: 0.22rem 0.56rem;
+        background: rgba(255, 255, 255, 0.82);
+        border-color: rgba(216, 204, 233, 0.96);
+        color: #6f5d89;
+        letter-spacing: 0.08em;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
     }
 
     .gear-mobile-card-body {
@@ -741,8 +943,12 @@
         }
 
         .gear-mobile-card-name {
-            font-size: 1rem;
-            line-height: 1.28;
+            font-size: 1.08rem;
+            line-height: 1.18;
+        }
+
+        .gear-mobile-character-value {
+            font-size: 0.68rem;
         }
 
         .gear-mobile-card-body {
@@ -1226,6 +1432,13 @@
                         {
                             <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-equipment="@quickEquipment">@quickEquipment</button>
                         }
+                        @foreach (var quickFilter in elementalQuickFilters)
+                        {
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary quick-filter-btn"
+                                    data-quick-element="@quickFilter.Element"
+                                    data-quick-ability="@quickFilter.AbilityType">@quickFilter.Label</button>
+                        }
                         <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-customizations="true">Has Customizations</button>
                         <button type="button" class="btn btn-sm btn-link text-decoration-none quick-filter-clear" id="quickFiltersClearBtn">Clear Quick</button>
                     </div>
@@ -1571,22 +1784,22 @@
                     <tbody>
                     @foreach (var weapon in Model.Weapons)
                     {
-                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
-                            @{
-                                var costumeNoAbility = weapon.EquipmentType.Equals("Costume", System.StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(weapon.AbilityText);
-                                var abilityMarkup = !string.IsNullOrWhiteSpace(weapon.AbilityText)
-                                    ? weapon.AbilityText.Replace("\r\n", "<br />").Replace("\n", "<br />")
-                                    : "<span class=\"text-muted\">No ability data</span>";
-                                var rechargeMarkup = !string.IsNullOrWhiteSpace(weapon.RechargeTime)
-                                    ? $"<div class=\"ability-meta\">Recharge: {weapon.RechargeTime}</div>"
-                                    : string.Empty;
-                                var useCountMarkup = !string.IsNullOrWhiteSpace(weapon.UseCount)
-                                    ? $"<div class=\"ability-meta\">Uses: {weapon.UseCount}</div>"
-                                    : string.Empty;
-                            }
+                        var costumeNoAbility = weapon.EquipmentType.Equals("Costume", System.StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(weapon.AbilityText);
+                        var abilityMarkup = !string.IsNullOrWhiteSpace(weapon.AbilityText)
+                            ? weapon.AbilityText.Replace("\r\n", "<br />").Replace("\n", "<br />")
+                            : "<span class=\"text-muted\">No ability data</span>";
+                        var rechargeMarkup = !string.IsNullOrWhiteSpace(weapon.RechargeTime)
+                            ? $"<div class=\"ability-meta\">Recharge: {weapon.RechargeTime}</div>"
+                            : string.Empty;
+                        var useCountMarkup = !string.IsNullOrWhiteSpace(weapon.UseCount)
+                            ? $"<div class=\"ability-meta\">Uses: {weapon.UseCount}</div>"
+                            : string.Empty;
+                        var displayElement = costumeNoAbility ? "N/A" : weapon.Element;
+                        var displayAbilityType = costumeNoAbility ? "N/A" : weapon.AbilityType;
+                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
                             <td class="d-none">@weapon.Name</td>
                             <td>
-                                @(costumeNoAbility ? "N/A" : weapon.Element)
+                                @displayElement
                                 <span class="visually-hidden weapon-name-search">@weapon.Name</span>
                             </td>
                             <td>
@@ -1607,14 +1820,23 @@
                                 else
                                 {
                                     <div class="stat-stack" title="Lv. @weapon.MaxLevel / OB10">
-                                        <div><nobr>@string.Format("P: {0:N0}", weapon.PatkAtMaxLevel)</nobr></div>
-                                        <div><nobr>@string.Format("M: {0:N0}", weapon.MatkAtMaxLevel)</nobr></div>
-                                        <div><nobr>@string.Format("H: {0:N0}", weapon.HealAtMaxLevel)</nobr></div>
+                                        <span class="stat-stack-item">
+                                            <img class="stat-stack-icon" src="/images/ui_icon_parameter_buff_physical_attack.png" alt="Physical attack" />
+                                            <span class="stat-stack-value">@weapon.PatkAtMaxLevel.ToString("N0")</span>
+                                        </span>
+                                        <span class="stat-stack-item">
+                                            <img class="stat-stack-icon" src="/images/ui_icon_parameter_buff_magical_attack.png" alt="Magical attack" />
+                                            <span class="stat-stack-value">@weapon.MatkAtMaxLevel.ToString("N0")</span>
+                                        </span>
+                                        <span class="stat-stack-item">
+                                            <img class="stat-stack-icon" src="/images/ui_icon_parameter_buff_heal.png" alt="Heal" />
+                                            <span class="stat-stack-value">@weapon.HealAtMaxLevel.ToString("N0")</span>
+                                        </span>
                                     </div>
                                 }
                             </td>
                             <td>@(costumeNoAbility ? "N/A" : weapon.Range)</td>
-                            <td>@(costumeNoAbility ? "N/A" : weapon.AbilityType)</td>
+                            <td>@displayAbilityType</td>
                             <td class="effects-cell">
                                 @if (weapon.EffectTags.Any())
                                 {
@@ -1882,7 +2104,27 @@
             const gearTableWrap = document.querySelector('.gear-table-wrap');
             const selectedCharacters = new Set();
             const selectedEquipmentTypes = new Set();
+            const selectedQuickElementAbilityFilters = new Set();
             const selectedSubRAbilities = new Set();
+            const buildQuickElementAbilityKey = (element, abilityType) => `${element}||${abilityType}`;
+            const parseQuickElementAbilityKey = (key) => {
+                const [element, abilityType] = (key ?? '').split('||');
+                return { element: element ?? '', abilityType: abilityType ?? '' };
+            };
+            const matchesQuickAbilityType = (rowAbilityType, targetAbilityType) => {
+                const normalizedRowAbilityType = (rowAbilityType ?? '').trim();
+                const normalizedTargetAbilityType = (targetAbilityType ?? '').trim();
+
+                if (normalizedTargetAbilityType === 'Phys.') {
+                    return normalizedRowAbilityType === 'Phys.' || normalizedRowAbilityType === 'Phys./Mag.';
+                }
+
+                if (normalizedTargetAbilityType === 'Mag.') {
+                    return normalizedRowAbilityType === 'Mag.' || normalizedRowAbilityType === 'Phys./Mag.';
+                }
+
+                return normalizedRowAbilityType === normalizedTargetAbilityType;
+            };
 
             const syncGearTableFade = () => {
                 if (!gearTableWrap || window.innerWidth >= 992) {
@@ -1960,15 +2202,21 @@
                 const rowNode = table.row(dataIndex).node();
                 const rowCharacter = rowNode.getAttribute('data-character') ?? '';
                 const rowEquipment = rowNode.getAttribute('data-equipment') ?? '';
+                const rowElement = rowNode.getAttribute('data-element') ?? '';
+                const rowAbilityType = rowNode.getAttribute('data-ability-type') ?? '';
                 const rowSigils = (rowNode.getAttribute('data-sigils') ?? '').split(' ').filter(Boolean);
                 const rowSubR = (rowNode.getAttribute('data-subr') ?? '').split(' ').filter(Boolean);
 
                 const characterMatch = selectedCharacters.size === 0 || selectedCharacters.has(rowCharacter);
                 const equipmentMatch = selectedEquipmentTypes.size === 0 || selectedEquipmentTypes.has(rowEquipment);
+                const quickElementAbilityMatch = selectedQuickElementAbilityFilters.size === 0 || [...selectedQuickElementAbilityFilters].some(key => {
+                    const { element, abilityType } = parseQuickElementAbilityKey(key);
+                    return rowElement === element && matchesQuickAbilityType(rowAbilityType, abilityType);
+                });
                 const sigilMatch = selectedSigils.size === 0 || [...selectedSigils].some(s => rowSigils.includes(s));
                 const subRMatch = selectedSubRAbilities.size === 0 || [...selectedSubRAbilities].some(s => rowSubR.includes(s));
 
-                return characterMatch && equipmentMatch && sigilMatch && subRMatch;
+                return characterMatch && equipmentMatch && quickElementAbilityMatch && sigilMatch && subRMatch;
             });
 
             const searchBox = document.getElementById('searchBox');
@@ -1979,6 +2227,7 @@
             const activeFilterChips = document.getElementById('activeFilterChips');
             const clearAllFiltersBtn = document.getElementById('clearAllFiltersBtn');
             const quickEquipmentButtons = Array.from(document.querySelectorAll('[data-quick-equipment]'));
+            const quickElementAbilityButtons = Array.from(document.querySelectorAll('[data-quick-element][data-quick-ability]'));
             const quickCustomizationButton = document.querySelector('[data-quick-customizations="true"]');
             const quickFiltersClearBtn = document.getElementById('quickFiltersClearBtn');
             const mobileMainClearBtn = document.getElementById('mobileMainClearBtn');
@@ -2110,6 +2359,13 @@
                     button.classList.toggle('active', isChecked);
                 });
 
+                quickElementAbilityButtons.forEach((button) => {
+                    const element = button.getAttribute('data-quick-element') ?? '';
+                    const abilityType = button.getAttribute('data-quick-ability') ?? '';
+                    const key = buildQuickElementAbilityKey(element, abilityType);
+                    button.classList.toggle('active', selectedQuickElementAbilityFilters.has(key));
+                });
+
                 if (quickCustomizationButton) {
                     quickCustomizationButton.classList.toggle('active', customizationFilterCheckbox.checked);
                 }
@@ -2183,6 +2439,13 @@
 
                 document.querySelectorAll('.equipment-filter:checked').forEach(cb => {
                     entries.push({ selector: '.equipment-filter', value: cb.value, label: `Equipment: ${cb.value}` });
+                });
+
+                selectedQuickElementAbilityFilters.forEach(key => {
+                    const { element, abilityType } = parseQuickElementAbilityKey(key);
+                    if (element && abilityType) {
+                        entries.push({ kind: 'quickElementAbility', value: key, label: `Quick: ${element} ${abilityType}` });
+                    }
                 });
 
                 document.querySelectorAll('.rability-filter:checked').forEach(cb => {
@@ -2273,6 +2536,25 @@
                 });
             });
 
+            quickElementAbilityButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const element = button.getAttribute('data-quick-element');
+                    const abilityType = button.getAttribute('data-quick-ability');
+                    if (!element || !abilityType) {
+                        return;
+                    }
+
+                    const key = buildQuickElementAbilityKey(element, abilityType);
+                    if (selectedQuickElementAbilityFilters.has(key)) {
+                        selectedQuickElementAbilityFilters.delete(key);
+                    } else {
+                        selectedQuickElementAbilityFilters.add(key);
+                    }
+
+                    table.draw();
+                });
+            });
+
             if (quickCustomizationButton) {
                 quickCustomizationButton.addEventListener('click', () => {
                     customizationFilterCheckbox.checked = !customizationFilterCheckbox.checked;
@@ -2285,6 +2567,7 @@
                     document.querySelectorAll('.equipment-filter:checked').forEach(cb => {
                         cb.checked = false;
                     });
+                    selectedQuickElementAbilityFilters.clear();
                     customizationFilterCheckbox.checked = false;
                     updateEquipmentFilter();
                 });
@@ -2634,10 +2917,15 @@
                     bannerCell.innerHTML = `
                         <div class="weapon-banner">
                             <div class="weapon-banner-meta">
-                                <span class="weapon-banner-name">${weapon}</span>
-                                <div class="weapon-banner-pills">
-                                    <span class="weapon-banner-character">${character}</span>
-                                    <span class="weapon-banner-equipment">${equipment}</span>
+                                <div class="weapon-banner-titleblock">
+                                    <span class="weapon-banner-character">
+                                        <span class="weapon-banner-character-label">Character</span>
+                                        <span class="weapon-banner-character-value">${character}</span>
+                                    </span>
+                                    <span class="weapon-banner-name">${weapon}</span>
+                                    <div class="weapon-banner-pills">
+                                        <span class="weapon-banner-equipment">${equipment}</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="weapon-banner-actions">
@@ -2764,11 +3052,14 @@
 
                     return `<article class="gear-mobile-card" data-weapon-id="${escapeHtml(weaponId)}">
                         <div class="gear-mobile-card-header">
-                            <div>
+                            <div class="gear-mobile-card-titleblock">
+                                <span class="gear-mobile-character-mark">
+                                    <span class="gear-mobile-character-label">Character</span>
+                                    <span class="gear-mobile-character-value">${character}</span>
+                                </span>
                                 <div class="gear-mobile-card-name">${weapon}</div>
                                 <div class="gear-mobile-card-pills">
-                                    <span class="gear-mobile-pill">${character}</span>
-                                    <span class="gear-mobile-pill">${equipmentSafe}</span>
+                                    <span class="gear-mobile-pill gear-mobile-pill-equipment">${equipmentSafe}</span>
                                 </div>
                             </div>
                         </div>
@@ -2960,6 +3251,12 @@
                     return;
                 }
 
+                if (kind === 'quickElementAbility' && value) {
+                    selectedQuickElementAbilityFilters.delete(value);
+                    table.draw();
+                    return;
+                }
+
                 if (!selector || !value) {
                     return;
                 }
@@ -3008,6 +3305,7 @@
 
                 selectedCharacters.clear();
                 selectedEquipmentTypes.clear();
+                selectedQuickElementAbilityFilters.clear();
                 selectedSigils.clear();
                 selectedSubRAbilities.clear();
 
