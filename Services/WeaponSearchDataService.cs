@@ -38,6 +38,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private readonly ILogger<WeaponSearchDataService> _logger;
         private readonly IWebHostEnvironment _environment;
+        private readonly GearImageCatalog? _gearImageCatalog;
         private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
         private readonly List<WeaponSearchItem> _allWeapons = new();
         private readonly Dictionary<string, string> _weaponNameToId = new(StringComparer.OrdinalIgnoreCase);
@@ -88,10 +89,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public int ReloadCount { get; private set; }
         public int MaxWeaponLevel { get; private set; } = DefaultMaxWeaponLevel;
 
-        public WeaponSearchDataService(ILogger<WeaponSearchDataService> logger, IWebHostEnvironment environment)
+        public WeaponSearchDataService(ILogger<WeaponSearchDataService> logger, IWebHostEnvironment environment, GearImageCatalog? gearImageCatalog = null)
         {
             _logger = logger;
             _environment = environment;
+            _gearImageCatalog = gearImageCatalog;
             ReloadData();
         }
 
@@ -933,6 +935,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Id = weapon.Id.ToString(),
                     Name = StripMarkup(localization.Get(weapon.NameLanguageId)),
                     Character = characterName,
+                    ImageUrl = ResolveGearImageUrl(StripMarkup(localization.Get(weapon.NameLanguageId)), characterName, equipmentType),
                     Element = abilityDetails.IsHealing ? "Heal" : element,
                     DamagePercent = abilityDetails.DamagePercent,
                     Range = abilityDetails.Range,
@@ -1164,6 +1167,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Id = $"costume-{costume.Id}",
                     Name = StripMarkup(localization.Get(costume.NameLanguageId)),
                     Character = characterName,
+                    ImageUrl = ResolveGearImageUrl(StripMarkup(localization.Get(costume.NameLanguageId)), characterName, "Costume"),
                     Element = element,
                     DamagePercent = damagePercent,
                     Range = range,
@@ -1664,6 +1668,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return $"Sets damage potency to {abilityDetails.DamagePercent:0.#}%";
 
             return null;
+        }
+
+        private string ResolveGearImageUrl(string itemName, string characterName, string equipmentType)
+        {
+            return _gearImageCatalog?.ResolveImageUrl(itemName, characterName, equipmentType)
+                ?? (string.Equals(equipmentType, "Costume", StringComparison.OrdinalIgnoreCase)
+                    ? GearImageCatalog.OutfitPlaceholderUrl
+                    : GearImageCatalog.WeaponPlaceholderUrl);
         }
 
         private List<WeaponCustomization> BuildWeaponCustomizations(
@@ -3168,10 +3180,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 44, "Triangle Sigil Resistance Up" },
             { 45, "X Sigil Resistance Up" },
             { 46, "Diamond Sigil Resistance Up" },
+            { 47, "Square Sigil Resistance Up" },
             { 48, "Circle Sigil Resistance Down" },
             { 49, "Triangle Sigil Resistance Down" },
             { 50, "X Sigil Resistance Down" },
-            { 51, "Diamond Sigil Resistance Down" }
+            { 51, "Diamond Sigil Resistance Down" },
+            { 52, "Square Sigil Resistance Down" }
         };
 
         private static readonly Dictionary<int, string> StatusChangeTypes = new()

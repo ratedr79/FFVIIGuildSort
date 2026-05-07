@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Hosting;
 using FFVIIEverCrisisAnalyzer.Services;
+using FFVIIEverCrisisAnalyzer.Models;
+using System.IO;
+using System.Text.RegularExpressions;
 
 namespace FFVIIEverCrisisAnalyzer.Pages;
 
@@ -9,27 +13,40 @@ public sealed class DataDiagnosticsModel : PageModel
     private readonly WeaponCatalog _catalog;
     private readonly WeaponSearchDataService _weaponSearchData;
     private readonly SharedAccessGate _sharedAccessGate;
+    private readonly IWebHostEnvironment _environment;
 
-    public DataDiagnosticsModel(WeaponCatalog catalog, WeaponSearchDataService weaponSearchData, SharedAccessGate sharedAccessGate)
+    public DataDiagnosticsModel(WeaponCatalog catalog, WeaponSearchDataService weaponSearchData, SharedAccessGate sharedAccessGate, IWebHostEnvironment environment)
     {
         _catalog = catalog;
         _weaponSearchData = weaponSearchData;
         _sharedAccessGate = sharedAccessGate;
+        _environment = environment;
     }
 
     public List<string> WeaponsNotEnriched { get; private set; } = new();
     public List<string> WeaponsEnriched { get; private set; } = new();
     public List<string> CostumesNotEnriched { get; private set; } = new();
     public List<string> CostumesEnriched { get; private set; } = new();
+    public List<LocalImageDiagnosticRow> MissingWeaponImages { get; private set; } = new();
+    public List<LocalImageDiagnosticRow> MissingCostumeImages { get; private set; } = new();
     public List<WeaponSearchDataService.PassiveSkillTypeDiagnosticRow> PassiveSkillTypeDiagnostics { get; private set; } = new();
     public List<CharacterIdGapDiagnosticGroup> CharacterIdGapDiagnostics { get; private set; } = new();
     public bool ReloadSucceeded { get; private set; }
     public string ReloadMessage { get; private set; } = string.Empty;
     public DateTimeOffset LastLoadedUtc => _weaponSearchData.LastLoadedUtc;
     public int ReloadCount => _weaponSearchData.ReloadCount;
+    public int TotalWeaponItemsWithImages { get; private set; }
+    public int TotalCostumeItemsWithImages { get; private set; }
+    public int WeaponImageAssetCount { get; private set; }
+    public int CostumeImageAssetCount { get; private set; }
+
+    private static readonly Regex InvalidAssetFilenameCharactersRegex = new(@"[<>:""/\\|?*]+", RegexOptions.Compiled);
+    private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
     public void OnGet()
     {
+        var allItems = _weaponSearchData.GetWeapons();
+
         foreach (var kvp in _catalog.ByWeaponName.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
         {
             var weapon = kvp.Value;
@@ -64,8 +81,9 @@ public sealed class DataDiagnosticsModel : PageModel
             }
         }
 
+        BuildLocalImageDiagnostics(allItems);
         PassiveSkillTypeDiagnostics = _weaponSearchData.GetPassiveSkillTypeDiagnostics().ToList();
-        CharacterIdGapDiagnostics = BuildCharacterIdGapDiagnostics();
+        CharacterIdGapDiagnostics = BuildCharacterIdGapDiagnostics(allItems);
     }
 
     public IActionResult OnPostReloadData()
@@ -92,9 +110,138 @@ public sealed class DataDiagnosticsModel : PageModel
         return Page();
     }
 
-    private List<CharacterIdGapDiagnosticGroup> BuildCharacterIdGapDiagnostics()
+    private void BuildLocalImageDiagnostics(IReadOnlyList<WeaponSearchItem> allItems)
     {
-        var allItems = _weaponSearchData.GetWeapons();
+        var weaponImageLookup = LoadLocalImageLookup("images/weapons", out var weaponAssetCount);
+        var costumeImageLookup = LoadLocalImageLookup("images/outfits", out var costumeAssetCount);
+
+        WeaponImageAssetCount = weaponAssetCount;
+        CostumeImageAssetCount = costumeAssetCount;
+
+        var weaponItems = allItems
+            .Where(item => !item.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var costumeItems = allItems
+            .Where(item => item.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        TotalWeaponItemsWithImages = weaponItems.Count;
+        TotalCostumeItemsWithImages = costumeItems.Count;
+
+        MissingWeaponImages = BuildMissingLocalImageRows(weaponItems, weaponImageLookup, "/images/weapons");
+        MissingCostumeImages = BuildMissingLocalImageRows(costumeItems, costumeImageLookup, "/images/outfits");
+    }
+
+    private static List<LocalImageDiagnosticRow> BuildMissingLocalImageRows(
+        IEnumerable<WeaponSearchItem> items,
+        IReadOnlyDictionary<string, string> availableImages,
+        string folderPath)
+    {
+        return items
+            .Where(item => !availableImages.ContainsKey(NormalizeAssetLookupKey(item.Name)))
+            .OrderBy(item => item.Character, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(item => new LocalImageDiagnosticRow
+            {
+                Character = item.Character,
+                Name = item.Name,
+                EquipmentType = item.EquipmentType,
+                FolderPath = folderPath,
+                SuggestedFileName = BuildSuggestedFileName(item.Name)
+            })
+            .ToList();
+    }
+
+    private Dictionary<string, string> LoadLocalImageLookup(string relativeFolder, out int assetCount)
+    {
+        var lookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        assetCount = 0;
+
+        foreach (var folderPath in GetCandidateAssetDirectories(relativeFolder))
+        {
+            if (!Directory.Exists(folderPath))
+            {
+                continue;
+            }
+
+            var files = Directory
+                .EnumerateFiles(folderPath)
+                .Where(IsSupportedImageFile)
+                .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            assetCount = files.Count;
+            foreach (var filePath in files)
+            {
+                var fileName = Path.GetFileName(filePath);
+                var key = NormalizeAssetLookupKey(Path.GetFileNameWithoutExtension(fileName));
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    continue;
+                }
+
+                lookup.TryAdd(key, fileName);
+            }
+
+            break;
+        }
+
+        return lookup;
+    }
+
+    private IEnumerable<string> GetCandidateAssetDirectories(string relativeFolder)
+    {
+        var normalizedRelativeFolder = relativeFolder.Replace('/', Path.DirectorySeparatorChar);
+        var bases = new[]
+        {
+            _environment.WebRootPath,
+            string.IsNullOrWhiteSpace(_environment.ContentRootPath)
+                ? null
+                : Path.Combine(_environment.ContentRootPath, "wwwroot")
+        };
+
+        foreach (var basePath in bases
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            yield return Path.Combine(basePath!, normalizedRelativeFolder);
+        }
+    }
+
+    private static bool IsSupportedImageFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".webp", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".gif", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeAssetLookupKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = InvalidAssetFilenameCharactersRegex.Replace(value.Trim(), " ");
+        normalized = normalized.Replace('_', ' ');
+        normalized = WhitespaceRegex.Replace(normalized, " ").Trim();
+        return normalized.ToUpperInvariant();
+    }
+
+    private static string BuildSuggestedFileName(string name)
+    {
+        var sanitized = InvalidAssetFilenameCharactersRegex.Replace(name.Trim(), "_");
+        sanitized = WhitespaceRegex.Replace(sanitized, " ").Trim(' ', '.');
+        return string.IsNullOrWhiteSpace(sanitized)
+            ? "unnamed.png"
+            : $"{sanitized}.png";
+    }
+
+    private static List<CharacterIdGapDiagnosticGroup> BuildCharacterIdGapDiagnostics(IReadOnlyList<WeaponSearchItem> allItems)
+    {
         return allItems
             .GroupBy(item => item.Character, StringComparer.OrdinalIgnoreCase)
             .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
@@ -200,5 +347,14 @@ public sealed class DataDiagnosticsModel : PageModel
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public bool IsMissing { get; set; }
+    }
+
+    public sealed class LocalImageDiagnosticRow
+    {
+        public string Character { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string EquipmentType { get; set; } = string.Empty;
+        public string FolderPath { get; set; } = string.Empty;
+        public string SuggestedFileName { get; set; } = string.Empty;
     }
 }

@@ -132,6 +132,102 @@
 
         <div class="accordion-item">
             <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#missingWeaponImagesCollapse" aria-expanded="false" aria-controls="missingWeaponImagesCollapse">
+                    Missing local weapon/ultimate images (@Model.MissingWeaponImages.Count)
+                </button>
+            </h2>
+            <div id="missingWeaponImagesCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+                <div class="accordion-body">
+                    <div class="small text-muted mb-2">
+                        Scans <code>/images/weapons</code> and matches files against weapon and ultimate weapon names after Windows-safe filename normalization.
+                        Coverage: @(Model.TotalWeaponItemsWithImages - Model.MissingWeaponImages.Count)/@Model.TotalWeaponItemsWithImages items matched. Local files found: @Model.WeaponImageAssetCount.
+                    </div>
+                    @if (Model.MissingWeaponImages.Count == 0)
+                    {
+                        <div class="text-success">All weapon and ultimate entries currently have a matching local image file.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Character</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Target Folder</th>
+                                        <th>Suggested Filename</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in Model.MissingWeaponImages)
+                                    {
+                                        <tr>
+                                            <td>@row.Character</td>
+                                            <td>@row.Name</td>
+                                            <td>@row.EquipmentType</td>
+                                            <td><code>@row.FolderPath</code></td>
+                                            <td><code>@row.SuggestedFileName</code></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#missingCostumeImagesCollapse" aria-expanded="false" aria-controls="missingCostumeImagesCollapse">
+                    Missing local outfit images (@Model.MissingCostumeImages.Count)
+                </button>
+            </h2>
+            <div id="missingCostumeImagesCollapse" class="accordion-collapse collapse" data-bs-parent="#diagnosticsAccordion">
+                <div class="accordion-body">
+                    <div class="small text-muted mb-2">
+                        Scans <code>/images/outfits</code> and matches files against costume names after Windows-safe filename normalization.
+                        Coverage: @(Model.TotalCostumeItemsWithImages - Model.MissingCostumeImages.Count)/@Model.TotalCostumeItemsWithImages items matched. Local files found: @Model.CostumeImageAssetCount.
+                    </div>
+                    @if (Model.MissingCostumeImages.Count == 0)
+                    {
+                        <div class="text-success">All costume entries currently have a matching local image file.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Character</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Target Folder</th>
+                                        <th>Suggested Filename</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in Model.MissingCostumeImages)
+                                    {
+                                        <tr>
+                                            <td>@row.Character</td>
+                                            <td>@row.Name</td>
+                                            <td>@row.EquipmentType</td>
+                                            <td><code>@row.FolderPath</code></td>
+                                            <td><code>@row.SuggestedFileName</code></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#passiveSkillTypeDiagnosticsCollapse" aria-expanded="false" aria-controls="passiveSkillTypeDiagnosticsCollapse">
                     Passive Skill Type diagnostics (@Model.PassiveSkillTypeDiagnostics.Count)
                 </button>

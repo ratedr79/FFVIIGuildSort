@@ -1,0 +1,1267 @@
+window.addEventListener('DOMContentLoaded', event => {
+    $(document).ready( function(){
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////// DATATABLE ///////// DATATABLE ///////// DATATABLE ///////// DATATABLE ///////// DATATABLE ///////// DATATABLE ///////// DATATABLE /////////
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        var table = $('#weaponList').DataTable( {
+
+            // ROW BACKGROUND
+            createdRow: function (row, data, dataIndex, cells) {
+                switch (parseInt(dataIndex, 10)% 32) {
+                    case 0:
+                        $('td', row).css('background-image', 'url(../assets/rows/td1.svg)');
+                        break;
+                    case 31:
+                        $('td', row).css('background-image', 'url(../assets/rows/td1-mirror.svg)');
+                        break;    
+                    case 1:
+                        $('td', row).css('background-image', 'url(../assets/rows/td2.svg)');
+                        break;
+                    case 30:
+                        $('td', row).css('background-image', 'url(../assets/rows/td2-mirror.svg)');
+                        break;
+                    case 2:
+                        $('td', row).css('background-image', 'url(../assets/rows/td3.svg)');
+                        break;
+                    case 29:
+                        $('td', row).css('background-image', 'url(../assets/rows/td3-mirror.svg)');
+                        break;
+                    case 3:
+                        $('td', row).css('background-image', 'url(../assets/rows/td4.svg)');
+                        break;
+                    case 28:
+                        $('td', row).css('background-image', 'url(../assets/rows/td4-mirror.svg)');
+                        break;
+                    case 4:
+                        $('td', row).css('background-image', 'url(../assets/rows/td5.svg)');
+                        break;
+                    case 27:
+                        $('td', row).css('background-image', 'url(../assets/rows/td5-mirror.svg)');
+                        break;
+                    case 5:
+                        $('td', row).css('background-image', 'url(../assets/rows/td6.svg)');
+                        break;
+                    case 26:
+                        $('td', row).css('background-image', 'url(../assets/rows/td6-mirror.svg)');
+                        break;
+                    case 6:
+                        $('td', row).css('background-image', 'url(../assets/rows/td7.svg)');
+                        break;  
+                    case 25:
+                        $('td', row).css('background-image', 'url(../assets/rows/td7-mirror.svg)');
+                        break;  
+                    case 7:
+                        $('td', row).css('background-image', 'url(../assets/rows/td8.svg)');
+                        break; 
+                    case 24:
+                        $('td', row).css('background-image', 'url(../assets/rows/td8-mirror.svg)');
+                        break; 
+                    case 8:
+                        $('td', row).css('background-image', 'url(../assets/rows/td9.svg)');
+                        break;
+                    case 23:
+                        $('td', row).css('background-image', 'url(../assets/rows/td9-mirror.svg)');
+                        break;   
+                    case 9:
+                        $('td', row).css('background-image', 'url(../assets/rows/td10.svg)');
+                        break;  
+                    case 22:
+                        $('td', row).css('background-image', 'url(../assets/rows/td10-mirror.svg)');
+                        break;  
+                    case 10:
+                        $('td', row).css('background-image', 'url(../assets/rows/td11.svg)');
+                        break; 
+                    case 21:
+                        $('td', row).css('background-image', 'url(../assets/rows/td11-mirror.svg)');
+                        break; 
+                    case 11:
+                        $('td', row).css('background-image', 'url(../assets/rows/td12.svg)');
+                        break;
+                    case 20:
+                        $('td', row).css('background-image', 'url(../assets/rows/td12-mirror.svg)');
+                        break;       
+                    case 12:
+                        $('td', row).css('background-image', 'url(../assets/rows/td13.svg)');
+                        break;
+                    case 19:
+                        $('td', row).css('background-image', 'url(../assets/rows/td13-mirror.svg)');
+                        break;    
+                    case 13:
+                        $('td', row).css('background-image', 'url(../assets/rows/td14.svg)');
+                        break;
+                    case 18:
+                        $('td', row).css('background-image', 'url(../assets/rows/td14-mirror.svg)');
+                        break;    
+                    case 14:
+                        $('td', row).css('background-image', 'url(../assets/rows/td15.svg)');
+                        break;
+                    case 17:
+                        $('td', row).css('background-image', 'url(../assets/rows/td15-mirror.svg)');
+                        break;    
+                    case 15:
+                        $('td', row).css('background-image', 'url(../assets/rows/td16.svg)');
+                        break;
+                    case 16:
+                        $('td', row).css('background-image', 'url(../assets/rows/td16-mirror.svg)');
+                        break;
+                }
+                $('td', row).css('background-clip', 'border-box');
+                $('td', row).css('background-repeat', 'no-repeat');
+                $('td', row).css('background-position', 'center');
+                $('td', row).css('background-size', 'cover');
+            },  
+
+            // LAYOUT
+            layout: {
+                topStart: {
+                    buttons: [
+                        // SEARCHPANES PARAMETER
+                        {   
+                            name: 'Filter',
+                            text: 'Filter',
+                            dropIcon: true,
+                            extend: 'searchPanes',
+                            config: {
+                                viewCount: false,
+                                initCollapsed: true,
+                                orderable: false,
+                                clear: false,
+                                dtOpts: {
+                                    searching: false,
+                                    ordering: false,
+                                    select: { style: 'api' },
+                                },
+                                panes: [
+
+                                    //// UNITS SEARCHPANE ////
+                                    {
+                                        header: 'Characters',
+                                        options: [
+                                            {   label: 'Aerith' },
+                                            {   label: 'Angeal' },
+                                            {   label: 'Barret' },
+                                            {   label: 'Cait Sith' },
+                                            {   label: 'Cid' },
+                                            {   label: 'Cloud' },
+                                            {   label: 'Glenn' },
+                                            {   label: 'Lucia' },
+                                            {   label: 'Matt' },
+                                            {   label: 'Red XIII' },
+                                            {   label: 'Sephiroth' },
+					                        {   label: 'Sephiroth (O)' },
+                                            {   label: 'Tifa' },
+                                            {   label: 'Vincent' },
+                                            {   label: 'Yuffie' },
+                                            {   label: 'Zack' }
+                                        ],
+                                        dtOpts: {
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    },
+
+                                    //// AREAS OF EFFECTS SEARCHPANE ////
+                                    {
+                                        header: 'Area of Effect',
+                                        options: [
+                                            {   label: 'Single' },
+                                            {   label: 'All' },
+                                            {   label: 'Self' }
+                                        ],
+                                        dtOpts: {
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    },
+
+                                    //// BUFFS SEARCHPANE ////
+                                    {
+                                        header: 'Buffs',
+                                        options: [
+                                            //// BUFF DAMAGE ////
+                                            {   label: ' BUFF DAMAGE ' },
+                                            {   label: 'Physical' },
+                                            {   label: 'Magical' },
+                                            {   label: 'Physical/Magical' },
+                                            //// BUFF STATS/POTENCY ////
+                                            {   label: ' BUFF STATS/POTENCY ' },
+					                        {	label: 'All (Active)' },
+                                            {   label: 'Element Pot.' },
+                                            {   label: 'PATK' },
+                                            {   label: 'MATK' },
+                                            {   label: 'PDEF' },
+                                            {   label: 'MDEF' },
+                                            {   label: 'PATK(DOWN)' },
+                                            {   label: 'MATK(DOWN)' },
+                                            {   label: 'PDEF(DOWN)' },
+                                            {   label: 'MDEF(DOWN)' },
+                                            //// BUFF STATUS ////
+                                            {   label: ' BUFF STATUS ' },
+                                            {   label: 'Amp' },
+                                            {   label: 'Darkness' },
+					                        {   label: 'Damage(PHY)' },
+					                        {   label: 'Damage(MAG)' },
+					                        {   label: 'Damage(Element)' },
+                                            {   label: 'Enliven' },
+                                            {   label: 'Exploit Weakness' },
+                                            {   label: 'Haste' },
+                                            {   label: 'Poison' },
+                                            {   label: 'Provoke' },
+                                            {   label: 'Silence' },
+                                            {   label: 'Veil' },
+					                        {   label: 'Weapon(PHY)' },
+                                            {   label: 'Weapon(MAG)' },
+					                        {   label: 'Weapon(Element)' },
+                                            //// BUFF RESIST ////
+                                            {   label: ' BUFF RESISTANCE ' },
+                                            {   label: 'Element Resist.' },
+                                            {   label: 'Physical Resist.' },
+                                            {   label: 'Magical Resist.' },
+                                            //// BUFF HEAL ////
+                                            {   label: ' BUFF HEALING ' }, 
+                                            {   label: 'Heal(M)' },
+                                            {   label: 'Heal(P)' },
+                                            {   label: 'HP Gain' },
+                                            {   label: 'Regen' },
+                                            {   label: 'Max HP' },
+                                            //// BUFF GAUGE ////
+                                            {   label: ' BUFF GAUGE/USES ' },
+                                            {   label: 'ATB Gauge' },
+                                            {   label: 'ATB Conservation (PHY)' },
+                                            {   label: 'ATB Conservation (MAG)' },
+                                            {   label: 'Command Gauge' },
+                                            {   label: 'Gear C.Ability' },
+                                            {   label: 'Limit Break Gauge' },
+											{   label: 'Overspeed Gauge' },
+                                            {   label: 'Summon Gauge' }
+                                        ],
+                                        dtOpts: {
+                                            createdRow: function (row, data, dataIndex) {
+                                                if (data['display'].startsWith(" ")) {
+                                                    $(row).addClass('unselectable');
+                                                }
+                                            },
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    },
+
+                                    //// DEBUFFS SEARCHPANE ////
+                                    {
+                                        header: 'Debuffs',
+                                        options: [
+                                            //// DEBUFF STATS/POTENCY ////
+                                            {   label: ' DEBUFF STATS/POTENCY ' },
+											{	label: 'All (Active)' },									
+                                            {   label: 'Element Pot.' },
+                                            {   label: 'PATK' },
+                                            {   label: 'MATK' },
+                                            {   label: 'PDEF' },
+                                            {   label: 'MDEF' },
+                                            {   label: 'PATK(UP)' },
+                                            {   label: 'MATK(UP)' },
+                                            {   label: 'PDEF(UP)' },
+                                            {   label: 'MDEF(UP)' },
+                                            //// DEBUFF RESIST ////
+                                            {   label: ' DEBUFF RESISTANCE ' },
+                                            {   label: 'Element Resist.' },
+                                            //// DEBUFF STATUS ////
+                                            {   label: ' DEBUFF STATUS ' },
+                                            {   label: 'All-Tgt (PHY)' },
+                                            {   label: 'All-Tgt (MAG)' },
+                                            {   label: 'All-Tgt Element' },
+                                            {   label: 'Darkness' },
+                                            {   label: 'Element Weakness' },
+                                            {   label: 'Enfeeble' },
+                                            {   label: 'Fatigue' },
+                                            {   label: 'Fog' },
+                                            {   label: 'Poison' },
+                                            {   label: 'Silence' },
+                                            {   label: 'Single-Tgt (PHY)' },
+                                            {   label: 'Single-Tgt (MAG)' },
+                                            {   label: 'Single-Tgt Element' },
+                                            {   label: 'Stop' },
+                                            {   label: 'Stun' },
+                                            //// DEBUFF GAUGE ////
+                                            {   label: ' DEBUFF GAUGE/USES ' },
+                                            {   label: 'ATB Gauge' },
+                                            {   label: 'Command Gauge' },
+                                            {   label: 'Limit Break Gauge' },
+                                            {   label: 'Summon Gauge' },
+                                        ],
+                                        dtOpts: {
+                                            createdRow: function (row, data, dataIndex) {
+                                                if (data['display'].startsWith(" ")) {
+                                                    $(row).addClass('unselectable');
+                                                }
+                                            },
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    },
+
+                                    //// ELEMENTS SEARCHPANE ////
+                                    {
+                                        header: 'Elements',
+                                        options: [
+                                            {   label: 'Non-Elemental' },
+                                            {   label: 'Earth' },
+                                            {   label: 'Fire' },
+                                            {   label: 'Ice' },
+                                            {   label: 'Lightning' },
+                                            {   label: 'Water' },
+                                            {   label: 'Wind' }
+                                        ],
+                                        dtOpts: {
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    },
+
+                                    //// REINFFORCEMENTS SEARCHPANE ////
+                                    {
+                                        header: 'Reinforcements',
+                                        options: [
+                                            /// STATS ///
+                                            {   label: ' STATS ' },
+                                            {   label: 'HP' },
+                                            {   label: 'PATK' },
+                                            {   label: 'MATK' },
+                                            {   label: 'PDEF' },
+                                            {   label: 'MDEF' },
+                                            {   label: 'HEAL' },
+                                            {   label: 'ATK' },
+                                            {   label: 'PATK (All)' },
+                                            {   label: 'MATK (All)' },
+                                            {   label: 'PDEF (All)' },
+                                            {   label: 'MDEF (All)' },
+                                            {   label: 'ATK (All)' },
+                                            /// STATS POT. ///
+                                            {   label: ' STATS POTENCY ' },
+                                            {   label: 'Ability Pot.' },
+                                            {   label: 'Phy Ability Pot.' },
+                                            {   label: 'Mag Ability Pot.' },
+                                            /// ELEMENT POTENCY ///
+                                            {   label: ' ELEMENT POTENCY ' }, 
+                                            {   label: 'Earth Pot.' },
+                                            {   label: 'Fire Pot.' },
+                                            {   label: 'Ice Pot.' },
+                                            {   label: 'Lightning Pot.' },
+                                            {   label: 'Water Pot.' },
+                                            {   label: 'Wind Pot.' },
+                                            /// ELEMENT RESISTANCE ///
+                                            {   label: ' ELEMENT RESISTANCE ' },
+                                            {   label: 'Earth Resist.' },
+                                            {   label: 'Fire Resist.' },
+                                            {   label: 'Ice Resist.' },
+                                            {   label: 'Lightning Resist.' },
+                                            {   label: 'Water Resist.' },
+                                            {   label: 'Wind Resist.' },
+                                            /// SPECIAL ///
+                                            {   label: ' SPECIAL ' }, 
+                                            {   label: 'ATB' },
+                                            {   label: 'ATB (All)' },
+                                            {   label: 'ATB Arcanum' },
+                                            {   label: 'Attack Boost' },
+					                        {   label: 'Attack Boost (All)' },
+                                            {   label: 'Buff|Debuff' },
+											{   label: 'Buff|Debuff Extension Arcanum (All)' },
+                                            {   label: 'Crit Pot.' },
+                                            {   label: 'Defense Boost' },
+                                            {   label: 'Elem. Pot. Arcanum (All)' },
+											{   label: 'Enliven Boost (All)' },
+                                            {   label: 'Fortunate Interpt.' },
+                                            {   label: 'Haste Boost' },
+					                        {	label: 'HP Arcanum (All)' },
+					                        {	label: 'HP Gain Boost' },
+                                            {   label: 'Interpt. ATB' },
+                                            {   label: 'Interpt. ATB Conservation' },
+                                            {   label: 'Interpt. Damage Bonus (All)' },
+                                            {   label: 'Interpt. Mastery' },
+                                            {   label: 'Interpt. (Veil)' },
+                                            {   label: 'Interpt. (Exp. Weak.)' },
+                                            {   label: 'Interpt. Arcanum (All)' },
+					                        {   label: 'Interpt. Weapon Boost Arcanum (All)' },
+                                            {   label: 'Limit Break Pot.' },
+                                            {   label: 'Mass Interpt. (All)' },
+                                            {   label: 'Regen Boost' },
+					                        {	label: 'Reprieve Arcanum (All)' },
+                                            {   label: 'Stream Ph. ATB' },
+                                            {   label: 'Stream Ph. Haste' },
+                                            {   label: 'Stream Ph. HP Gain Boost' }
+                                        ],
+                                        dtOpts: {
+                                            createdRow: function (row, data, dataIndex) {
+                                                if (data['display'].startsWith(" ")) {
+                                                    $(row).addClass('unselectable');
+                                                }
+                                            },
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    },
+
+                                    //// SIGILS SEARCHPANE ////
+                                    {
+                                        header: 'Sigils',
+                                        name: 'Sigils',
+                                        options: [
+                                            {   label: 'Circle' },
+                                            {   label: 'Cross' },
+                                            {   label: 'Diamond' },
+                                            {   label: 'Triangle' }
+                                        ],
+                                        dtOpts: {
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    },
+
+                                    //// SUPPORT MATERIA SEARCHPANE ////
+                                    {
+                                        header: 'Support Materia',
+                                        options: [
+                                            {   label: 'All (Cure Spells)' },
+                                            {   label: 'All (Esuna)' },
+                                            {   label: 'Heal Boost' },
+                                            {   label: 'Sigil Boost II' }                                        
+                                        ],
+                                        dtOpts: {
+                                            drawCallback: function () {
+                                                // CUSTOM STATE SAVE FOR CUSTOM PANES 
+                                                setSelection(this, JSON.parse(sessionStorage.getItem('paneSelection')));
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }, 'spacer',
+                        {   
+                            name: 'Reset',
+                            text: 'Reset',
+                            action: function (e, dt, node, config) {
+                                table.column(0).search('', true, false, true).draw();
+                                sessionStorage.removeItem('paneSelection');
+                            }
+                        }
+                    ]
+                },
+                topEnd: null,
+                bottomStart: null,
+                bottomEnd: null
+            },
+
+            // LANGUAGE PARAMETER
+            language: {
+                searchPanes: {
+                    loadMessage: "",  
+                    clearMessage: false,
+                    collapseMessage: false,
+                    countFiltered: false,
+                    showMessage: false,
+                    title: false
+                }
+            },
+
+            // DATATABLE PARAMETER
+            processing: false,
+            info: false,
+
+            // STATE SAVE PARAMETER
+            stateSave: true,
+            stateDuration: -1,
+
+            // SCROLLER PARAMETER
+            scrollX: false,
+            scrollY: '76vh',
+            scrollCollapse: true,
+            paging: true,
+            lengthChange: false,
+            deferRender: true,
+            scroller: {
+                displayBuffer: 30,
+            },
+
+            // DATAS
+            "ajax": {
+                url: 'lib/listWeapon.php',
+                type: 'POST'
+            },
+
+            // COLUMNS
+            columns: [			
+                { className: 'W_NAME', name: 'W_NAME', data: 'W_NAME' },
+                { className: 'W_HP', name: 'W_HP', data: 'W_HP' },
+                { className: 'W_PATK', name: 'W_PATK', data: 'W_PATK' },
+                { className: 'W_MATK', name: 'W_MATK', data: 'W_MATK' },
+                { className: 'W_PDEF', name: 'W_PDEF', data: 'W_PDEF' },
+                { className: 'W_MDEF', name: 'W_MDEF', data: 'W_MDEF' },
+                { className: 'W_HEAL', name: 'W_HEAL', data: 'W_HEAL' },
+                { className: 'W_CAST', name: 'W_CAST', data: 'W_CAST' },
+                { className: 'W_ULT', name: 'W_ULT', data: 'W_ULT' },
+                { className: 'U_NAME', name: 'U_NAME', data: 'U_NAME' },
+                { className: 'C_NAME', name: 'C_NAME', data: 'C_NAME' },	
+                { className: 'C_EL', name: 'C_EL', data: 'C_EL' },
+                { className: 'C_SIG', name: 'C_SIG', data: 'C_SIG' },
+                { className: 'C_ATB', name: 'C_ATB', data: 'C_ATB' },
+                { className: 'C_CHG', name: 'C_CHG', data: 'C_CHG' },
+                { className: 'CSP1_AF', name: 'CSP1_AF', data: 'CSP1_AF' },
+                { className: 'CSP1_AOC', name: 'CSP1_AOC', data: 'CSP1_AOC' },
+                { className: 'CSP1_CO', name: 'CSP1_CO', data: 'CSP1_CO' },
+                { className: 'CSP1_AOE', name: 'CSP1_AOE', data: 'CSP1_AOE' },
+                { className: 'CSP1_ED', name: 'CSP1_ED', data: 'CSP1_ED' },
+                { className: 'CSP1_EG', name: 'CSP1_EG', data: 'CSP1_EG' },
+                { className: 'CSP1_EH', name: 'CSP1_EH', data: 'CSP1_EH' },
+                { className: 'CSP1_EP', name: 'CSP1_EP', data: 'CSP1_EP' },
+                { className: 'CSP1_ER', name: 'CSP1_ER', data: 'CSP1_ER' },
+                { className: 'CSP1_ES', name: 'CSP1_ES', data: 'CSP1_ES' },
+                { className: 'CSP1_DMG', name: 'CSP1_DMG', data: 'CSP1_DMG' },
+                { className: 'CSP1_EL', name: 'CSP1_EL', data: 'CSP1_EL' },
+                { className: 'CSP1_LVLMIN', name: 'CSP1_LVLMIN', data: 'CSP1_LVLMIN' },
+                { className: 'CSP1_PERC', name: 'CSP1_PERC', data: 'CSP1_PERC' },
+                { className: 'CSP1_INIT', name: 'CSP1_INIT', data: 'CSP1_INIT' },
+                { className: 'CSP1_EXT', name: 'CSP1_EXT', data: 'CSP1_EXT' },
+                { className: 'CSP1_LVLMAX', name: 'CSP1_LVLMAX', data: 'CSP1_LVLMAX' },
+                { className: 'CSP2_AF', name: 'CSP2_AF', data: 'CSP2_AF' },
+                { className: 'CSP2_AOC', name: 'CSP2_AOC', data: 'CSP2_AOC' },
+                { className: 'CSP2_CO', name: 'CSP2_CO', data: 'CSP2_CO' },
+                { className: 'CSP2_AOE', name: 'CSP2_AOE', data: 'CSP2_AOE' },
+                { className: 'CSP2_ED', name: 'CSP2_ED', data: 'CSP2_ED' },
+                { className: 'CSP2_EG', name: 'CSP2_EG', data: 'CSP2_EG' },
+                { className: 'CSP2_EH', name: 'CSP2_EH', data: 'CSP2_EH' },
+                { className: 'CSP2_EP', name: 'CSP2_EP', data: 'CSP2_EP' },
+                { className: 'CSP2_ER', name: 'CSP2_ER', data: 'CSP2_ER' },
+                { className: 'CSP2_ES', name: 'CSP2_ES', data: 'CSP2_ES' },
+                { className: 'CSP2_DMG', name: 'CSP2_DMG', data: 'CSP2_DMG' },
+                { className: 'CSP2_EL', name: 'CSP2_EL', data: 'CSP2_EL' },
+                { className: 'CSP2_LVLMIN', name: 'CSP2_LVLMIN', data: 'CSP2_LVLMIN' },
+                { className: 'CSP2_PERC', name: 'CSP2_PERC', data: 'CSP2_PERC' },
+                { className: 'CSP2_INIT', name: 'CSP2_INIT', data: 'CSP2_INIT' },
+                { className: 'CSP2_EXT', name: 'CSP2_EXT', data: 'CSP2_EXT' },
+                { className: 'CSP2_LVLMAX', name: 'CSP2_LVLMAX', data: 'CSP2_LVLMAX' },
+                { className: 'CSP3_AF', name: 'CSP3_AF', data: 'CSP3_AF' },
+                { className: 'CSP3_AOC', name: 'CSP3_AOC', data: 'CSP3_AOC' },
+                { className: 'CSP3_CO', name: 'CSP3_CO', data: 'CSP3_CO' },
+                { className: 'CSP3_AOE', name: 'CSP3_AOE', data: 'CSP3_AOE' },
+                { className: 'CSP3_ED', name: 'CSP3_ED', data: 'CSP3_ED' },
+                { className: 'CSP3_EG', name: 'CSP3_EG', data: 'CSP3_EG' },
+                { className: 'CSP3_EH', name: 'CSP3_EH', data: 'CSP3_EH' },
+                { className: 'CSP3_EP', name: 'CSP3_EP', data: 'CSP3_EP' },
+                { className: 'CSP3_ER', name: 'CSP3_ER', data: 'CSP3_ER' },
+                { className: 'CSP3_ES', name: 'CSP3_ES', data: 'CSP3_ES' },
+                { className: 'CSP3_DMG', name: 'CSP3_DMG', data: 'CSP3_DMG' },
+                { className: 'CSP3_EL', name: 'CSP3_EL', data: 'CSP3_EL' },
+                { className: 'CSP3_LVLMIN', name: 'CSP3_LVLMIN', data: 'CSP3_LVLMIN' },
+                { className: 'CSP3_PERC', name: 'CSP3_PERC', data: 'CSP3_PERC' },
+                { className: 'CSP3_INIT', name: 'CSP3_INIT', data: 'CSP3_INIT' },
+                { className: 'CSP3_EXT', name: 'CSP3_EXT', data: 'CSP3_EXT' },
+                { className: 'CSP3_LVLMAX', name: 'CSP3_LVLMAX', data: 'CSP3_LVLMAX' },
+                { className: 'CSP4_AF', name: 'CSP4_AF', data: 'CSP4_AF' },
+                { className: 'CSP4_AOC', name: 'CSP4_AOC', data: 'CSP4_AOC' },
+                { className: 'CSP4_CO', name: 'CSP4_CO', data: 'CSP4_CO' },
+                { className: 'CSP4_AOE', name: 'CSP4_AOE', data: 'CSP4_AOE' },
+                { className: 'CSP4_ED', name: 'CSP4_ED', data: 'CSP4_ED' },
+                { className: 'CSP4_EG', name: 'CSP4_EG', data: 'CSP4_EG' },
+                { className: 'CSP4_EH', name: 'CSP4_EH', data: 'CSP4_EH' },
+                { className: 'CSP4_EP', name: 'CSP4_EP', data: 'CSP4_EP' },
+                { className: 'CSP4_ER', name: 'CSP4_ER', data: 'CSP4_ER' },
+                { className: 'CSP4_ES', name: 'CSP4_ES', data: 'CSP4_ES' },
+                { className: 'CSP4_DMG', name: 'CSP4_DMG', data: 'CSP4_DMG' },
+                { className: 'CSP4_EL', name: 'CSP4_EL', data: 'CSP4_EL' },
+                { className: 'CSP4_LVLMIN', name: 'CSP4_LVLMIN', data: 'CSP4_LVLMIN' },
+                { className: 'CSP4_PERC', name: 'CSP4_PERC', data: 'CSP4_PERC' },
+                { className: 'CSP4_INIT', name: 'CSP4_INIT', data: 'CSP4_INIT' },
+                { className: 'CSP4_EXT', name: 'CSP4_EXT', data: 'CSP4_EXT' },
+                { className: 'CSP4_LVLMAX', name: 'CSP4_LVLMAX', data: 'CSP4_LVLMAX' },
+                { className: 'CSP5_AF', name: 'CSP5_AF', data: 'CSP5_AF' },
+                { className: 'CSP5_AOC', name: 'CSP5_AOC', data: 'CSP5_AOC' },
+                { className: 'CSP5_CO', name: 'CSP5_CO', data: 'CSP5_CO' },
+                { className: 'CSP5_AOE', name: 'CSP5_AOE', data: 'CSP5_AOE' },
+                { className: 'CSP5_ED', name: 'CSP5_ED', data: 'CSP5_ED' },
+                { className: 'CSP5_EG', name: 'CSP5_EG', data: 'CSP5_EG' },
+                { className: 'CSP5_EH', name: 'CSP5_EH', data: 'CSP5_EH' },
+                { className: 'CSP5_EP', name: 'CSP5_EP', data: 'CSP5_EP' },
+                { className: 'CSP5_ER', name: 'CSP5_ER', data: 'CSP5_ER' },
+                { className: 'CSP5_ES', name: 'CSP5_ES', data: 'CSP5_ES' },
+                { className: 'CSP5_DMG', name: 'CSP5_DMG', data: 'CSP5_DMG' },
+                { className: 'CSP5_EL', name: 'CSP5_EL', data: 'CSP5_EL' },
+                { className: 'CSP5_LVLMIN', name: 'CSP5_LVLMIN', data: 'CSP5_LVLMIN' },
+                { className: 'CSP5_PERC', name: 'CSP5_PERC', data: 'CSP5_PERC' },
+                { className: 'CSP5_INIT', name: 'CSP5_INIT', data: 'CSP5_INIT' },
+                { className: 'CSP5_EXT', name: 'CSP5_EXT', data: 'CSP5_EXT' },
+                { className: 'CSP5_LVLMAX', name: 'CSP5_LVLMAX', data: 'CSP5_LVLMAX' },
+                { className: 'RAF1_NAME', name: 'RAF1_NAME', data: 'RAF1_NAME' },
+                { className: 'RAFL1_PT', name: 'RAFL1_PT', data: 'RAFL1_PT' },
+                { className: 'RAF2_NAME', name: 'RAF2_NAME', data: 'RAF2_NAME' },
+                { className: 'RAFL2_PT', name: 'RAFL2_PT', data: 'RAFL2_PT' },
+                { className: 'SPM1_NAME', name: 'SPM1_NAME', data: 'SPM1_NAME' },
+                { className: 'SPM1_SIG', name: 'SPM1_SIG', data: 'SPM1_SIG' },
+                { className: 'SPM2_NAME', name: 'SPM2_NAME', data: 'SPM2_NAME' },
+                { className: 'SPM2_SIG', name: 'SPM2_SIG', data: 'SPM2_SIG' },
+                { className: 'SPM3_NAME', name: 'SPM3_NAME', data: 'SPM3_NAME' },
+                { className: 'SPM3_SIG', name: 'SPM3_SIG', data: 'SPM3_SIG' }
+            ],
+            
+            // COLUMNS DEFINITIONS
+            columnDefs: [
+
+                // COLUMN APPEARANCE
+                { targets: [0], visible: true },
+                { targets: '_all', visible: false, ordering: false },
+
+                // SEARCHPANES APPEARENCE
+                { searchPanes: { show: false }, targets: '_all'},
+            ]
+        })
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////// EVENTS ///////// EVENTS ///////// EVENTS ///////// EVENTS ///////// EVENTS ///////// EVENTS ///////// EVENTS ///////// EVENTS /////////
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////
+            ///////////// MODAL /////////////
+            /////////////////////////////////
+        /////////////////////////////////////
+        //// EVENT TO POPUP WEAPON MODAL ////
+        /////////////////////////////////////
+        $('#weaponList').dataTable().on('click.dt', 'tr', function () {
+            let data = table.row(this).data();
+            showWeapon(data);
+        });
+
+        /////////////////////////////////////
+        //// EVENT FOR CUSTOM SEARCHPANE ////
+        /////////////////////////////////////
+        $(document).on('click', '.dtsp-panesContainer table tr:not(.unselectable)', function() {
+            let paneSelection = new Array();
+            let rowSelection = new Array();
+
+            // SELECT <> DESELECT //
+            if ($(this).hasClass('selected')) { $(this).removeClass('selected'); }
+            else { 
+                // SELECT ITEM AUTHORIZATION //
+                if (manageSelection($(this).offsetParent())) { $(this).addClass('selected'); }
+                else { return false; }
+            }
+
+            // GET ENTIRE SEARCHPANE SELECTION //
+            getSelection(paneSelection);
+
+            // GENERATE CARTESIAN COMBINATION
+            let cartesian = getCombination(paneSelection);
+            console.log(cartesian)
+
+            // CHECK ROWS //
+            table.rows().every( function () {
+                rowSelection.push(checkRow(this.data(), cartesian));
+            })
+            rowSelection = rowSelection.filter(function(entry) { return /\S/.test(entry); });
+            rowSelection = rowSelection.map(i => '^' + i + '$');
+ 
+            // SEARCH ROWS //
+            if (rowSelection.length > 0) {
+                table.column(0).search(rowSelection.join('|'), true, false, true).draw();
+            } else { table.column(0).search('^@@@@$', true, false, true).draw(); }
+        });
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        ///////// FUNCTIONS ///////// FUNCTIONS ///////// FUNCTIONS ///////// FUNCTIONS ///////// FUNCTIONS ///////// FUNCTIONS ///////// FUNCTIONS ///////// 
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            /////////////////////////////////
+            ///////////// MODAL /////////////
+            /////////////////////////////////
+        ////////////////////////////////////////
+        //// FUNCTION TO POPUP WEAPON MODAL ////
+        ////////////////////////////////////////
+        function showWeapon(data) {
+            let myModal = document.getElementById('weaponModal-Skull');
+            let bsModal = new bootstrap.Modal(myModal);
+            let xmlhttp = new XMLHttpRequest();
+    
+            xmlhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    document.getElementById("weaponModal").innerHTML = xmlhttp.responseText;
+                }
+            };
+            xmlhttp.open("POST","lib/printWeapon.php",true);
+            xmlhttp.setRequestHeader("Content-Type", "application/json");
+            xmlhttp.send(JSON.stringify(data));
+    
+            bsModal.show();
+        }
+
+            ///////////////////////////////////////
+            ///////////// SEARCHPANES /////////////
+            ///////////////////////////////////////
+        /////////////////////////////////////////////////////
+        //// FUNCTION FOR BUFF/DEBUFF CUSTOM SEARCHPANES ////
+        /////////////////////////////////////////////////////
+        function checkRow(row, selection) {
+            let result = 0;
+            let check = true;
+            const CSP1 = [label_convert(row['CSP1_ED']), label_convert(row['CSP1_EG']), label_convert(row['CSP1_EH']), label_convert(row['CSP1_EP']), label_convert(row['CSP1_ER']), label_convert(row['CSP1_ES'])];
+            const CSP2 = [label_convert(row['CSP2_ED']), label_convert(row['CSP2_EG']), label_convert(row['CSP2_EH']), label_convert(row['CSP2_EP']), label_convert(row['CSP2_ER']), label_convert(row['CSP2_ES'])];
+            const CSP3 = [label_convert(row['CSP3_ED']), label_convert(row['CSP3_EG']), label_convert(row['CSP3_EH']), label_convert(row['CSP3_EP']), label_convert(row['CSP3_ER']), label_convert(row['CSP3_ES'])];
+            const CSP4 = [label_convert(row['CSP4_ED']), label_convert(row['CSP4_EG']), label_convert(row['CSP4_EH']), label_convert(row['CSP4_EP']), label_convert(row['CSP4_ER']), label_convert(row['CSP4_ES'])];
+            const CSP5 = [label_convert(row['CSP5_ED']), label_convert(row['CSP5_EG']), label_convert(row['CSP5_EH']), label_convert(row['CSP5_EP']), label_convert(row['CSP5_ER']), label_convert(row['CSP5_ES'])];
+            
+            $.each(selection, function(index, obj) {
+                // Check Units
+                if (obj.units != "" && obj.units != row['U_NAME']) { return; }
+
+                // Check Buffs/Debuffs
+                // Attention Buff Physical/Magical se gèrent avec C_EL
+                // On verifie par groupement CSPX
+                if (obj.buffs != "") {
+                    check = false;
+                    // CSP1_AF
+                    csp1: if (CSP1.includes(obj.buffs)) {
+                        if (row['CSP1_AF'] != 'Buff') { break csp1; }
+                        // CSP1_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP1_AOE'])) { break csp1; }
+                        // CSP1_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.buffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp1; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp1; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP1_EL'])) { break csp1; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP2_AF
+                    csp2: if (CSP2.includes(obj.buffs)) {
+                        if (row['CSP2_AF'] != 'Buff') { break csp2; }
+                        // CSP2_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP2_AOE'])) { break csp2; }
+                        // CSP2_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.buffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp2; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp2; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP2_EL'])) { break csp2; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP3_AF
+                    csp3: if (CSP3.includes(obj.buffs)) {
+                        if (row['CSP3_AF'] != 'Buff') { break csp3; }
+                        // CSP3_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP3_AOE'])) { break csp3; }
+                        // CSP3_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.buffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp3; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp3; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP3_EL'])) { break csp3; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP4_AF
+                    csp4: if (CSP4.includes(obj.buffs)) {
+                        if (row['CSP4_AF'] != 'Buff') { break csp4; }
+                        // CSP4_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP4_AOE'])) { break csp4; }
+                        // CSP4_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.buffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp4; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp4; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP4_EL'])) { break csp4; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP5_AF
+                    csp5: if (CSP5.includes(obj.buffs)) {
+                        if (row['CSP5_AF'] != 'Buff') { break csp5; }
+                        // CSP5_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP5_AOE'])) { break csp5; }
+                        // CSP5_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.buffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp5; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp5; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP5_EL'])) { break csp5; }
+                            }
+                        }
+                        check = true;
+                    }
+                }
+                else if (obj.debuffs != "") {
+                    check = false;
+                     // CSP1_AF
+                    csp1: if (CSP1.includes(obj.debuffs)) {
+                        if (row['CSP1_AF'] != 'Debuff') { break csp1; }
+                        // CSP1_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP1_AOE'])) { break csp1; }
+                        // CSP1_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.debuffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp1; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp1; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP1_EL'])) { break csp1; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP2_AF
+                    csp2: if (CSP2.includes(obj.debuffs)) {
+                        if (row['CSP2_AF'] != 'Debuff') { break csp2; }
+                        // CSP2_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP2_AOE'])) { break csp2; }
+                        // CSP2_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.debuffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp2; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp2; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP2_EL'])) { break csp2; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP3_AF
+                    csp3: if (CSP3.includes(obj.debuffs)) {
+                        if (row['CSP3_AF'] != 'Debuff') { break csp3; }
+                        // CSP3_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP3_AOE'])) { break csp3; }
+                        // CSP3_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.debuffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp3; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp3; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP3_EL'])) { break csp3; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP4_AF
+                    csp4: if (CSP4.includes(obj.debuffs)) {
+                        if (row['CSP4_AF'] != 'Debuff') { break csp4; }
+                        // CSP4_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP4_AOE'])) { break csp4; }
+                        // CSP4_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.debuffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp4; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp4; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP4_EL'])) { break csp4; }
+                            }
+                        }
+                        check = true;
+                    }
+                    // CSP5_AF
+                    csp5: if (CSP5.includes(obj.debuffs)) {
+                        if (row['CSP5_AF'] != 'Debuff') { break csp5; }
+                        // CSP5_AF >> AOE
+                        if (obj.aoe != "" && obj.aoe != label_convert(row['CSP5_AOE'])) { break csp5; }
+                        // CSP5_AF >> ELEMENTS
+                        if (obj.elements != "") {
+                            switch (obj.debuffs) {
+                                case 'Physical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp5; }
+                                case 'Magical':
+                                    if (obj.elements != label_convert(row['C_EL'])) { break csp5; }
+                                default :
+                                    if (obj.elements != label_convert(row['CSP5_EL'])) { break csp5; }
+                            }
+                        }
+                        check = true;
+                    }
+                } 
+                else {
+
+                    // Check AOE
+                    if (obj.aoe != "" && obj.aoe != label_convert(row['CSP1_AOE'])) { return; }
+
+                    // Check Elements
+                    if (obj.elements === "Non-Elemental" && obj.elements != label_convert(row['C_EL'])) { return; }
+                    else if (obj.elements != "" && (obj.elements != label_convert(row['C_EL']) && obj.elements != label_convert(row['CSP1_EL']) && obj.elements != label_convert(row['CSP2_EL']) && obj.elements != label_convert(row['CSP3_EL']) && obj.elements != label_convert(row['CSP4_EL']) && obj.elements != label_convert(row['CSP5_EL']))) { return; }
+                }
+
+                // Check Reinforcement
+                if (obj.ras != "" && (obj.ras != label_convert(row['RAF1_NAME']) && obj.ras != label_convert(row['RAF2_NAME']))) { return; }
+
+                // Check Sigils
+                if (obj.sigs != "" && (obj.sigs != label_convert(row['C_SIG']) && obj.sigs != label_convert(row['SPM1_SIG']) && obj.sigs != label_convert(row['SPM2_SIG']) && obj.sigs != label_convert(row['SPM3_SIG']))) { return; }
+            
+                // Check Support M
+                if (obj.sms != "" && (obj.sms != label_convert(row['SPM1_NAME']) && obj.sms != label_convert(row['SPM2_NAME']) && obj.sms != label_convert(row['SPM3_NAME']))) { return; }
+
+                if ( check ) { result += 1; }
+            })
+
+            if (result == selection.length) { return row['W_NAME']; }
+        }
+
+        ////////////////////////////////////////////////
+        //// FUNCTION TO GET CARTESIAN COMBINATIONS ////
+        ////////////////////////////////////////////////
+        function getCombination(paneSelection) {
+            let selection = new Object();
+            selection.units = "";
+            selection.aoe = "";
+            selection.buffs = new Array();
+            selection.debuffs = new Array();
+            selection.elements = new Array();
+            selection.ras = new Array();
+            selection.sigs = new Array();
+            selection.sms = "";
+
+            $.each(paneSelection, function(index, value) {
+                switch(value[0]) {
+    
+                    case "DataTables_Table_0":
+                        selection.units = value[1];
+                        break;
+                    case "DataTables_Table_1":
+                        selection.aoe = value[1];
+                        break;
+                    case "DataTables_Table_2":
+                        selection.buffs.push(value[1]);
+                        break;
+                    case "DataTables_Table_3":
+                        selection.debuffs.push(value[1]);
+                        break;
+                    case "DataTables_Table_4":
+                        selection.elements.push(value[1]);
+                        break; 
+                    case "DataTables_Table_5":
+                        selection.ras.push(value[1]);
+                        break;
+                    case "DataTables_Table_6":
+                        selection.sigs.push(value[1]);
+                        break;
+                    case "DataTables_Table_7":
+                        selection.sms = value[1];
+                        break;
+                }
+            })
+            const comb = cartesianProduct(selection);
+            const result = manageElementSelection(comb);
+
+            return result;
+        }
+
+        ////////////////////////////////////////////////////
+        //// FUNCTION TO GET SEARCHPANES SELECTED ITEMS ////
+        ////////////////////////////////////////////////////
+        function getSelection(paneSelection) {
+
+            let panes = table.searchPanes.container().find('.dt-scroll-body table');
+
+            $.each(panes, function (index, pane) {
+                rows = $(pane).find('tbody tr');
+                $.each(rows, function(index, row) {
+                    if ( $(row).hasClass('selected') ) {
+                        let tableId = $(pane).attr('id');
+                        let selectedItem = $(row).text();
+                        
+                        paneSelection.push([tableId, selectedItem]);
+                    }
+                })
+                highlightSelection(pane);
+            })
+
+            sessionStorage.setItem('paneSelection', JSON.stringify(paneSelection));
+        }
+
+        ////////////////////////////////////////////////////
+        //// FUNCTION TO SET SEARCHPANES SELECTED ITEMS ////
+        ////////////////////////////////////////////////////
+        function setSelection(pane, paneSelection) {
+
+            let rows = pane.find('tbody tr');
+
+            $.each(paneSelection, function(index, item ) {
+                if (item[0] === pane.attr('id')) { 
+                    $.each(rows, function(rowId, row) {
+                        if( $(row).text() === item[1]) {
+                            $(row).addClass('selected');
+                        }
+                    })
+                }
+            })
+            highlightSelection(pane);
+        }
+
+        //////////////////////////////////////////////
+        //// FUNCTION TO HIGHLIGHT SELECTED PANES ////
+        //////////////////////////////////////////////
+        function highlightSelection(pane) {
+            
+            let button = $(pane).parents('.dtsp-searchPane').find('.dtsp-subRow2 button');
+            let rows = $(pane).find('tbody tr');
+            let apply = false;
+
+            $.each(rows, function(index, value) {
+                if ( $(value).hasClass('selected') ) { apply = true; }
+            })
+
+            if (apply) { 
+                $(button).css({"color": "rgb(23, 23, 23)"});
+                $(button).css({"background-color": "rgba(3, 40, 70, 0.5)"});
+            }
+            else { 
+                $(button).css({"color": "rgb(3, 40, 70)"});
+                $(button).css({"background-color": "rgba(23, 23, 23, 0.25)"});
+            }
+        }
+
+        /////////////////////////////////////////////////
+        //// FUNCTION TO LIMIT SELECTED ITEMS NUMBER ////
+        /////////////////////////////////////////////////
+        function manageSelection(pane) {
+
+            let selected = $(pane).find('tbody tr.selected');
+
+            switch($(pane).attr('id')) {
+                case 'DataTables_Table_0':
+                    if (selected.length >= 1) { return false; }
+                    else { return true; }
+
+                case 'DataTables_Table_1':
+                    if (selected.length >= 1) { return false; }
+                    else { return true; }
+
+                case 'DataTables_Table_2':
+                    if (selected.length >= 5) { return false; }
+                    else { return true; }
+
+                case 'DataTables_Table_3':
+                    if (selected.length >= 5) { return false; }
+                    else { return true; }
+
+                case 'DataTables_Table_4':
+                    if (selected.length >= 5) { return false; }
+                    else { return true; }
+
+                case 'DataTables_Table_5':
+                    if (selected.length >= 2) { return false; }
+                    else { return true; }
+
+                case 'DataTables_Table_6':
+                    if (selected.length >= 4) { return false; }
+                    else { return true; }
+
+                case 'DataTables_Table_7':
+                    if (selected.length >= 1) { return false; }
+                    else { return true; }
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////
+        //// FUNCTION TO CONVERT DATABASE LABEL ITEMS TO SEARCHPANE LABEL IF NOT SAME ////
+        //////////////////////////////////////////////////////////////////////////////////
+        function label_convert(dbLabel) {
+            // DAMAGE CASE //
+            if (dbLabel === 'PHY') { dbLabel = 'Physical' }
+            else if (dbLabel === 'MAG') { dbLabel = 'Magical' }
+            else if (dbLabel === 'PHY/MAG') { dbLabel = 'Physical/Magical' }
+            // STATUS CASE //
+            else if (dbLabel === 'Amp(PHY)' || dbLabel === 'Amp(MAG)' || dbLabel === 'Amp(HEAL)') { dbLabel = 'Amp' }
+            // RESISTANCE CASE //
+            else if (dbLabel === 'PHY Resist.') { dbLabel = 'Physical Resist.' }
+            else if (dbLabel === 'MAG Resist.') { dbLabel = 'Magical Resist.' }
+            // ELEMENT CASE //
+            else if (dbLabel === '-') { dbLabel = 'Non-Elemental' }
+            // SUPPORT MATERIA CASE //
+            else if (dbLabel === 'All (Cure Spells) I') { dbLabel = 'All (Cure Spells)' }
+            else if (dbLabel === 'All (Esuna) I') { dbLabel = 'All (Esuna)' }
+            else if (dbLabel === 'HEAL Boost I') { dbLabel = 'Heal Boost' }
+            else if (dbLabel === 'Circle Sigil Boost II') { dbLabel = 'Sigil Boost II' }
+            else if (dbLabel === 'Cross Sigil Boost II') { dbLabel = 'Sigil Boost II' }
+            else if (dbLabel === 'Diamond Sigil Boost II') { dbLabel = 'Sigil Boost II' }
+            else if (dbLabel === 'Triangle Sigil Boost II') { dbLabel = 'Sigil Boost II' }
+
+            return dbLabel;
+        }
+
+        ///////////////////////////////////////////
+        //// FUNCTION TO GET CARTESIAN PRODUCT ////
+        ///////////////////////////////////////////
+        function cartesianProduct(selection) {
+            const splitFields = ['buffs', 'debuffs'];
+            const allKeys = Object.keys(selection);
+
+            const otherKeys = allKeys.filter(k => !splitFields.includes(k));
+            const arrayKeys = otherKeys.filter(k => Array.isArray(selection[k]));
+            const scalarKeys = otherKeys.filter(k => !Array.isArray(selection[k]));
+
+            const arrays = arrayKeys.map(k => selection[k].length === 0 ? [""] : selection[k]);
+
+            const baseCartesian = arrays.reduce((acc, curr) => {
+                return acc.flatMap(d => curr.map(e => [...d, e]));
+            }, [[]]);
+
+            const results = [];
+            const buffs = selection.buffs || [];
+            const debuffs = selection.debuffs || [];
+
+            const hasBuffs = buffs.length > 0;
+            const hasDebuffs = debuffs.length > 0;
+
+            function generate(extraKey, values) {
+                const safeValues = values.length === 0 ? [""] : values;
+
+                for (const base of baseCartesian) {
+                    for (const val of safeValues) {
+                        const result = {};
+                        let arrayIndex = 0;
+
+                        for (const key of allKeys) {
+                            if (scalarKeys.includes(key)) {
+                                result[key] = selection[key] ?? "";
+                            } else if (arrayKeys.includes(key)) {
+                                result[key] = base[arrayIndex] ?? "";
+                                arrayIndex++;
+                            } else if (key === 'buffs') {
+                                result[key] = extraKey === 'buffs' ? val : "";
+                            } else if (key === 'debuffs') {
+                                result[key] = extraKey === 'debuffs' ? val : "";
+                            }
+                        }
+                        results.push(result);
+                    }
+                }
+            }
+
+            if (hasBuffs) generate('buffs', buffs);
+            if (hasDebuffs) generate('debuffs', debuffs);
+
+            if (!hasBuffs && !hasDebuffs) {
+                for (const base of baseCartesian) {
+                    const result = {};
+                    let arrayIndex = 0;
+
+                    for (const key of allKeys) {
+                        if (scalarKeys.includes(key)) {
+                            result[key] = selection[key] ?? "";
+                        } else if (arrayKeys.includes(key)) {
+                            result[key] = base[arrayIndex] ?? "";
+                            arrayIndex++;
+                        } else if (key === 'buffs' || key === 'debuffs') {
+                            result[key] = "";
+                        }
+                    }
+                    results.push(result); 
+                }
+            }
+            return results;
+        }
+
+        //////////////////////////////////////////////
+        //// FUNCTION TO MANAGE ELEMENT SELECTION ////
+        //////////////////////////////////////////////
+        function manageElementSelection(comb){
+
+            const elementAffect = ['Physical', 'Magical', 'Element Pot.', 'Element Resist.', 'Element Weakness', 'Damage(Element)', 'Weapon(Element)', 'Single-Tgt Element', 'All-Tgt Element'];
+            let result = [];
+
+            comb.forEach(obj => {
+                if ( obj.buffs != "" || obj.debuffs != "" ) {
+                    if ( obj.elements != "" && (!elementAffect.includes(obj.buffs) && !elementAffect.includes(obj.debuffs)) ) { 
+                        obj.elements = "";
+                        result.push(obj);
+                    } else { result.push(obj); }
+                } else { result.push(obj); }
+            })
+            // Suppression des doublons
+            result = suppressionDoublon(result);
+
+            return result;
+        }
+
+        ////////////////////////////////////////////////////////////
+        //// FUNCTION TO SUPRESS DOUBLON FROM ELEMENT SELECTION ////
+        ////////////////////////////////////////////////////////////
+        function suppressionDoublon(comb) {
+            const seen = new Set();
+
+            return comb.filter(obj => {
+                const sorted = Object.keys(obj).sort().reduce((acc, key) => {
+                acc[key] = obj[key];
+                return acc;
+                }, {});
+
+                const serialized = JSON.stringify(sorted);
+                if (seen.has(serialized)) {
+                return false;
+                }
+                seen.add(serialized);
+                return true;
+            });
+        }
+
+            ////////////////////////////////
+            ///////////// SORT /////////////
+            ////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////////////////////
+        //// FUNCTION TO SORT AND RESTORE DEFAULT SORT (DISABLE BUTTONS CAUSE ONLY ONE SORT AT A TIME) ////
+        ///////////////////////////////////////////////////////////////////////////////////////////////////
+        function toggleSort(dt, currentColumnName, defaultColumnName) {
+            let currentColumnIndex = dt.column(currentColumnName + ':name').index();
+            let defaultColumnIndex = dt.column(defaultColumnName + ':name').index();
+            let currentOrder = dt.order();
+            
+            if (currentColumnName === 'W_NAME') {
+                dt.order([defaultColumnIndex, 'asc']).draw();
+                dt.buttons('.sort').enable();
+            } else if (currentOrder[0][0] === defaultColumnIndex && currentColumnName !== 'W_CAST') {
+                dt.order([currentColumnIndex, 'desc']).draw();
+                dt.buttons('.sort').disable();
+                dt.button(currentColumnName + ':name').enable();
+            } else if (currentOrder[0][0] === defaultColumnIndex && currentColumnName === 'W_CAST') {
+                dt.order([currentColumnIndex, 'asc']).draw();
+                dt.buttons('.sort').disable();
+                dt.button(currentColumnName + ':name').enable();
+            } else {
+                dt.order([defaultColumnIndex, 'asc']).draw();
+                dt.buttons('.sort').enable();
+            }
+        }
+    })
+})

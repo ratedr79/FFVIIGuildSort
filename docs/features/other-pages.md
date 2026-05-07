@@ -29,11 +29,16 @@
 - Data source: `WeaponSearchDataService` + catalog enrichment.
 - Results UI uses card-based rendering across mobile and desktop breakpoints.
 - Quick Filters now include fixed `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo pills for common searches.
+- Quick Filters also include `Circle`, `Triangle`, `X`, and `Diamond` sigil shortcut pills that toggle the existing advanced sigil checkbox state instead of introducing a separate sigil filter path.
 - Element/damage-type quick filters are implemented as explicit combo filters in the page script rather than by just toggling independent advanced checkboxes, so multiple selected quick filters preserve pair-wise matching instead of widening into a cross-product.
 - Element values in result cards now render with matching elemental/non-elemental icons, plus the shared heal icon for `Heal`, from `wwwroot/images` using the same compact inline treatment as the stat icon row.
-- Result headers now use portrait-led panels with cropped character portraits, per-character accent variables, stronger weapon-name emphasis, and metadata pills for equipment/element/type across desktop banner rows and mobile card headers.
+- Compare modal scraping now reuses the rendered element stack HTML (with a `data-element` fallback) and the full stat-stack markup so compared weapons keep the same element/stat presentation instead of losing it or flattening it during extraction.
+- Sigil values in result cards now render with matching `ui_icon_sigil_*` assets in compact icon capsules, and materia support levels display as `I` / `II` instead of `x1` / `x2`.
+- Result headers now use a dual-identity accent system: character theme variables remain the structural accent for portrait/border/header treatments, while element theme variables drive the weapon-name underline, element pill tint, and subtle top-corner flare across desktop banner rows and mobile card headers.
 - Metadata pills under the weapon title now share normalized sizing/alignment so equipment, element, and type labels read as a consistent set.
-- The `View Levels` snapshot modal header reuses the same portrait/accent treatment and now applies the same iconized metadata pill styling while deriving element/type values from the selected table row.
+- Gear Search now resolves a dedicated weapon/outfit image URL per item via `GearImageCatalog`, backed by `data/gearImages.json`, with `ui_icon_weapon.png` and `ui_icon_outfit.png` as the default placeholders.
+- Desktop banner rows, mobile card headers, compare modal headers, and the `View Levels` snapshot header all consume the same resolved image URL so a single manifest backfill updates every Gear Search surface.
+- The `View Levels` snapshot modal header reuses the same portrait/accent treatment and now applies the same iconized metadata pill styling plus element-reactive accent variables while deriving element/type values from the selected table row.
 - Includes View Levels modal with dynamic OB/level snapshots, with the max level resolved from loaded FF7EC weapon/release data rather than hard-coded in the page.
 - Customization unlock note: customizations unlock once the selected weapon level reaches 80, including 5★/OB0 weapons.
 - Ability/customization effect text resolves localized status-condition/status-change names from FF7EC effect tables so the UI does not fall back to raw internal IDs for mapped effects.

@@ -1,0 +1,972 @@
+[
+  {
+    "name": "AC Mode",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/8b/AC_Mode_gear_from_FFVIIEC.png/revision/latest?cb=20250908202819",
+    "file": "AC Mode.png"
+  },
+  {
+    "name": "AC Outfit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/b8/AC_Outfit_gear_from_FFVIIEC.png/revision/latest?cb=20250920210622",
+    "file": "AC Outfit.png"
+  },
+  {
+    "name": "AC Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/97/AC_Style_gear_from_FFVIIEC.png/revision/latest?cb=20250920210631",
+    "file": "AC Style.png"
+  },
+  {
+    "name": "Aeroglider",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d6/Aeroglider_gear_from_FFVIIEC.png/revision/latest?cb=20241013145755",
+    "file": "Aeroglider.png"
+  },
+  {
+    "name": "Aidman's White Coat",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/c/cd/Aidman%27s_White_Coat_gear_from_FFVIIEC.png/revision/latest?cb=20241013152730",
+    "file": "Aidman's White Coat.png"
+  },
+  {
+    "name": "Amarant's Guise",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Amarant%27s_Guise_gear_from_FFVIIEC.png/revision/latest?cb=20241014202813",
+    "file": "Amarant's Guise.png"
+  },
+  {
+    "name": "Amazing Materia Hunter",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e8/Patissier_Outfit_gear_from_FFVIIEC.png/revision/latest?cb=20260306030324",
+    "file": "Amazing Materia Hunter.png"
+  },
+  {
+    "name": "Armor of the Worthy",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/b6/Armor_of_the_Worthy_gear_from_FFVIIEC.png/revision/latest?cb=20250322171026",
+    "file": "Armor of the Worthy.png"
+  },
+  {
+    "name": "Astronaut",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a6/Astronaut_gear_from_FFVIIEC.png/revision/latest?cb=20250116125944",
+    "file": "Astronaut.png"
+  },
+  {
+    "name": "Auditing Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/87/Auditing_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20260129190407",
+    "file": "Auditing Uniform.png"
+  },
+  {
+    "name": "Avalanche Leader",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e8/Avalanche_Leader_gear_from_FFVIIEC.png/revision/latest?cb=20241014203757",
+    "file": "Avalanche Leader.png"
+  },
+  {
+    "name": "Bahamut Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/b8/Bahamut_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241014203714",
+    "file": "Bahamut Garb.png"
+  },
+  {
+    "name": "Bahamut Mantle",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/7c/Bahamut_Mantle_gear_from_FFVIIEC.png/revision/latest?cb=20241013151353",
+    "file": "Bahamut Mantle.png"
+  },
+  {
+    "name": "Bahamut Robe",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Bahamut_Robe_gear_from_FFVIIEC.png/revision/latest?cb=20241013152001",
+    "file": "Bahamut Robe.png"
+  },
+  {
+    "name": "Bahamut Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/16/Bahamut_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241014202026",
+    "file": "Bahamut Suit.png"
+  },
+  {
+    "name": "Bandaged Coat",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/02/Bandaged_Coat_gear_from_FFVIIEC.png/revision/latest?cb=20241014204057",
+    "file": "Bandaged Coat.png"
+  },
+  {
+    "name": "Banesword Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/5/5d/Banesword_Style_gear_from_FFVIIEC.png/revision/latest?cb=20250815195354",
+    "file": "Banesword Style.png"
+  },
+  {
+    "name": "Battlefield Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/14/Battlefield_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241014204257",
+    "file": "Battlefield Garb.png"
+  },
+  {
+    "name": "Battler Ensemble",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/4f/Battler_Ensemble_gear_from_FFVIIEC.png/revision/latest?cb=20251129021056",
+    "file": "Battler Ensemble.png"
+  },
+  {
+    "name": "Beach Agent",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/1a/Beach_Agent_gear_from_FFVIIEC.png/revision/latest?cb=20241013152237",
+    "file": "Beach Agent.png"
+  },
+  {
+    "name": "Black Hound",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/41/Black_Hound_gear_from_FFVIIEC.png/revision/latest?cb=20241013150634",
+    "file": "Black Hound.png"
+  },
+  {
+    "name": "Black Stealth",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d8/Black_Stealth_gear_from_FFVIIEC.png/revision/latest?cb=20241013152445",
+    "file": "Black Stealth.png"
+  },
+  {
+    "name": "Bouncer Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/c/c6/Bouncer_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241013150521",
+    "file": "Bouncer Suit.png"
+  },
+  {
+    "name": "Bunny Apron",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/17/Bunny_Apron_gear_from_FFVIIEC.png/revision/latest?cb=20250417174145",
+    "file": "Bunny Apron.png"
+  },
+  {
+    "name": "Bunny Bustier",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e8/Bunny_Bustier_gear_from_FFVIIEC.png/revision/latest?cb=20241014202944",
+    "file": "Bunny Bustier.png"
+  },
+  {
+    "name": "Cake Breaker",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/75/Cake_Breaker_gear_from_FFVIIEC.png/revision/latest?cb=20241013145000",
+    "file": "Cake Breaker.png"
+  },
+  {
+    "name": "Canyon Duds",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/ac/Canyon_Duds_gear_from_FFVIIEC.png/revision/latest?cb=20241013151607",
+    "file": "Canyon Duds.png"
+  },
+  {
+    "name": "Cape of the Worthy",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/93/Cape_of_the_Worthy_gear_from_FFVIIEC.png/revision/latest?cb=20250310111523",
+    "file": "Cape of the Worthy.png"
+  },
+  {
+    "name": "Celebratory Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Celebratory_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241013145557",
+    "file": "Celebratory Garb.png"
+  },
+  {
+    "name": "Chocobo Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Chocobo_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241014202328",
+    "file": "Chocobo Suit.png"
+  },
+  {
+    "name": "Citric Dress",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/79/Citric_Dress_gear_from_FFVIIEC.png/revision/latest?cb=20241013151932",
+    "file": "Citric Dress.png"
+  },
+  {
+    "name": "Classic Coney",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/bb/Classic_Coney_gear_from_FFVIIEC.png/revision/latest?cb=20241014202556",
+    "file": "Classic Coney.png"
+  },
+  {
+    "name": "Coat of the Worthy",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/b7/Coat_of_the_Worthy_gear_from_FFVIIEC.png/revision/latest?cb=20250314100007",
+    "file": "Coat of the Worthy.png"
+  },
+  {
+    "name": "Conqueror of the Planet",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/10/Conqueror_of_the_Planet_gear_from_FFVIIEC.png/revision/latest?cb=20260306030250",
+    "file": "Conqueror of the Planet.png"
+  },
+  {
+    "name": "Cool Cat's Jacket",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/ec/Cool_Cat%27s_Jacket_gear_from_FFVIIEC.png/revision/latest?cb=20250514095646",
+    "file": "Cool Cat's Jacket.png"
+  },
+  {
+    "name": "Corruptor of the Planet",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/c/c9/Corruptor_of_the_Planet_gear_from_FFVIIEC.png/revision/latest?cb=20250908202808",
+    "file": "Corruptor of the Planet.png"
+  },
+  {
+    "name": "Crowmaster Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d8/Crowmaster_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241013150855",
+    "file": "Crowmaster Suit.png"
+  },
+  {
+    "name": "Custom Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/49/Custom_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20250602003203",
+    "file": "Custom Suit.png"
+  },
+  {
+    "name": "Cyan's Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/73/Cyan%27s_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20241104063305",
+    "file": "Cyan's Attire.png"
+  },
+  {
+    "name": "Dark Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/13/Dark_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20241013145308",
+    "file": "Dark Attire.png"
+  },
+  {
+    "name": "Dark Flyer",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/95/Dark_Flyer_gear_from_FFVIIEC.png/revision/latest?cb=20250417174146",
+    "file": "Dark Flyer.png"
+  },
+  {
+    "name": "Dark Harbinger",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/6a/Dark_Harbinger_gear_from_FFVIIEC.png/revision/latest?cb=20241013145824",
+    "file": "Dark Harbinger.png"
+  },
+  {
+    "name": "Dark Night Robe",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/5/55/Dark_Night_Robe_gear_from_FFVIIEC.png/revision/latest?cb=20250621122339",
+    "file": "Dark Night Robe.png"
+  },
+  {
+    "name": "Dealer's Tailcoat",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/03/Dealer%27s_Tailcoat_gear_from_FFVIIEC.png/revision/latest?cb=20250417174147",
+    "file": "Dealer's Tailcoat.png"
+  },
+  {
+    "name": "Desperado Chic",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/15/Desperado_Chic_gear_from_FFVIIEC.png/revision/latest?cb=20251030104203",
+    "file": "Desperado Chic.png"
+  },
+  {
+    "name": "Desperado Mantle",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/6a/Desperado_Mantle_gear_from_FFVIIEC.png/revision/latest?cb=20251030104250",
+    "file": "Desperado Mantle.png"
+  },
+  {
+    "name": "Desperado Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/3c/Desperado_Style_gear_from_FFVIIEC.png/revision/latest?cb=20251030104830",
+    "file": "Desperado Style.png"
+  },
+  {
+    "name": "Devil Gunner's Coat",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/01/Devil_Gunner%27s_Coat_gear_from_FFVIIEC.png/revision/latest?cb=20250117113320",
+    "file": "Devil Gunner's Coat.png"
+  },
+  {
+    "name": "Disciplined P0 SOLDIER",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/af/Disciplined_P0_SOLDIER_gear_from_FFVIIEC.png/revision/latest?cb=20241013152903",
+    "file": "Disciplined P0 SOLDIER.png"
+  },
+  {
+    "name": "Doom Dodger",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/bc/Doom_Dodger_gear_from_FFVIIEC.png/revision/latest?cb=20241013145232",
+    "file": "Doom Dodger.png"
+  },
+  {
+    "name": "Dragon King Varvados",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/c/c3/Dragon_King_Varvados_gear_from_FFVIIEC.png/revision/latest?cb=20250218185659",
+    "file": "Dragon King Varvados.png"
+  },
+  {
+    "name": "Edgar's Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/41/Edgar%27s_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20241108213448",
+    "file": "Edgar's Attire.png"
+  },
+  {
+    "name": "Edged Wings Training Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Edged_Wings_Training_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241013145714",
+    "file": "Edged Wings Training Garb.png"
+  },
+  {
+    "name": "Electroarmor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Electroarmor_gear_from_FFVIIEC.png/revision/latest?cb=20241014203125",
+    "file": "Electroarmor.png"
+  },
+  {
+    "name": "Elite Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/14/Elite_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20241013153012",
+    "file": "Elite Uniform.png"
+  },
+  {
+    "name": "Entrapment Gown",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/2/26/Entrapment_Gown_gear_from_FFVIIEC.png/revision/latest?cb=20241013152304",
+    "file": "Entrapment Gown.png"
+  },
+  {
+    "name": "Equilibrium",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d3/Equilibrium_gear_from_FFVIIEC.png/revision/latest?cb=20251129021032",
+    "file": "Equilibrium.png"
+  },
+  {
+    "name": "Erdrick's Armour",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/18/Erdrick%27s_Armour_gear_from_FFVIIEC.png/revision/latest?cb=20250731113910",
+    "file": "Erdrick's Armour.png"
+  },
+  {
+    "name": "Ex-SOLDIER_ First Class",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/01/Ex-SOLDIER_First_Class_gear_from_FFVIIEC.png/revision/latest?cb=20241014204220",
+    "file": "Ex-SOLDIER_ First Class.png"
+  },
+  {
+    "name": "Fairy of Snowfall",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/3c/Fairy_of_Snowfall_gear_from_FFVIIEC.png/revision/latest?cb=20241014202416",
+    "file": "Fairy of Snowfall.png"
+  },
+  {
+    "name": "Fairy of the Holy Flame",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/ba/Fairy_of_the_Holy_Flame_gear_from_FFVIIEC.png/revision/latest?cb=20241014202729",
+    "file": "Fairy of the Holy Flame.png"
+  },
+  {
+    "name": "Feather Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/41/Feather_Style_gear_from_FFVIIEC.png/revision/latest?cb=20241014202633",
+    "file": "Feather Style.png"
+  },
+  {
+    "name": "Felyne Kamura Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/1e/Felyne_Kamura_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241013151158",
+    "file": "Felyne Kamura Garb.png"
+  },
+  {
+    "name": "Festive Blue Daffodil Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d1/Festive_Blue_Daffodil_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20250102083303",
+    "file": "Festive Blue Daffodil Attire.png"
+  },
+  {
+    "name": "Festive Crimson Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e7/Festive_Crimson_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20250102083304",
+    "file": "Festive Crimson Attire.png"
+  },
+  {
+    "name": "Festive Dress",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/17/Festive_Dress_gear_from_FFVIIEC.png/revision/latest?cb=20260307161410",
+    "file": "Festive Dress.png"
+  },
+  {
+    "name": "Festive Jacket",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a3/Festive_Jacket_gear_from_FFVIIEC.png/revision/latest?cb=20260313141354",
+    "file": "Festive Jacket.png"
+  },
+  {
+    "name": "Festive Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/3e/Festive_Style_gear_from_FFVIIEC.png/revision/latest?cb=20260306030335",
+    "file": "Festive Style.png"
+  },
+  {
+    "name": "Festive Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/11/Festive_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20260320125515",
+    "file": "Festive Suit.png"
+  },
+  {
+    "name": "Fiery Cape",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/39/Fiery_Cape_gear_from_FFVIIEC.png/revision/latest?cb=20241014203834",
+    "file": "Fiery Cape.png"
+  },
+  {
+    "name": "Floral Gown",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/83/Floral_Gown_gear_from_FFVIIEC.png/revision/latest?cb=20241014202445",
+    "file": "Floral Gown.png"
+  },
+  {
+    "name": "Flying Captain",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/93/Flying_Captain_gear_from_FFVIIEC.png/revision/latest?cb=20250116125945",
+    "file": "Flying Captain.png"
+  },
+  {
+    "name": "Formal Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/4b/Formal_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20241013150828",
+    "file": "Formal Attire.png"
+  },
+  {
+    "name": "Galian Beast Mantle",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/10/Galian_Beast_Mantle_gear_from_FFVIIEC.png/revision/latest?cb=20250929025020",
+    "file": "Galian Beast Mantle.png"
+  },
+  {
+    "name": "Garb of the Possessed",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/0c/Garb_of_the_Possessed_gear_from_FFVIIEC.png/revision/latest?cb=20251217215523",
+    "file": "Garb of the Possessed.png"
+  },
+  {
+    "name": "Garb of the World-Ender",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/5/55/Garb_of_the_World-Ender_gear_from_FFVIIEC.png/revision/latest?cb=20251217215534",
+    "file": "Garb of the World-Ender.png"
+  },
+  {
+    "name": "Garb of the Worthy",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/42/Garb_of_the_Worthy_gear_from_FFVIIEC.png/revision/latest?cb=20250404192430",
+    "file": "Garb of the Worthy.png"
+  },
+  {
+    "name": "Garish Hakama",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/2/2f/Garish_Hakama_gear_from_FFVIIEC.png/revision/latest?cb=20260426175106",
+    "file": "Garish Hakama.png"
+  },
+  {
+    "name": "Garnet's Gown",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/67/Garnet%27s_Gown_gear_from_FFVIIEC.png/revision/latest?cb=20241014202252",
+    "file": "Garnet's Gown.png"
+  },
+  {
+    "name": "Genial SOLDIER_ Second Class",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/48/Genial_SOLDIER_Second_Class_gear_from_FFVIIEC.png/revision/latest?cb=20241017200637",
+    "file": "Genial SOLDIER_ Second Class.png"
+  },
+  {
+    "name": "Ghost Robe",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/83/Ghost_Robe_gear_from_FFVIIEC.png/revision/latest?cb=20251030104835",
+    "file": "Ghost Robe.png"
+  },
+  {
+    "name": "Glacier Armor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/12/Glacier_Armor_gear_from_FFVIIEC.png/revision/latest?cb=20241013150149",
+    "file": "Glacier Armor.png"
+  },
+  {
+    "name": "Glavenus Armor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/fe/Glavenus_Armor_gear_from_FFVIIEC.png/revision/latest?cb=20241014203645",
+    "file": "Glavenus Armor.png"
+  },
+  {
+    "name": "Golden Flower Kimono",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/82/Golden_Flower_Kimono_gear_from_FFVIIEC.png/revision/latest?cb=20251231145648",
+    "file": "Golden Flower Kimono.png"
+  },
+  {
+    "name": "Gorgeous Dress",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e8/Gorgeous_Dress_gear_from_FFVIIEC.png/revision/latest?cb=20260501041752",
+    "file": "Gorgeous Dress.png"
+  },
+  {
+    "name": "Gothic Bunny",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/96/Gothic_Bunny_gear_from_FFVIIEC.png/revision/latest?cb=20241013152648",
+    "file": "Gothic Bunny.png"
+  },
+  {
+    "name": "Great Sabrecat",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e7/Great_Sabrecat_gear_from_FFVIIEC.png/revision/latest?cb=20250731113912",
+    "file": "Great Sabrecat.png"
+  },
+  {
+    "name": "Guardian Corps Uniform (Aerith)",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/89/Guardian_Corps_Uniform_%28Aerith%29_gear_from_FFVIIEC.png/revision/latest?cb=20251030104839",
+    "file": "Guardian Corps Uniform (Aerith).png"
+  },
+  {
+    "name": "Guardian Corps Uniform (Tifa)",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/8a/Guardian_Corps_Uniform_%28Tifa%29_gear_from_FFVIIEC.png/revision/latest?cb=20251030104840",
+    "file": "Guardian Corps Uniform (Tifa).png"
+  },
+  {
+    "name": "Guardian Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/88/Guardian_Style_gear_from_FFVIIEC.png/revision/latest?cb=20241013150117",
+    "file": "Guardian Style.png"
+  },
+  {
+    "name": "Guide Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/6d/Guide_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20241014202930",
+    "file": "Guide Uniform.png"
+  },
+  {
+    "name": "Heavy Shield Armor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/1b/Heavy_Shield_Armor_gear_from_FFVIIEC.png/revision/latest?cb=20260130013014",
+    "file": "Heavy Shield Armor.png"
+  },
+  {
+    "name": "Heirloom Kimono",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/47/Heirloom_Kimono_gear_from_FFVIIEC.png/revision/latest?cb=20251231145650",
+    "file": "Heirloom Kimono.png"
+  },
+  {
+    "name": "Hojo's Specimen",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a0/Hojo%27s_Specimen_gear_from_FFVIIEC.png/revision/latest?cb=20241013152039",
+    "file": "Hojo's Specimen.png"
+  },
+  {
+    "name": "Holiday Cheer Reindeer",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e6/Holiday_Cheer_Reindeer_gear_from_FFVIIEC.png/revision/latest?cb=20241205103245",
+    "file": "Holiday Cheer Reindeer.png"
+  },
+  {
+    "name": "Holiday Coat",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/45/Holiday_Coat_gear_from_FFVIIEC.png/revision/latest?cb=20241013152553",
+    "file": "Holiday Coat.png"
+  },
+  {
+    "name": "Holiday Formal Wear",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/08/Holiday_Formal_Wear_gear_from_FFVIIEC.png/revision/latest?cb=20241212060451",
+    "file": "Holiday Formal Wear.png"
+  },
+  {
+    "name": "Holiday Helper",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/87/Holiday_Helper_gear_from_FFVIIEC.png/revision/latest?cb=20241219211936",
+    "file": "Holiday Helper.png"
+  },
+  {
+    "name": "Holiday Outfit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/5/50/Holiday_Outfit_gear_from_FFVIIEC.png/revision/latest?cb=20241223175700",
+    "file": "Holiday Outfit.png"
+  },
+  {
+    "name": "Holiday Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/9a/Holiday_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241013150015",
+    "file": "Holiday Suit.png"
+  },
+  {
+    "name": "Holidays Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/7f/Holidays_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20251222203429",
+    "file": "Holidays Attire.png"
+  },
+  {
+    "name": "Honorable Training Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/ff/Honorable_Training_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241017200638",
+    "file": "Honorable Training Garb.png"
+  },
+  {
+    "name": "Intellectual P0 SOLDIER",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/48/Intellectual_P0_SOLDIER_gear_from_FFVIIEC.png/revision/latest?cb=20241013145129",
+    "file": "Intellectual P0 SOLDIER.png"
+  },
+  {
+    "name": "Kamura Dress",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/f6/Kamura_Dress_gear_from_FFVIIEC.png/revision/latest?cb=20241014201631",
+    "file": "Kamura Dress.png"
+  },
+  {
+    "name": "Killer Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/c/c5/Killer_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20241013152819",
+    "file": "Killer Attire.png"
+  },
+  {
+    "name": "Kirin Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/9c/Kirin_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241014202209",
+    "file": "Kirin Suit.png"
+  },
+  {
+    "name": "Knight of Etro",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/ba/Knight_of_Etro_gear_from_FFVIIEC.png/revision/latest?cb=20251129021022",
+    "file": "Knight of Etro.png"
+  },
+  {
+    "name": "Kuja's Attire",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/78/Kuja%27s_Attire_gear_from_FFVIIEC.png/revision/latest?cb=20241013145935",
+    "file": "Kuja's Attire.png"
+  },
+  {
+    "name": "Lethal Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/79/Lethal_Style_gear_from_FFVIIEC.png/revision/latest?cb=20241013145520",
+    "file": "Lethal Style.png"
+  },
+  {
+    "name": "Lifeguard",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/aa/Lifeguard_gear_from_FFVIIEC.png/revision/latest?cb=20241014203402",
+    "file": "Lifeguard.png"
+  },
+  {
+    "name": "Locke's Outfit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/77/Locke%27s_Outfit_gear_from_FFVIIEC.png/revision/latest?cb=20241116150352",
+    "file": "Locke's Outfit.png"
+  },
+  {
+    "name": "Loveless Songstress",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/ae/Loveless_Songstress_gear_from_FFVIIEC.png/revision/latest?cb=20250131004148",
+    "file": "Loveless Songstress.png"
+  },
+  {
+    "name": "Marching Jacket",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/2/2c/Marching_Jacket_gear_from_FFVIIEC.png/revision/latest?cb=20241013150959",
+    "file": "Marching Jacket.png"
+  },
+  {
+    "name": "Maritime Sailor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e4/Maritime_Sailor_gear_from_FFVIIEC.png/revision/latest?cb=20241014203947",
+    "file": "Maritime Sailor.png"
+  },
+  {
+    "name": "Marksqueen",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/13/Marksqueen_gear_from_FFVIIEC.png/revision/latest?cb=20241013152520",
+    "file": "Marksqueen.png"
+  },
+  {
+    "name": "Metalfoot",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/db/Metalfoot_gear_from_FFVIIEC.png/revision/latest?cb=20241014203203",
+    "file": "Metalfoot.png"
+  },
+  {
+    "name": "Moogle Hat & Cape",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d3/Moogle_Hat_%26_Cape_gear_from_FFVIIEC.png/revision/latest?cb=20260306030312",
+    "file": "Moogle Hat & Cape.png"
+  },
+  {
+    "name": "Mournful Former Turk",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e0/Mournful_Former_Turk_gear_from_FFVIIEC.png/revision/latest?cb=20241013150756",
+    "file": "Mournful Former Turk.png"
+  },
+  {
+    "name": "Murasame Battle Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/ed/Murasame_Battle_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241014203918",
+    "file": "Murasame Battle Garb.png"
+  },
+  {
+    "name": "Mystic Coat",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d4/Mystic_Coat_gear_from_FFVIIEC.png/revision/latest?cb=20250304182641",
+    "file": "Mystic Coat.png"
+  },
+  {
+    "name": "Nanaki Mantle",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/95/Nanaki_Mantle_gear_from_FFVIIEC.png/revision/latest?cb=20241013151427",
+    "file": "Nanaki Mantle.png"
+  },
+  {
+    "name": "Natant Jacket",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/1b/Natant_Jacket_gear_from_FFVIIEC.png/revision/latest?cb=20241013145430",
+    "file": "Natant Jacket.png"
+  },
+  {
+    "name": "New Year's Battle Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/80/New_Year%27s_Battle_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20250102083306",
+    "file": "New Year's Battle Garb.png"
+  },
+  {
+    "name": "Official Festive Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/bf/Official_Festive_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241014203612",
+    "file": "Official Festive Garb.png"
+  },
+  {
+    "name": "One with the Blade",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/06/One_with_the_Blade_gear_from_FFVIIEC.png/revision/latest?cb=20251231145652",
+    "file": "One with the Blade.png"
+  },
+  {
+    "name": "Party Jacket",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/12/Party_Jacket_gear_from_FFVIIEC.png/revision/latest?cb=20241013151120",
+    "file": "Party Jacket.png"
+  },
+  {
+    "name": "Passion Mermaid",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d7/Passion_Mermaid_gear_from_FFVIIEC.png/revision/latest?cb=20241014202107",
+    "file": "Passion Mermaid.png"
+  },
+  {
+    "name": "Patissier Frock",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/40/Patissier_Frock_gear_from_FFVIIEC.png/revision/latest?cb=20260306030348",
+    "file": "Patissier Frock.png"
+  },
+  {
+    "name": "Physician's Hakama",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/80/Physicians_Hakama_gear_from_FFVIIEC.png/revision/latest?cb=20260421040322",
+    "file": "Physician's Hakama.png"
+  },
+  {
+    "name": "Pilot's Jacket",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Pilot%27s_Jacket_gear_from_FFVIIEC.png/revision/latest?cb=20241024194414",
+    "file": "Pilot's Jacket.png"
+  },
+  {
+    "name": "Pink Mermaid Beachwear",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/14/Pink_Mermaid_Beachwear_gear_from_FFVIIEC.png/revision/latest?cb=20250626223520",
+    "file": "Pink Mermaid Beachwear.png"
+  },
+  {
+    "name": "Pirate Captain",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/63/Pirate_Captain_gear_from_FFVIIEC.png/revision/latest?cb=20250602003031",
+    "file": "Pirate Captain.png"
+  },
+  {
+    "name": "Pirate Navigator",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/af/Pirate_Navigator_gear_from_FFVIIEC.png/revision/latest?cb=20250908202714",
+    "file": "Pirate Navigator.png"
+  },
+  {
+    "name": "Polygon Cloud",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/8a/Polygon_Cloud_gear_from_FFVIIEC.png/revision/latest?cb=20260421010803",
+    "file": "Polygon Cloud.png"
+  },
+  {
+    "name": "Polygon Sephiroth",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/6a/Polygon_Sephiroth_gear_from_FFVIIEC.png/revision/latest?cb=20260421010947",
+    "file": "Polygon Sephiroth.png"
+  },
+  {
+    "name": "Polygon Zack",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/35/Polygon_Zack_gear_from_FFVIIEC.png/revision/latest?cb=20260421010852",
+    "file": "Polygon Zack.png"
+  },
+  {
+    "name": "Prism Dress",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/8b/Prism_Dress_gear_from_FFVIIEC.png/revision/latest?cb=20241014201947",
+    "file": "Prism Dress.png"
+  },
+  {
+    "name": "Professor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/16/Professor_gear_from_FFVIIEC.png/revision/latest?cb=20241013144908",
+    "file": "Professor.png"
+  },
+  {
+    "name": "Puckish Lion",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/6d/Puckish_Lion_gear_from_FFVIIEC.png/revision/latest?cb=20241013151732",
+    "file": "Puckish Lion.png"
+  },
+  {
+    "name": "Pumpkin Jacket",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/5/5b/Pumpkin_Jacket_gear_from_FFVIIEC.png/revision/latest?cb=20241013150710",
+    "file": "Pumpkin Jacket.png"
+  },
+  {
+    "name": "Pumpkinmare",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/7/76/Pumpkinmare_gear_from_FFVIIEC.png/revision/latest?cb=20241013145025",
+    "file": "Pumpkinmare.png"
+  },
+  {
+    "name": "Rabbit Butler",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/6a/Rabbit_Butler_gear_from_FFVIIEC.png/revision/latest?cb=20250404192432",
+    "file": "Rabbit Butler.png"
+  },
+  {
+    "name": "Remnant Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a1/Remnant_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20250920210613",
+    "file": "Remnant Suit.png"
+  },
+  {
+    "name": "Resort Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/30/Resort_Style_gear_from_FFVIIEC.png/revision/latest?cb=20250718070355",
+    "file": "Resort Style.png"
+  },
+  {
+    "name": "Rider Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/ed/Rider_Style_gear_from_FFVIIEC.png/revision/latest?cb=20250621122340",
+    "file": "Rider Style.png"
+  },
+  {
+    "name": "Rocker Outfit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/06/Rocker_Outfit_gear_from_FFVIIEC.png/revision/latest?cb=20250621122341",
+    "file": "Rocker Outfit.png"
+  },
+  {
+    "name": "Rosy Battle Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Rosy_Battle_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241014201827",
+    "file": "Rosy Battle Suit.png"
+  },
+  {
+    "name": "Rubber Harness",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a5/Rubber_Harness_gear_from_FFVIIEC.png/revision/latest?cb=20241013152105",
+    "file": "Rubber Harness.png"
+  },
+  {
+    "name": "Ruler of the Planet",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/df/Ruler_of_the_Planet_gear_from_FFVIIEC.png/revision/latest?cb=20250908202752",
+    "file": "Ruler of the Planet.png"
+  },
+  {
+    "name": "Saber Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/06/Saber_Style_gear_from_FFVIIEC.png/revision/latest?cb=20241014203537",
+    "file": "Saber Style.png"
+  },
+  {
+    "name": "Sabin's Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/2/25/Sabin%27s_Style_gear_from_FFVIIEC.png/revision/latest?cb=20241122013958",
+    "file": "Sabin's Style.png"
+  },
+  {
+    "name": "Savior Ensemble",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/93/Savior_Ensemble_gear_from_FFVIIEC.png/revision/latest?cb=20251129021043",
+    "file": "Savior Ensemble.png"
+  },
+  {
+    "name": "Scanner Ensemble",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Scanner_Ensemble_gear_from_FFVIIEC.png/revision/latest?cb=20251217215510",
+    "file": "Scanner Ensemble.png"
+  },
+  {
+    "name": "Scrap Armor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/b4/Scrap_Armor_gear_from_FFVIIEC.png/revision/latest?cb=20241014203237",
+    "file": "Scrap Armor.png"
+  },
+  {
+    "name": "Seaside Aloha",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/46/Seaside_Aloha_gear_from_FFVIIEC.png/revision/latest?cb=20241013152132",
+    "file": "Seaside Aloha.png"
+  },
+  {
+    "name": "Self-Professed Fortune-Teller",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/48/Self-Professed_Fortune-Teller_gear_from_FFVIIEC.png/revision/latest?cb=20241013151049",
+    "file": "Self-Professed Fortune-Teller.png"
+  },
+  {
+    "name": "Seventh Heaven Bartender",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/2/29/Seventh_Heaven_Bartender_gear_from_FFVIIEC.png/revision/latest?cb=20241014203047",
+    "file": "Seventh Heaven Bartender.png"
+  },
+  {
+    "name": "Seventh High Athletic Gear",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/34/Seventh_High_Athletic_Gear_gear_from_FFVIIEC.png/revision/latest?cb=20250514095343",
+    "file": "Seventh High Athletic Gear.png"
+  },
+  {
+    "name": "Seventh High School Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/35/Seventh_High_School_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20250514095343",
+    "file": "Seventh High School Uniform.png"
+  },
+  {
+    "name": "Seventh High Team Cetra Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/3/33/Seventh_High_Team_Cetra_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20250602003012",
+    "file": "Seventh High Team Cetra Uniform.png"
+  },
+  {
+    "name": "Shining Spirit Beachwear",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/dd/Shining_Spirit_Beachwear_gear_from_FFVIIEC.png/revision/latest?cb=20250709014417",
+    "file": "Shining Spirit Beachwear.png"
+  },
+  {
+    "name": "Shinobi Hawk",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/95/Shinobi_Hawk_gear_from_FFVIIEC.png/revision/latest?cb=20241013151312",
+    "file": "Shinobi Hawk.png"
+  },
+  {
+    "name": "Shinra Ceremonial Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/2/26/Shinra_Ceremonial_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20250718070344",
+    "file": "Shinra Ceremonial Uniform.png"
+  },
+  {
+    "name": "Shinra Expedition Wear",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a7/Shinra_Expedition_Wear_gear_from_FFVIIEC.png/revision/latest?cb=20241017200639",
+    "file": "Shinra Expedition Wear.png"
+  },
+  {
+    "name": "Shinra Formal Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/fc/Shinra_Formal_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20241013145401",
+    "file": "Shinra Formal Uniform.png"
+  },
+  {
+    "name": "Shinra Full Dress Uniform",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/4/4c/Shinra_Full_Dress_Uniform_gear_from_FFVIIEC.png/revision/latest?cb=20241013150045",
+    "file": "Shinra Full Dress Uniform.png"
+  },
+  {
+    "name": "Shinra's Hero",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/1/1e/Shinra%27s_Hero_gear_from_FFVIIEC.png/revision/latest?cb=20241013150255",
+    "file": "Shinra's Hero.png"
+  },
+  {
+    "name": "Sky-Loving Pilot",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/9f/Sky-Loving_Pilot_gear_from_FFVIIEC.png/revision/latest?cb=20250116125946",
+    "file": "Sky-Loving Pilot.png"
+  },
+  {
+    "name": "Snow Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/94/Snow_Style_gear_from_FFVIIEC.png/revision/latest?cb=20251030104841",
+    "file": "Snow Style.png"
+  },
+  {
+    "name": "SOLDIER_ First Class Future Hero",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/b/b8/SOLDIER_First_Class_Future_Hero_gear_from_FFVIIEC.png/revision/latest?cb=20250218185632",
+    "file": "SOLDIER_ First Class Future Hero.png"
+  },
+  {
+    "name": "SOLDIER_ Second Class Future Hero",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/f9/SOLDIER_Second_Class_Future_Hero_gear_from_FFVIIEC.png/revision/latest?cb=20241013150931",
+    "file": "SOLDIER_ Second Class Future Hero.png"
+  },
+  {
+    "name": "Sparkling Skater",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/fb/Sparkling_Skater_gear_from_FFVIIEC.png/revision/latest?cb=20241013151811",
+    "file": "Sparkling Skater.png"
+  },
+  {
+    "name": "Stray Dog",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a6/Stray_Dog_gear_from_FFVIIEC.png/revision/latest?cb=20241013150438",
+    "file": "Stray Dog.png"
+  },
+  {
+    "name": "Summer Moogle",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a0/Summer_Moogle_gear_from_FFVIIEC.png/revision/latest?cb=20241013151240",
+    "file": "Summer Moogle.png"
+  },
+  {
+    "name": "Sunny Robe",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/09/Sunny_Robe_gear_from_FFVIIEC.png/revision/latest?cb=20241014201744",
+    "file": "Sunny Robe.png"
+  },
+  {
+    "name": "Sunrise Hakama",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e0/Sunrise_Hakama_gear_from_FFVIIEC.png/revision/latest?cb=20251231145655",
+    "file": "Sunrise Hakama.png"
+  },
+  {
+    "name": "Supreme Sage Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a3/Supreme_Sage_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20250731113913",
+    "file": "Supreme Sage Garb.png"
+  },
+  {
+    "name": "Surfer Look",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d5/Surfer_Look_gear_from_FFVIIEC.png/revision/latest?cb=20250727222047",
+    "file": "Surfer Look.png"
+  },
+  {
+    "name": "Terra's Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/a/a4/Terra%27s_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241104063306",
+    "file": "Terra's Garb.png"
+  },
+  {
+    "name": "The Hellhound",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/dc/The_Hellhound_gear_from_FFVIIEC.png/revision/latest?cb=20241013151528",
+    "file": "The Hellhound.png"
+  },
+  {
+    "name": "The Immaculate",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/d/d1/The_Immaculate_gear_from_FFVIIEC.png/revision/latest?cb=20260331174545",
+    "file": "The Immaculate.png"
+  },
+  {
+    "name": "The Sable",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/0c/The_Sable_gear_from_FFVIIEC.png/revision/latest?cb=20260421011037",
+    "file": "The Sable.png"
+  },
+  {
+    "name": "The Slums' Flower Girl",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e1/The_Slums%27_Flower_Girl_gear_from_FFVIIEC.png/revision/latest?cb=20241014201911",
+    "file": "The Slums' Flower Girl.png"
+  },
+  {
+    "name": "Training Garb of Ruin",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/c/c3/Training_Garb_of_Ruin_gear_from_FFVIIEC.png/revision/latest?cb=20250131004149",
+    "file": "Training Garb of Ruin.png"
+  },
+  {
+    "name": "Tropical Beach",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/8d/Tropical_Beach_gear_from_FFVIIEC.png/revision/latest?cb=20241013150400",
+    "file": "Tropical Beach.png"
+  },
+  {
+    "name": "Unprecedented P0 SOLDIER",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/e/e6/Unprecedented_P0_SOLDIER_gear_from_FFVIIEC.png/revision/latest?cb=20241013145158",
+    "file": "Unprecedented P0 SOLDIER.png"
+  },
+  {
+    "name": "Valiant Suit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/f0/Valiant_Suit_gear_from_FFVIIEC.png/revision/latest?cb=20241013150334",
+    "file": "Valiant Suit.png"
+  },
+  {
+    "name": "Vanguard Style",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/0/08/Vanguard_Style_gear_from_FFVIIEC.png/revision/latest?cb=20241013145055",
+    "file": "Vanguard Style.png"
+  },
+  {
+    "name": "Vivi's Garb",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/9a/Vivi%27s_Garb_gear_from_FFVIIEC.png/revision/latest?cb=20241013152354",
+    "file": "Vivi's Garb.png"
+  },
+  {
+    "name": "Winter Moogle",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/9/91/Winter_Moogle_gear_from_FFVIIEC.png/revision/latest?cb=20241013151844",
+    "file": "Winter Moogle.png"
+  },
+  {
+    "name": "Wutai's Idol",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/f0/Wutais_Idol_gear_from_FFVIIEC.png/revision/latest?cb=20250208110632",
+    "file": "Wutai's Idol.png"
+  },
+  {
+    "name": "Zenithian Armour",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/f/fb/Zenithian_Armour_gear_from_FFVIIEC.png/revision/latest?cb=20250815195331",
+    "file": "Zenithian Armour.png"
+  },
+  {
+    "name": "Zidane's Outfit",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/6/68/Zidane%27s_Outfit_gear_from_FFVIIEC.png/revision/latest?cb=20241014204024",
+    "file": "Zidane's Outfit.png"
+  },
+  {
+    "name": "Zinogre Armor",
+    "url": "https://static.wikia.nocookie.net/finalfantasy/images/8/8d/Zinogre_Armor_gear_from_FFVIIEC.png/revision/latest?cb=20241013150216",
+    "file": "Zinogre Armor.png"
+  }
+]

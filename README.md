@@ -347,10 +347,15 @@ Expected output:
 - Filtered weapon results in card layout with key stats/effects.
 - Card actions for `View Levels`, `Show Ability Details`, and compare selection.
 - Quick filter pills for common `Element + Phys./Mag.` combinations that can be stacked without broadening into the wrong element/type cross-product.
+- Quick filter pills also include `Circle`, `Triangle`, `X`, and `Diamond` sigil shortcuts that stay synced with the advanced sigil checkbox filter.
 - Element rows now show the matching elemental, non-elemental, or heal icon beside the element text in the same compact inline style used for stat icons.
-- Result headers now use portrait-led panels with cropped character portraits, per-character accent styling, stronger weapon-title emphasis, and cleaner metadata pills so the weapon, owner, and equipment details scan separately on both desktop and mobile.
+- The compare modal now preserves the rendered element and stat stack presentation as well, instead of dropping the element value or flattening the stat pill layout when items are copied out of the results table.
+- Sigil rows now use matching sigil icons from `wwwroot/images` in the same compact capsule style, with materia support levels shown as `I` / `II` instead of `x1` / `x2`.
+- Result headers now use a dual-identity treatment: character accents stay structural via the portrait shell, border, and header tint, while element accents react through the weapon underline, element pill tinting, and subtle energy flare so the weapon role reads faster without overwhelming the card.
 - The metadata pills under each weapon name now use a more consistent size and alignment across equipment, element, and type labels.
-- The `View Levels` snapshot modal reuses the same streamlined portrait-led header treatment, including the iconized metadata pills, so the selected weapon context stays visually consistent after opening the detail view.
+- Weapon and costume result headers now also render a manifest-backed item-art thumbnail beside the character portrait, falling back to `ui_icon_weapon.png` or `ui_icon_outfit.png` until a specific entry is backfilled.
+- The `View Levels` snapshot modal reuses the same streamlined portrait-led header treatment, including the iconized metadata pills and element-reactive accents, so the selected weapon context stays visually consistent after opening the detail view.
+- The compare modal and `View Levels` snapshot header reuse the same resolved item-art URL, so backfilled gear art automatically appears in all three surfaces without additional UI work.
 - `R Abilities` shown inline on desktop cards, with tap/click affordances on mobile.
 - Customization-added `R Abilities` mirror base `R Abilities` by showing `+points` and resolved effect details.
 - Compare panel updates as items are added.

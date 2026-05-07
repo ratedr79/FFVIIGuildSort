@@ -40,14 +40,21 @@ All notable changes to this project should be documented in this file.
 
 ### Fixed
 - Updated `WeaponSearchDataService` sigil-resistance backfills to use the confirmed/inferred Circle/Triangle/X/Diamond mappings instead of the earlier physical/magic resistance assumptions.
+- Reclassified the previously reserved sigil-resistance family slots (`BuffDebuffType` `47` and `52`) as `Square Sigil Resistance Up/Down` based on newly identified square-sigil game asset evidence.
+- Gear Search compare modal now preserves the rendered element display and full stat-stack markup when scraping selected rows, fixing a regression where the compare `Element` row could appear blank and keeping the compare stat row visually aligned with the main results.
 - Gear Search ability/customization text now resolves additional status-change labels instead of leaking raw IDs for affected items such as `Elegant Gloves`, `Elegant Dress`, and `Crimson Blitz` customizations; stale amp-healing and ATB-conservation formatter cases in `WeaponSearchDataService` were corrected at the same time.
 
 ### Changed
 - Gear Search quick filters now include dedicated `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo buttons for faster element-specific physical/magical browsing.
+- Gear Search quick filters now also include `Circle`, `Triangle`, `X`, and `Diamond` sigil pills, wired as shortcuts over the existing advanced sigil checkbox filter state.
 - Gear Search element rows now render matching elemental/non-elemental icons, plus the shared heal icon for `Heal`, alongside the text label using the same compact inline styling as the stat icon row on desktop and mobile cards.
+- Gear Search sigil rows and legend now render with the new `ui_icon_sigil_*` assets in matching compact capsules, and materia support levels now display as `I` / `II` instead of `x1` / `x2`.
 - Gear Search result and snapshot headers now use streamlined portrait-led panels with cropped character portraits, per-character accent styling, stronger weapon-name emphasis, and cleaner metadata pills across desktop, mobile, and `View Levels` modal layouts.
 - Gear Search metadata pills under weapon titles now use normalized height, padding, and alignment so equipment, element, and type pills appear more visually consistent.
 - Gear Search snapshot headers now use the same iconized metadata pill treatment as the desktop and mobile result headers for element/heal values.
+- Gear Search now layers an element-reactive accent system on top of the existing character identity styling, using per-element color variables for weapon underlines, element pill tinting, subtle corner flares, and restrained hover energy without overpowering the character accents.
+- Gear Search now resolves weapon/outfit art through a manifest-backed `GearImageCatalog` (`data/gearImages.json`) and falls back to `ui_icon_weapon.png` / `ui_icon_outfit.png` when no backfilled image is available.
+- Gear Search desktop banners, mobile cards, compare headers, and `View Levels` snapshot headers now all render the shared resolved gear-art thumbnail beside the existing character portrait treatment.
 - Damage Calc UX now persists calculator input state in browser local storage (`damage-calc-state-v1`), restores on revisit, and clears persisted state on `Reset`.
 - Damage Calc percentage-oriented inputs now accept up to two decimal places while integer combat stat fields remain whole-number style.
 - Damage Calc result layout now shows `Average LB/Summon Damage` in the result pane (instead of the summon input section).

@@ -19,6 +19,29 @@
         };
     }
 
+    string? GetSigilIconPath(string? sigilType)
+    {
+        return (sigilType ?? string.Empty).Trim().ToLowerInvariant() switch
+        {
+            "circle" or "o" => "/images/ui_icon_sigil_o.png",
+            "triangle" => "/images/ui_icon_sigil_triangle.png",
+            "cross" or "x" => "/images/ui_icon_sigil_x.png",
+            "diamond" => "/images/ui_icon_sigil_diamond.png",
+            "square" => "/images/ui_icon_sigil_square.png",
+            _ => null
+        };
+    }
+
+    string GetSigilLevelLabel(int level)
+    {
+        return level switch
+        {
+            1 => "I",
+            2 => "II",
+            _ => level.ToString()
+        };
+    }
+
     var elementOptions = Model.Weapons
         .Select(w => w.Element)
         .Where(s => !string.IsNullOrWhiteSpace(s))
@@ -85,6 +108,14 @@
         ("Diamond", "◊"),
     };
 
+    var quickSigilFilters = new List<(string Value, string Label)>
+    {
+        ("Circle", "Circle Sigil"),
+        ("Triangle", "Triangle Sigil"),
+        ("Cross", "X Sigil"),
+        ("Diamond", "Diamond Sigil")
+    };
+
     var elementalQuickFilters = new List<(string Element, string AbilityType, string Label)>
     {
         ("Earth", "Phys.", "Earth Phys."),
@@ -133,6 +164,11 @@
         --character-accent-secondary: #43d6ff;
         --character-accent-soft: rgba(122, 53, 216, 0.14);
         --character-accent-faint: rgba(67, 214, 255, 0.08);
+        --element-accent: var(--character-accent);
+        --element-accent-soft: rgba(122, 53, 216, 0.18);
+        --element-accent-faint: rgba(122, 53, 216, 0.07);
+        --element-accent-border: rgba(122, 53, 216, 0.28);
+        --element-accent-glow: rgba(122, 53, 216, 0.16);
         position: relative;
         display: flex;
         flex-wrap: wrap;
@@ -147,6 +183,7 @@
         background: linear-gradient(135deg, var(--character-accent-soft) 0%, rgba(255, 255, 255, 0.96) 24%, rgba(255, 255, 255, 0.98) 68%, var(--character-accent-faint) 100%);
         box-shadow: 0 12px 28px rgba(44, 29, 76, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.68);
         overflow: hidden;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     }
 
     .weapon-banner::before {
@@ -162,11 +199,11 @@
     .weapon-banner::after {
         content: "";
         position: absolute;
-        right: -2.6rem;
-        bottom: -2.4rem;
-        width: 7.5rem;
-        height: 7.5rem;
-        background: radial-gradient(circle, var(--character-accent-soft), rgba(255, 255, 255, 0) 70%);
+        right: -2.2rem;
+        top: -2.4rem;
+        width: 8.4rem;
+        height: 8.4rem;
+        background: radial-gradient(circle, var(--element-accent-soft), rgba(255, 255, 255, 0) 72%);
         pointer-events: none;
     }
 
@@ -179,18 +216,34 @@
         flex: 1 1 320px;
     }
 
-    .weapon-banner-portrait-shell {
+    .weapon-banner-visuals {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.48rem;
+        flex: 0 0 auto;
+    }
+
+    .weapon-banner-portrait-shell,
+    .weapon-banner-item-art-shell {
         position: relative;
         width: 60px;
         height: 60px;
         padding: 2px;
         border-radius: 1rem;
         flex: 0 0 auto;
-        background: linear-gradient(145deg, var(--character-accent), var(--character-accent-secondary));
         box-shadow: 0 10px 22px rgba(44, 29, 76, 0.16);
     }
 
-    .weapon-banner-portrait-shell::after {
+    .weapon-banner-portrait-shell {
+        background: linear-gradient(145deg, var(--character-accent), var(--character-accent-secondary));
+    }
+
+    .weapon-banner-item-art-shell {
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(238, 231, 248, 0.96));
+    }
+
+    .weapon-banner-portrait-shell::after,
+    .weapon-banner-item-art-shell::after {
         content: "";
         position: absolute;
         inset: 0;
@@ -199,7 +252,8 @@
         pointer-events: none;
     }
 
-    .weapon-banner-portrait {
+    .weapon-banner-portrait,
+    .weapon-banner-item-art {
         display: block;
         width: 100%;
         height: 100%;
@@ -263,6 +317,29 @@
         text-transform: uppercase;
     }
 
+    .weapon-banner-name-row,
+    .gear-mobile-card-name-row,
+    #compareTable .compare-header-name-row {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 0.46rem;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    #compareTable .compare-header-name-row {
+        justify-content: center;
+    }
+
+    .gear-type-inline-icon {
+        width: 1.6rem;
+        height: 1.6rem;
+        flex: 0 0 auto;
+        object-fit: contain;
+        margin-top: 0.08rem;
+        filter: drop-shadow(0 2px 4px rgba(92, 29, 155, 0.16));
+    }
+
     .weapon-banner-name {
         display: inline-block;
         max-width: 100%;
@@ -284,7 +361,7 @@
         position: absolute;
         inset: -0.12rem -0.24rem 0.08rem -0.3rem;
         border-radius: 0.9rem;
-        background: radial-gradient(circle at left center, rgba(138, 61, 255, 0.14), rgba(138, 61, 255, 0.02) 62%, rgba(138, 61, 255, 0));
+        background: radial-gradient(circle at left center, var(--element-accent-soft), rgba(255, 255, 255, 0) 66%);
         z-index: -1;
         pointer-events: none;
     }
@@ -297,8 +374,8 @@
         width: min(100%, 12.5rem);
         height: 0.24rem;
         border-radius: 999px;
-        background: linear-gradient(90deg, var(--character-accent), rgba(255, 255, 255, 0.82) 68%, var(--character-accent-secondary));
-        box-shadow: 0 4px 10px rgba(122, 53, 216, 0.18);
+        background: linear-gradient(90deg, var(--element-accent), rgba(255, 255, 255, 0.84) 68%, var(--element-accent));
+        box-shadow: 0 4px 12px var(--element-accent-glow);
     }
 
     .weapon-banner-pill,
@@ -336,6 +413,13 @@
         flex: 0 0 auto;
         border-radius: 0.22rem;
         filter: drop-shadow(0 1px 1px rgba(92, 29, 155, 0.14));
+    }
+
+    .weapon-banner-pill-element {
+        border-color: var(--element-accent-border);
+        color: var(--element-accent);
+        background: linear-gradient(135deg, var(--element-accent-faint), rgba(255, 255, 255, 0.97) 72%, rgba(255, 255, 255, 0.9));
+        box-shadow: 0 4px 12px var(--element-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.86);
     }
 
     .advanced-toggle-btn {
@@ -559,20 +643,57 @@
     .sigil-badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.15rem;
-        padding: 0.15rem 0.4rem;
-        border-radius: 0.35rem;
-        font-size: 0.85rem;
-        font-weight: 600;
-        border: 1px solid;
+        gap: 0.22rem;
+        min-height: 1.56rem;
+        padding: 0.16rem 0.34rem 0.16rem 0.2rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #4c3d67;
+        line-height: 1;
+        border: 1px solid rgba(214, 202, 235, 0.92);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 239, 253, 0.92));
+        box-shadow: 0 1px 2px rgba(92, 29, 155, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
-    .sigil-circle  { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
-    .sigil-triangle { background: #fff3e0; color: #e65100; border-color: #ffcc80; }
-    .sigil-cross   { background: #fce4ec; color: #880e4f; border-color: #f48fb1; }
-    .sigil-diamond { background: #e3f2fd; color: #0d47a1; border-color: #90caf9; }
+    .sigil-badge-icon {
+        width: 1.16rem;
+        height: 1.16rem;
+        object-fit: contain;
+        flex: 0 0 auto;
+        border-radius: 0.26rem;
+        filter: drop-shadow(0 1px 2px rgba(92, 29, 155, 0.14));
+    }
 
-    .sigil-mat { border-style: dashed; opacity: 0.85; }
+    .sigil-badge-level {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.16rem;
+        height: 1.08rem;
+        padding: 0 0.24rem;
+        border-radius: 999px;
+        background: rgba(92, 29, 155, 0.1);
+        color: #5c1d9b;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+    }
+
+    .sigil-circle  { border-color: rgba(114, 183, 122, 0.45); background: linear-gradient(135deg, rgba(232, 245, 233, 0.96), rgba(255, 255, 255, 0.96)); }
+    .sigil-triangle { border-color: rgba(255, 187, 110, 0.5); background: linear-gradient(135deg, rgba(255, 243, 224, 0.96), rgba(255, 255, 255, 0.96)); }
+    .sigil-cross   { border-color: rgba(244, 143, 177, 0.52); background: linear-gradient(135deg, rgba(252, 228, 236, 0.96), rgba(255, 255, 255, 0.96)); }
+    .sigil-diamond { border-color: rgba(144, 202, 249, 0.56); background: linear-gradient(135deg, rgba(227, 242, 253, 0.96), rgba(255, 255, 255, 0.96)); }
+    .sigil-square  { border-color: rgba(199, 184, 255, 0.56); background: linear-gradient(135deg, rgba(242, 237, 255, 0.96), rgba(255, 255, 255, 0.96)); }
+
+    .sigil-cmd {
+        box-shadow: 0 1px 2px rgba(92, 29, 155, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    }
+
+    .sigil-mat {
+        border-style: dashed;
+        opacity: 0.92;
+    }
 
     .sigil-legend {
         display: flex;
@@ -739,11 +860,23 @@
     }
 
     .quick-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32rem;
         border-radius: 999px;
         font-size: 0.76rem;
         font-weight: 600;
         padding: 0.2rem 0.62rem;
         line-height: 1.25;
+    }
+
+    .quick-filter-icon {
+        width: 0.9rem;
+        height: 0.9rem;
+        object-fit: contain;
+        flex: 0 0 auto;
+        border-radius: 0.18rem;
+        filter: drop-shadow(0 1px 1px rgba(92, 29, 155, 0.12));
     }
 
     .quick-filter-btn.active {
@@ -781,6 +914,11 @@
         --character-accent-secondary: #43d6ff;
         --character-accent-soft: rgba(122, 53, 216, 0.14);
         --character-accent-faint: rgba(67, 214, 255, 0.08);
+        --element-accent: var(--character-accent);
+        --element-accent-soft: rgba(122, 53, 216, 0.18);
+        --element-accent-faint: rgba(122, 53, 216, 0.07);
+        --element-accent-border: rgba(122, 53, 216, 0.28);
+        --element-accent-glow: rgba(122, 53, 216, 0.14);
         position: relative;
         border: 1px solid #ddd3ed;
         border-radius: 0.82rem;
@@ -788,6 +926,7 @@
         box-shadow: 0 8px 18px rgba(39, 26, 65, 0.08);
         padding: 0.56rem 0.6rem;
         overflow: hidden;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     }
 
     .gear-mobile-card::before {
@@ -800,6 +939,17 @@
         background: linear-gradient(180deg, var(--character-accent), var(--character-accent-secondary));
     }
 
+    .gear-mobile-card::after {
+        content: "";
+        position: absolute;
+        right: -2rem;
+        top: -2rem;
+        width: 6.8rem;
+        height: 6.8rem;
+        background: radial-gradient(circle, var(--element-accent-soft), rgba(255, 255, 255, 0) 74%);
+        pointer-events: none;
+    }
+
     .gear-mobile-card-header {
         display: flex;
         align-items: flex-start;
@@ -807,18 +957,34 @@
         margin-bottom: 0.52rem;
     }
 
-    .gear-mobile-card-portrait-shell {
+    .gear-mobile-card-visuals {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        flex: 0 0 auto;
+    }
+
+    .gear-mobile-card-portrait-shell,
+    .gear-mobile-card-item-art-shell {
         position: relative;
         width: 52px;
         height: 52px;
         padding: 2px;
         border-radius: 0.9rem;
         flex: 0 0 auto;
-        background: linear-gradient(145deg, var(--character-accent), var(--character-accent-secondary));
         box-shadow: 0 10px 22px rgba(44, 29, 76, 0.14);
     }
 
-    .gear-mobile-card-portrait-shell::after {
+    .gear-mobile-card-portrait-shell {
+        background: linear-gradient(145deg, var(--character-accent), var(--character-accent-secondary));
+    }
+
+    .gear-mobile-card-item-art-shell {
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(238, 231, 248, 0.96));
+    }
+
+    .gear-mobile-card-portrait-shell::after,
+    .gear-mobile-card-item-art-shell::after {
         content: "";
         position: absolute;
         inset: 0;
@@ -827,7 +993,8 @@
         pointer-events: none;
     }
 
-    .gear-mobile-card-portrait {
+    .gear-mobile-card-portrait,
+    .gear-mobile-card-item-art {
         display: block;
         width: 100%;
         height: 100%;
@@ -860,6 +1027,16 @@
         text-wrap: balance;
     }
 
+    .gear-mobile-card-name::before {
+        content: "";
+        position: absolute;
+        inset: -0.08rem -0.2rem 0.06rem -0.24rem;
+        border-radius: 0.8rem;
+        background: radial-gradient(circle at left center, var(--element-accent-soft), rgba(255, 255, 255, 0) 68%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
     .gear-mobile-card-name::after {
         content: "";
         position: absolute;
@@ -868,7 +1045,8 @@
         width: min(100%, 8.5rem);
         height: 0.2rem;
         border-radius: 999px;
-        background: linear-gradient(90deg, var(--character-accent), rgba(255, 255, 255, 0.82) 72%, var(--character-accent-secondary));
+        background: linear-gradient(90deg, var(--element-accent), rgba(255, 255, 255, 0.84) 72%, var(--element-accent));
+        box-shadow: 0 3px 10px var(--element-accent-glow);
     }
 
     .gear-mobile-card-pills {
@@ -937,6 +1115,27 @@
         flex: 0 0 auto;
         border-radius: 0.2rem;
         filter: drop-shadow(0 1px 1px rgba(92, 29, 155, 0.12));
+    }
+
+    .gear-mobile-pill-element {
+        border-color: var(--element-accent-border);
+        color: var(--element-accent);
+        background: linear-gradient(135deg, var(--element-accent-faint), rgba(255, 255, 255, 0.96) 72%, rgba(255, 255, 255, 0.9));
+        box-shadow: 0 4px 10px var(--element-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    @@media (hover: hover) {
+        .weapon-banner:hover {
+            transform: translateY(-2px);
+            border-color: var(--element-accent-border);
+            box-shadow: 0 16px 34px rgba(44, 29, 76, 0.1), 0 0 20px var(--element-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .gear-mobile-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--element-accent-border);
+            box-shadow: 0 12px 26px rgba(39, 26, 65, 0.11), 0 0 18px var(--element-accent-glow);
+        }
     }
 
     .gear-mobile-card-body {
@@ -1079,7 +1278,8 @@
             gap: 0.55rem;
         }
 
-        .gear-mobile-card-portrait-shell {
+        .gear-mobile-card-portrait-shell,
+        .gear-mobile-card-item-art-shell {
             width: 56px;
             height: 56px;
         }
@@ -1087,6 +1287,11 @@
         .gear-mobile-card-name {
             font-size: 1.08rem;
             line-height: 1.18;
+        }
+
+        .gear-type-inline-icon {
+            width: 1.6rem;
+            height: 1.6rem;
         }
 
         .gear-mobile-character-value {
@@ -1367,6 +1572,71 @@
         vertical-align: middle;
     }
 
+    #compareTable .compare-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        min-width: 136px;
+    }
+
+    #compareTable .compare-header-art-shell {
+        position: relative;
+        width: 68px;
+        height: 68px;
+        padding: 2px;
+        border-radius: 1rem;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(238, 231, 248, 0.96));
+        box-shadow: 0 8px 18px rgba(44, 29, 76, 0.14);
+    }
+
+    #compareTable .compare-header-art-shell::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+        pointer-events: none;
+    }
+
+    #compareTable .compare-header-art {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: calc(1rem - 2px);
+        object-fit: cover;
+        object-position: center top;
+        background: #ebe7f3;
+    }
+
+    #compareTable .compare-header-character {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #4d4260;
+        line-height: 1.1;
+    }
+
+    #compareTable .compare-header-name {
+        display: block;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #6b617c;
+        line-height: 1.2;
+        text-align: center;
+    }
+
+    #compareTable .compare-equipment-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    #compareTable .compare-equipment-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-top: 0;
+    }
+
     #compareTable thead th:first-child {
         text-align: left;
         min-width: 120px;
@@ -1380,6 +1650,20 @@
 
     #compareTable tbody td {
         vertical-align: top;
+    }
+
+    #compareTable .element-stack,
+    #compareTable .stat-stack,
+    #compareTable .sigil-badges {
+        flex-wrap: wrap;
+        white-space: normal;
+        align-items: flex-start;
+    }
+
+    #compareTable .element-stack-item,
+    #compareTable .stat-stack-item,
+    #compareTable .sigil-badge {
+        margin-bottom: 0.15rem;
     }
 
     #compareTable .compare-rability-effects {
@@ -1582,6 +1866,17 @@
                                     class="btn btn-sm btn-outline-secondary quick-filter-btn"
                                     data-quick-element="@quickFilter.Element"
                                     data-quick-ability="@quickFilter.AbilityType">@quickFilter.Label</button>
+                        }
+                        @foreach (var quickSigil in quickSigilFilters)
+                        {
+                            var quickSigilIconPath = GetSigilIconPath(quickSigil.Value);
+                            <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-sigil="@quickSigil.Value">
+                                @if (!string.IsNullOrWhiteSpace(quickSigilIconPath))
+                                {
+                                    <img class="quick-filter-icon" src="@quickSigilIconPath" alt="" aria-hidden="true" />
+                                }
+                                <span>@quickSigil.Label</span>
+                            </button>
                         }
                         <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-customizations="true">Has Customizations</button>
                         <button type="button" class="btn btn-sm btn-link text-decoration-none quick-filter-clear" id="quickFiltersClearBtn">Clear Quick</button>
@@ -1943,7 +2238,7 @@
                         var displayElement = costumeNoAbility ? "N/A" : weapon.Element;
                         var displayElementIconPath = GetElementIconPath(displayElement);
                         var displayAbilityType = costumeNoAbility ? "N/A" : weapon.AbilityType;
-                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
+                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-item-image-url="@weapon.ImageUrl" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
                             <td class="d-none">@weapon.Name</td>
                             <td>
                                 @if (!string.IsNullOrWhiteSpace(displayElementIconPath))
@@ -2101,13 +2396,34 @@
                                         {
                                             var sigilClass = sigil.SigilType.ToLowerInvariant();
                                             var sourceClass = sigil.Source == "Command" ? "sigil-cmd" : "sigil-mat";
+                                            var sigilIconPath = GetSigilIconPath(sigil.SigilType);
+                                            var levelLabel = GetSigilLevelLabel(sigil.Level);
                                             @if (sigil.Source == "Command")
                                             {
-                                                <span class="sigil-badge sigil-@sigilClass @sourceClass" title="@sigil.SigilType Sigil (Command)">@sigil.SigilSymbol</span>
+                                                <span class="sigil-badge sigil-@sigilClass @sourceClass" title="@sigil.SigilType Sigil (Command)">
+                                                    @if (!string.IsNullOrWhiteSpace(sigilIconPath))
+                                                    {
+                                                        <img class="sigil-badge-icon" src="@sigilIconPath" alt="" aria-hidden="true" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@sigil.SigilSymbol</span>
+                                                    }
+                                                </span>
                                             }
                                             else
                                             {
-                                                <span class="sigil-badge sigil-@sigilClass @sourceClass" title="@sigil.SigilType Sigil Boost @sigil.Level (Materia)">@sigil.SigilSymbol <small>×@sigil.Level</small></span>
+                                                <span class="sigil-badge sigil-@sigilClass @sourceClass" title="@sigil.SigilType Sigil Boost @levelLabel (Materia)">
+                                                    @if (!string.IsNullOrWhiteSpace(sigilIconPath))
+                                                    {
+                                                        <img class="sigil-badge-icon" src="@sigilIconPath" alt="" aria-hidden="true" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@sigil.SigilSymbol</span>
+                                                    }
+                                                    <span class="sigil-badge-level">@levelLabel</span>
+                                                </span>
                                             }
                                         }
                                     </div>
@@ -2128,11 +2444,16 @@
     <div class="sigil-legend">
         <span class="fw-semibold text-muted me-1">Sigil Legend:</span>
         <span class="sigil-legend-item">
-            <span class="sigil-badge sigil-circle sigil-cmd">◯</span>
+            <span class="sigil-badge sigil-circle sigil-cmd">
+                <img class="sigil-badge-icon" src="@GetSigilIconPath("Circle")" alt="" aria-hidden="true" />
+            </span>
             <span>Command Ability (solid border)</span>
         </span>
         <span class="sigil-legend-item">
-            <span class="sigil-badge sigil-circle sigil-mat">◯ <small>×1</small></span>
+            <span class="sigil-badge sigil-circle sigil-mat">
+                <img class="sigil-badge-icon" src="@GetSigilIconPath("Circle")" alt="" aria-hidden="true" />
+                <span class="sigil-badge-level">I</span>
+            </span>
             <span>Materia Support (dashed border)</span>
         </span>
     </div>
@@ -2148,14 +2469,19 @@
                     <div class="snapshot-meta mt-1">
                         <div class="weapon-banner weapon-banner-snapshot" id="snapshotHeader">
                             <div class="weapon-banner-meta">
-                                <div class="weapon-banner-portrait-shell">
-                                    <img class="weapon-banner-portrait" id="snapshotPortrait" alt="" />
+                                <div class="weapon-banner-visuals">
+                                    <div class="weapon-banner-portrait-shell">
+                                        <img class="weapon-banner-portrait" id="snapshotPortrait" alt="" />
+                                    </div>
+                                    <div class="weapon-banner-item-art-shell">
+                                        <img class="weapon-banner-item-art" id="snapshotItemArt" alt="" />
+                                    </div>
                                 </div>
                                 <div class="weapon-banner-titleblock">
                                     <span class="weapon-banner-character">
                                         <span class="weapon-banner-character-value" id="snapshotCharacter"></span>
                                     </span>
-                                    <span class="weapon-banner-name" id="snapshotWeaponName"></span>
+                                    <span class="weapon-banner-name-row" id="snapshotWeaponName"></span>
                                     <div class="weapon-banner-pills">
                                         <span class="weapon-banner-pill weapon-banner-equipment" id="snapshotEquipment"></span>
                                         <span class="weapon-banner-pill" id="snapshotElement"></span>
@@ -2402,6 +2728,7 @@
             const clearAllFiltersBtn = document.getElementById('clearAllFiltersBtn');
             const quickEquipmentButtons = Array.from(document.querySelectorAll('[data-quick-equipment]'));
             const quickElementAbilityButtons = Array.from(document.querySelectorAll('[data-quick-element][data-quick-ability]'));
+            const quickSigilButtons = Array.from(document.querySelectorAll('[data-quick-sigil]'));
             const quickCustomizationButton = document.querySelector('[data-quick-customizations="true"]');
             const quickFiltersClearBtn = document.getElementById('quickFiltersClearBtn');
             const mobileMainClearBtn = document.getElementById('mobileMainClearBtn');
@@ -2449,14 +2776,59 @@
 
             const getCharacterTheme = (character) => characterThemes[String(character ?? '').trim()] ?? defaultCharacterTheme;
 
-            const buildCharacterThemeStyle = (character) => {
+            const elementThemes = Object.freeze({
+                'earth': { accent: '#b89052', soft: 'rgba(184, 144, 82, 0.2)', faint: 'rgba(184, 144, 82, 0.08)', border: 'rgba(184, 144, 82, 0.34)', glow: 'rgba(184, 144, 82, 0.14)' },
+                'fire': { accent: '#ff5a5a', soft: 'rgba(255, 90, 90, 0.2)', faint: 'rgba(255, 90, 90, 0.08)', border: 'rgba(255, 90, 90, 0.34)', glow: 'rgba(255, 90, 90, 0.15)' },
+                'heal': { accent: '#72d9b8', soft: 'rgba(114, 217, 184, 0.2)', faint: 'rgba(114, 217, 184, 0.08)', border: 'rgba(114, 217, 184, 0.32)', glow: 'rgba(114, 217, 184, 0.14)' },
+                'ice': { accent: '#c8f1ff', soft: 'rgba(200, 241, 255, 0.24)', faint: 'rgba(200, 241, 255, 0.1)', border: 'rgba(150, 212, 233, 0.34)', glow: 'rgba(200, 241, 255, 0.16)' },
+                'lightning': { accent: '#ffd54a', soft: 'rgba(255, 213, 74, 0.22)', faint: 'rgba(255, 213, 74, 0.1)', border: 'rgba(255, 213, 74, 0.34)', glow: 'rgba(255, 213, 74, 0.16)' },
+                'non-elemental': { accent: '#c7b8ff', soft: 'rgba(199, 184, 255, 0.2)', faint: 'rgba(199, 184, 255, 0.08)', border: 'rgba(199, 184, 255, 0.34)', glow: 'rgba(199, 184, 255, 0.14)' },
+                'nonelemental': { accent: '#c7b8ff', soft: 'rgba(199, 184, 255, 0.2)', faint: 'rgba(199, 184, 255, 0.08)', border: 'rgba(199, 184, 255, 0.34)', glow: 'rgba(199, 184, 255, 0.14)' },
+                'thunder': { accent: '#ffd54a', soft: 'rgba(255, 213, 74, 0.22)', faint: 'rgba(255, 213, 74, 0.1)', border: 'rgba(255, 213, 74, 0.34)', glow: 'rgba(255, 213, 74, 0.16)' },
+                'water': { accent: '#4f7cff', soft: 'rgba(79, 124, 255, 0.2)', faint: 'rgba(79, 124, 255, 0.08)', border: 'rgba(79, 124, 255, 0.34)', glow: 'rgba(79, 124, 255, 0.16)' },
+                'wind': { accent: '#5ed3b3', soft: 'rgba(94, 211, 179, 0.2)', faint: 'rgba(94, 211, 179, 0.08)', border: 'rgba(94, 211, 179, 0.34)', glow: 'rgba(94, 211, 179, 0.15)' }
+            });
+
+            const getElementTheme = (element) => elementThemes[String(element ?? '').trim().toLowerCase()] ?? null;
+
+            const buildCharacterThemeStyle = (character, element = '') => {
                 const theme = getCharacterTheme(character);
-                return `--character-accent:${theme.accent};--character-accent-secondary:${theme.secondary};--character-accent-soft:${theme.soft};--character-accent-faint:${theme.faint};`;
+                const elementTheme = getElementTheme(element);
+                const elementStyle = elementTheme
+                    ? `--element-accent:${elementTheme.accent};--element-accent-soft:${elementTheme.soft};--element-accent-faint:${elementTheme.faint};--element-accent-border:${elementTheme.border};--element-accent-glow:${elementTheme.glow};`
+                    : '';
+                return `--character-accent:${theme.accent};--character-accent-secondary:${theme.secondary};--character-accent-soft:${theme.soft};--character-accent-faint:${theme.faint};${elementStyle}`;
             };
 
             const getCharacterPortraitUrl = (character) => {
                 const theme = getCharacterTheme(character);
                 return `/images/characters/sm/${encodeURIComponent(theme.portrait)}`;
+            };
+
+            const getItemImageFallbackUrl = (equipment) => String(equipment ?? '').trim().toLowerCase() === 'costume'
+                ? '/images/ui_icon_outfit.png'
+                : '/images/ui_icon_weapon.png';
+
+            const getResolvedItemImageUrl = (imageUrl, equipment) => {
+                const value = String(imageUrl ?? '').trim();
+                return value.length > 0 ? value : getItemImageFallbackUrl(equipment);
+            };
+
+            const buildEquipmentTypeIconHtml = (equipment, iconClass = 'gear-type-inline-icon') => `<img class="${iconClass}" src="${escapeHtml(getItemImageFallbackUrl(equipment))}" alt="" aria-hidden="true" loading="lazy" />`;
+
+            const buildNameWithEquipmentIconHtml = (name, equipment, nameClass, rowClass = '') => {
+                const rowClassValue = rowClass ? ` ${rowClass}` : '';
+                return `<span class="${rowClassValue.trim()}">${buildEquipmentTypeIconHtml(equipment)}<span class="${nameClass}">${escapeHtml(name)}</span></span>`;
+            };
+
+            const buildEquipmentLabelWithIconHtml = (equipment, wrapperClass = 'compare-equipment-inline', iconClass = 'gear-type-inline-icon compare-equipment-icon') => {
+                return `<span class="${wrapperClass}">${buildEquipmentTypeIconHtml(equipment, iconClass)}<span>${escapeHtml(equipment)}</span></span>`;
+            };
+
+            const buildItemImageHtml = (imageUrl, equipment, name, shellClass, imageClass) => {
+                const fallbackUrl = getItemImageFallbackUrl(equipment);
+                const resolvedUrl = getResolvedItemImageUrl(imageUrl, equipment);
+                return `<div class="${shellClass}"><img class="${imageClass}" src="${escapeHtml(resolvedUrl)}" alt="${escapeHtml(`${name} art`)}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackUrl}'" /></div>`;
             };
 
             const elementIconMap = Object.freeze({
@@ -2474,7 +2846,7 @@
 
             const getElementIconUrl = (value) => elementIconMap[String(value ?? '').trim().toLowerCase()] ?? '';
 
-            const buildHeaderPillsHtml = (items, pillClass, primaryClass, iconClass) => items
+            const buildHeaderPillsHtml = (items, pillClass, primaryClass, iconClass, elementClass) => items
                 .filter(item => {
                     const value = String(item ?? '').trim();
                     return value.length > 0 && value.toLowerCase() !== 'n/a';
@@ -2483,27 +2855,27 @@
                     const text = String(item ?? '').trim();
                     const iconUrl = getElementIconUrl(text);
                     const iconHtml = iconUrl ? `<img class="${iconClass}" src="${iconUrl}" alt="" aria-hidden="true" />` : '';
-                    return `<span class="${pillClass}${index === 0 && primaryClass ? ` ${primaryClass}` : ''}">${iconHtml}<span>${escapeHtml(text)}</span></span>`;
+                    return `<span class="${pillClass}${index === 0 && primaryClass ? ` ${primaryClass}` : ''}${iconUrl && elementClass ? ` ${elementClass}` : ''}">${iconHtml}<span>${escapeHtml(text)}</span></span>`;
                 })
                 .join('');
 
-            const setHeaderPillContent = (element, text, pillClass, iconClass, isPrimary) => {
-                if (!element) {
+            const setHeaderPillContent = (elementNode, text, pillClass, primaryClass, iconClass, elementClass, isPrimary) => {
+                if (!elementNode) {
                     return;
                 }
 
                 const value = String(text ?? '').trim();
                 if (!value || value.toLowerCase() === 'n/a') {
-                    element.style.display = 'none';
-                    element.innerHTML = '';
+                    elementNode.style.display = 'none';
+                    elementNode.innerHTML = '';
                     return;
                 }
 
                 const iconUrl = getElementIconUrl(value);
                 const iconHtml = iconUrl ? `<img class="${iconClass}" src="${iconUrl}" alt="" aria-hidden="true" />` : '';
-                element.className = isPrimary ? `${pillClass} ${pillClass}-equipment` : pillClass;
-                element.innerHTML = `${iconHtml}<span>${escapeHtml(value)}</span>`;
-                element.style.display = '';
+                elementNode.className = `${pillClass}${isPrimary && primaryClass ? ` ${primaryClass}` : ''}${iconUrl && elementClass ? ` ${elementClass}` : ''}`;
+                elementNode.innerHTML = `${iconHtml}<span>${escapeHtml(value)}</span>`;
+                elementNode.style.display = '';
             };
 
             const getSourceRowByWeaponId = (weaponId) => Array.from(document.querySelectorAll('#gearTable tbody tr[data-weapon-id]'))
@@ -2627,6 +2999,12 @@
                     const abilityType = button.getAttribute('data-quick-ability') ?? '';
                     const key = buildQuickElementAbilityKey(element, abilityType);
                     button.classList.toggle('active', selectedQuickElementAbilityFilters.has(key));
+                });
+
+                quickSigilButtons.forEach((button) => {
+                    const value = button.getAttribute('data-quick-sigil') ?? '';
+                    const isChecked = !!document.querySelector(`.sigil-filter[value="${CSS.escape(value)}"]:checked`);
+                    button.classList.toggle('active', isChecked);
                 });
 
                 if (quickCustomizationButton) {
@@ -2818,6 +3196,23 @@
                 });
             });
 
+            quickSigilButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const targetValue = button.getAttribute('data-quick-sigil');
+                    if (!targetValue) {
+                        return;
+                    }
+
+                    const checkbox = document.querySelector(`.sigil-filter[value="${CSS.escape(targetValue)}"]`);
+                    if (!checkbox) {
+                        return;
+                    }
+
+                    checkbox.checked = !checkbox.checked;
+                    updateSigilFilter();
+                });
+            });
+
             if (quickCustomizationButton) {
                 quickCustomizationButton.addEventListener('click', () => {
                     customizationFilterCheckbox.checked = !customizationFilterCheckbox.checked;
@@ -2830,9 +3225,14 @@
                     document.querySelectorAll('.equipment-filter:checked').forEach(cb => {
                         cb.checked = false;
                     });
+                    document.querySelectorAll('.sigil-filter:checked').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    selectedEquipmentTypes.clear();
+                    selectedSigils.clear();
                     selectedQuickElementAbilityFilters.clear();
                     customizationFilterCheckbox.checked = false;
-                    updateEquipmentFilter();
+                    table.draw();
                 });
             }
 
@@ -3005,6 +3405,11 @@
                 return combinedHtml || '<span class="text-muted">None</span>';
             };
 
+            const buildCompareHeaderHtml = (item) => {
+                const artHtml = buildItemImageHtml(item.imageUrl, item.equipment, item.name, 'compare-header-art-shell', 'compare-header-art');
+                return `<div class="compare-header">${artHtml}<div class="compare-header-character">${escapeHtml(item.character)}</div><small class="compare-header-name">${escapeHtml(item.name)}</small></div>`;
+            };
+
             const scrapeWeaponData = (weaponId) => {
                 const row = document.querySelector(`#gearTable tbody tr[data-weapon-id="${weaponId}"]`);
                 if (!row) return null;
@@ -3014,13 +3419,15 @@
                 const character = row.getAttribute('data-character') ?? '';
                 const name = row.getAttribute('data-weapon') ?? '';
                 const equipment = row.getAttribute('data-equipment') ?? '';
+                const imageUrl = row.getAttribute('data-item-image-url') ?? '';
 
                 const elementCell = cells[0];
-                const element = elementCell ? elementCell.childNodes[0]?.textContent?.trim() ?? '' : '';
+                const element = elementCell?.querySelector('.element-stack')?.outerHTML
+                    ?? escapeHtml(row.getAttribute('data-element') ?? '');
 
                 const potPercent = cells[1]?.textContent?.trim() ?? '';
 
-                const statsHtml = cells[2]?.querySelector('.stat-stack')?.innerHTML ?? cells[2]?.textContent?.trim() ?? 'N/A';
+                const statsHtml = cells[2]?.querySelector('.stat-stack')?.outerHTML ?? cells[2]?.textContent?.trim() ?? 'N/A';
 
                 const range = cells[3]?.textContent?.trim() ?? '';
                 const abilityType = cells[4]?.textContent?.trim() ?? '';
@@ -3042,7 +3449,7 @@
                 const custTemplate = cells[6]?.querySelector('.customization-template');
                 const customizationsHtml = custTemplate ? custTemplate.innerHTML.trim() : '<span class="text-muted">None</span>';
 
-                return { name, character, equipment, element, potPercent, statsHtml, range, abilityType, effects, rAbilitiesHtml, sigilsHtml, abilityText, customizationsHtml };
+                return { name, character, equipment, imageUrl, element, potPercent, statsHtml, range, abilityType, effects, rAbilitiesHtml, sigilsHtml, abilityText, customizationsHtml };
             };
 
             const updateComparePanel = () => {
@@ -3060,11 +3467,10 @@
                 const head = document.getElementById('compareTableHead');
                 const body = document.getElementById('compareTableBody');
 
-                head.innerHTML = `<tr><th></th>${items.map(d => `<th>${d.character}<br><small>${d.name}</small></th>`).join('')}</tr>`;
+                head.innerHTML = `<tr><th></th>${items.map(d => `<th>${buildCompareHeaderHtml(d)}</th>`).join('')}</tr>`;
 
                 const rows = [
-                    ['Character', d => d.character],
-                    ['Equipment', d => d.equipment],
+                    ['Equipment', d => buildEquipmentLabelWithIconHtml(d.equipment)],
                     ['Element', d => d.element],
                     ['Pot. %', d => d.potPercent],
                     ['Stats', d => d.statsHtml],
@@ -3149,11 +3555,14 @@
                     const character = rowNode.getAttribute('data-character') ?? '';
                     const weapon = rowNode.getAttribute('data-weapon') ?? '';
                     const equipment = rowNode.getAttribute('data-equipment') ?? '';
+                    const itemImageUrl = rowNode.getAttribute('data-item-image-url') ?? '';
                     const element = rowNode.getAttribute('data-element') ?? '';
                     const abilityType = rowNode.getAttribute('data-ability-type') ?? '';
                     const isCostume = equipment.toLowerCase() === 'costume';
-                    const themeStyle = buildCharacterThemeStyle(character);
-                    const pillsHtml = buildHeaderPillsHtml([equipment, element, abilityType], 'weapon-banner-pill', 'weapon-banner-equipment', 'weapon-banner-pill-icon');
+                    const themeStyle = buildCharacterThemeStyle(character, element);
+                    const pillsHtml = buildHeaderPillsHtml([equipment, element, abilityType], 'weapon-banner-pill', 'weapon-banner-equipment', 'weapon-banner-pill-icon', 'weapon-banner-pill-element');
+                    const itemImageHtml = buildItemImageHtml(itemImageUrl, equipment, weapon, 'weapon-banner-item-art-shell', 'weapon-banner-item-art');
+                    const weaponNameHtml = buildNameWithEquipmentIconHtml(weapon, equipment, 'weapon-banner-name', 'weapon-banner-name-row');
 
                     const bannerRow = document.createElement('tr');
                     bannerRow.classList.add('weapon-banner-row');
@@ -3184,14 +3593,17 @@
                     bannerCell.innerHTML = `
                         <div class="weapon-banner" style="${themeStyle}">
                             <div class="weapon-banner-meta">
-                                <div class="weapon-banner-portrait-shell">
-                                    <img class="weapon-banner-portrait" src="${getCharacterPortraitUrl(character)}" alt="${escapeHtml(character)} portrait" loading="lazy" />
+                                <div class="weapon-banner-visuals">
+                                    <div class="weapon-banner-portrait-shell">
+                                        <img class="weapon-banner-portrait" src="${getCharacterPortraitUrl(character)}" alt="${escapeHtml(character)} portrait" loading="lazy" />
+                                    </div>
+                                    ${itemImageHtml}
                                 </div>
                                 <div class="weapon-banner-titleblock">
                                     <span class="weapon-banner-character">
                                         <span class="weapon-banner-character-value">${escapeHtml(character)}</span>
                                     </span>
-                                    <span class="weapon-banner-name">${escapeHtml(weapon)}</span>
+                                    ${weaponNameHtml}
                                     ${pillsHtml ? `<div class="weapon-banner-pills">${pillsHtml}</div>` : ''}
                                 </div>
                             </div>
@@ -3250,19 +3662,29 @@
                     const weapon = rowNode.getAttribute('data-weapon') ?? '';
                     const equipment = rowNode.getAttribute('data-equipment') ?? '';
                     const equipmentSafe = escapeHtml(equipment);
+                    const itemImageUrl = rowNode.getAttribute('data-item-image-url') ?? '';
                     const element = rowNode.getAttribute('data-element') ?? '';
                     const abilityType = rowNode.getAttribute('data-ability-type') ?? '';
                     const isCostume = equipment.toLowerCase() === 'costume';
                     const hasDetails = rowNode.getAttribute('data-has-details') === 'true';
                     const isExpanded = expandedWeaponIds.has(weaponId);
-                    const themeStyle = buildCharacterThemeStyle(character);
-                    const pillsHtml = buildHeaderPillsHtml([equipment, element, abilityType], 'gear-mobile-pill', 'gear-mobile-pill-equipment', 'gear-mobile-pill-icon');
+                    const themeStyle = buildCharacterThemeStyle(character, element);
+                    const pillsHtml = buildHeaderPillsHtml([equipment, element, abilityType], 'gear-mobile-pill', 'gear-mobile-pill-equipment', 'gear-mobile-pill-icon', 'gear-mobile-pill-element');
+                    const itemImageHtml = buildItemImageHtml(itemImageUrl, equipment, weapon, 'gear-mobile-card-item-art-shell', 'gear-mobile-card-item-art');
+                    const mobileWeaponNameHtml = buildNameWithEquipmentIconHtml(weapon, equipment, 'gear-mobile-card-name', 'gear-mobile-card-name-row');
 
                     const elementCell = cells[0];
-                    const elementHtml = elementCell?.querySelector('.element-stack')?.outerHTML ?? escapeHtml(element ?? '');
+                    const normalizedElement = String(element ?? '').trim();
+                    const elementHtml = elementCell?.querySelector('.element-stack')?.outerHTML ?? escapeHtml(normalizedElement);
                     const potText = escapeHtml(cells[1]?.textContent?.trim() ?? '');
-                    const statsHtml = cells[2]?.querySelector('.stat-stack')?.innerHTML ?? `<span class="text-muted">${escapeHtml(cells[2]?.textContent?.trim() ?? 'N/A')}</span>`;
+                    const statsText = cells[2]?.textContent?.trim() ?? '';
+                    const statsHtml = cells[2]?.querySelector('.stat-stack')?.innerHTML ?? `<span class="text-muted">${escapeHtml(statsText || 'N/A')}</span>`;
+                    const effectsText = cells[5]?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
                     const effectsHtml = cells[5]?.innerHTML ?? '<span class="text-muted">None</span>';
+                    const hasElementValue = Boolean(elementCell?.querySelector('.element-stack')) || (normalizedElement.length > 0 && !/^n\/a$/i.test(normalizedElement));
+                    const hasPotValue = potText.length > 0 && !/^n\/a$/i.test(potText);
+                    const hasStatsValue = Boolean(cells[2]?.querySelector('.stat-stack')) || (statsText.length > 0 && !/^n\/a$/i.test(statsText));
+                    const hasEffectsValue = effectsText.length > 0 && !/^none$/i.test(effectsText);
 
                     const showInlineRAbilityEffects = window.innerWidth >= 768;
                     const rAbilitiesLabel = showInlineRAbilityEffects ? 'R. Abilities' : 'R. Abilities (tap)';
@@ -3294,6 +3716,27 @@
                     const abilityHtml = cells[6]?.querySelector('.ability-template')?.innerHTML?.trim() ?? '';
                     const customizationHtml = cells[6]?.querySelector('.customization-template')?.innerHTML?.trim() ?? '';
                     const hasExtra = Boolean(abilityHtml || customizationHtml);
+                    const buildMobileCardRow = (label, valueHtml) => `<div class="gear-mobile-row"><div class="gear-mobile-label">${escapeHtml(label)}</div><div class="gear-mobile-value">${valueHtml}</div></div>`;
+                    const mobileSummaryRows = [];
+
+                    if (!isCostume || hasElementValue) {
+                        mobileSummaryRows.push(buildMobileCardRow('Element', elementHtml || '<span class="text-muted">N/A</span>'));
+                    }
+
+                    if (!isCostume || hasPotValue) {
+                        mobileSummaryRows.push(buildMobileCardRow('Pot. %', potText || '<span class="text-muted">N/A</span>'));
+                    }
+
+                    if (!isCostume || hasStatsValue) {
+                        mobileSummaryRows.push(buildMobileCardRow('Stats', statsHtml));
+                    }
+
+                    if (!isCostume || hasEffectsValue) {
+                        mobileSummaryRows.push(buildMobileCardRow('Effects', effectsHtml));
+                    }
+
+                    mobileSummaryRows.push(buildMobileCardRow(rAbilitiesLabel, rAbilitiesHtml));
+                    mobileSummaryRows.push(buildMobileCardRow('Sigils', sigilsHtml));
 
                     const inCompare = compareItems.has(weaponId);
                     const compareFull = !inCompare && compareItems.size >= 3;
@@ -3323,24 +3766,22 @@
 
                     return `<article class="gear-mobile-card" data-weapon-id="${escapeHtml(weaponId)}" style="${themeStyle}">
                         <div class="gear-mobile-card-header">
-                            <div class="gear-mobile-card-portrait-shell">
-                                <img class="gear-mobile-card-portrait" src="${getCharacterPortraitUrl(character)}" alt="${escapeHtml(character)} portrait" loading="lazy" />
+                            <div class="gear-mobile-card-visuals">
+                                <div class="gear-mobile-card-portrait-shell">
+                                    <img class="gear-mobile-card-portrait" src="${getCharacterPortraitUrl(character)}" alt="${escapeHtml(character)} portrait" loading="lazy" />
+                                </div>
+                                ${itemImageHtml}
                             </div>
                             <div class="gear-mobile-card-titleblock">
                                 <span class="gear-mobile-character-mark">
                                     <span class="gear-mobile-character-value">${escapeHtml(character)}</span>
                                 </span>
-                                <div class="gear-mobile-card-name">${escapeHtml(weapon)}</div>
+                                ${mobileWeaponNameHtml}
                                 ${pillsHtml ? `<div class="gear-mobile-card-pills">${pillsHtml}</div>` : ''}
                             </div>
                         </div>
                         <div class="gear-mobile-card-body">
-                            <div class="gear-mobile-row"><div class="gear-mobile-label">Element</div><div class="gear-mobile-value">${elementHtml || '<span class="text-muted">N/A</span>'}</div></div>
-                            <div class="gear-mobile-row"><div class="gear-mobile-label">Pot. %</div><div class="gear-mobile-value">${potText || '<span class="text-muted">N/A</span>'}</div></div>
-                            <div class="gear-mobile-row"><div class="gear-mobile-label">Stats</div><div class="gear-mobile-value">${statsHtml}</div></div>
-                            <div class="gear-mobile-row"><div class="gear-mobile-label">Effects</div><div class="gear-mobile-value">${effectsHtml}</div></div>
-                            <div class="gear-mobile-row"><div class="gear-mobile-label">${rAbilitiesLabel}</div><div class="gear-mobile-value">${rAbilitiesHtml}</div></div>
-                            <div class="gear-mobile-row"><div class="gear-mobile-label">Sigils</div><div class="gear-mobile-value">${sigilsHtml}</div></div>
+                            ${mobileSummaryRows.join('')}
                         </div>
                         <div class="gear-mobile-actions">
                             ${viewLevelsBtn}
@@ -3595,6 +4036,7 @@
             const snapshotLevelRange = document.getElementById('snapshotLevelRange');
             const snapshotHeader = document.getElementById('snapshotHeader');
             const snapshotPortrait = document.getElementById('snapshotPortrait');
+            const snapshotItemArt = document.getElementById('snapshotItemArt');
             const snapshotCharacter = document.getElementById('snapshotCharacter');
             const snapshotWeaponName = document.getElementById('snapshotWeaponName');
             const snapshotEquipment = document.getElementById('snapshotEquipment');
@@ -3815,16 +4257,19 @@
                 const sourceRow = getSourceRowByWeaponId(currentWeaponId);
                 const element = sourceRow?.getAttribute('data-element') ?? '';
                 const abilityType = sourceRow?.getAttribute('data-ability-type') ?? '';
+                const itemImageUrl = sourceRow?.getAttribute('data-item-image-url') ?? '';
                 currentWeaponSupportsCustomizations = sourceRow?.getAttribute('data-has-customizations') === 'true';
 
-                snapshotHeader.setAttribute('style', buildCharacterThemeStyle(character));
+                snapshotHeader.setAttribute('style', buildCharacterThemeStyle(character, element));
                 snapshotPortrait.src = getCharacterPortraitUrl(character);
                 snapshotPortrait.alt = `${character} portrait`;
+                snapshotItemArt.src = getResolvedItemImageUrl(itemImageUrl, equipment);
+                snapshotItemArt.alt = `${weapon} art`;
                 snapshotCharacter.textContent = character;
-                snapshotWeaponName.textContent = weapon;
-                setHeaderPillContent(snapshotEquipment, equipment, 'weapon-banner-pill', 'weapon-banner-pill-icon', true);
-                setHeaderPillContent(snapshotElement, element, 'weapon-banner-pill', 'weapon-banner-pill-icon', false);
-                setHeaderPillContent(snapshotAbilityType, abilityType, 'weapon-banner-pill', 'weapon-banner-pill-icon', false);
+                snapshotWeaponName.innerHTML = buildNameWithEquipmentIconHtml(weapon, equipment, 'weapon-banner-name', 'weapon-banner-name-row');
+                setHeaderPillContent(snapshotEquipment, equipment, 'weapon-banner-pill', 'weapon-banner-equipment', 'weapon-banner-pill-icon', 'weapon-banner-pill-element', true);
+                setHeaderPillContent(snapshotElement, element, 'weapon-banner-pill', '', 'weapon-banner-pill-icon', 'weapon-banner-pill-element', false);
+                setHeaderPillContent(snapshotAbilityType, abilityType, 'weapon-banner-pill', '', 'weapon-banner-pill-icon', 'weapon-banner-pill-element', false);
 
                 // Toggle overboost visibility for Ultimate Weapons
                 const isUltimate = equipment.toLowerCase() === 'ultimate';
