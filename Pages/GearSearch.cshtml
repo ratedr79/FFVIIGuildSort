@@ -954,7 +954,7 @@
         display: flex;
         align-items: flex-start;
         gap: 0.55rem;
-        margin-bottom: 0.52rem;
+        margin-bottom: 0;
     }
 
     .gear-mobile-card-visuals {
@@ -1053,7 +1053,8 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.28rem;
-        margin-top: 0;
+        margin-top: 0.32rem;
+        margin-bottom: 0.46rem;
         align-items: flex-start;
     }
 
@@ -1274,7 +1275,7 @@
         }
 
         .gear-mobile-card-header {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0;
             gap: 0.55rem;
         }
 
@@ -3713,11 +3714,13 @@
                     const rAbilitiesHtml = `${rAbilityMain}${rAbilityCust}`;
 
                     const sigilsHtml = cells[7]?.querySelector('.sigil-badges')?.outerHTML ?? '<span class="text-muted">&mdash;</span>';
+                    const sigilsText = cells[7]?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
                     const abilityHtml = cells[6]?.querySelector('.ability-template')?.innerHTML?.trim() ?? '';
                     const customizationHtml = cells[6]?.querySelector('.customization-template')?.innerHTML?.trim() ?? '';
                     const hasExtra = Boolean(abilityHtml || customizationHtml);
                     const buildMobileCardRow = (label, valueHtml) => `<div class="gear-mobile-row"><div class="gear-mobile-label">${escapeHtml(label)}</div><div class="gear-mobile-value">${valueHtml}</div></div>`;
                     const mobileSummaryRows = [];
+                    const hasSigilsValue = Boolean(cells[7]?.querySelector('.sigil-badges')) || (sigilsText.length > 0 && sigilsText !== '—');
 
                     if (!isCostume || hasElementValue) {
                         mobileSummaryRows.push(buildMobileCardRow('Element', elementHtml || '<span class="text-muted">N/A</span>'));
@@ -3736,7 +3739,10 @@
                     }
 
                     mobileSummaryRows.push(buildMobileCardRow(rAbilitiesLabel, rAbilitiesHtml));
-                    mobileSummaryRows.push(buildMobileCardRow('Sigils', sigilsHtml));
+
+                    if (!isCostume || hasSigilsValue) {
+                        mobileSummaryRows.push(buildMobileCardRow('Sigils', sigilsHtml));
+                    }
 
                     const inCompare = compareItems.has(weaponId);
                     const compareFull = !inCompare && compareItems.size >= 3;
@@ -3777,9 +3783,9 @@
                                     <span class="gear-mobile-character-value">${escapeHtml(character)}</span>
                                 </span>
                                 ${mobileWeaponNameHtml}
-                                ${pillsHtml ? `<div class="gear-mobile-card-pills">${pillsHtml}</div>` : ''}
                             </div>
                         </div>
+                        ${pillsHtml ? `<div class="gear-mobile-card-pills">${pillsHtml}</div>` : ''}
                         <div class="gear-mobile-card-body">
                             ${mobileSummaryRows.join('')}
                         </div>
