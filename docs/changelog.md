@@ -57,6 +57,8 @@ All notable changes to this project should be documented in this file.
 - Gear Search now layers an element-reactive accent system on top of the existing character identity styling, using per-element color variables for weapon underlines, element pill tinting, subtle corner flares, and restrained hover energy without overpowering the character accents.
 - Gear Search now resolves weapon/outfit art through a manifest-backed `GearImageCatalog` (`data/gearImages.json`) and falls back to `ui_icon_weapon.png` / `ui_icon_outfit.png` when no backfilled image is available.
 - Gear Search desktop banners, mobile cards, compare headers, and `View Levels` snapshot headers now all render the shared resolved gear-art thumbnail beside the existing character portrait treatment.
+- Gear Search gear-art thumbnails now open a shared preview modal that prefers large variants from `images/weapons/lg` and `images/outfits/lg`, with graceful fallback to the standard resolved image when a large asset is missing.
+- Data Diagnostics now reports missing large gear art separately from the standard image checks for `images/weapons/lg` and `images/outfits/lg`.
 - Damage Calc UX now persists calculator input state in browser local storage (`damage-calc-state-v1`), restores on revisit, and clears persisted state on `Reset`.
 - Damage Calc percentage-oriented inputs now accept up to two decimal places while integer combat stat fields remain whole-number style.
 - Damage Calc result layout now shows `Average LB/Summon Damage` in the result pane (instead of the summon input section).
@@ -91,6 +93,7 @@ All notable changes to this project should be documented in this file.
 ### Docs
 - Updated `README.md`, `docs/README.md`, and `docs/features/other-pages.md` to document the new Gear Search Buff/Debuff Notes modal and the supporting buff/debuff reference note.
 - Updated the user-facing Gear Search README section and developer docs to note that mapped status-condition/status-change effects now render localized names instead of raw internal IDs in ability/customization text.
+- Updated the Gear Search and Data Diagnostics documentation to cover large-image preview modals plus separate `lg`-folder image coverage checks.
 - Data Diagnostics reload flow now performs post-reload catalog re-enrichment (`WeaponCatalog.RefreshFromGearSearch()`) after `WeaponSearchDataService.ReloadData()`.
 - Support Team Builder now includes outfit-aware matching and ranking: per-filter matching outfit results, owned/not-owned outfit state, one-outfit-per-character assignment, outfit-inclusive potency scoring, and duplicate filtering by combined weapon/outfit composition.
 - Support Team Builder ranked-team rows now render selected outfit names after weapons when present.

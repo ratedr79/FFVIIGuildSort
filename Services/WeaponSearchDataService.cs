@@ -936,6 +936,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Name = StripMarkup(localization.Get(weapon.NameLanguageId)),
                     Character = characterName,
                     ImageUrl = ResolveGearImageUrl(StripMarkup(localization.Get(weapon.NameLanguageId)), characterName, equipmentType),
+                    PreviewImageUrl = ResolveGearPreviewImageUrl(StripMarkup(localization.Get(weapon.NameLanguageId)), characterName, equipmentType),
                     Element = abilityDetails.IsHealing ? "Heal" : element,
                     DamagePercent = abilityDetails.DamagePercent,
                     Range = abilityDetails.Range,
@@ -1168,6 +1169,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Name = StripMarkup(localization.Get(costume.NameLanguageId)),
                     Character = characterName,
                     ImageUrl = ResolveGearImageUrl(StripMarkup(localization.Get(costume.NameLanguageId)), characterName, "Costume"),
+                    PreviewImageUrl = ResolveGearPreviewImageUrl(StripMarkup(localization.Get(costume.NameLanguageId)), characterName, "Costume"),
                     Element = element,
                     DamagePercent = damagePercent,
                     Range = range,
@@ -1676,6 +1678,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 ?? (string.Equals(equipmentType, "Costume", StringComparison.OrdinalIgnoreCase)
                     ? GearImageCatalog.OutfitPlaceholderUrl
                     : GearImageCatalog.WeaponPlaceholderUrl);
+        }
+
+        private string ResolveGearPreviewImageUrl(string itemName, string characterName, string equipmentType)
+        {
+            return _gearImageCatalog?.ResolvePreviewImageUrl(itemName, characterName, equipmentType)
+                ?? ResolveGearImageUrl(itemName, characterName, equipmentType);
         }
 
         private List<WeaponCustomization> BuildWeaponCustomizations(

@@ -40,6 +40,7 @@
 - Metadata pills under the weapon title now share normalized sizing/alignment so equipment, element, and type labels read as a consistent set.
 - Gear Search now resolves a dedicated weapon/outfit image URL per item via `GearImageCatalog`, backed by `data/gearImages.json`, with `ui_icon_weapon.png` and `ui_icon_outfit.png` as the default placeholders.
 - Desktop banner rows, mobile card headers, compare modal headers, and the `View Levels` snapshot header all consume the same resolved image URL so a single manifest backfill updates every Gear Search surface.
+- Clicking any rendered gear-art thumbnail now opens an in-page preview modal that prefers `images/weapons/lg` or `images/outfits/lg` variants through `GearImageCatalog.ResolvePreviewImageUrl`, while falling back to the standard resolved art path when no large asset exists.
 - The `View Levels` snapshot modal header reuses the same portrait/accent treatment and now applies the same iconized metadata pill styling plus element-reactive accent variables while deriving element/type values from the selected table row.
 - Includes View Levels modal with dynamic OB/level snapshots, with the max level resolved from loaded FF7EC weapon/release data rather than hard-coded in the page.
 - Customization unlock note: customizations unlock once the selected weapon level reaches 80, including 5★/OB0 weapons.
@@ -70,6 +71,7 @@
 ## Data Diagnostics (`/DataDiagnostics`) [Leadership]
 - Purpose: validate whether weapon/costume entries are enriched from GearSearch data.
 - Helps identify missing enrichment/potency/R-ability data.
+- Also scans local gear-art coverage for both standard and large folders: `images/weapons`, `images/outfits`, `images/weapons/lg`, and `images/outfits/lg`.
 - Includes a leadership-triggered full UnknownX7 data reload action (`OnPostReloadData`) that calls `WeaponSearchDataService.ReloadData()`.
 - Reload flow also re-enriches `WeaponCatalog` from refreshed GearSearch snapshots (`WeaponCatalog.RefreshFromGearSearch()`) so diagnostics and downstream pages reflect newly loaded data without app restart.
 - Reload metadata (`LastLoadedUtc`, `ReloadCount`) is displayed on page.

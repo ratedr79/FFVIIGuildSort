@@ -22,6 +22,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private readonly Dictionary<string, string> _weaponImages = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, string> _costumeImages = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _weaponLargeImages = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _costumeLargeImages = new(StringComparer.OrdinalIgnoreCase);
 
         public GearImageCatalog(IWebHostEnvironment env)
         {
@@ -35,6 +37,31 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var placeholder = isCostume ? OutfitPlaceholderUrl : WeaponPlaceholderUrl;
             var imageLookup = isCostume ? _costumeImages : _weaponImages;
 
+            return ResolveFromLookup(imageLookup, name, character, placeholder);
+        }
+
+        public string ResolvePreviewImageUrl(string name, string? character, string equipmentType)
+        {
+            var isCostume = string.Equals(equipmentType, "Costume", StringComparison.OrdinalIgnoreCase);
+            var placeholder = isCostume ? OutfitPlaceholderUrl : WeaponPlaceholderUrl;
+            var largeLookup = isCostume ? _costumeLargeImages : _weaponLargeImages;
+            var standardLookup = isCostume ? _costumeImages : _weaponImages;
+
+            foreach (var key in EnumerateLookupKeys(name, character))
+            {
+                if (largeLookup.TryGetValue(key, out var largeImageUrl)
+                    && !string.IsNullOrWhiteSpace(largeImageUrl)
+                    && IsUsableImageUrl(largeImageUrl))
+                {
+                    return largeImageUrl;
+                }
+            }
+
+            return ResolveFromLookup(standardLookup, name, character, placeholder);
+        }
+
+        private string ResolveFromLookup(Dictionary<string, string> imageLookup, string name, string? character, string placeholder)
+        {
             foreach (var key in EnumerateLookupKeys(name, character))
             {
                 if (!imageLookup.TryGetValue(key, out var imageUrl) || string.IsNullOrWhiteSpace(imageUrl))
@@ -55,6 +82,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             _weaponImages.Clear();
             _costumeImages.Clear();
+            _weaponLargeImages.Clear();
+            _costumeLargeImages.Clear();
 
             var path = Path.Combine(_env.ContentRootPath, "data", "gearImages.json");
             if (File.Exists(path))
@@ -68,6 +97,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             LoadLocalDirectoryEntries(_weaponImages, "images/weapons");
             LoadLocalDirectoryEntries(_costumeImages, "images/outfits");
+            LoadLocalDirectoryEntries(_weaponLargeImages, "images/weapons/lg");
+            LoadLocalDirectoryEntries(_costumeLargeImages, "images/outfits/lg");
         }
 
         private void LoadEntries(Dictionary<string, string> target, List<GearImageCatalogEntry>? entries)

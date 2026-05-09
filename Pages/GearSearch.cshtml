@@ -314,6 +314,20 @@
         background: #ebe7f3;
     }
 
+    .gear-item-preview-trigger {
+        display: block;
+        border: 0;
+        padding: 0;
+        background: none;
+        appearance: none;
+        cursor: zoom-in;
+    }
+
+    .gear-item-preview-trigger:focus-visible {
+        outline: 2px solid #b28bff;
+        outline-offset: 2px;
+    }
+
     .weapon-banner-titleblock {
         display: flex;
         flex-direction: column;
@@ -1637,6 +1651,38 @@
         line-height: 1.45;
     }
 
+    #itemImagePreviewModal .modal-header {
+        background: linear-gradient(90deg, rgba(92, 29, 155, 0.08), rgba(92, 29, 155, 0.02));
+        border-bottom: 2px solid #b28bff;
+    }
+
+    #itemImagePreviewModal .modal-body {
+        background: linear-gradient(180deg, rgba(249, 245, 255, 0.85), rgba(255, 255, 255, 0.96));
+    }
+
+    #itemImagePreviewModal .preview-image-frame {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 260px;
+        padding: 0.75rem;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(178, 139, 255, 0.2);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    #itemImagePreviewModalImage {
+        display: block;
+        max-width: 100%;
+        max-height: min(75vh, 900px);
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 0.85rem;
+        background: #ebe7f3;
+    }
+
     #compareTable {
         font-size: 0.88rem;
     }
@@ -2319,7 +2365,7 @@
                         var displayElement = costumeNoAbility ? "N/A" : weapon.Element;
                         var displayElementIconPath = GetElementIconPath(displayElement);
                         var displayAbilityType = costumeNoAbility ? "N/A" : weapon.AbilityType;
-                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-item-image-url="@weapon.ImageUrl" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
+                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-item-image-url="@weapon.ImageUrl" data-item-preview-image-url="@weapon.PreviewImageUrl" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
                             <td class="d-none">@weapon.Name</td>
                             <td>
                                 @if (!string.IsNullOrWhiteSpace(displayElementIconPath))
@@ -2613,6 +2659,25 @@
     </div>
 </div>
 
+<div class="modal fade" id="itemImagePreviewModal" tabindex="-1" aria-labelledby="itemImagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="itemImagePreviewModalLabel">Gear Art Preview</h5>
+                    <div class="text-muted small" id="itemImagePreviewModalCaption">Larger gear art preview.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-image-frame">
+                    <img id="itemImagePreviewModalImage" alt="" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="viewLevelsModal" tabindex="-1" aria-labelledby="viewLevelsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -2626,9 +2691,9 @@
                                     <div class="weapon-banner-portrait-shell">
                                         <img class="weapon-banner-portrait" id="snapshotPortrait" alt="" />
                                     </div>
-                                    <div class="weapon-banner-item-art-shell">
+                                    <button type="button" class="gear-item-preview-trigger weapon-banner-item-art-shell" id="snapshotItemArtTrigger" aria-label="Open gear art preview">
                                         <img class="weapon-banner-item-art" id="snapshotItemArt" alt="" />
-                                    </div>
+                                    </button>
                                 </div>
                                 <div class="weapon-banner-titleblock">
                                     <span class="weapon-banner-character">
@@ -2967,6 +3032,15 @@
                 return value.length > 0 ? value : getItemImageFallbackUrl(equipment);
             };
 
+            const getResolvedPreviewImageUrl = (previewImageUrl, imageUrl, equipment) => {
+                const previewValue = String(previewImageUrl ?? '').trim();
+                if (previewValue.length > 0) {
+                    return previewValue;
+                }
+
+                return getResolvedItemImageUrl(imageUrl, equipment);
+            };
+
             const buildEquipmentTypeIconHtml = (equipment, iconClass = 'gear-type-inline-icon') => `<img class="${iconClass}" src="${escapeHtml(getItemImageFallbackUrl(equipment))}" alt="" aria-hidden="true" loading="lazy" />`;
 
             const buildNameWithEquipmentIconHtml = (name, equipment, nameClass, rowClass = '') => {
@@ -2978,10 +3052,11 @@
                 return `<span class="${wrapperClass}">${buildEquipmentTypeIconHtml(equipment, iconClass)}<span>${escapeHtml(equipment)}</span></span>`;
             };
 
-            const buildItemImageHtml = (imageUrl, equipment, name, shellClass, imageClass) => {
+            const buildItemImageHtml = (imageUrl, previewImageUrl, equipment, name, shellClass, imageClass) => {
                 const fallbackUrl = getItemImageFallbackUrl(equipment);
                 const resolvedUrl = getResolvedItemImageUrl(imageUrl, equipment);
-                return `<div class="${shellClass}"><img class="${imageClass}" src="${escapeHtml(resolvedUrl)}" alt="${escapeHtml(`${name} art`)}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackUrl}'" /></div>`;
+                const resolvedPreviewUrl = getResolvedPreviewImageUrl(previewImageUrl, imageUrl, equipment);
+                return `<button type="button" class="gear-item-preview-trigger ${shellClass}" data-preview-image-url="${escapeHtml(resolvedPreviewUrl)}" data-preview-fallback-url="${escapeHtml(fallbackUrl)}" data-preview-name="${escapeHtml(name)}" data-preview-equipment="${escapeHtml(equipment)}" aria-label="Open ${escapeHtml(name)} image preview"><img class="${imageClass}" src="${escapeHtml(resolvedUrl)}" alt="${escapeHtml(`${name} art`)}" loading="lazy" onerror="this.onerror=null;this.src='${fallbackUrl}'" /></button>`;
             };
 
             const elementIconMap = Object.freeze({
@@ -3532,6 +3607,44 @@
             const compareClearBtn = document.getElementById('compareClearBtn');
             const compareOpenBtn = document.getElementById('compareOpenBtn');
             const compareModal = new bootstrap.Modal(document.getElementById('compareModal'));
+            const imagePreviewModalElement = document.getElementById('itemImagePreviewModal');
+            const imagePreviewModal = imagePreviewModalElement ? new bootstrap.Modal(imagePreviewModalElement) : null;
+            const imagePreviewTitle = document.getElementById('itemImagePreviewModalLabel');
+            const imagePreviewCaption = document.getElementById('itemImagePreviewModalCaption');
+            const imagePreviewImage = document.getElementById('itemImagePreviewModalImage');
+
+            const openItemImagePreview = (previewImageUrl, fallbackUrl, name, equipment) => {
+                if (!imagePreviewModal || !imagePreviewTitle || !imagePreviewCaption || !imagePreviewImage) {
+                    return;
+                }
+
+                const resolvedFallbackUrl = String(fallbackUrl ?? '').trim() || getItemImageFallbackUrl(equipment);
+                const resolvedPreviewUrl = String(previewImageUrl ?? '').trim() || resolvedFallbackUrl;
+                imagePreviewTitle.textContent = name || 'Gear Art Preview';
+                imagePreviewCaption.textContent = equipment
+                    ? `${equipment} image preview`
+                    : 'Larger gear art preview.';
+                imagePreviewImage.alt = name ? `${name} full art` : 'Gear art preview';
+                imagePreviewImage.onerror = () => {
+                    imagePreviewImage.onerror = null;
+                    imagePreviewImage.src = resolvedFallbackUrl;
+                };
+                imagePreviewImage.src = resolvedPreviewUrl;
+                imagePreviewModal.show();
+            };
+
+            document.addEventListener('click', (event) => {
+                const trigger = event.target.closest('.gear-item-preview-trigger');
+                if (!trigger) {
+                    return;
+                }
+
+                const previewImageUrl = trigger.getAttribute('data-preview-image-url') ?? '';
+                const fallbackUrl = trigger.getAttribute('data-preview-fallback-url') ?? '';
+                const name = trigger.getAttribute('data-preview-name') ?? 'Gear Art Preview';
+                const equipment = trigger.getAttribute('data-preview-equipment') ?? '';
+                openItemImagePreview(previewImageUrl, fallbackUrl, name, equipment);
+            });
 
             const buildCompareRAbilitiesHtml = (rAbilityCell) => {
                 if (!rAbilityCell) {
@@ -3559,7 +3672,7 @@
             };
 
             const buildCompareHeaderHtml = (item) => {
-                const artHtml = buildItemImageHtml(item.imageUrl, item.equipment, item.name, 'compare-header-art-shell', 'compare-header-art');
+                const artHtml = buildItemImageHtml(item.imageUrl, item.previewImageUrl, item.equipment, item.name, 'compare-header-art-shell', 'compare-header-art');
                 return `<div class="compare-header">${artHtml}<div class="compare-header-character">${escapeHtml(item.character)}</div><small class="compare-header-name">${escapeHtml(item.name)}</small></div>`;
             };
 
@@ -3573,6 +3686,7 @@
                 const name = row.getAttribute('data-weapon') ?? '';
                 const equipment = row.getAttribute('data-equipment') ?? '';
                 const imageUrl = row.getAttribute('data-item-image-url') ?? '';
+                const previewImageUrl = row.getAttribute('data-item-preview-image-url') ?? imageUrl;
 
                 const elementCell = cells[0];
                 const element = elementCell?.querySelector('.element-stack')?.outerHTML
@@ -3602,7 +3716,7 @@
                 const custTemplate = cells[6]?.querySelector('.customization-template');
                 const customizationsHtml = custTemplate ? custTemplate.innerHTML.trim() : '<span class="text-muted">None</span>';
 
-                return { name, character, equipment, imageUrl, element, potPercent, statsHtml, range, abilityType, effects, rAbilitiesHtml, sigilsHtml, abilityText, customizationsHtml };
+                return { name, character, equipment, imageUrl, previewImageUrl, element, potPercent, statsHtml, range, abilityType, effects, rAbilitiesHtml, sigilsHtml, abilityText, customizationsHtml };
             };
 
             const updateComparePanel = () => {
@@ -3709,12 +3823,13 @@
                     const weapon = rowNode.getAttribute('data-weapon') ?? '';
                     const equipment = rowNode.getAttribute('data-equipment') ?? '';
                     const itemImageUrl = rowNode.getAttribute('data-item-image-url') ?? '';
+                    const itemPreviewImageUrl = rowNode.getAttribute('data-item-preview-image-url') ?? itemImageUrl;
                     const element = rowNode.getAttribute('data-element') ?? '';
                     const abilityType = rowNode.getAttribute('data-ability-type') ?? '';
                     const isCostume = equipment.toLowerCase() === 'costume';
                     const themeStyle = buildCharacterThemeStyle(character, element);
                     const pillsHtml = buildHeaderPillsHtml([equipment, element, abilityType], 'weapon-banner-pill', 'weapon-banner-equipment', 'weapon-banner-pill-icon', 'weapon-banner-pill-element');
-                    const itemImageHtml = buildItemImageHtml(itemImageUrl, equipment, weapon, 'weapon-banner-item-art-shell', 'weapon-banner-item-art');
+                    const itemImageHtml = buildItemImageHtml(itemImageUrl, itemPreviewImageUrl, equipment, weapon, 'weapon-banner-item-art-shell', 'weapon-banner-item-art');
                     const weaponNameHtml = buildNameWithEquipmentIconHtml(weapon, equipment, 'weapon-banner-name', 'weapon-banner-name-row');
 
                     const bannerRow = document.createElement('tr');
@@ -3816,6 +3931,7 @@
                     const equipment = rowNode.getAttribute('data-equipment') ?? '';
                     const equipmentSafe = escapeHtml(equipment);
                     const itemImageUrl = rowNode.getAttribute('data-item-image-url') ?? '';
+                    const itemPreviewImageUrl = rowNode.getAttribute('data-item-preview-image-url') ?? itemImageUrl;
                     const element = rowNode.getAttribute('data-element') ?? '';
                     const abilityType = rowNode.getAttribute('data-ability-type') ?? '';
                     const isCostume = equipment.toLowerCase() === 'costume';
@@ -3823,7 +3939,7 @@
                     const isExpanded = expandedWeaponIds.has(weaponId);
                     const themeStyle = buildCharacterThemeStyle(character, element);
                     const pillsHtml = buildHeaderPillsHtml([equipment, element, abilityType], 'gear-mobile-pill', 'gear-mobile-pill-equipment', 'gear-mobile-pill-icon', 'gear-mobile-pill-element');
-                    const itemImageHtml = buildItemImageHtml(itemImageUrl, equipment, weapon, 'gear-mobile-card-item-art-shell', 'gear-mobile-card-item-art');
+                    const itemImageHtml = buildItemImageHtml(itemImageUrl, itemPreviewImageUrl, equipment, weapon, 'gear-mobile-card-item-art-shell', 'gear-mobile-card-item-art');
                     const mobileWeaponNameHtml = buildNameWithEquipmentIconHtml(weapon, equipment, 'gear-mobile-card-name', 'gear-mobile-card-name-row');
 
                     const elementCell = cells[0];
@@ -4194,6 +4310,7 @@
             const snapshotLevelRange = document.getElementById('snapshotLevelRange');
             const snapshotHeader = document.getElementById('snapshotHeader');
             const snapshotPortrait = document.getElementById('snapshotPortrait');
+            const snapshotItemArtTrigger = document.getElementById('snapshotItemArtTrigger');
             const snapshotItemArt = document.getElementById('snapshotItemArt');
             const snapshotCharacter = document.getElementById('snapshotCharacter');
             const snapshotWeaponName = document.getElementById('snapshotWeaponName');
@@ -4416,6 +4533,7 @@
                 const element = sourceRow?.getAttribute('data-element') ?? '';
                 const abilityType = sourceRow?.getAttribute('data-ability-type') ?? '';
                 const itemImageUrl = sourceRow?.getAttribute('data-item-image-url') ?? '';
+                const itemPreviewImageUrl = sourceRow?.getAttribute('data-item-preview-image-url') ?? itemImageUrl;
                 currentWeaponSupportsCustomizations = sourceRow?.getAttribute('data-has-customizations') === 'true';
 
                 snapshotHeader.setAttribute('style', buildCharacterThemeStyle(character, element));
@@ -4423,6 +4541,10 @@
                 snapshotPortrait.alt = `${character} portrait`;
                 snapshotItemArt.src = getResolvedItemImageUrl(itemImageUrl, equipment);
                 snapshotItemArt.alt = `${weapon} art`;
+                snapshotItemArtTrigger.setAttribute('data-preview-image-url', getResolvedPreviewImageUrl(itemPreviewImageUrl, itemImageUrl, equipment));
+                snapshotItemArtTrigger.setAttribute('data-preview-fallback-url', getItemImageFallbackUrl(equipment));
+                snapshotItemArtTrigger.setAttribute('data-preview-name', weapon);
+                snapshotItemArtTrigger.setAttribute('data-preview-equipment', equipment);
                 snapshotCharacter.textContent = character;
                 snapshotWeaponName.innerHTML = buildNameWithEquipmentIconHtml(weapon, equipment, 'weapon-banner-name', 'weapon-banner-name-row');
                 setHeaderPillContent(snapshotEquipment, equipment, 'weapon-banner-pill', 'weapon-banner-equipment', 'weapon-banner-pill-icon', 'weapon-banner-pill-element', true);

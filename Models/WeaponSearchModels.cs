@@ -8,6 +8,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string Name { get; init; }
         public required string Character { get; init; }
         public required string ImageUrl { get; init; }
+        public required string PreviewImageUrl { get; init; }
         public required string Element { get; init; }
         public required double DamagePercent { get; init; }
         public required string Range { get; init; }

@@ -323,7 +323,7 @@ Notes:
 
 ## Gear Search
 ### Gear Search: What It Does
-Provides searchable/filterable weapon/costume data with ability details, R abilities, sigils, compare mode, level/OB snapshots, quick combo filters for common elemental physical/magical searches, and emphasized result headers that make weapon titles and character identity easier to scan.
+Provides searchable/filterable weapon/costume data with ability details, R abilities, sigils, compare mode, level/OB snapshots, clickable gear-art previews, quick combo filters for common elemental physical/magical searches, and emphasized result headers that make weapon titles and character identity easier to scan.
 
 ### Gear Search: Inputs
 | Input | Expected Value | Use |
@@ -356,8 +356,9 @@ Expected output:
 - Result headers now use a dual-identity treatment: character accents stay structural via the portrait shell, border, and header tint, while element accents react through the weapon underline, element pill tinting, and subtle energy flare so the weapon role reads faster without overwhelming the card.
 - The metadata pills under each weapon name now use a more consistent size and alignment across equipment, element, and type labels.
 - Weapon and costume result headers now also render a manifest-backed item-art thumbnail beside the character portrait, falling back to `ui_icon_weapon.png` or `ui_icon_outfit.png` until a specific entry is backfilled.
+- Clicking a weapon or outfit thumbnail now opens a larger in-page preview modal that prefers `/images/weapons/lg` or `/images/outfits/lg` art when available and otherwise falls back to the standard resolved image.
 - The `View Levels` snapshot modal reuses the same streamlined portrait-led header treatment, including the iconized metadata pills and element-reactive accents, so the selected weapon context stays visually consistent after opening the detail view.
-- The compare modal and `View Levels` snapshot header reuse the same resolved item-art URL, so backfilled gear art automatically appears in all three surfaces without additional UI work.
+- The compare modal and `View Levels` snapshot header reuse the same resolved item-art URL, and the preview modal reuses the large-image lookup path, so backfilled gear art automatically appears across all Gear Search surfaces without additional UI work.
 - `R Abilities` shown inline on desktop cards, with tap/click affordances on mobile.
 - Customization-added `R Abilities` mirror base `R Abilities` by showing `+points` and resolved effect details.
 - Compare panel updates as items are added.
@@ -406,6 +407,8 @@ Expected output:
 Leadership page used to verify gear enrichment status and detect missing weapon/costume enrichment data.
 
 Includes a `Reload UnknownX7 Data` action for leadership users to trigger a full `WeaponSearchDataService` refresh without restarting the app.
+
+Also includes local image coverage checks for both standard and large gear art folders: `/images/weapons`, `/images/outfits`, `/images/weapons/lg`, and `/images/outfits/lg`.
 
 ---
 

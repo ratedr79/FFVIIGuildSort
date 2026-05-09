@@ -29,6 +29,8 @@ public sealed class DataDiagnosticsModel : PageModel
     public List<string> CostumesEnriched { get; private set; } = new();
     public List<LocalImageDiagnosticRow> MissingWeaponImages { get; private set; } = new();
     public List<LocalImageDiagnosticRow> MissingCostumeImages { get; private set; } = new();
+    public List<LocalImageDiagnosticRow> MissingWeaponLargeImages { get; private set; } = new();
+    public List<LocalImageDiagnosticRow> MissingCostumeLargeImages { get; private set; } = new();
     public List<WeaponSearchDataService.PassiveSkillTypeDiagnosticRow> PassiveSkillTypeDiagnostics { get; private set; } = new();
     public List<CharacterIdGapDiagnosticGroup> CharacterIdGapDiagnostics { get; private set; } = new();
     public bool ReloadSucceeded { get; private set; }
@@ -39,6 +41,8 @@ public sealed class DataDiagnosticsModel : PageModel
     public int TotalCostumeItemsWithImages { get; private set; }
     public int WeaponImageAssetCount { get; private set; }
     public int CostumeImageAssetCount { get; private set; }
+    public int WeaponLargeImageAssetCount { get; private set; }
+    public int CostumeLargeImageAssetCount { get; private set; }
 
     private static readonly Regex InvalidAssetFilenameCharactersRegex = new(@"[<>:""/\\|?*]+", RegexOptions.Compiled);
     private static readonly Regex WhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
@@ -114,9 +118,13 @@ public sealed class DataDiagnosticsModel : PageModel
     {
         var weaponImageLookup = LoadLocalImageLookup("images/weapons", out var weaponAssetCount);
         var costumeImageLookup = LoadLocalImageLookup("images/outfits", out var costumeAssetCount);
+        var weaponLargeImageLookup = LoadLocalImageLookup("images/weapons/lg", out var weaponLargeAssetCount);
+        var costumeLargeImageLookup = LoadLocalImageLookup("images/outfits/lg", out var costumeLargeAssetCount);
 
         WeaponImageAssetCount = weaponAssetCount;
         CostumeImageAssetCount = costumeAssetCount;
+        WeaponLargeImageAssetCount = weaponLargeAssetCount;
+        CostumeLargeImageAssetCount = costumeLargeAssetCount;
 
         var weaponItems = allItems
             .Where(item => !item.EquipmentType.Equals("Costume", StringComparison.OrdinalIgnoreCase))
@@ -130,6 +138,8 @@ public sealed class DataDiagnosticsModel : PageModel
 
         MissingWeaponImages = BuildMissingLocalImageRows(weaponItems, weaponImageLookup, "/images/weapons");
         MissingCostumeImages = BuildMissingLocalImageRows(costumeItems, costumeImageLookup, "/images/outfits");
+        MissingWeaponLargeImages = BuildMissingLocalImageRows(weaponItems, weaponLargeImageLookup, "/images/weapons/lg");
+        MissingCostumeLargeImages = BuildMissingLocalImageRows(costumeItems, costumeLargeImageLookup, "/images/outfits/lg");
     }
 
     private static List<LocalImageDiagnosticRow> BuildMissingLocalImageRows(
