@@ -39,19 +39,22 @@
                                     {
                                         <span class="sheet-pill sheet-pill-highlight">@entry.EquipmentType</span>
                                     }
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-secondary guild-sheet-view-levels-button btn-view-levels"
-                                            data-weapon-id="@entry.WeaponId"
-                                            data-character="@entry.Character"
-                                            data-weapon="@entry.Name"
-                                            data-equipment="@entry.EquipmentType"
-                                            data-element="@entry.Element"
-                                            data-ability-type="@entry.AbilityType"
-                                            data-image-url="@entry.ImageUrl"
-                                            data-preview-image-url="@entry.PreviewImageUrl"
-                                            data-has-customizations="@(entry.HasCustomizations ? "true" : "false")">
-                                        View Levels
-                                    </button>
+                                    @if (!string.Equals(entry.EquipmentType, "Costume", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary guild-sheet-view-levels-button btn-view-levels"
+                                                data-weapon-id="@entry.WeaponId"
+                                                data-character="@entry.Character"
+                                                data-weapon="@entry.Name"
+                                                data-equipment="@entry.EquipmentType"
+                                                data-element="@entry.Element"
+                                                data-ability-type="@entry.AbilityType"
+                                                data-image-url="@entry.ImageUrl"
+                                                data-preview-image-url="@entry.PreviewImageUrl"
+                                                data-has-customizations="@(entry.HasCustomizations ? "true" : "false")">
+                                            View Levels
+                                        </button>
+                                    }
                                 </div>
                                 @if (entry.Highlights.Count > 0)
                                 {
