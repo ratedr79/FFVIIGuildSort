@@ -42,6 +42,54 @@
         };
     }
 
+    IReadOnlyList<string> GetTierNames(int count)
+    {
+        var tierNames = new[]
+        {
+            "Low",
+            "Mid",
+            "High",
+            "Very High",
+            "Extra High",
+            "Extra Extra High",
+            "Maximum"
+        };
+
+        return tierNames.Take(Math.Max(count, 0)).ToList();
+    }
+
+    string GetTierImagePath(bool isBuffTier, string tierName)
+    {
+        var suffix = tierName switch
+        {
+            "Low" => "low",
+            "Mid" => "mid",
+            "High" => "high",
+            "Very High" => "very_high",
+            "Extra High" => "extra_high",
+            "Extra Extra High" => "extra_extra_high",
+            "Maximum" => "maximum",
+            _ => "low"
+        };
+
+        var direction = isBuffTier ? "up" : "down";
+        return $"/images/img_ui_battle_eff_buff_{direction}_{suffix}.png";
+    }
+
+    IReadOnlyList<(string Name, string Value)> BuildTierEntries(string values)
+    {
+        var parts = (values ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Trim())
+            .Where(part => part.Length > 0)
+            .ToList();
+
+        var names = GetTierNames(parts.Count);
+        return parts
+            .Select((value, index) => (names[index], value))
+            .ToList();
+    }
+
     var elementOptions = Model.Weapons
         .Select(w => w.Element)
         .Where(s => !string.IsNullOrWhiteSpace(s))
@@ -1641,6 +1689,14 @@
         vertical-align: top;
     }
 
+    #buffDebuffNotesModal .buff-notes-table tbody tr + tr td {
+        border-top: 0.22rem solid rgba(126, 87, 194, 0.24);
+    }
+
+    #buffDebuffNotesModal .buff-notes-table tbody td {
+        padding: 0.8rem 0.7rem;
+    }
+
     #buffDebuffNotesModal .buff-notes-table td:nth-child(2),
     #buffDebuffNotesModal .buff-notes-table td:nth-child(3) {
         min-width: 16rem;
@@ -1649,6 +1705,51 @@
     #buffDebuffNotesModal .buff-notes-note {
         font-size: 0.9rem;
         line-height: 1.45;
+    }
+
+    #buffDebuffNotesModal .buff-tier-list {
+        display: grid;
+        gap: 0.35rem;
+    }
+
+    #buffDebuffNotesModal .buff-tier-entry {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.35rem 0.45rem;
+        border-radius: 0.6rem;
+        background: rgba(249, 245, 255, 0.75);
+        border: 1px solid rgba(178, 139, 255, 0.16);
+    }
+
+    #buffDebuffNotesModal .buff-tier-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #5b3f86;
+    }
+
+    #buffDebuffNotesModal .buff-tier-label-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-width: 0;
+    }
+
+    #buffDebuffNotesModal .buff-tier-icon {
+        flex: 0 0 auto;
+        width: 36px;
+        height: 30px;
+        display: block;
+        object-fit: contain;
+    }
+
+    #buffDebuffNotesModal .buff-tier-value {
+        font-family: var(--bs-font-monospace);
+        font-size: 0.85rem;
+        color: #312347;
     }
 
     #itemImagePreviewModal .modal-header {
@@ -2621,8 +2722,34 @@
                                     {
                                         <tr>
                                             <td class="fw-semibold">@row.Family</td>
-                                            <td><code>@row.BuffTiers</code></td>
-                                            <td><code>@row.DebuffTiers</code></td>
+                                            <td>
+                                                <div class="buff-tier-list">
+                                                    @foreach (var tier in BuildTierEntries(row.BuffTiers))
+                                                    {
+                                                        <div class="buff-tier-entry">
+                                                            <span class="buff-tier-label-wrap">
+                                                                <img class="buff-tier-icon" src="@GetTierImagePath(true, tier.Name)" alt="" aria-hidden="true" />
+                                                                <span class="buff-tier-label">@tier.Name</span>
+                                                            </span>
+                                                            <span class="buff-tier-value">@tier.Value</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="buff-tier-list">
+                                                    @foreach (var tier in BuildTierEntries(row.DebuffTiers))
+                                                    {
+                                                        <div class="buff-tier-entry">
+                                                            <span class="buff-tier-label-wrap">
+                                                                <img class="buff-tier-icon" src="@GetTierImagePath(false, tier.Name)" alt="" aria-hidden="true" />
+                                                                <span class="buff-tier-label">@tier.Name</span>
+                                                            </span>
+                                                            <span class="buff-tier-value">@tier.Value</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </td>
                                         </tr>
                                     }
                                 </tbody>

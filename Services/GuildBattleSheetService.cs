@@ -1045,24 +1045,155 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return new List<string>();
             }
 
-            var signals = highlights
-                .Concat(reasons)
-                .Concat(weapon.EffectTags)
-                .Where(signal => !string.IsNullOrWhiteSpace(signal))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var primarySignals = BuildCustomizationSignals(highlights.Concat(weapon.EffectTags));
+            var secondarySignals = BuildCustomizationSignals(reasons);
 
             var relevant = weapon.Customizations
-                .Where(customization => !string.IsNullOrWhiteSpace(customization.Description))
-                .Where(customization =>
-                    signals.Any(signal => ContainsText(customization.Description, signal))
-                    || customization.PassiveEffects.Any(effect => signals.Any(signal => ContainsText(effect.Label, signal) || ContainsText(effect.Description, signal))))
-                .Select(customization => customization.Description.Trim())
+                .SelectMany(customization => ExtractRelevantCustomizationSnippets(customization, primarySignals, secondarySignals))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Take(3)
                 .ToList();
 
             return relevant;
+        }
+
+        private static List<string> BuildCustomizationSignals(IEnumerable<string> signals)
+        {
+            return signals
+                .Where(signal => !string.IsNullOrWhiteSpace(signal))
+                .Select(signal => signal.Trim())
+                .Where(signal => signal.Length >= 4)
+                .Where(signal => !signal.Equals("DPS Package", StringComparison.OrdinalIgnoreCase))
+                .Where(signal => !signal.Equals("Support Package", StringComparison.OrdinalIgnoreCase))
+                .Where(signal => !signal.Equals("Support Pivot", StringComparison.OrdinalIgnoreCase))
+                .Where(signal => !signal.StartsWith("Featured weapon", StringComparison.OrdinalIgnoreCase))
+                .Where(signal => !signal.StartsWith("Matches ", StringComparison.OrdinalIgnoreCase))
+                .Where(signal => !signal.StartsWith("Provides ", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(signal => signal.Length)
+                .ToList();
+        }
+
+        private static IEnumerable<string> ExtractRelevantCustomizationSnippets(
+            WeaponCustomization customization,
+            IReadOnlyList<string> primarySignals,
+            IReadOnlyList<string> secondarySignals)
+        {
+            var primaryMatches = ExtractCustomizationMatches(customization, primarySignals);
+            if (primaryMatches.Count > 0)
+            {
+                return primaryMatches;
+            }
+
+            var secondaryMatches = ExtractCustomizationMatches(customization, secondarySignals);
+            if (secondaryMatches.Count > 0)
+            {
+                return secondaryMatches;
+            }
+
+            return Array.Empty<string>();
+        }
+
+        private static List<string> ExtractCustomizationMatches(
+            WeaponCustomization customization,
+            IReadOnlyList<string> signals)
+        {
+            if (signals.Count == 0)
+            {
+                return new List<string>();
+            }
+
+            var passiveEffectMatches = customization.PassiveEffects
+                .SelectMany(effect => ExtractPassiveEffectMatches(effect, signals))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(2)
+                .ToList();
+
+            if (passiveEffectMatches.Count > 0)
+            {
+                return passiveEffectMatches;
+            }
+
+            var descriptionMatches = signals
+                .Select(signal => ExtractMatchingDescriptionSnippet(customization.Description, signal))
+                .Where(snippet => !string.IsNullOrWhiteSpace(snippet))
+                .Select(snippet => snippet!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(2)
+                .ToList();
+
+            if (descriptionMatches.Count > 0)
+            {
+                return descriptionMatches;
+            }
+
+            if (!string.IsNullOrWhiteSpace(customization.PassiveSkillName)
+                && signals.Any(signal => ContainsText(customization.PassiveSkillName, signal)))
+            {
+                return new List<string> { customization.PassiveSkillName!.Trim() };
+            }
+
+            return new List<string>();
+        }
+
+        private static IEnumerable<string> ExtractPassiveEffectMatches(
+            PassiveSkillEffectDetail effect,
+            IReadOnlyList<string> signals)
+        {
+            var matches = new List<string>();
+
+            foreach (var signal in signals)
+            {
+                var descriptionSnippet = ExtractMatchingDescriptionSnippet(effect.Description, signal);
+                if (!string.IsNullOrWhiteSpace(descriptionSnippet))
+                {
+                    matches.Add(descriptionSnippet);
+                    continue;
+                }
+
+                if (ContainsText(effect.Label, signal))
+                {
+                    matches.Add(effect.Label.Trim());
+                }
+            }
+
+            return matches;
+        }
+
+        private static string? ExtractMatchingDescriptionSnippet(string? description, string signal)
+        {
+            if (string.IsNullOrWhiteSpace(description) || string.IsNullOrWhiteSpace(signal))
+            {
+                return null;
+            }
+
+            var trimmed = description.Trim();
+            var startIndex = trimmed.IndexOf(signal, StringComparison.OrdinalIgnoreCase);
+            if (startIndex < 0)
+            {
+                return null;
+            }
+
+            var endIndex = FindCustomizationSnippetEnd(trimmed, startIndex + signal.Length);
+            var snippet = trimmed[startIndex..endIndex]
+                .Trim()
+                .Trim(',', ';', '.', '•', '-', ' ');
+
+            return string.IsNullOrWhiteSpace(snippet) ? null : snippet;
+        }
+
+        private static int FindCustomizationSnippetEnd(string description, int searchStartIndex)
+        {
+            var boundaries = new[]
+            {
+                description.IndexOf(" Also, ", searchStartIndex, StringComparison.OrdinalIgnoreCase),
+                description.IndexOf("\r\n", searchStartIndex, StringComparison.OrdinalIgnoreCase),
+                description.IndexOf("\n", searchStartIndex, StringComparison.OrdinalIgnoreCase)
+            }
+            .Where(index => index >= 0)
+            .ToList();
+
+            return boundaries.Count > 0 ? boundaries.Min() : description.Length;
         }
 
         private static List<string> SplitWriteup(string writeup)

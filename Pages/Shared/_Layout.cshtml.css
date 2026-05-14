@@ -1,10 +1,74 @@
 ﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 for details on configuring this project to bundle and minify static web assets. */
 
-a.navbar-brand {
-  white-space: normal;
-  text-align: center;
-  word-break: break-all;
+a.navbar-brand.app-topnav-brand {
+  white-space: nowrap;
+  text-align: left;
+  word-break: normal;
+  font-weight: 700;
+}
+
+.app-topnav {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.app-topnav-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.app-topnav-list {
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.app-topnav .navbar-nav .nav-link,
+.app-topnav .navbar-nav .dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  padding: 0.45rem 0.6rem;
+  line-height: 1.1;
+  border-radius: 0.65rem;
+}
+
+.app-topnav .navbar-nav .nav-link i,
+.app-topnav .navbar-nav .dropdown-toggle i {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 1200px) {
+  .app-topnav-collapse {
+    align-items: center;
+  }
+
+  .app-topnav-list {
+    flex-wrap: wrap;
+    row-gap: 0.2rem;
+  }
+
+  .app-topnav .navbar-nav .nav-link,
+  .app-topnav .navbar-nav .dropdown-toggle {
+    font-size: 0.92rem;
+    padding: 0.4rem 0.55rem;
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .app-topnav-list {
+    align-items: stretch;
+    gap: 0.1rem;
+    padding-top: 0.4rem;
+  }
+
+  .app-topnav .navbar-nav .nav-link,
+  .app-topnav .navbar-nav .dropdown-toggle {
+    display: flex;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+  }
 }
 
 a {
