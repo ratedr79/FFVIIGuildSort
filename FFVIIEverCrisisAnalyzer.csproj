@@ -21,6 +21,9 @@
     <Content Update="data\enemyAbilities.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Update="data\guildBattleSheets.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Update="data\stagePointCalibration.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

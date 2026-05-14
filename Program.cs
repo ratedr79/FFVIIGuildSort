@@ -10,6 +10,8 @@ builder.Services.AddSingleton<NameCorrectionService>();
 builder.Services.Configure<WeaponCatalogOptions>(builder.Configuration.GetSection("FeatureFlags"));
 builder.Services.AddSingleton<GearImageCatalog>();
 builder.Services.AddSingleton<WeaponSearchDataService>();
+builder.Services.AddSingleton<GuildBattleSheetService>();
+builder.Services.AddSingleton<GuildSurveyPlannerService>();
 builder.Services.AddSingleton<WeaponCatalog>();
 builder.Services.AddSingleton<SummonCatalog>();
 builder.Services.AddSingleton<EnemyAbilityCatalog>();

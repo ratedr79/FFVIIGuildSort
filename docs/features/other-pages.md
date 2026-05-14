@@ -24,6 +24,46 @@
   - result card includes `FormulaVersion` badge (current default: `excel-dmgcalc-v1`) to identify formula revision used
   - diagnostics panel surfaces workbook helper internals (including branch path numbers and interruption range)
 
+## Guild Battle Sheet (`/GuildBattleSheet`)
+- Purpose: public monthly recommendation sheet for the current guild battle element/damage type using the shared Gear Search weapon dataset.
+- Entry points:
+  - UI page: `Pages/GuildBattleSheet.cshtml`
+  - Page model: `Pages/GuildBattleSheet.cshtml.cs`
+  - Core service: `Services/GuildBattleSheetService.cs`
+  - Request/result contracts: `Models/GuildBattleSheetModels.cs`
+- Data/config behavior:
+  - month definitions load from `data/guildBattleSheets.json`
+  - newest configured month is selected by default when no `id` query parameter is provided
+  - battle selection can be deep-linked with `/GuildBattleSheet?id=YYYY-MM`
+  - month definitions also support optional `conditionalMechanics`; these only affect scoring when `Debug mode` is enabled
+- Generation behavior:
+  - recommendation pool is restricted to items whose `WeaponSearchItem.EquipmentType` is `Featured`
+  - `topPicks` pins featured weapons at the top of main recommendations
+  - `hiddenWeapons` suppresses named featured weapons from all generated sections
+  - main ranking supports two modes:
+    - `Traditional`: pool-first ranking across all featured weapons
+    - `Character`: at most one main recommendation per character, with battle-fit DPS anchors preferred before support pivots
+  - main ranking favors pinned picks, matching element, matching battle type, explicit fight-facing support/debuff effects, and then raw damage percent / matching attack stat
+  - scoring now separates party-facing support, boss debuff setup, and self-only DPS prep into different signals
+  - self-only support effects on off-fit weapons do not qualify as main featured fight utility; this includes self-only battle buffs and self-only element amplification / exploit-weakness style effects
+  - target breadth is part of scoring, so broader ally support and broader enemy-targeting setup can outrank narrower variants
+  - DPS characters without a battle-fit main hand can still appear in Character mode only if they re-qualify as support-style pivots through fight-facing utility
+  - secondary sections are built deterministically from `EffectTags` and passive/R-ability names:
+    - `<Element> Potency`
+    - featured physical/magical sub-weapon suggestions
+    - `<Element> Resistance Down`
+    - `<Element> Damage Up`
+    - `<Element> Damage Bonus`
+  - the lower utility sections (`Resistance Down`, `Damage Up`, and damage bonus/weapon boost coverage) search the wider visible pool rather than staying featured-only
+- UI behavior:
+  - month dropdown with newest-first ordering
+  - `Traditional` / `Character` mode selector only affects the main featured recommendations section
+  - optional `Debug mode` query flag/UI toggle to expose ranking reasons per main recommendation
+  - render path reuses shared item art URLs plus `PreviewImageUrl` for larger modal previews, following the same large-image preference path used by Gear Search
+  - write-up panel prefers manual `writeup` lines from config and falls back to compact auto-generated callouts when absent
+  - character-mode main cards can show `DPS Package`, `Support Package`, or `Support Pivot` badges
+  - main recommendation cards now show a compact score pill plus an always-visible `Included because:` summary, with relevant customization details surfaced when they help explain the match
+
 ## Gear Search (`/GearSearch`)
 - Purpose: searchable gear index with rich filters and detail views.
 - Data source: `WeaponSearchDataService` + catalog enrichment.

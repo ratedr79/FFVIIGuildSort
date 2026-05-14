@@ -14,6 +14,10 @@ A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, 
   - [Damage Calc: What It Does](#damage-calc-what-it-does)
   - [Damage Calc: Inputs](#damage-calc-inputs)
   - [Damage Calc: Quick Walkthrough](#damage-calc-quick-walkthrough)
+- [Guild Battle Sheet](#guild-battle-sheet)
+  - [Guild Battle Sheet: What It Does](#guild-battle-sheet-what-it-does)
+  - [Guild Battle Sheet: Inputs](#guild-battle-sheet-inputs)
+  - [Guild Battle Sheet: Quick Walkthrough](#guild-battle-sheet-quick-walkthrough)
 - [Guild Battle](#guild-battle)
   - [Guild Battle: What It Does](#guild-battle-what-it-does)
   - [Guild Battle: Inputs](#guild-battle-inputs)
@@ -131,6 +135,52 @@ Expected output:
 Notes:
 - Damage Calc saves your `Input_*` values in browser local storage (`damage-calc-state-v1`) and restores them on revisit.
 - `Reset` clears both form values and saved local browser state for this page.
+
+---
+
+## Guild Battle Sheet
+### Guild Battle Sheet: What It Does
+Builds a month-selectable, featured-only recommendation sheet for the current guild battle element and damage type using the shared Gear Search weapon dataset.
+
+It is designed for fast monthly reference, not battle-log simulation. The page automatically ranks featured weapons into headline recommendations, potency suggestions, sub-weapon candidates, and elemental utility sections.
+
+The main featured recommendation area supports two ranking views:
+- `Traditional`: ranks the featured pool directly and surfaces the strongest battle-fit DPS weapons plus standout fight utility.
+- `Character`: returns at most one main recommendation per character, favoring true battle-fit DPS packages first and then support-style pivots when a character lacks a proper battle-fit main hand.
+
+### Guild Battle Sheet: Inputs
+| Input | Expected Value | Use |
+|---|---|---|
+| Month dropdown | One configured month from `data/guildBattleSheets.json` | Switches between current and historical guild battle sheets |
+| Recommendation Mode | `Traditional` / `Character` | Changes only the `Main Featured Recommendations` section |
+| Debug mode | Checked/unchecked | Shows matching reasons used by the automatic ranking rules |
+
+### Guild Battle Sheet: Quick Walkthrough
+Required steps:
+1. Open `/GuildBattleSheet`.
+2. Leave the newest month selected or choose an older month from the dropdown.
+3. Choose `Traditional` or `Character` mode for the main featured section.
+4. Review `Main Featured Recommendations`, `Write-Up`, potency picks, sub-weapon picks, and the bottom utility sections.
+5. (Optional) enable `Debug mode` to inspect the full internal match reasons.
+
+Expected output:
+- Latest configured month selected by default.
+- A featured-only recommendation sheet for the selected `Element + Physical/Magical` battle type.
+- Main recommendations biased toward matching element/type DPS weapons first, then toward party-facing or boss-facing utility that helps the current fight.
+- Self-only utility on off-fit DPS weapons does not count as fight-facing support for the main featured section.
+- Character mode can show package labels like `DPS Package`, `Support Package`, or `Support Pivot` to explain why a character is present.
+- Main recommendation cards show a compact score pill and an `Included because:` summary, and may show relevant customization details when those customizations help explain the recommendation.
+- An optional manual monthly write-up when present in config; otherwise a compact auto-generated summary.
+- Clickable weapon art that opens the larger shared preview modal path already used by Gear Search.
+
+Maintenance notes:
+- Monthly definitions live in `data/guildBattleSheets.json`.
+- The page only recommends weapons whose dataset `EquipmentType` resolves to `Featured`.
+- `topPicks` can pin featured weapons to the top of the main list.
+- `hiddenWeapons` can suppress edge-case results without code changes.
+- Optional `conditionalMechanics` entries can be added to a month definition, but they only affect ranking when `Debug mode` is enabled.
+- `Traditional` / `Character` mode changes only the main featured section; potency, sub-weapon, and lower utility sections stay the same.
+- The lower utility sections are broader than the main featured section and can pull from the wider visible pool rather than only featured items.
 
 ---
 
@@ -420,6 +470,7 @@ The app is driven by `appsettings.json` and data files:
 - `SharedAccess` for protected-page unlock behavior.
 - `Dispatcher:Path` for Zelarith workflow.
 - `data/stagePointCalibration.json` for stage point estimation.
+- `data/guildBattleSheets.json` for monthly featured-only guild battle sheet definitions.
 - `data/teamTemplates.json`, `data/guildRules.json`, `data/nameCorrections.json` for scoring and assignment controls.
 
 ---

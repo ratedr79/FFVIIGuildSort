@@ -1,0 +1,593 @@
+<style>
+    .guild-battle-sheet-page {
+        --guild-sheet-border: rgba(15, 23, 42, 0.08);
+        --guild-sheet-border-strong: rgba(15, 23, 42, 0.12);
+        --guild-sheet-surface: #ffffff;
+        --guild-sheet-surface-alt: #f8fafc;
+        --guild-sheet-header-surface: #f8fbff;
+        --guild-sheet-header-surface-strong: #eef5ff;
+        --guild-sheet-title: #0f172a;
+        --guild-sheet-muted: #475569;
+        --guild-sheet-accent: #198754;
+        --guild-sheet-accent-soft: rgba(25, 135, 84, 0.12);
+    }
+
+    .guild-battle-sheet-page .battle-sheet-hero {
+        background: linear-gradient(135deg, rgba(25, 135, 84, 0.08), rgba(13, 110, 253, 0.06));
+        overflow: hidden;
+        border: 1px solid rgba(25, 135, 84, 0.12);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-page-title {
+        font-size: clamp(1.7rem, 2vw, 2.15rem);
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        color: var(--guild-sheet-title);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-page-subtitle {
+        max-width: 44rem;
+        font-size: 0.96rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-toolbar .form-label,
+    .guild-battle-sheet-page .guild-sheet-toolbar .form-check-label {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--guild-sheet-title);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-surface-card {
+        border: 1px solid var(--guild-sheet-border);
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.55), rgba(255, 255, 255, 0));
+        overflow: hidden;
+        box-shadow: 0 0.85rem 2rem rgba(15, 23, 42, 0.05);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-card-header {
+        position: relative;
+        isolation: isolate;
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.12) !important;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(238, 245, 255, 0.97) 58%, rgba(248, 250, 252, 0.95));
+        box-shadow: inset 0 -1px 0 rgba(148, 163, 184, 0.18);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-card-header::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #198754 0%, #0d6efd 58%, #7c3aed 100%);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-card-header::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 38%),
+            radial-gradient(circle at left top, rgba(25, 135, 84, 0.08), transparent 30%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-section-header {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 252, 0.98) 64%, rgba(248, 250, 252, 0.94));
+    }
+
+    .guild-battle-sheet-page .guild-sheet-section-header::before {
+        background: linear-gradient(90deg, #0ea5e9 0%, #3b82f6 56%, #14b8a6 100%);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-card-kicker {
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 0.45rem;
+        padding: 0.22rem 0.6rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.84);
+        color: #0f5132;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border: 1px solid rgba(25, 135, 84, 0.18);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-card-title {
+        font-size: 1.08rem;
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        color: #0f172a !important;
+        line-height: 1.18;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-card-subtitle {
+        font-size: 0.84rem;
+        line-height: 1.5;
+        color: #334155 !important;
+        font-weight: 500;
+        max-width: 42rem;
+        margin-bottom: 0 !important;
+        padding-bottom: 0.05rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-section-title {
+        font-size: 1rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-section-list {
+        margin-top: 0.1rem;
+    }
+
+    .guild-battle-sheet-page .card-header p,
+    .guild-battle-sheet-page .hero-note-body,
+    .guild-battle-sheet-page .hero-note-panel,
+    .guild-battle-sheet-page .text-muted {
+        color: var(--guild-sheet-muted) !important;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-card-header .text-muted,
+    .guild-battle-sheet-page .guild-sheet-card-header p {
+        color: #334155 !important;
+    }
+
+    .guild-battle-sheet-page .hero-note-panel {
+        max-width: 26rem;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(25, 135, 84, 0.12);
+        border-radius: 1rem;
+        padding: 1rem 1.125rem;
+    }
+
+    .guild-battle-sheet-page .hero-note-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #198754;
+        margin-bottom: 0.35rem;
+    }
+
+    .guild-battle-sheet-page .recommendation-card,
+    .guild-battle-sheet-page .utility-entry {
+        border: 1px solid var(--guild-sheet-border);
+        border-radius: 0.9rem;
+        background: var(--guild-sheet-surface);
+        padding: 0.85rem;
+    }
+
+    .guild-battle-sheet-page .recommendation-card-top-pick {
+        border-color: rgba(255, 193, 7, 0.7);
+        box-shadow: 0 0.75rem 1.5rem rgba(255, 193, 7, 0.12);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-package-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border: 1px solid transparent;
+        line-height: 1.1;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-package-badge-dps {
+        background: rgba(37, 99, 235, 0.12);
+        color: #1d4ed8;
+        border-color: rgba(37, 99, 235, 0.22);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-package-badge-support {
+        background: rgba(22, 163, 74, 0.12);
+        color: #15803d;
+        border-color: rgba(22, 163, 74, 0.22);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-package-badge-pivot {
+        background: rgba(217, 119, 6, 0.14);
+        color: #b45309;
+        border-color: rgba(217, 119, 6, 0.26);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-package-subtitle {
+        margin-bottom: 0.35rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #475569;
+        letter-spacing: -0.01em;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-inclusion-summary {
+        padding: 0.55rem 0.7rem;
+        border-radius: 0.75rem;
+        background: rgba(15, 23, 42, 0.04);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        color: #334155;
+        font-size: 0.78rem;
+        line-height: 1.4;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-view-levels-button {
+        --bs-btn-padding-y: 0.15rem;
+        --bs-btn-padding-x: 0.5rem;
+        --bs-btn-font-size: 0.72rem;
+        --bs-btn-border-radius: 999px;
+        --bs-btn-color: #334155;
+        --bs-btn-border-color: rgba(148, 163, 184, 0.45);
+        --bs-btn-hover-color: #0f172a;
+        --bs-btn-hover-bg: rgba(226, 232, 240, 0.7);
+        --bs-btn-hover-border-color: rgba(100, 116, 139, 0.45);
+        --bs-btn-active-bg: rgba(226, 232, 240, 0.92);
+        --bs-btn-active-border-color: rgba(100, 116, 139, 0.5);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-modal-content {
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 1.5rem 3rem rgba(15, 23, 42, 0.18);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-modal-header {
+        align-items: flex-start;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-header {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        margin-top: 0.65rem;
+        padding: 0.85rem 0.95rem;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 1rem;
+        background: linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.98));
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-art-shell {
+        width: 76px;
+        height: 76px;
+        border-radius: 1rem;
+        overflow: hidden;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(226, 232, 240, 0.95));
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.08);
+        flex: 0 0 auto;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-art {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-meta {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-character {
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #475569;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-name {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-section {
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 0.95rem;
+        background: rgba(248, 250, 252, 0.72);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-section + .guild-sheet-snapshot-section {
+        margin-top: 0.85rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-section-title {
+        margin-bottom: 0.55rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #334155;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-ability {
+        color: #0f172a;
+        line-height: 1.5;
+        white-space: normal;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-stat {
+        padding: 0.8rem 0.7rem;
+        border-radius: 0.85rem;
+        background: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        text-align: center;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-stat-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.1;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-stat-label {
+        margin-top: 0.3rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-rability-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.65rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-rability-item {
+        padding: 0.75rem 0.8rem;
+        border-radius: 0.85rem;
+        background: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-rability-main {
+        color: #0f172a;
+        line-height: 1.4;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-inline-pill {
+        vertical-align: middle;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-rability-effects {
+        margin: 0.45rem 0 0 1rem;
+        padding: 0;
+        color: #475569;
+        font-size: 0.84rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-customization-entry {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+        padding: 0.75rem 0.8rem;
+        border-radius: 0.85rem;
+        background: #ffffff;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-customization-entry + .guild-sheet-snapshot-customization-entry {
+        margin-top: 0.55rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-customization-slot,
+    .guild-battle-sheet-page .guild-sheet-snapshot-customization-kind {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.18rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        background: rgba(226, 232, 240, 0.7);
+        color: #334155;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-customization-description {
+        color: #0f172a;
+        font-size: 0.9rem;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-error {
+        display: none;
+        margin-top: 0.85rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 0.8rem;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        color: #b91c1c;
+        font-weight: 600;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-error.active {
+        display: block;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-spinner {
+        visibility: hidden;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-snapshot-spinner.active {
+        visibility: visible;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-customization-block {
+        padding: 0.55rem 0.7rem;
+        border-radius: 0.75rem;
+        background: rgba(25, 135, 84, 0.06);
+        border: 1px solid rgba(25, 135, 84, 0.14);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-customization-title {
+        margin-bottom: 0.25rem;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #146c43;
+        text-transform: uppercase;
+    }
+
+    .guild-battle-sheet-page .guild-sheet-customization-list {
+        color: #355e4b;
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+
+    .guild-battle-sheet-page .sheet-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.24rem 0.62rem;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        line-height: 1.2;
+        font-weight: 600;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .guild-battle-sheet-page .sheet-pill-light {
+        background: #f8f9fa;
+        color: #212529;
+        border-color: rgba(33, 37, 41, 0.12);
+    }
+
+    .guild-battle-sheet-page .sheet-pill-neutral {
+        background: #e9ecef;
+        color: #212529;
+        border-color: rgba(33, 37, 41, 0.14);
+    }
+
+    .guild-battle-sheet-page .sheet-pill-strong {
+        background: #198754;
+        color: #fff;
+        border-color: #146c43;
+    }
+
+    .guild-battle-sheet-page .sheet-pill-dark {
+        background: #212529;
+        color: #fff;
+        border-color: #212529;
+    }
+
+    .guild-battle-sheet-page .sheet-pill-highlight {
+        background: rgba(25, 135, 84, 0.14);
+        color: #146c43;
+        border-color: rgba(25, 135, 84, 0.24);
+    }
+
+    .guild-battle-sheet-page .gear-thumb-button {
+        padding: 0;
+        border: 0;
+        background: none;
+        cursor: pointer;
+        border-radius: 0.85rem;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .guild-battle-sheet-page .gear-thumb,
+    .guild-battle-sheet-page .utility-thumb {
+        display: block;
+        object-fit: cover;
+        background: rgba(248, 249, 250, 0.9);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 0.85rem;
+    }
+
+    .guild-battle-sheet-page .gear-thumb {
+        width: 78px;
+        height: 78px;
+    }
+
+    .guild-battle-sheet-page .utility-thumb {
+        width: 56px;
+        height: 56px;
+    }
+
+    .guild-battle-sheet-page .utility-thumb-button {
+        border-radius: 0.75rem;
+    }
+
+    .guild-battle-sheet-page .utility-entry strong,
+    .guild-battle-sheet-page .recommendation-card h4 {
+        color: var(--guild-sheet-title);
+        letter-spacing: -0.01em;
+    }
+
+    .guild-battle-sheet-page .ability-snippet,
+    .guild-battle-sheet-page .line-clamp-3 {
+        display: block;
+        overflow: visible;
+        white-space: normal;
+    }
+
+    .guild-battle-sheet-page .writeup-list {
+        margin: 0;
+        padding-left: 1.15rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .guild-battle-sheet-page .debug-block {
+        margin-top: 0.65rem;
+        padding: 0.7rem;
+        border-radius: 0.75rem;
+        background: rgba(248, 249, 250, 0.95);
+        border: 1px dashed rgba(108, 117, 125, 0.35);
+    }
+
+    .guild-battle-sheet-page .guild-sheet-section-card .card-body {
+        min-height: 13rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .guild-battle-sheet-page .guild-sheet-card-header {
+            padding-bottom: 0.9rem !important;
+        }
+
+        .guild-battle-sheet-page .gear-thumb {
+            width: 68px;
+            height: 68px;
+        }
+
+        .guild-battle-sheet-page .guild-sheet-page-title {
+            font-size: 1.55rem;
+        }
+    }
+</style>

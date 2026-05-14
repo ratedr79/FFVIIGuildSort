@@ -16,6 +16,8 @@ All notable changes to this project should be documented in this file.
 ## Unreleased
 
 ### Added
+- Added a new public `/GuildBattleSheet` page that generates featured-only monthly guild battle recommendations from `WeaponSearchDataService`, including month selection, auto-generated write-up fallback, debug reasoning, and shared large-art preview modal support.
+- Guild Battle Sheet main recommendations now expose a `Traditional` vs `Character` mode selector, package badges for character-mode cards, and always-visible explanation UI including score pills, `Included because:` summaries, and relevant customization details when needed.
 - Added `docs/notes/buff-debuff-reference.md` as a user-readable reference for observed ally/enemy buff-debuff tier scaling and special status notes.
 - Developer documentation set under `docs/`:
   - `docs/getting-started/onboarding.md`
@@ -44,8 +46,11 @@ All notable changes to this project should be documented in this file.
 - Reclassified the previously reserved sigil-resistance family slots (`BuffDebuffType` `47` and `52`) as `Square Sigil Resistance Up/Down` based on newly identified square-sigil game asset evidence.
 - Gear Search compare modal now preserves the rendered element display and full stat-stack markup when scraping selected rows, fixing a regression where the compare `Element` row could appear blank and keeping the compare stat row visually aligned with the main results.
 - Gear Search ability/customization text now resolves additional status-change labels instead of leaking raw IDs for affected items such as `Elegant Gloves`, `Elegant Dress`, and `Crimson Blitz` customizations; stale amp-healing and ATB-conservation formatter cases in `WeaponSearchDataService` were corrected at the same time.
+- Guild Battle Sheet main recommendation scoring now excludes self-only exploit-weakness and self-only element amplification effects from being treated as party/boss fight utility on off-fit DPS weapons, preventing Transgressor-style false positives.
 
 ### Changed
+- Added `data/guildBattleSheets.json` as a runtime-copied monthly config source for the new Guild Battle Sheet page, with newest-month defaulting and override hooks for `topPicks` / `hiddenWeapons`.
+- Guild Battle Sheet scoring now more explicitly separates party-facing support, boss debuff setup, and self-only DPS prep, adds target-breadth preference for broader support/setup coverage, and prefers fight-facing companions over self-only stat-stick companions in Character mode.
 - Gear Search now includes a top-level `Buff/Debuff Notes` button that opens an in-page modal with ally-vs-enemy tier tables and special status notes for quick lookup while browsing gear.
 - Gear Search quick filters now include dedicated `Earth/Fire/Ice/Lightning/Water/Wind` + `Phys.` / `Mag.` combo buttons for faster element-specific physical/magical browsing.
 - Gear Search quick filters now also include `Circle`, `Triangle`, `X`, and `Diamond` sigil pills, wired as shortcuts over the existing advanced sigil checkbox filter state.
@@ -91,6 +96,8 @@ All notable changes to this project should be documented in this file.
 - Support Team Builder ranked team rows now allow opening weapon details modal from both main-hand and off-hand weapon names.
 
 ### Docs
+- Updated `README.md`, `docs/features/other-pages.md`, and `docs/configuration/configuration-reference.md` to document the new public Guild Battle Sheet page, its featured-only generation rules, and the `data/guildBattleSheets.json` maintenance format.
+- Updated Guild Battle Sheet documentation in `README.md`, `docs/features/other-pages.md`, and `docs/configuration/configuration-reference.md` to cover recommendation modes, explanation UI, `conditionalMechanics`, current featured-vs-lower-section behavior, and recent self-only utility scoring refinements.
 - Updated `README.md`, `docs/README.md`, and `docs/features/other-pages.md` to document the new Gear Search Buff/Debuff Notes modal and the supporting buff/debuff reference note.
 - Updated the user-facing Gear Search README section and developer docs to note that mapped status-condition/status-change effects now render localized names instead of raw internal IDs in ability/customization text.
 - Updated the Gear Search and Data Diagnostics documentation to cover large-image preview modals plus separate `lg`-folder image coverage checks.

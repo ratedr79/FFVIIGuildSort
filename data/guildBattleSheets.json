@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "battles": [
+    {
+      "id": "2026-05",
+      "month": "May",
+      "year": 2026,
+      "element": "Earth",
+      "abilityType": "Physical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
+    {
+      "id": "2026-04",
+      "month": "April",
+      "year": 2026,
+      "element": "Ice",
+      "abilityType": "Magical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
+    {
+      "id": "2026-03",
+      "month": "March",
+      "year": 2026,
+      "element": "Lightning",
+      "abilityType": "Magical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
+    {
+      "id": "2026-02",
+      "month": "February",
+      "year": 2026,
+      "element": "Fire",
+      "abilityType": "Magical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
+    {
+      "id": "2026-01",
+      "month": "January",
+      "year": 2026,
+      "element": "Wind",
+      "abilityType": "Magical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
+    {
+      "id": "2025-12",
+      "month": "December",
+      "year": 2025,
+      "element": "Lightning",
+      "abilityType": "Physical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    }
+  ]
+}

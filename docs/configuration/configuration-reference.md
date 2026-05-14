@@ -39,6 +39,7 @@ Used by `SharedAccessGate`:
 ### Operational/Feature Data
 - `teamTemplates.json`: valid team role templates and priority.
 - `guildRules.json`: lock/exclusion/ensure-player rules for guild assignment.
+- `guildBattleSheets.json`: monthly public guild battle sheet definitions (`id`, `month`, `year`, `element`, `abilityType`, optional `rank`, `writeup`, `topPicks`, `hiddenWeapons`, and `conditionalMechanics`).
 - `nameCorrections.json`: correction maps for weapon/outfit names.
 - `summons.json`, `memoria.json`: utility catalog data.
 - `weaponData*.tsv`, `weaponFallback.json`: gear-related data support.
@@ -50,12 +51,15 @@ Used by `SharedAccessGate`:
 
 ## Build Copy Behavior
 From project file:
-- `data/enemyAbilities.json` and `data/stagePointCalibration.json` are copied `Always`.
+- `data/enemyAbilities.json`, `data/guildBattleSheets.json`, and `data/stagePointCalibration.json` are copied `Always`.
 - `data/weaponData.tsv` is copied `Always`.
 - External TSV copy is `PreserveNewest`.
 
 ## Recommended Ops Practices
 - Keep Google Sheet URLs up to date for each guild battle cycle.
+- Update `data/guildBattleSheets.json` once per month so `/GuildBattleSheet` defaults to the current event and keeps historical months selectable.
+- Use `topPicks` and `hiddenWeapons` sparingly for obvious monthly exceptions; prefer recommendation-rule fixes when the same class of issue can recur.
+- Use `conditionalMechanics` only for debug-only investigative or edge-case surfacing. They are intentionally ignored in normal non-debug ranking.
 - Version password using `PasswordVersion` when leadership password rotates.
 - Update calibration points as battle scoring changes.
 - Keep Dispatcher path valid on host environments that use Zelarith workflow.
