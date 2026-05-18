@@ -1,5 +1,6 @@
 @page
 @using System.Collections.Generic
+@using System.Linq
 @using System.Text.Json
 @model FFVIIEverCrisisAnalyzer.Pages.EnemyStatsModel
 @{
@@ -69,6 +70,24 @@
         text-transform: uppercase;
         padding: 0.12rem 0.45rem;
         line-height: 1.2;
+    }
+
+    .enemy-result-pill.mode-solo {
+        border-color: #b9d8ff;
+        background: #eaf4ff;
+        color: #2d5f96;
+    }
+
+    .enemy-result-pill.mode-coop {
+        border-color: #bce8c8;
+        background: #ebfbf0;
+        color: #2f7b44;
+    }
+
+    .enemy-result-pill.mode-both {
+        border-color: #d4d6ea;
+        background: #f2f3fb;
+        color: #515774;
     }
 
     .enemy-result-grid {
@@ -145,7 +164,7 @@
 
 <form method="post" asp-page-handler="Search" class="mb-4">
     <div class="row g-3">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <label asp-for="SearchQuery" class="form-label">Boss or stage name</label>
             <div class="position-relative">
                 <input asp-for="SearchQuery" class="form-control" placeholder="e.g. Titan" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="enemy-search-suggestions" />
@@ -153,6 +172,15 @@
             </div>
             <div class="form-text">Type at least 2 characters to see suggestions.</div>
             <span asp-validation-for="SearchQuery" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="SearchMode" class="form-label">Battle mode</label>
+            <select asp-for="SearchMode" class="form-select">
+                <option value="@EnemyStatsModel.BattleModeAll">All</option>
+                <option value="@EnemyStatsModel.BattleModeSolo">Solo</option>
+                <option value="@EnemyStatsModel.BattleModeCoop">Co-op</option>
+            </select>
+            <div class="form-text">Filter stage-name matches by battle type.</div>
         </div>
         <div class="col-md-2 pt-md-4">
             <button type="submit" class="btn btn-primary w-100">
@@ -180,6 +208,8 @@
             var displayStage = string.IsNullOrWhiteSpace(result.StageName)
                 ? "N/A"
                 : result.StageName;
+            var isSoloStage = result.SoloStageNames.Any(name => string.Equals(name, result.StageName, System.StringComparison.OrdinalIgnoreCase));
+            var isCoopStage = result.CoopStageNames.Any(name => string.Equals(name, result.StageName, System.StringComparison.OrdinalIgnoreCase));
             var detailTemplateId = $"enemy-detail-{result.EnemyId}-{result.Level}";
             <article class="enemy-result-card @(result.IsStageResult ? "stage-result" : string.Empty)">
                 <div class="enemy-result-header">
@@ -188,6 +218,18 @@
                         <div class="enemy-result-pills">
                             <span class="enemy-result-pill">Lv @displayLevel</span>
                             <span class="enemy-result-pill">ID @result.EnemyId</span>
+                            @if (result.IsStageResult && isSoloStage && isCoopStage)
+                            {
+                                <span class="enemy-result-pill mode-both">Solo + Co-op</span>
+                            }
+                            else if (result.IsStageResult && isSoloStage)
+                            {
+                                <span class="enemy-result-pill mode-solo">Solo</span>
+                            }
+                            else if (result.IsStageResult && isCoopStage)
+                            {
+                                <span class="enemy-result-pill mode-coop">Co-op</span>
+                            }
                         </div>
                     </div>
                 </div>

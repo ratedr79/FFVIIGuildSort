@@ -9,6 +9,10 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 {
     public class EnemyStatsModel : PageModel
     {
+        public const string BattleModeAll = "all";
+        public const string BattleModeSolo = "solo";
+        public const string BattleModeCoop = "coop";
+
         private readonly EnemyCatalog _enemyCatalog;
 
         public EnemyStatsModel(EnemyCatalog enemyCatalog)
@@ -18,6 +22,9 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
         [BindProperty]
         public string? SearchQuery { get; set; }
+
+        [BindProperty]
+        public string SearchMode { get; set; } = BattleModeAll;
 
         public IReadOnlyList<string> SearchSuggestions { get; private set; } = new List<string>();
 
@@ -31,13 +38,15 @@ namespace FFVIIEverCrisisAnalyzer.Pages
 
         public void OnGet()
         {
-            SearchSuggestions = _enemyCatalog.GetSearchSuggestions();
+            SearchMode = NormalizeBattleMode(SearchMode);
+            SearchSuggestions = _enemyCatalog.GetSearchSuggestions(SearchMode);
         }
 
         public IActionResult OnPostSearch()
         {
             HasSearchAttempt = true;
-            SearchSuggestions = _enemyCatalog.GetSearchSuggestions();
+            SearchMode = NormalizeBattleMode(SearchMode);
+            SearchSuggestions = _enemyCatalog.GetSearchSuggestions(SearchMode);
 
             if (string.IsNullOrWhiteSpace(SearchQuery))
             {
@@ -45,7 +54,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 return Page();
             }
 
-            Results = _enemyCatalog.SearchEnemies(SearchQuery).ToList();
+            Results = _enemyCatalog.SearchEnemies(SearchQuery, SearchMode).ToList();
             DetailsByKey = new Dictionary<string, EnemyDetailView>();
 
             foreach (var result in Results)
@@ -63,6 +72,21 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public EnemyDetailView? FindDetail(EnemySearchResult result)
         {
             return DetailsByKey.TryGetValue(result.Key, out var detail) ? detail : null;
+        }
+
+        private static string NormalizeBattleMode(string? mode)
+        {
+            if (string.Equals(mode, BattleModeSolo, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return BattleModeSolo;
+            }
+
+            if (string.Equals(mode, BattleModeCoop, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return BattleModeCoop;
+            }
+
+            return BattleModeAll;
         }
     }
 }

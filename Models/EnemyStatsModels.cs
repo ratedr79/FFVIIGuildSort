@@ -10,6 +10,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string Name { get; set; } = string.Empty;
         public string SpeciesSummary { get; set; } = string.Empty;
         public IReadOnlyList<string> StageNames { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<string> SoloStageNames { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<string> CoopStageNames { get; set; } = Array.Empty<string>();
         public string StageSummary { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string DisplayLevelText { get; set; } = string.Empty;

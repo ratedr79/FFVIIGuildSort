@@ -10,6 +10,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
 {
     public sealed class EnemyCatalog
     {
+        private const string BattleModeAll = "all";
+        private const string BattleModeSolo = "solo";
+        private const string BattleModeCoop = "coop";
+
         private readonly ILogger<EnemyCatalog> _logger;
         private readonly Dictionary<int, EnemyRecord> _enemies = new();
         private readonly Dictionary<int, List<int>> _levelsByEnemyId = new();
@@ -19,6 +23,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private readonly Dictionary<long, List<ResistElementRaw>> _elementResistsById = new();
         private readonly Dictionary<int, List<ResistStatusConditionRaw>> _statusResistsById = new();
         private readonly Dictionary<long, List<ResistBuffDebuffRaw>> _buffResistsById = new();
+        private readonly Dictionary<long, string> _eventBattleLocalization = new();
         private readonly LocalizationStore _localizationStore;
         private readonly ConcurrentDictionary<(int enemyId, int level), EnemyDetailView> _detailCache = new();
         private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -92,6 +97,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var localizationPath = Path.Combine(basePath, "Localization", "en.json");
             _localizationStore = LoadLocalization(localizationPath);
 
+            LoadEventBattleLocalization(Path.Combine(basePath, "Localization", "en", "m_event_solo_battle.json"));
+            LoadEventBattleLocalization(Path.Combine(basePath, "Localization", "en", "m_event_multi_battle.json"));
+
             var masterPath = Path.Combine(basePath, "MasterData", "gl");
             if (!Directory.Exists(masterPath))
             {
@@ -109,7 +117,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
         }
 
-        public IReadOnlyList<EnemySearchResult> SearchEnemies(string query)
+        public IReadOnlyList<EnemySearchResult> SearchEnemies(string query, string? battleMode = null)
         {
             if (string.IsNullOrWhiteSpace(query) || _enemies.Count == 0)
             {
@@ -117,14 +125,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             query = query.Trim();
+            var normalizedBattleMode = NormalizeBattleMode(battleMode);
             var results = new List<EnemySearchResult>();
 
             foreach (var record in _enemies.Values)
             {
+                var stageNamesForMode = GetStageNamesForMode(record, normalizedBattleMode);
+                if (!string.Equals(normalizedBattleMode, BattleModeAll, StringComparison.OrdinalIgnoreCase)
+                    && stageNamesForMode.Count == 0)
+                {
+                    continue;
+                }
+
                 var matchesName = record.Name.Contains(query, StringComparison.OrdinalIgnoreCase);
-                var matchingStageNames = record.StageNames.Count == 0
+                var matchingStageNames = stageNamesForMode.Count == 0
                     ? new List<string>()
-                    : record.StageNames
+                    : stageNamesForMode
                         .Where(stage => stage.Contains(query, StringComparison.OrdinalIgnoreCase))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToList();
@@ -154,19 +170,46 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return results;
         }
 
-        public IReadOnlyList<string> GetSearchSuggestions()
+        public IReadOnlyList<string> GetSearchSuggestions(string? battleMode = null)
         {
             if (_enemies.Count == 0)
             {
                 return Array.Empty<string>();
             }
 
+            var normalizedBattleMode = NormalizeBattleMode(battleMode);
+
             return _enemies.Values
-                .SelectMany(record => new[] { record.Name }.Concat(record.StageNames))
+                .SelectMany(record => new[] { record.Name }.Concat(GetStageNamesForMode(record, normalizedBattleMode)))
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(value => value)
                 .ToList();
+        }
+
+        private static IReadOnlyList<string> GetStageNamesForMode(EnemyRecord record, string normalizedBattleMode)
+        {
+            return normalizedBattleMode switch
+            {
+                BattleModeSolo => record.SoloStageNames,
+                BattleModeCoop => record.CoopStageNames,
+                _ => record.StageNames
+            };
+        }
+
+        private static string NormalizeBattleMode(string? battleMode)
+        {
+            if (string.Equals(battleMode, BattleModeSolo, StringComparison.OrdinalIgnoreCase))
+            {
+                return BattleModeSolo;
+            }
+
+            if (string.Equals(battleMode, BattleModeCoop, StringComparison.OrdinalIgnoreCase))
+            {
+                return BattleModeCoop;
+            }
+
+            return BattleModeAll;
         }
 
         private static void AddEnemyRows(EnemyRecord record, IReadOnlyList<int> levels, List<EnemySearchResult> results)
@@ -180,6 +223,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Name = record.Name,
                     SpeciesSummary = record.SpeciesSummary,
                     StageNames = record.StageNames,
+                    SoloStageNames = record.SoloStageNames,
+                    CoopStageNames = record.CoopStageNames,
                     StageSummary = record.StageSummary,
                     DisplayName = record.Name,
                     DisplayLevelText = level.ToString(),
@@ -211,6 +256,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Name = record.Name,
                     SpeciesSummary = record.SpeciesSummary,
                     StageNames = record.StageNames,
+                    SoloStageNames = record.SoloStageNames,
+                    CoopStageNames = record.CoopStageNames,
                     StageSummary = record.StageSummary,
                     DisplayName = record.Name,
                     DisplayLevelText = fallbackLevel.ToString(),
@@ -306,6 +353,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var species = LoadList<SpeciesRaw>(Path.Combine(masterPath, "Species.json"));
             var speciesRels = LoadList<SpeciesGroupRelRaw>(Path.Combine(masterPath, "SpeciesGroupRel.json"));
             var soloAreaBattles = LoadList<SoloAreaBattleRaw>(Path.Combine(masterPath, "SoloAreaBattle.json"));
+            var eventSoloBattles = LoadList<EventSoloBattleRaw>(Path.Combine(masterPath, "EventSoloBattle.json"));
+            var eventMultiBattles = LoadList<EventMultiBattleRaw>(Path.Combine(masterPath, "EventMultiBattle.json"));
             var battles = LoadList<BattleRaw>(Path.Combine(masterPath, "Battle.json"));
             var battleWaves = LoadList<BattleWaveRaw>(Path.Combine(masterPath, "BattleWave.json"));
 
@@ -344,13 +393,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 _speciesByGroup[group.Key] = names;
             }
 
-            var enemyStageNames = BuildStageNameLookup(soloAreaBattles, battles, battleWaves, battleEnemies);
+            var enemyStageNames = BuildStageNameLookup(soloAreaBattles, eventSoloBattles, eventMultiBattles, battles, battleWaves, battleEnemies);
 
             foreach (var enemy in enemies)
             {
                 var stageNames = enemyStageNames.TryGetValue(enemy.Id, out var stageList)
                     ? stageList
-                    : Array.Empty<string>();
+                    : StageNamesByMode.Empty;
                 var speciesNamesForEnemy = _speciesByGroup.TryGetValue(enemy.SpeciesGroupId, out var speciesList)
                     ? speciesList
                     : Array.Empty<string>();
@@ -370,8 +419,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     ResistStatusConditionId = enemy.ResistStatusConditionId,
                     ResistBuffDebuffId = enemy.ResistBuffDebuffId,
                     Species = speciesNamesForEnemy,
-                    StageNames = stageNames,
-                    StageSummary = BuildStageSummary(stageNames)
+                    StageNames = stageNames.All,
+                    SoloStageNames = stageNames.Solo,
+                    CoopStageNames = stageNames.Coop,
+                    StageSummary = BuildStageSummary(stageNames.All)
                 };
 
                 record.SpeciesSummary = record.Species.Count > 0
@@ -394,25 +445,32 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         }
 
-        private Dictionary<int, IReadOnlyList<string>> BuildStageNameLookup(
+        private Dictionary<int, StageNamesByMode> BuildStageNameLookup(
             IReadOnlyList<SoloAreaBattleRaw> soloAreaBattles,
+            IReadOnlyList<EventSoloBattleRaw> eventSoloBattles,
+            IReadOnlyList<EventMultiBattleRaw> eventMultiBattles,
             IReadOnlyList<BattleRaw> battles,
             IReadOnlyList<BattleWaveRaw> battleWaves,
             IReadOnlyList<BattleEnemyRaw> battleEnemies)
         {
-            if (soloAreaBattles.Count == 0 || battles.Count == 0 || battleWaves.Count == 0 || battleEnemies.Count == 0)
+            if (battles.Count == 0 || battleWaves.Count == 0 || battleEnemies.Count == 0)
             {
                 return new();
             }
 
-            var stageNamesByBattleId = soloAreaBattles
-                .Select(s => new
-                {
-                    s.BattleId,
-                    Name = _localizationStore.Get(s.NameLanguageId)
-                })
-                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
-                .ToLookup(x => x.BattleId, x => x.Name);
+            var stageNamesByBattleId = new Dictionary<long, StageNameAccumulator>();
+
+            AppendStageNamesByBattleId(
+                stageNamesByBattleId,
+                soloAreaBattles.Select(s => (s.BattleId, s.NameLanguageId, BattleModeSolo)));
+
+            AppendStageNamesByBattleId(
+                stageNamesByBattleId,
+                eventSoloBattles.Select(s => (s.BattleId, s.NameLanguageId, BattleModeSolo)));
+
+            AppendStageNamesByBattleId(
+                stageNamesByBattleId,
+                eventMultiBattles.Select(s => (s.BattleId, s.NameLanguageId, BattleModeCoop)));
 
             if (stageNamesByBattleId.Count == 0)
             {
@@ -428,7 +486,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .GroupBy(b => b.EnemyGroupId)
                 .ToDictionary(g => g.Key, g => g.Select(b => b.EnemyId).Distinct().ToList());
 
-            var stageNamesByEnemy = new Dictionary<int, List<string>>();
+            var stageNamesByEnemy = new Dictionary<int, StageNameAccumulator>();
 
             foreach (var stage in stageNamesByBattleId)
             {
@@ -442,7 +500,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                var stageNameList = stage.ToList();
+                var stageNameList = stage.Value;
                 foreach (var enemyGroupId in enemyGroupIds)
                 {
                     if (!enemyIdsByGroupId.TryGetValue(enemyGroupId, out var enemyIds))
@@ -454,15 +512,31 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     {
                         if (!stageNamesByEnemy.TryGetValue(enemyId, out var list))
                         {
-                            list = new List<string>();
+                            list = new StageNameAccumulator();
                             stageNamesByEnemy[enemyId] = list;
                         }
 
-                        foreach (var stageName in stageNameList)
+                        foreach (var stageName in stageNameList.All)
                         {
-                            if (!string.IsNullOrWhiteSpace(stageName) && !list.Any(existing => existing.Equals(stageName, StringComparison.OrdinalIgnoreCase)))
+                            if (!string.IsNullOrWhiteSpace(stageName))
                             {
-                                list.Add(stageName);
+                                list.All.Add(stageName);
+                            }
+                        }
+
+                        foreach (var stageName in stageNameList.Solo)
+                        {
+                            if (!string.IsNullOrWhiteSpace(stageName))
+                            {
+                                list.Solo.Add(stageName);
+                            }
+                        }
+
+                        foreach (var stageName in stageNameList.Coop)
+                        {
+                            if (!string.IsNullOrWhiteSpace(stageName))
+                            {
+                                list.Coop.Add(stageName);
                             }
                         }
                     }
@@ -471,11 +545,56 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             return stageNamesByEnemy.ToDictionary(
                 kvp => kvp.Key,
-                kvp => (IReadOnlyList<string>)kvp.Value
-                    .Where(n => !string.IsNullOrWhiteSpace(n))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(n => n)
-                    .ToList());
+                kvp => kvp.Value.ToStageNamesByMode());
+        }
+
+        private void AppendStageNamesByBattleId(
+            Dictionary<long, StageNameAccumulator> stageNamesByBattleId,
+            IEnumerable<(long BattleId, long NameLanguageId, string Mode)> mappings)
+        {
+            foreach (var (battleId, nameLanguageId, mode) in mappings)
+            {
+                if (battleId <= 0 || nameLanguageId <= 0)
+                {
+                    continue;
+                }
+
+                var name = ResolveStageName(nameLanguageId);
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                if (!stageNamesByBattleId.TryGetValue(battleId, out var names))
+                {
+                    names = new StageNameAccumulator();
+                    stageNamesByBattleId[battleId] = names;
+                }
+
+                names.All.Add(name);
+
+                if (string.Equals(mode, BattleModeCoop, StringComparison.OrdinalIgnoreCase))
+                {
+                    names.Coop.Add(name);
+                }
+                else
+                {
+                    names.Solo.Add(name);
+                }
+            }
+        }
+
+        private string ResolveStageName(long languageId)
+        {
+            var localized = _localizationStore.Get(languageId);
+            if (!string.IsNullOrWhiteSpace(localized))
+            {
+                return localized;
+            }
+
+            return _eventBattleLocalization.TryGetValue(languageId, out var eventLocalized)
+                ? eventLocalized
+                : string.Empty;
         }
 
         private static string BuildStageSummary(IReadOnlyList<string> stageNames)
@@ -647,6 +766,39 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
         }
 
+        private void LoadEventBattleLocalization(string path)
+        {
+            if (!File.Exists(path))
+            {
+                _logger.LogWarning("Event battle localization file not found at {Path}", path);
+                return;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(path);
+                var payload = JsonSerializer.Deserialize<EventLocalizationPayloadRaw>(json, _jsonOptions);
+                if (payload?.Data == null || payload.Data.Count == 0)
+                {
+                    return;
+                }
+
+                foreach (var entry in payload.Data)
+                {
+                    if (entry.Id <= 0 || string.IsNullOrWhiteSpace(entry.Value))
+                    {
+                        continue;
+                    }
+
+                    _eventBattleLocalization[entry.Id] = entry.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse event battle localization file {Path}", path);
+            }
+        }
+
         private List<T> LoadList<T>(string path)
         {
             if (!File.Exists(path))
@@ -685,7 +837,34 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public IReadOnlyList<string> Species { get; set; } = Array.Empty<string>();
             public string SpeciesSummary { get; set; } = string.Empty;
             public IReadOnlyList<string> StageNames { get; set; } = Array.Empty<string>();
+            public IReadOnlyList<string> SoloStageNames { get; set; } = Array.Empty<string>();
+            public IReadOnlyList<string> CoopStageNames { get; set; } = Array.Empty<string>();
             public string StageSummary { get; set; } = string.Empty;
+        }
+
+        private sealed class StageNameAccumulator
+        {
+            public HashSet<string> All { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public HashSet<string> Solo { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public HashSet<string> Coop { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            public StageNamesByMode ToStageNamesByMode()
+            {
+                return new StageNamesByMode
+                {
+                    All = All.OrderBy(n => n).ToList(),
+                    Solo = Solo.OrderBy(n => n).ToList(),
+                    Coop = Coop.OrderBy(n => n).ToList()
+                };
+            }
+        }
+
+        private sealed class StageNamesByMode
+        {
+            public static StageNamesByMode Empty { get; } = new();
+            public IReadOnlyList<string> All { get; set; } = Array.Empty<string>();
+            public IReadOnlyList<string> Solo { get; set; } = Array.Empty<string>();
+            public IReadOnlyList<string> Coop { get; set; } = Array.Empty<string>();
         }
 
         private sealed class EnemyRaw
@@ -714,6 +893,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
         }
 
         private sealed class SoloAreaBattleRaw
+        {
+            public int Id { get; set; }
+            public long BattleId { get; set; }
+            public long NameLanguageId { get; set; }
+        }
+
+        private sealed class EventSoloBattleRaw
+        {
+            public int Id { get; set; }
+            public long BattleId { get; set; }
+            public long NameLanguageId { get; set; }
+        }
+
+        private sealed class EventMultiBattleRaw
         {
             public int Id { get; set; }
             public long BattleId { get; set; }
@@ -802,6 +995,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 return string.Empty;
             }
+        }
+
+        private sealed class EventLocalizationPayloadRaw
+        {
+            public List<EventLocalizationEntryRaw> Data { get; set; } = new();
+        }
+
+        private sealed class EventLocalizationEntryRaw
+        {
+            public long Id { get; set; }
+            public string Value { get; set; } = string.Empty;
         }
     }
 }
