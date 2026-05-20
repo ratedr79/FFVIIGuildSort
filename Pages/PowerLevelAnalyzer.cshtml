@@ -459,7 +459,16 @@
                                                         {
                                                             <div class="mb-2">
                                                                 <strong>Team Synergy Bonus</strong>: @team.Breakdown.SynergyBonus.ToString("N0")
-                                                                <span class="text-muted">(from weapon synergy effects)</span>
+                                                                <span class="text-muted">(weighted weapon synergy categories with diminishing returns)</span>
+                                                                @if (team.Breakdown.SynergyNotes != null && team.Breakdown.SynergyNotes.Count > 0)
+                                                                {
+                                                                    <div class="small text-muted mt-1">
+                                                                        @foreach (var note in team.Breakdown.SynergyNotes)
+                                                                        {
+                                                                            <div>@note</div>
+                                                                        }
+                                                                    </div>
+                                                                }
                                                             </div>
                                                         }
 
@@ -621,6 +630,12 @@
                                                                                         <th>Weapon</th>
                                                                                         <th>OB</th>
                                                                                         <th>Final</th>
+                                                                                        <th>Dmg</th>
+                                                                                        <th>Eff</th>
+                                                                                        <th>Passive</th>
+                                                                                        <th>Cust</th>
+                                                                                        <th>Rel</th>
+                                                                                        <th>DmgWt</th>
                                                                                         <th>PotUsed%</th>
                                                                                         <th>Mult%</th>
                                                                                         <th>EffPot%</th>
@@ -641,6 +656,12 @@
                                                                                             <td>@w.WeaponName</td>
                                                                                             <td>@w.OverboostLevel</td>
                                                                                             <td>@w.FinalWeaponScore.ToString("N2")</td>
+                                                                                            <td>@w.DamageScore.ToString("N2")</td>
+                                                                                            <td>@w.EffectScore.ToString("N2")</td>
+                                                                                            <td>@w.PassiveScore.ToString("N2")</td>
+                                                                                            <td>@w.CustomizationScore.ToString("N2")</td>
+                                                                                            <td>@w.ReliabilityScore.ToString("N2")</td>
+                                                                                            <td>@w.RoleAdjustedDamageWeight.ToString("N2")</td>
                                                                                             <td>
                                                                                                 @(w.AbilityPotPercentUsed?.ToString("N1") ?? "-")
                                                                                                 @if (w.HasCustomizations)
@@ -659,7 +680,7 @@
                                                                                         @if (weaponInfo != null && weaponInfo.GearSearchRAbilityDescriptions.Count > 0)
                                                                                         {
                                                                                             <tr>
-                                                                                                <td colspan="12" class="text-muted">
+                                                                                                <td colspan="18" class="text-muted">
                                                                                                     <small>
                                                                                                         <strong>Additional</strong>:
                                                                                                         @string.Join(" | ", weaponInfo.GearSearchRAbilityDescriptions)
@@ -670,15 +691,23 @@
                                                                                         @if (!string.IsNullOrWhiteSpace(w.SelectionReason))
                                                                                         {
                                                                                             <tr>
-                                                                                                <td colspan="12" class="text-muted">
+                                                                                                <td colspan="18" class="text-muted">
                                                                                                     <small><strong>Selected</strong>: @w.SelectionReason</small>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        }
+                                                                                        @if (!string.IsNullOrWhiteSpace(w.DamageSuppressionReason))
+                                                                                        {
+                                                                                            <tr>
+                                                                                                <td colspan="18" class="text-muted">
+                                                                                                    <small><strong>Damage weighting</strong>: @w.DamageSuppressionReason</small>
                                                                                                 </td>
                                                                                             </tr>
                                                                                         }
                                                                                         @if (!string.IsNullOrWhiteSpace(w.SynergyReason))
                                                                                         {
                                                                                             <tr>
-                                                                                                <td colspan="12" class="text-muted">
+                                                                                                <td colspan="18" class="text-muted">
                                                                                                     <small>
                                                                                                         <strong>Synergy</strong>:
                                                                                                         @w.SynergyReason
@@ -696,6 +725,12 @@
                                                                                             <td>@ch.UltimateWeapon.WeaponName</td>
                                                                                             <td>@ch.UltimateWeapon.OverboostLevel</td>
                                                                                             <td>@ch.UltimateWeapon.FinalWeaponScore.ToString("N2")</td>
+                                                                                            <td>@ch.UltimateWeapon.DamageScore.ToString("N2")</td>
+                                                                                            <td>@ch.UltimateWeapon.EffectScore.ToString("N2")</td>
+                                                                                            <td>@ch.UltimateWeapon.PassiveScore.ToString("N2")</td>
+                                                                                            <td>@ch.UltimateWeapon.CustomizationScore.ToString("N2")</td>
+                                                                                            <td>@ch.UltimateWeapon.ReliabilityScore.ToString("N2")</td>
+                                                                                            <td>@ch.UltimateWeapon.RoleAdjustedDamageWeight.ToString("N2")</td>
                                                                                             <td>
                                                                                                 @(ch.UltimateWeapon.AbilityPotPercentUsed?.ToString("N1") ?? "-")
                                                                                                 @if (ch.UltimateWeapon.HasCustomizations)
@@ -714,7 +749,7 @@
                                                                                         @if (ultInfo != null && ultInfo.GearSearchRAbilityDescriptions.Count > 0)
                                                                                         {
                                                                                             <tr>
-                                                                                                <td colspan="12" class="text-muted">
+                                                                                                <td colspan="18" class="text-muted">
                                                                                                     <small>
                                                                                                         <strong>Additional</strong>:
                                                                                                         @string.Join(" | ", ultInfo.GearSearchRAbilityDescriptions)
@@ -725,15 +760,23 @@
                                                                                         @if (!string.IsNullOrWhiteSpace(ch.UltimateWeapon.SelectionReason))
                                                                                         {
                                                                                             <tr>
-                                                                                                <td colspan="12" class="text-muted">
+                                                                                                <td colspan="18" class="text-muted">
                                                                                                     <small><strong>Selected</strong>: @ch.UltimateWeapon.SelectionReason</small>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        }
+                                                                                        @if (!string.IsNullOrWhiteSpace(ch.UltimateWeapon.DamageSuppressionReason))
+                                                                                        {
+                                                                                            <tr>
+                                                                                                <td colspan="18" class="text-muted">
+                                                                                                    <small><strong>Damage weighting</strong>: @ch.UltimateWeapon.DamageSuppressionReason</small>
                                                                                                 </td>
                                                                                             </tr>
                                                                                         }
                                                                                         @if (!string.IsNullOrWhiteSpace(ch.UltimateWeapon.SynergyReason))
                                                                                         {
                                                                                             <tr>
-                                                                                                <td colspan="12" class="text-muted">
+                                                                                                <td colspan="18" class="text-muted">
                                                                                                     <small>
                                                                                                         <strong>Synergy</strong>:
                                                                                                         @ch.UltimateWeapon.SynergyReason
@@ -798,9 +841,14 @@
                                                                                     <th>Outfit</th>
                                                                                     <th>Slot</th>
                                                                                     <th>Base</th>
-                                                                                    <th>Synergy Matches</th>
-                                                                                    <th>Synergy Points</th>
-                                                                                    <th>Slot Mult</th>
+                                                                                    <th>Passive (R)</th>
+                                                                                    <th>Command Ability</th>
+                                                                                    <th>Context Fit</th>
+                                                                                    <th>Reliability</th>
+                                                                                    <th>Raw Matches</th>
+                                                                                    <th>Weighted Synergy</th>
+                                                                                    <th>Passive Mult</th>
+                                                                                    <th>Cmd?</th>
                                                                                     <th>Final</th>
                                                                                 </tr>
                                                                             </thead>
@@ -813,15 +861,20 @@
                                                                                         <td>@c.CostumeName</td>
                                                                                         <td>@c.Slot</td>
                                                                                         <td>@c.BasePoints</td>
+                                                                                        <td>@c.PassivePoints.ToString("N1")</td>
+                                                                                        <td>@c.CommandPoints.ToString("N1")</td>
+                                                                                        <td>@c.ContextPoints.ToString("N1")</td>
+                                                                                        <td>@c.ReliabilityPoints.ToString("N1")</td>
                                                                                         <td>@c.SynergyMatchCount</td>
                                                                                         <td>@c.SynergyPoints</td>
                                                                                         <td>@c.SlotMultiplier</td>
+                                                                                        <td>@(c.CommandAbilityEnabled ? "Y" : "N")</td>
                                                                                         <td><strong>@c.FinalCostumeScore.ToString("N0")</strong></td>
                                                                                     </tr>
                                                                                     @if (costumeInfo != null && costumeInfo.AdditionalAbilities != null && costumeInfo.AdditionalAbilities.Count > 0)
                                                                                     {
                                                                                         <tr>
-                                                                                            <td colspan="7" class="text-muted">
+                                                                                            <td colspan="12" class="text-muted">
                                                                                                 <small><strong>Additional</strong>: @string.Join(" | ", costumeInfo.AdditionalAbilities)</small>
                                                                                             </td>
                                                                                         </tr>
@@ -829,7 +882,7 @@
                                                                                     @if (!string.IsNullOrWhiteSpace(c.SynergyReason))
                                                                                     {
                                                                                         <tr>
-                                                                                            <td colspan="7" class="text-muted">
+                                                                                            <td colspan="12" class="text-muted">
                                                                                                 <small><strong>Synergy</strong>: @c.SynergyReason</small>
                                                                                             </td>
                                                                                         </tr>

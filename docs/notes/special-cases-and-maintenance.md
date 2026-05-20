@@ -10,6 +10,9 @@ This document captures nuanced behavior that should be retained unless intention
 - Survey dedupe uses latest `Timestamp` per in-game name.
 - Missing configured players (guild rules) can be inserted with placeholder score 0.
 - Team scoring strongly favors DPS + weapon potency context; this is intentional.
+- DPS off-hand handling is intentionally utility-biased rather than a second full-value damage slot.
+- Team synergy bonus must be derived from the final selected weapons after re-optimization, using weighted categories plus diminishing returns.
+- Outfit scoring intentionally preserves the slot rule: main outfit gets full command value, while sub outfits get no command value and only half passive/base contribution.
 - Weapon customization behavior:
   - customizations unlock once a weapon reaches `Lv80+`
   - analyzer/UI surfaces should not suppress customization display solely because a weapon is `OB0`

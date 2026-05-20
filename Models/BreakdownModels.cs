@@ -15,10 +15,15 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string CostumeName { get; set; } = string.Empty;
         public string Slot { get; set; } = string.Empty; // Main/Sub
         public double BasePoints { get; set; }
+        public double PassivePoints { get; set; }
+        public double CommandPoints { get; set; }
+        public double ContextPoints { get; set; }
+        public double ReliabilityPoints { get; set; }
         public int SynergyMatchCount { get; set; }
         public double SynergyPoints { get; set; }
         public double ElementalAbilityPoints { get; set; }
         public double SlotMultiplier { get; set; } = 1.0;
+        public bool CommandAbilityEnabled { get; set; } = true;
         public double FinalCostumeScore { get; set; }
         public string? SynergyReason { get; set; }
     }
@@ -44,6 +49,13 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public double Ob6Points { get; set; }
         public double Ob10Points { get; set; }
         public double IntermediateObPoints { get; set; }
+        public double DamageScore { get; set; }
+        public double EffectScore { get; set; }
+        public double PassiveScore { get; set; }
+        public double CustomizationScore { get; set; }
+        public double ReliabilityScore { get; set; }
+        public double RoleAdjustedDamageWeight { get; set; }
+        public string? DamageSuppressionReason { get; set; }
         public double UltimateMultiplier { get; set; } = 1.0;
         public double FinalWeaponScore { get; set; }
         public bool HasCustomizations { get; set; }
@@ -87,6 +99,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<UtilityItemScoreBreakdown> SelectedUtilityItems { get; set; } = new();
         public double UtilityScore { get; set; }
         public double SynergyBonus { get; set; }
+        public List<string> SynergyNotes { get; set; } = new();
         public List<CharacterScoreBreakdown> Characters { get; set; } = new();
         public double TeamScore { get; set; }
         public List<string> AppliedRules { get; set; } = new();

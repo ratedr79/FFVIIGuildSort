@@ -559,6 +559,10 @@
         font-weight: 700;
     }
 
+    .filters-header-toggle {
+        white-space: nowrap;
+    }
+
     .sticky-gear-controls {
         position: sticky;
         top: 0.75rem;
@@ -597,6 +601,12 @@
         min-height: 2.6rem;
         padding-inline: 1rem;
         border-radius: 0.85rem;
+    }
+
+    .gear-filters-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .gear-search-toolbar-section {
@@ -732,6 +742,10 @@
         .gear-search-toolbar-actions .advanced-toggle-btn {
             flex: 1 1 auto;
             min-height: 2.8rem;
+        }
+
+        .gear-filters-header-actions {
+            width: auto;
         }
 
         .character-chip-grid,
@@ -2183,8 +2197,8 @@
                     <input id="searchBox" type="text" class="form-control" placeholder="Search by weapon, ability, effects..." />
                     <div class="gear-search-toolbar-hint mt-1">Search gear first, then refine with characters, quick presets, or filters.</div>
                 </div>
-                <div class="gear-search-toolbar-actions">
-                    <button class="btn advanced-toggle-btn" id="filtersToggleBtn" type="button" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
+                <div class="gear-search-toolbar-actions d-lg-none">
+                    <button class="btn advanced-toggle-btn" id="mobileFiltersToggleBtn" type="button" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
                         Filters
                     </button>
                 </div>
@@ -2251,11 +2265,16 @@
         <div class="card-header d-flex justify-content-between align-items-center gap-2">
             <div>
                 <div class="fw-semibold">Filters</div>
-                <div class="small text-muted">Refine results without leaving the current list. If advanced filters are hidden, click the Filters button above to show them.</div>
+                <div class="small text-muted">Refine results without leaving the current list. If advanced filters are hidden, use the Filters button here to show them.</div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary d-lg-none" id="mobileCloseFiltersBtn" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
-                Close
-            </button>
+            <div class="gear-filters-header-actions">
+                <button type="button" class="btn btn-sm advanced-toggle-btn filters-header-toggle d-none d-lg-inline-flex" id="desktopFiltersToggleBtn" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
+                    Filters
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary d-lg-none" id="mobileCloseFiltersBtn" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
+                    Close
+                </button>
+            </div>
         </div>
         <div class="collapse" id="filtersPanelCollapse">
             <div class="card-body">
@@ -3154,7 +3173,9 @@
             const stickyControlsCard = document.querySelector('.sticky-gear-controls');
             const filtersPanelCard = document.getElementById('filtersPanelCard');
             const filtersPanelCollapse = document.getElementById('filtersPanelCollapse');
-            const filtersToggleBtn = document.getElementById('filtersToggleBtn');
+            const mobileFiltersToggleBtn = document.getElementById('mobileFiltersToggleBtn');
+            const desktopFiltersToggleBtn = document.getElementById('desktopFiltersToggleBtn');
+            const filtersToggleButtons = [mobileFiltersToggleBtn, desktopFiltersToggleBtn].filter(Boolean);
             const mobileCloseFiltersBtn = document.getElementById('mobileCloseFiltersBtn');
             const syncStickyOffsets = () => {
                 if (!stickyControlsCard || window.innerWidth < 992) {
@@ -3457,7 +3478,7 @@
             };
 
             const syncFiltersToggleLabel = () => {
-                if (!filtersToggleBtn) {
+                if (filtersToggleButtons.length === 0) {
                     return;
                 }
 
@@ -3465,11 +3486,13 @@
                 const isOpen = filtersPanelCollapse?.classList.contains('show') ?? false;
                 const label = isOpen ? 'Hide Filters' : 'Filters';
 
-                if (activeCount > 0) {
-                    filtersToggleBtn.innerHTML = `${label}<span class="badge rounded-pill text-bg-primary filter-count-badge">${activeCount}</span>`;
-                } else {
-                    filtersToggleBtn.textContent = label;
-                }
+                filtersToggleButtons.forEach((button) => {
+                    if (activeCount > 0) {
+                        button.innerHTML = `${label}<span class="badge rounded-pill text-bg-primary filter-count-badge">${activeCount}</span>`;
+                    } else {
+                        button.textContent = label;
+                    }
+                });
             };
 
             const syncFiltersPresentation = () => {
@@ -4434,7 +4457,11 @@
                             }
                         } else if (window.innerWidth < 992) {
                             window.setTimeout(() => {
-                                filtersToggleBtn?.focus();
+                                mobileFiltersToggleBtn?.focus();
+                            }, 40);
+                        } else {
+                            window.setTimeout(() => {
+                                desktopFiltersToggleBtn?.focus();
                             }, 40);
                         }
                         syncFiltersPresentation();

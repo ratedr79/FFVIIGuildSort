@@ -78,6 +78,12 @@ The Home page lists all available tools with short descriptions and lock icons f
 ### Power Level Analyzer: What It Does
 Builds and scores 3-character teams from guild survey data, ranks players, and assigns players to guilds using configured rules.
 
+Current scoring highlights:
+- DPS main-hand scoring still carries the largest direct-damage weight and prefers teased weakness + preferred damage type matches.
+- DPS off-hand scoring now behaves more like a hybrid utility slot: direct potency is reduced unless the weapon also brings relevant synergy/coverage, and elemental mismatch can zero direct damage contribution.
+- Team synergy bonus now comes from weighted weapon synergy categories with diminishing returns instead of raw additive match count.
+- Outfit scoring gives the selected main outfit full value, while sub outfits contribute half passive value and no command ability value.
+
 ### Power Level Analyzer: Inputs
 | Input | Expected Value | Use |
 |---|---|---|
@@ -104,6 +110,7 @@ Expected output:
 - Guild assignment output based on configured guild rules.
 - Per-player context fields (for example submitted guild/banner response) shown in results.
 - Click a player's in-game name in the ranked table to open a submitted-gear modal (weapons/costumes by character, utility items, materia summary, and missing-catalog hints).
+- Debug view now exposes weighted team synergy notes, richer weapon sub-scores, and raw-vs-weighted outfit synergy details.
 
 ---
 

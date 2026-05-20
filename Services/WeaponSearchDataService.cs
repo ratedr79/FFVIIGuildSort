@@ -2054,6 +2054,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             tags.Add(changeName);
                         }
                         break;
+                    case 16:
+                        tags.Add("ATB+");
+                        break;
                     case 36:
                         tags.Add("Overspeed Gauge");
                         break;

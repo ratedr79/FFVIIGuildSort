@@ -38,6 +38,7 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 ### Where synergy is applied
 - `TeamOptimizer.CalculateSupportSynergyBonus(...)` computes support/synergy contribution from the selected weapons across the 3-character team.
 - Per weapon, `SynergyDetection.CalculateSynergyScore(...)` evaluates effect text and returns a weighted synergy score.
+- Costume scoring also uses weighted matching via `SynergyDetection.CalculateSynergyMatchScore(...)`, with debug reasons produced by `DescribeWeightedSynergyMatches(...)`.
 - `BattleContext` inputs that control matching:
   - `EnemyWeakness`
   - `PreferredDamageType`
@@ -76,12 +77,15 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 - Mixed/unknown categories use conservative near-neutral multipliers.
 
 ### Team-level dedupe and stacking rules
-- Team optimizer groups effects into categories (for example, `elem_res_down:<element>`, `phys_weapon_boost`, `mag_rcvd_up_all`, `haste`, etc.).
+- Team optimizer groups effects into categories (for example, `elem_res_down:<element>`, `phys_weapon_boost`, `mag_rcvd_up_all`, `haste`, `enliven`, `torpor`, `amp_abilities`, etc.).
+- Category weights are centralized in `SynergyDetection` so matching, scoring, and debug labels stay aligned.
 - For each category, only the best provider is kept, selected by:
-  1. higher coverage weight
-  2. then higher synergy score (tie-break)
-- ATB+ effects are intentionally allowed to stack and are added separately.
-- Final support synergy bonus = deduped category sum + stacked ATB+ contribution.
+  1. higher weighted category value
+  2. then higher coverage weight
+  3. then higher synergy score (tie-break)
+- Team bonus applies diminishing returns as categories stack, so broad reliable support wins over raw weak-effect volume.
+- Team synergy bonus is computed from the final selected weapons after any re-optimization pass, not from stale pre-swap choices.
+- Debug output now stores a per-category weighted-note trail in `TeamScoreBreakdown.SynergyNotes`.
 
 ### Synergy keys exposed in the UI override panel
 - `ElementalResistanceDown`
@@ -115,12 +119,26 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 ### Role/Weapon Importance
 - DPS contribution drives most score impact.
 - `MaxDpsAllowed = 2` (hard-coded safeguard in optimizer).
-- Weapon scoring includes OB thresholds and potency-aware bonuses.
+- Weapon scoring includes OB thresholds plus separate damage, effect, passive, customization, and reliability sub-scores.
 
 ### Potency and Off-Hand Rules
-- Main-hand/Off-hand selection both score, but context-sensitive weighting applies.
-- Off-hand potency can be de-weighted or zeroed when it has no relevant battle synergy.
-- Element mismatch can zero potency contribution for elemental contexts.
+- DPS main-hand is selected primarily for teased-context damage output.
+- DPS off-hand is selected as a utility-biased secondary weapon: selection prefers synergy/coverage value first, then falls back to the off-hand score as a tie-break.
+- DPS off-hand direct damage weight is reduced relative to main-hand:
+  - `0.60` when both teased weakness and preferred damage type match
+  - `0.45` when only one teased context match is present
+  - `0.30` when neither teased context match is present
+  - `0.15` when the weapon provides no relevant utility/synergy for the current context
+  - `0.0` when an elemental weapon misses the teased weakness entirely
+- DPS off-hand effect weighting is intentionally higher than DPS main-hand effect weighting so supportive/offensive utility is rewarded.
+- Non-DPS re-optimization uses weighted unique coverage thresholds and broader dedupe to avoid weak niche synergy displacing better all-around loadouts.
+
+### Costume Slot Rules and Weighted Outfit Synergy
+- Each character can contribute one main outfit and up to two sub outfits.
+- Main outfit keeps full command, context, reliability, and weighted synergy value.
+- Sub outfits contribute half of `(Base + Passive)` only.
+- Sub outfits do not contribute command ability value.
+- Outfit `SynergyMatchCount` is retained for debug visibility, but `SynergyPoints` now come from weighted match score rather than raw match count.
 
 ### Utility and Side Systems
 - Summons, enemy abilities, memoria, and materia contribute additive utility bonuses.
@@ -141,6 +159,8 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 ## Debugging and Tuning
 - Use `Show Debug` to inspect detailed breakdowns and applied rules.
 - Confirm template toggles and synergy bonus overrides are reflected in `AppliedRules` output.
+- Team debug output now shows weighted synergy notes explaining which selected weapons contributed category value and how diminishing returns were applied.
+- Outfit debug output distinguishes raw match count from weighted synergy points.
 - If rankings look off, validate:
   - input column names
   - catalog enrichment status (`DataDiagnostics`)

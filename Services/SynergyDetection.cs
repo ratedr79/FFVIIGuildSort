@@ -24,7 +24,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             @"Damage\s*\+\s*([0-9]+(?:\.[0-9]+)?)%",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
-        private sealed record Match(string Key, string Reason);
+        private sealed record Match(string Key);
 
         private enum Tier
         {
@@ -1211,10 +1211,103 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return GetSynergyMatches(effectTextBlob, ctx).Count;
         }
 
+        public static double GetSynergyCategoryWeight(string category)
+        {
+            if (category.StartsWith("elem_res_down:", StringComparison.OrdinalIgnoreCase)) return 1.00;
+            if (category.StartsWith("elem_dmg_bonus:", StringComparison.OrdinalIgnoreCase)) return 0.90;
+            if (category.StartsWith("elem_dmg_up:", StringComparison.OrdinalIgnoreCase)) return 0.82;
+            if (category.StartsWith("elem_weapon_boost:", StringComparison.OrdinalIgnoreCase)) return 0.84;
+            if (category.EndsWith("_weapon_boost", StringComparison.OrdinalIgnoreCase)) return 0.78;
+            if (category.EndsWith("_rcvd_up_single", StringComparison.OrdinalIgnoreCase)) return 0.96;
+            if (category.EndsWith("_rcvd_up_all", StringComparison.OrdinalIgnoreCase)) return 0.88;
+            if (category.EndsWith("_rcvd_up", StringComparison.OrdinalIgnoreCase)) return 0.80;
+            if (category.Equals("exploit_weakness", StringComparison.OrdinalIgnoreCase)) return 0.84;
+            if (category.Equals("haste", StringComparison.OrdinalIgnoreCase)) return 0.86;
+            if (category.Equals("atb_plus", StringComparison.OrdinalIgnoreCase)) return 0.82;
+            if (category.EndsWith("_atb_conservation", StringComparison.OrdinalIgnoreCase)) return 0.70;
+            if (category.Equals("enfeeble", StringComparison.OrdinalIgnoreCase)) return 0.46;
+            if (category.Equals("torpor", StringComparison.OrdinalIgnoreCase)) return 0.58;
+            if (category.Equals("applied_stats_debuff_tier_increased", StringComparison.OrdinalIgnoreCase)) return 0.55;
+            if (category.Equals("applied_stats_buff_tier_increased", StringComparison.OrdinalIgnoreCase)) return 0.48;
+            if (category.Equals("amp_abilities", StringComparison.OrdinalIgnoreCase)) return 0.52;
+            if (category.Equals("enliven", StringComparison.OrdinalIgnoreCase)) return 0.60;
+            if (category.Equals("pdef_down", StringComparison.OrdinalIgnoreCase) || category.Equals("mdef_down", StringComparison.OrdinalIgnoreCase)) return 0.38;
+            if (category.Equals("patk_up", StringComparison.OrdinalIgnoreCase) || category.Equals("matk_up", StringComparison.OrdinalIgnoreCase)) return 0.62;
+            if (category.Equals("phys_dmg_bonus", StringComparison.OrdinalIgnoreCase) || category.Equals("mag_dmg_bonus", StringComparison.OrdinalIgnoreCase)) return 0.68;
+            return 0.60;
+        }
+
+        public static string DescribeSynergyCategory(string category)
+        {
+            if (TryGetCategorySuffix(category, "elem_res_down:", out var element)) return $"{element} resistance down / weakness infliction";
+            if (TryGetCategorySuffix(category, "elem_dmg_bonus:", out element)) return $"{element} damage bonus";
+            if (TryGetCategorySuffix(category, "elem_dmg_up:", out element)) return $"{element} damage up";
+            if (TryGetCategorySuffix(category, "elem_weapon_boost:", out element)) return $"{element} weapon boost";
+
+            return category switch
+            {
+                "phys_weapon_boost" => "Physical weapon boost",
+                "mag_weapon_boost" => "Magical weapon boost",
+                "phys_rcvd_up" => "Physical damage received up",
+                "mag_rcvd_up" => "Magical damage received up",
+                "phys_rcvd_up_single" => "Physical single-target damage received up",
+                "mag_rcvd_up_single" => "Magical single-target damage received up",
+                "phys_rcvd_up_all" => "Physical all-target damage received up",
+                "mag_rcvd_up_all" => "Magical all-target damage received up",
+                "phys_dmg_bonus" => "Physical damage bonus",
+                "mag_dmg_bonus" => "Magical damage bonus",
+                "patk_up" => "PATK up",
+                "matk_up" => "MATK up",
+                "pdef_down" => "PDEF down (lower weight)",
+                "mdef_down" => "MDEF down (lower weight)",
+                "phys_atb_conservation" => "Physical ATB conservation",
+                "mag_atb_conservation" => "Magical ATB conservation",
+                "atb_plus" => "ATB+",
+                "haste" => "Haste",
+                "exploit_weakness" => "Exploit Weakness",
+                "enfeeble" => "Enfeeble (lower weight)",
+                "enliven" => "Enliven (raises damage buffs)",
+                "torpor" => "Torpor (short burst damage vulnerability)",
+                "applied_stats_debuff_tier_increased" => "Applied debuff tier increased",
+                "applied_stats_buff_tier_increased" => "Applied buff tier increased",
+                "amp_abilities" => "Amp abilities",
+                _ => category
+            };
+        }
+
+        public static double CalculateSynergyMatchScore(string? effectTextBlob, BattleContext ctx)
+        {
+            var matches = GetSynergyMatches(effectTextBlob, ctx);
+            return Math.Round(matches.Sum(GetMatchWeight), 2);
+        }
+
         public static string DescribeSynergyMatches(string? effectTextBlob, BattleContext ctx)
         {
             var matches = GetSynergyMatches(effectTextBlob, ctx);
-            return string.Join(", ", matches.Select(m => m.Reason));
+            return string.Join(", ", matches.Select(m => DescribeSynergyCategory(m.Key)));
+        }
+
+        public static string DescribeWeightedSynergyMatches(string? effectTextBlob, BattleContext ctx)
+        {
+            var matches = GetSynergyMatches(effectTextBlob, ctx);
+            return string.Join(", ", matches.Select(m => $"{DescribeSynergyCategory(m.Key)} ({GetMatchWeight(m):N2})"));
+        }
+
+        private static double GetMatchWeight(Match match)
+        {
+            return GetSynergyCategoryWeight(match.Key);
+        }
+
+        private static bool TryGetCategorySuffix(string category, string prefix, out string suffix)
+        {
+            if (category.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                suffix = category[prefix.Length..];
+                return !string.IsNullOrWhiteSpace(suffix);
+            }
+
+            suffix = string.Empty;
+            return false;
         }
 
         private static List<Match> GetSynergyMatches(string? effectTextBlob, BattleContext ctx)
@@ -1225,54 +1318,62 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 var elementName = ctx.EnemyWeakness.ToString();
                 if (HasToken(effectTextBlob, $"{elementName} Resistance Down") || HasToken(effectTextBlob, $"Status Ailment: {elementName} Weakness"))
-                    matches.Add(new Match("elem_res_down", $"{ctx.EnemyWeakness} resistance down / weakness infliction"));
+                    matches.Add(new Match($"elem_res_down:{elementName}"));
                 if (HasToken(effectTextBlob, $"{elementName} Damage Bonus"))
-                    matches.Add(new Match("elem_dmg_bonus", $"{ctx.EnemyWeakness} damage bonus"));
+                    matches.Add(new Match($"elem_dmg_bonus:{elementName}"));
                 if (HasToken(effectTextBlob, $"{elementName} Damage Up"))
-                    matches.Add(new Match("elem_dmg_up", $"{ctx.EnemyWeakness} damage up"));
+                    matches.Add(new Match($"elem_dmg_up:{elementName}"));
                 if (HasToken(effectTextBlob, $"{elementName} Weapon Boost"))
-                    matches.Add(new Match("elem_weapon_boost", $"{ctx.EnemyWeakness} weapon boost"));
+                    matches.Add(new Match($"elem_weapon_boost:{elementName}"));
             }
 
             if (ctx.PreferredDamageType != DamageType.Any)
             {
                 if (ctx.PreferredDamageType == DamageType.Physical)
                 {
-                    if (HasToken(effectTextBlob, "Phys. Weapon Boost")) matches.Add(new Match("phys_weapon_boost", "Physical weapon boost"));
-                    if (HasToken(effectTextBlob, "Phys. Dmg. Rcvd. Up")) matches.Add(new Match("phys_rcvd_up", "Physical damage received up"));
+                    if (HasToken(effectTextBlob, "Phys. Weapon Boost")) matches.Add(new Match("phys_weapon_boost"));
+                    if (HasToken(effectTextBlob, "Phys. Dmg. Rcvd. Up")) matches.Add(new Match("phys_rcvd_up"));
+                    if (HasAnyToken(effectTextBlob, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up"))
+                        matches.Add(new Match("phys_rcvd_up_single"));
                     if (HasAnyToken(effectTextBlob, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up"))
-                        matches.Add(new Match("phys_rcvd_up_all", "Physical all-target damage received up"));
-                    if (HasToken(effectTextBlob, "Phys. Damage Bonus")) matches.Add(new Match("phys_dmg_bonus", "Physical damage bonus"));
-                    if (HasToken(effectTextBlob, "PATK Up")) matches.Add(new Match("patk_up", "PATK up"));
-                    if (HasToken(effectTextBlob, "PDEF Down")) matches.Add(new Match("pdef_down", "PDEF down (lower weight)"));
+                        matches.Add(new Match("phys_rcvd_up_all"));
+                    if (HasToken(effectTextBlob, "Phys. Damage Bonus")) matches.Add(new Match("phys_dmg_bonus"));
+                    if (HasToken(effectTextBlob, "PATK Up")) matches.Add(new Match("patk_up"));
+                    if (HasToken(effectTextBlob, "PDEF Down")) matches.Add(new Match("pdef_down"));
                 }
                 else if (ctx.PreferredDamageType == DamageType.Magical)
                 {
-                    if (HasToken(effectTextBlob, "Mag. Weapon Boost")) matches.Add(new Match("mag_weapon_boost", "Magical weapon boost"));
-                    if (HasToken(effectTextBlob, "Mag. Dmg. Rcvd. Up")) matches.Add(new Match("mag_rcvd_up", "Magical damage received up"));
+                    if (HasToken(effectTextBlob, "Mag. Weapon Boost")) matches.Add(new Match("mag_weapon_boost"));
+                    if (HasToken(effectTextBlob, "Mag. Dmg. Rcvd. Up")) matches.Add(new Match("mag_rcvd_up"));
+                    if (HasAnyToken(effectTextBlob, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up"))
+                        matches.Add(new Match("mag_rcvd_up_single"));
                     if (HasAnyToken(effectTextBlob, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"))
-                        matches.Add(new Match("mag_rcvd_up_all", "Magical all-target damage received up"));
-                    if (HasToken(effectTextBlob, "Mag. Damage Bonus")) matches.Add(new Match("mag_dmg_bonus", "Magical damage bonus"));
-                    if (HasToken(effectTextBlob, "MATK Up")) matches.Add(new Match("matk_up", "MATK up"));
-                    if (HasToken(effectTextBlob, "MDEF Down")) matches.Add(new Match("mdef_down", "MDEF down (lower weight)"));
+                        matches.Add(new Match("mag_rcvd_up_all"));
+                    if (HasToken(effectTextBlob, "Mag. Damage Bonus")) matches.Add(new Match("mag_dmg_bonus"));
+                    if (HasToken(effectTextBlob, "MATK Up")) matches.Add(new Match("matk_up"));
+                    if (HasToken(effectTextBlob, "MDEF Down")) matches.Add(new Match("mdef_down"));
                 }
             }
 
-            if (HasToken(effectTextBlob, "Exploit Weakness")) matches.Add(new Match("exploit_weakness", "Exploit Weakness"));
+            if (HasToken(effectTextBlob, "Exploit Weakness")) matches.Add(new Match("exploit_weakness"));
+            if (HasToken(effectTextBlob, "Haste")) matches.Add(new Match("haste"));
+            if (HasToken(effectTextBlob, "ATB+")) matches.Add(new Match("atb_plus"));
             if (HasToken(effectTextBlob, "Enfeeble") || HasToken(effectTextBlob, "Status Ailment: Enfeeble"))
-                matches.Add(new Match("enfeeble", "Enfeeble (lower weight)"));
+                matches.Add(new Match("enfeeble"));
+            if (HasToken(effectTextBlob, "Enliven") || HasToken(effectTextBlob, "Status Ailment: Enliven"))
+                matches.Add(new Match("enliven"));
             if (HasToken(effectTextBlob, "Torpor") || HasToken(effectTextBlob, "Status Ailment: Torpor"))
-                matches.Add(new Match("torpor", "Torpor (short burst damage vulnerability)"));
+                matches.Add(new Match("torpor"));
             if (ctx.PreferredDamageType == DamageType.Physical && HasToken(effectTextBlob, "Phys. ATB Conservation Effect"))
-                matches.Add(new Match("phys_atb_conservation", "Physical ATB conservation"));
+                matches.Add(new Match("phys_atb_conservation"));
             if (ctx.PreferredDamageType == DamageType.Magical && HasToken(effectTextBlob, "Mag. ATB Conservation Effect"))
-                matches.Add(new Match("mag_atb_conservation", "Magical ATB conservation"));
+                matches.Add(new Match("mag_atb_conservation"));
             if (HasToken(effectTextBlob, "Applied Stats Debuff Tier Increased"))
-                matches.Add(new Match("applied_debuff_tier", "Applied debuff tier increased"));
+                matches.Add(new Match("applied_stats_debuff_tier_increased"));
             if (HasToken(effectTextBlob, "Applied Stats Buff Tier Increased"))
-                matches.Add(new Match("applied_buff_tier", "Applied buff tier increased"));
+                matches.Add(new Match("applied_stats_buff_tier_increased"));
             if (HasToken(effectTextBlob, "Amp Abilities"))
-                matches.Add(new Match("amp_abilities", "Amp abilities"));
+                matches.Add(new Match("amp_abilities"));
 
             // Dedupe by key so repeated tokens don't inflate count.
             return matches
