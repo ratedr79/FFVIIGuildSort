@@ -1,0 +1,1609 @@
+@page
+@model PlayerPowerAnalyzerModel
+@{
+    ViewData["Title"] = "Player Power Analyzer";
+}
+
+<style>
+    .modal-open .card,
+    .modal-open .card:hover {
+        transform: none !important;
+        transition: none !important;
+    }
+
+    .player-analyzer-result-card {
+        border: 1px solid rgba(13, 110, 253, 0.16);
+        box-shadow: 0 0.5rem 1.25rem rgba(15, 23, 42, 0.08);
+    }
+
+    .player-analyzer-result-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 55%, #084298 100%);
+        border-bottom: 0;
+        color: #fff;
+        padding: 1rem 1.25rem;
+    }
+
+    .player-analyzer-result-header .player-analyzer-header-kicker,
+    .player-analyzer-result-header .player-analyzer-header-subtle {
+        color: rgba(255, 255, 255, 0.84);
+    }
+
+    .player-analyzer-name-link {
+        color: #fff;
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.2;
+        text-decoration: underline;
+        text-decoration-color: rgba(255, 255, 255, 0.55);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 0.18em;
+    }
+
+    .player-analyzer-name-link:hover,
+    .player-analyzer-name-link:focus {
+        color: #fff;
+        text-decoration-color: #fff;
+    }
+
+    .player-analyzer-name-link:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.9);
+        outline-offset: 3px;
+        border-radius: 0.25rem;
+    }
+
+    .player-analyzer-header-name-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .player-analyzer-info-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.9rem;
+        height: 1.9rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.38);
+        background-color: rgba(255, 255, 255, 0.16);
+        color: #fff;
+        padding: 0;
+    }
+
+    .player-analyzer-info-button:hover,
+    .player-analyzer-info-button:focus {
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.26);
+        border-color: rgba(255, 255, 255, 0.55);
+    }
+
+    .player-analyzer-info-button:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.92);
+        outline-offset: 2px;
+    }
+
+    .player-analyzer-header-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.32rem 0.7rem;
+        border-radius: 999px;
+        background-color: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 500;
+        backdrop-filter: blur(2px);
+    }
+
+    .player-analyzer-team-summary {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.2rem;
+    }
+
+    .player-analyzer-team-value {
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .player-analyzer-score {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 7rem;
+        padding: 0.6rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.25rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .player-analyzer-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.65rem;
+        border-radius: 999px;
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        font-size: 0.85rem;
+    }
+
+    .player-analyzer-metric {
+        border: 1px solid #edf0f2;
+        border-radius: 0.75rem;
+        background-color: #fbfcfd;
+        padding: 0.85rem 1rem;
+        height: 100%;
+    }
+
+    @@media (max-width: 767.98px) {
+        .player-analyzer-result-header,
+        .player-analyzer-team-summary {
+            text-align: left;
+        }
+
+        .player-analyzer-team-summary {
+            align-items: flex-start;
+        }
+    }
+
+    .player-analyzer-metric-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+
+    .player-analyzer-metric-value {
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .player-analyzer-character-card {
+        border: 1px solid #e9ecef;
+        border-radius: 0.9rem;
+        padding: 1rem;
+        background-color: #fff;
+    }
+
+    .player-analyzer-loading-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        padding: 0.4rem 0.65rem;
+        border-radius: 0.5rem;
+        background-color: #eef5ff;
+        color: #0b5ed7;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .player-analyzer-loading-indicator[hidden] {
+        display: none;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-3">
+                <i class="fas fa-user-gear"></i> Player Power Analyzer
+            </h1>
+            <p class="text-muted mb-3">Analyze a single player from a survey sheet using the same team recommendation logic as Power Levels, without guild ranking or submission summaries.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sliders"></i> Analysis Inputs</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Analyze" id="playerPowerAnalyzerForm">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="GoogleSheetUrl" class="form-label">Survey Sheet</label>
+                                <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                                    <option value="">-- Select a survey sheet --</option>
+                                    @foreach (var sheet in Model.AvailableSheets)
+                                    {
+                                        if (string.Equals(Model.GoogleSheetUrl, sheet.Url, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@sheet.Url" selected>@sheet.Name</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@sheet.Url">@sheet.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="PlayerName" class="form-label">Player</label>
+                                <select class="form-select" id="PlayerName" name="PlayerName" @(Model.AvailablePlayers.Count == 0 ? "disabled" : null)>
+                                    <option value="">-- Select player --</option>
+                                    @foreach (var player in Model.AvailablePlayers)
+                                    {
+                                        if (string.Equals(Model.PlayerName, player, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@player" selected>@player</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@player">@player</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="player-analyzer-loading-indicator" id="playerLoadingIndicator" hidden aria-live="polite" aria-hidden="true">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span id="playerLoadingText">Loading players from survey sheet...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="EnemyWeakness">Enemy Weakness</label>
+                                <select class="form-select" id="EnemyWeakness" name="EnemyWeakness">
+                                    @foreach (var option in new[] { "None", "Earth", "Fire", "Water", "Ice", "Lightning", "Wind" })
+                                    {
+                                        if (string.Equals(Model.EnemyWeakness.ToString(), option, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@option" selected>@option</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option">@option</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="PreferredDamageType">Preferred Damage Type</label>
+                                <select class="form-select" id="PreferredDamageType" name="PreferredDamageType">
+                                    @foreach (var option in new[] { "Any", "Physical", "Magical" })
+                                    {
+                                        if (string.Equals(Model.PreferredDamageType.ToString(), option, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@option" selected>@option</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option">@option</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="TargetScenario">Enemy Count Weighting</label>
+                                <select class="form-select" id="TargetScenario" name="TargetScenario">
+                                    @if (string.Equals(Model.TargetScenario.ToString(), "Unknown", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="Unknown" selected>Unknown (assume single enemy)</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Unknown">Unknown (assume single enemy)</option>
+                                    }
+                                    @if (string.Equals(Model.TargetScenario.ToString(), "SingleEnemy", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="SingleEnemy" selected>Single Enemy</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="SingleEnemy">Single Enemy</option>
+                                    }
+                                    @if (string.Equals(Model.TargetScenario.ToString(), "MultipleEnemies", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="MultipleEnemies" selected>Multiple Enemies</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="MultipleEnemies">Multiple Enemies</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <details class="mb-3">
+                            <summary class="form-label">Advanced options</summary>
+
+                            <div class="mb-4 mt-3">
+                                <h6 class="mb-2"><i class="fas fa-users"></i> Valid Team Compositions</h6>
+                                <p class="text-muted small">Teams not matching selected templates will have their score reduced by 50%.</p>
+                                <div class="row">
+                                    @foreach (var template in Model.AvailableTeamTemplates.OrderBy(t => t.Priority))
+                                    {
+                                        var isChecked = Model.EnabledTeamTemplates.TryGetValue(template.Name, out var enabled) ? enabled : template.Enabled;
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       name="EnabledTeamTemplates[@template.Name]"
+                                                       value="true"
+                                                       id="template_@template.Name.Replace("/", "_")"
+                                                       @(isChecked ? "checked" : null)>
+                                                <label class="form-check-label" for="template_@template.Name.Replace("/", "_")">@template.Name</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <div>
+                                <h6 class="mb-2"><i class="fas fa-bolt"></i> Synergy Effect Bonuses</h6>
+                                <div class="row mt-2">
+                                    @{
+                                        var effects = new (string Key, string Label)[]
+                                        {
+                                            ("ElementalResistanceDown", "Elemental resistance down"),
+                                            ("AtbPlus", "ATB +N"),
+                                            ("ElementalDamageBonus", "Elemental damage bonus"),
+                                            ("ElementalDamageUp", "Elemental damage up"),
+                                            ("WeaponBoost", "Phys/Mag weapon boost"),
+                                            ("ElementalWeaponBoost", "Elemental weapon boost"),
+                                            ("SingleTargetDamageReceivedUp", "Single-target damage received up"),
+                                            ("DamageReceivedUp", "Damage received up"),
+                                            ("DamageTypeDamageBonus", "Phys/Mag damage bonus"),
+                                            ("DamageTypeAtkUp", "PATK/MATK up"),
+                                            ("ExploitWeakness", "Exploit weakness"),
+                                            ("Haste", "Haste"),
+                                            ("AtbConservationEffect", "ATB conservation effect"),
+                                            ("Enfeeble", "Enfeeble"),
+                                            ("Enliven", "Enliven (raises damage buffs)"),
+                                            ("Torpor", "Torpor (short burst damage vulnerability)"),
+                                            ("AppliedStatsDebuffTierIncreased", "Applied debuff tier increased"),
+                                            ("AppliedStatsBuffTierIncreased", "Applied buff tier increased"),
+                                            ("AmpAbilities", "Amp abilities"),
+                                            ("DefenseDown", "Defense down (PDEF/MDEF)")
+                                        };
+
+                                        var weightOptions = new (int Value, string Text)[]
+                                        {
+                                            (0, "None"),
+                                            (100, "+100%"),
+                                            (200, "+200%"),
+                                            (300, "+300%"),
+                                            (400, "+400%"),
+                                            (500, "+500%")
+                                        };
+                                    }
+                                    @foreach (var effect in effects)
+                                    {
+                                        var selected = Model.SynergyEffectBonusPercents.TryGetValue(effect.Key, out var value) ? value : 0;
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">@effect.Label</label>
+                                            <select class="form-select form-select-sm" name="SynergyEffectBonusPercents[@effect.Key]">
+                                                @foreach (var option in weightOptions)
+                                                {
+                                                    if (option.Value == selected)
+                                                    {
+                                                        <option value="@option.Value" selected>@option.Text</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@option.Value">@option.Text</option>
+                                                    }
+                                                }
+                                            </select>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </details>
+
+                        <button type="submit" class="btn btn-primary" id="showBestTeamsButton">
+                            <i class="fas fa-calculator"></i> Show Best Teams
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2"><strong>Player list</strong> comes from the selected survey sheet, similar to Should I Attack.</div>
+                    <div class="mb-2"><strong>Analysis</strong> reuses the Power Levels optimizer and team synergy detection.</div>
+                    <div class="mb-2"><strong>Output</strong> focuses on one player only, so there is no guild ranking, submission summary, or CSV export.</div>
+                    <div><strong>Submitted gear</strong> remains available by clicking the player name after analysis.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.SelectedTeam != null)
+    {
+        var team = Model.SelectedTeam;
+        var breakdown = team.Breakdown;
+        var hasGearSummary = Model.SelectedPlayerGear != null;
+        var detailsId = "selectedPlayerTeamDetails";
+        var altTeamsId = "selectedPlayerAltTeams";
+        var missingId = "selectedPlayerMissingItems";
+        var gearModalId = "selectedPlayerGearModal";
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4 player-analyzer-result-card">
+                    <div class="card-header player-analyzer-result-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div>
+                            <h5 class="mb-0">
+                                <span class="player-analyzer-header-name-row">
+                                    @if (hasGearSummary)
+                                    {
+                                        <button class="btn btn-link p-0 align-baseline js-open-gear-modal player-analyzer-name-link" type="button" data-gear-modal-id="@gearModalId">@team.InGameName</button>
+                                        <button class="btn player-analyzer-info-button js-open-gear-modal" type="button" data-gear-modal-id="@gearModalId" title="View submitted gear and player details" aria-label="View submitted gear and player details">
+                                            <i class="fas fa-circle-info"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="player-analyzer-name-link text-decoration-none">@team.InGameName</span>
+                                    }
+                                </span>
+                            </h5>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                @if (!string.IsNullOrWhiteSpace(team.DiscordName))
+                                {
+                                    <span class="player-analyzer-header-chip">@team.DiscordName</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(team.SubmittedGuild))
+                                {
+                                    <span class="player-analyzer-header-chip">Submitted: @team.SubmittedGuild</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(team.BannerResponse))
+                                {
+                                    <span class="player-analyzer-header-chip">Banner: @team.BannerResponse</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="player-analyzer-team-summary text-end">
+                            <div class="small player-analyzer-header-kicker">Recommended Team</div>
+                            <div class="player-analyzer-team-value">@string.Join(", ", team.Characters)</div>
+                            <div class="mt-2"><span class="player-analyzer-score">@team.Score.ToString("N0")</span></div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="player-analyzer-metric">
+                                    <div class="player-analyzer-metric-label">Weakness</div>
+                                    <div class="player-analyzer-metric-value">@Model.EnemyWeakness</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="player-analyzer-metric">
+                                    <div class="player-analyzer-metric-label">Damage Type</div>
+                                    <div class="player-analyzer-metric-value">@Model.PreferredDamageType</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="player-analyzer-metric">
+                                    <div class="player-analyzer-metric-label">Target Scenario</div>
+                                    <div class="player-analyzer-metric-value">@Model.TargetScenario</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="player-analyzer-metric">
+                                    <div class="player-analyzer-metric-label">Alternate Teams</div>
+                                    <div class="player-analyzer-metric-value">@(team.AlternateTeams?.Count ?? 0)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            @if (breakdown != null)
+                            {
+                                <button class="btn btn-sm btn-outline-primary js-view-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#@detailsId" aria-expanded="true" aria-controls="@detailsId" data-view-text="View details" data-hide-text="Hide details">Hide details</button>
+                            }
+                            @if (team.AlternateTeams != null && team.AlternateTeams.Count > 0)
+                            {
+                                <button class="btn btn-sm btn-outline-secondary js-view-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#@altTeamsId" aria-expanded="false" aria-controls="@altTeamsId" data-view-text="Other teams" data-hide-text="Hide other teams">Other teams</button>
+                            }
+                        </div>
+
+                        @if (team.AlternateTeams != null && team.AlternateTeams.Count > 0)
+                        {
+                            <div class="collapse mb-3" id="@altTeamsId">
+                                <div class="card card-body bg-light border-0">
+                                    <div class="mb-1"><strong>Other Teams (Top 5)</strong></div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Team</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (int i = 0; i < team.AlternateTeams.Count; i++)
+                                                {
+                                                    var alternate = team.AlternateTeams[i];
+                                                    <tr>
+                                                        <td>@(i + 1)</td>
+                                                        <td>@string.Join(", ", alternate.Characters)</td>
+                                                        <td>@alternate.Score.ToString("N0")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="collapse show" id="@detailsId">
+                            @if (breakdown == null)
+                            {
+                                <div class="text-muted">No breakdown available.</div>
+                            }
+                            else
+                            {
+                                <div class="row">
+                                    <div class="col-12 mb-2">
+                                        <div><strong>Applied Rules</strong></div>
+                                        <div class="text-muted">@string.Join(" | ", breakdown.AppliedRules)</div>
+                                    </div>
+
+                                    <div class="col-12 mb-3">
+                                        <div><strong>Battle Context</strong></div>
+                                        <div class="text-muted">Weakness: @breakdown.EnemyWeakness | Preferred Damage: @breakdown.PreferredDamageType | Max DPS: @breakdown.MaxDpsAllowed</div>
+                                    </div>
+
+                                    <div class="col-12 mb-2">
+                                        <strong>Team Score</strong>: @breakdown.TeamScore.ToString("N0")
+                                    </div>
+
+                                    @if (breakdown.SynergyBonus > 0)
+                                    {
+                                        <div class="col-12 mb-2">
+                                            <strong>Team Synergy Bonus</strong>: @breakdown.SynergyBonus.ToString("N0")
+                                            <span class="text-muted">(weighted weapon synergy categories with diminishing returns)</span>
+                                            @if (breakdown.SynergyNotes != null && breakdown.SynergyNotes.Count > 0)
+                                            {
+                                                <div class="small text-muted mt-1">
+                                                    @foreach (var note in breakdown.SynergyNotes)
+                                                    {
+                                                        <div>@note</div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    @if (breakdown.SelectedMemoria != null && breakdown.MemoriaScore > 0)
+                                    {
+                                        <div class="col-12 mb-2">
+                                            <strong>Memoria Bonus</strong>: @breakdown.MemoriaScore.ToString("N0")
+                                            <span class="text-muted">(@breakdown.SelectedMemoria.MemoriaName - Level @breakdown.SelectedMemoria.Level/@breakdown.SelectedMemoria.MaxLevel)</span>
+                                        </div>
+                                    }
+
+                                    @if (breakdown.Materia != null && breakdown.Materia.Count > 0 && breakdown.MateriaScore > 0)
+                                    {
+                                        <div class="col-12 mb-2">
+                                            <strong>Materia Bonus</strong>: @breakdown.MateriaScore.ToString("N0")
+                                        </div>
+                                        <div class="col-12 mb-3">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Materia</th>
+                                                            <th>11%+</th>
+                                                            <th>8-10%</th>
+                                                            <th>0-7%</th>
+                                                            <th class="text-end">Score</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var materia in breakdown.Materia.Where(m => m.Score > 0))
+                                                        {
+                                                            <tr>
+                                                                <td>@materia.MateriaName</td>
+                                                                <td>@materia.CountPot11Plus</td>
+                                                                <td>@materia.CountPot8To10</td>
+                                                                <td>@materia.CountPot0To7</td>
+                                                                <td class="text-end">@materia.Score.ToString("N0")</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (breakdown.SelectedUtilityItems != null && breakdown.SelectedUtilityItems.Count > 0)
+                                    {
+                                        <div class="col-12 mb-2">
+                                            <strong>Utility Items Bonus</strong>: @breakdown.UtilityScore.ToString("N0")
+                                        </div>
+                                        <div class="col-12 mb-3">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Kind</th>
+                                                            <th>Name</th>
+                                                            <th>Level</th>
+                                                            <th>Score</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var utility in breakdown.SelectedUtilityItems)
+                                                        {
+                                                            <tr>
+                                                                <td>@utility.Kind</td>
+                                                                <td>@utility.Name</td>
+                                                                <td>@utility.Level/@utility.MaxLevel</td>
+                                                                <td><strong>@utility.Score.ToString("N0")</strong></td>
+                                                            </tr>
+                                                            @if (!string.IsNullOrWhiteSpace(utility.Notes))
+                                                            {
+                                                                <tr>
+                                                                    <td colspan="4" class="text-muted"><small>@utility.Notes</small></td>
+                                                                </tr>
+                                                            }
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (breakdown.MissingCatalogItems != null && breakdown.MissingCatalogItems.Count > 0)
+                                    {
+                                        <div class="col-12 mb-3">
+                                            <button class="btn btn-sm btn-outline-warning" type="button" data-bs-toggle="collapse" data-bs-target="#@missingId" aria-expanded="false" aria-controls="@missingId">Missing weaponData.tsv items (@breakdown.MissingCatalogItems.Count)</button>
+                                            <div class="collapse mt-2" id="@missingId">
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-bordered">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Item</th>
+                                                                <th>Raw Value</th>
+                                                                <th>Kind</th>
+                                                                <th>Notes</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var missing in breakdown.MissingCatalogItems)
+                                                            {
+                                                                <tr>
+                                                                    <td>@missing.ColumnName</td>
+                                                                    <td>@missing.RawValue</td>
+                                                                    <td>@missing.InferredKind</td>
+                                                                    <td>@missing.Notes</td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @foreach (var character in breakdown.Characters)
+                                    {
+                                        <div class="col-12 mb-3">
+                                            <div class="player-analyzer-character-card">
+                                                <div class="mb-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                                    <div>
+                                                        <strong>@character.CharacterName</strong>
+                                                        <span class="text-muted">(@character.Role)</span>
+                                                    </div>
+                                                    <span class="player-analyzer-chip">Final Character Score: @character.FinalCharacterScore.ToString("N0")</span>
+                                                </div>
+
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-3 col-sm-6">
+                                                        <div class="player-analyzer-metric">
+                                                            <div class="player-analyzer-metric-label">Role Weight</div>
+                                                            <div class="player-analyzer-metric-value">@character.RoleWeight</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 col-sm-6">
+                                                        <div class="player-analyzer-metric">
+                                                            <div class="player-analyzer-metric-label">Raw Weapon Sum</div>
+                                                            <div class="player-analyzer-metric-value">@character.RawWeaponScoreSum.ToString("N0")</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 col-sm-6">
+                                                        <div class="player-analyzer-metric">
+                                                            <div class="player-analyzer-metric-label">Outfit Score</div>
+                                                            <div class="player-analyzer-metric-value">@character.CostumeScoreSum.ToString("N0")</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3 col-sm-6">
+                                                        <div class="player-analyzer-metric">
+                                                            <div class="player-analyzer-metric-label">Base + Gear</div>
+                                                            <div class="player-analyzer-metric-value">@character.BasePlusGearScore.ToString("N0")</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                @if (character.UltimateWeapon != null && character.UltimateWeapon.WeaponName != "(Not owned)")
+                                                {
+                                                    var ultimateInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                    Model.WeaponCatalog.TryGetWeapon(character.UltimateWeapon.WeaponName, out ultimateInfo!);
+                                                    <div class="mb-1"><strong>Ultimate Weapon</strong></div>
+                                                    <div class="table-responsive mb-3">
+                                                        <table class="table table-sm mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Weapon</th>
+                                                                    <th>Slot</th>
+                                                                    <th>OB</th>
+                                                                    <th>Final</th>
+                                                                    <th>Dmg</th>
+                                                                    <th>Eff</th>
+                                                                    <th>Passive</th>
+                                                                    <th>Cust</th>
+                                                                    <th>Rel</th>
+                                                                    <th>DmgWt</th>
+                                                                    <th>PotUsed%</th>
+                                                                    <th>Mult%</th>
+                                                                    <th>EffPot%</th>
+                                                                    <th>PotWt</th>
+                                                                    <th>Pot?</th>
+                                                                    <th>Weak</th>
+                                                                    <th>Type</th>
+                                                                    <th>Synergy</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td>@character.UltimateWeapon.WeaponName</td>
+                                                                    <td>@(character.UltimateWeapon.Slot ?? "-")</td>
+                                                                    <td>@character.UltimateWeapon.OverboostLevel</td>
+                                                                    <td>@character.UltimateWeapon.FinalWeaponScore.ToString("N2")</td>
+                                                                    <td>@character.UltimateWeapon.DamageScore.ToString("N2")</td>
+                                                                    <td>@character.UltimateWeapon.EffectScore.ToString("N2")</td>
+                                                                    <td>@character.UltimateWeapon.PassiveScore.ToString("N2")</td>
+                                                                    <td>@character.UltimateWeapon.CustomizationScore.ToString("N2")</td>
+                                                                    <td>@character.UltimateWeapon.ReliabilityScore.ToString("N2")</td>
+                                                                    <td>@character.UltimateWeapon.RoleAdjustedDamageWeight.ToString("N2")</td>
+                                                                    <td>
+                                                                        @(character.UltimateWeapon.AbilityPotPercentUsed?.ToString("N1") ?? "-")
+                                                                        @if (character.UltimateWeapon.HasCustomizations)
+                                                                        {
+                                                                            <span class="badge bg-info text-dark ms-1" title="@string.Join("; ", character.UltimateWeapon.CustomizationDescriptions)">C</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>@(character.UltimateWeapon.PotencyApplied ? character.UltimateWeapon.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                    <td>@(character.UltimateWeapon.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                    <td>@(character.UltimateWeapon.PotencyApplied ? character.UltimateWeapon.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                    <td>@(character.UltimateWeapon.PotencyApplied ? "Y" : "N")</td>
+                                                                    <td>@(character.UltimateWeapon.WeaknessMatch ? "Y" : "N")</td>
+                                                                    <td>@(character.UltimateWeapon.PreferredDamageTypeMatch ? "Y" : "N")</td>
+                                                                    <td>@(string.IsNullOrWhiteSpace(character.UltimateWeapon.SynergyReason) ? "-" : character.UltimateWeapon.SynergyReason)</td>
+                                                                </tr>
+                                                                @if (ultimateInfo != null && ultimateInfo.GearSearchRAbilityDescriptions.Count > 0)
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Additional</strong>: @string.Join(" | ", ultimateInfo.GearSearchRAbilityDescriptions)</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(character.UltimateWeapon.SelectionReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Selected</strong>: @character.UltimateWeapon.SelectionReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(character.UltimateWeapon.DamageSuppressionReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Damage weighting</strong>: @character.UltimateWeapon.DamageSuppressionReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(character.UltimateWeapon.SynergyReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Synergy</strong>: @character.UltimateWeapon.SynergyReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                }
+
+                                                <div class="mb-1"><strong>Main / Off-hand Weapons</strong></div>
+                                                <div class="table-responsive mb-3">
+                                                    <table class="table table-sm mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Slot</th>
+                                                                <th>Weapon</th>
+                                                                <th>OB</th>
+                                                                <th>Final</th>
+                                                                <th>Dmg</th>
+                                                                <th>Eff</th>
+                                                                <th>Passive</th>
+                                                                <th>Cust</th>
+                                                                <th>Rel</th>
+                                                                <th>DmgWt</th>
+                                                                <th>PotUsed%</th>
+                                                                <th>Mult%</th>
+                                                                <th>EffPot%</th>
+                                                                <th>PotWt</th>
+                                                                <th>Pot?</th>
+                                                                <th>Weak</th>
+                                                                <th>Type</th>
+                                                                <th>Synergy</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var weapon in character.SelectedWeapons)
+                                                            {
+                                                                var weaponInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                                Model.WeaponCatalog.TryGetWeapon(weapon.WeaponName, out weaponInfo!);
+                                                                <tr>
+                                                                    <td>@weapon.Slot</td>
+                                                                    <td>@weapon.WeaponName</td>
+                                                                    <td>@weapon.OverboostLevel</td>
+                                                                    <td>@weapon.FinalWeaponScore.ToString("N2")</td>
+                                                                    <td>@weapon.DamageScore.ToString("N2")</td>
+                                                                    <td>@weapon.EffectScore.ToString("N2")</td>
+                                                                    <td>@weapon.PassiveScore.ToString("N2")</td>
+                                                                    <td>@weapon.CustomizationScore.ToString("N2")</td>
+                                                                    <td>@weapon.ReliabilityScore.ToString("N2")</td>
+                                                                    <td>@weapon.RoleAdjustedDamageWeight.ToString("N2")</td>
+                                                                    <td>
+                                                                        @(weapon.AbilityPotPercentUsed?.ToString("N1") ?? "-")
+                                                                        @if (weapon.HasCustomizations)
+                                                                        {
+                                                                            <span class="badge bg-info text-dark ms-1" title="@string.Join("; ", weapon.CustomizationDescriptions)">C</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>@(weapon.PotencyApplied ? weapon.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                    <td>@(weapon.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                    <td>@(weapon.PotencyApplied ? weapon.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                    <td>@(weapon.PotencyApplied ? "Y" : "N")</td>
+                                                                    <td>@(weapon.WeaknessMatch ? "Y" : "N")</td>
+                                                                    <td>@(weapon.PreferredDamageTypeMatch ? "Y" : "N")</td>
+                                                                    <td>@(string.IsNullOrWhiteSpace(weapon.SynergyReason) ? "-" : weapon.SynergyReason)</td>
+                                                                </tr>
+                                                                @if (weaponInfo != null && weaponInfo.GearSearchRAbilityDescriptions.Count > 0)
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Additional</strong>: @string.Join(" | ", weaponInfo.GearSearchRAbilityDescriptions)</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(weapon.SelectionReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Selected</strong>: @weapon.SelectionReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(weapon.DamageSuppressionReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Damage weighting</strong>: @weapon.DamageSuppressionReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(weapon.SynergyReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Synergy</strong>: @weapon.SynergyReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                @if (character.SelectedCostumes != null && character.SelectedCostumes.Count > 0)
+                                                {
+                                                    <div class="mb-1"><strong>Outfits Used</strong></div>
+                                                    <div class="table-responsive mb-3">
+                                                        <table class="table table-sm mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Slot</th>
+                                                                    <th>Outfit</th>
+                                                                    <th>Final</th>
+                                                                    <th>Synergy</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var costume in character.SelectedCostumes)
+                                                                {
+                                                                    var costumeInfo = default(FFVIIEverCrisisAnalyzer.Services.CostumeInfo);
+                                                                    Model.WeaponCatalog.TryGetCostume(costume.CostumeName, out costumeInfo!);
+                                                                    <tr>
+                                                                        <td>@costume.Slot</td>
+                                                                        <td>@costume.CostumeName</td>
+                                                                        <td>@costume.FinalCostumeScore.ToString("N2")</td>
+                                                                        <td>@(string.IsNullOrWhiteSpace(costume.SynergyReason) ? "-" : costume.SynergyReason)</td>
+                                                                    </tr>
+                                                                    @if (costumeInfo != null && costumeInfo.AdditionalAbilities != null && costumeInfo.AdditionalAbilities.Count > 0)
+                                                                    {
+                                                                        <tr>
+                                                                            <td colspan="4" class="text-muted"><small><strong>Additional</strong>: @string.Join(" | ", costumeInfo.AdditionalAbilities)</small></td>
+                                                                        </tr>
+                                                                    }
+                                                                    @if (!string.IsNullOrWhiteSpace(costume.SynergyReason))
+                                                                    {
+                                                                        <tr>
+                                                                            <td colspan="4" class="text-muted"><small><strong>Synergy</strong>: @costume.SynergyReason</small></td>
+                                                                        </tr>
+                                                                    }
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+
+                                                    <div class="mb-1"><strong>Outfit Scoring</strong></div>
+                                                    <div class="table-responsive mb-3">
+                                                        <table class="table table-sm mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Outfit</th>
+                                                                    <th>Slot</th>
+                                                                    <th>Base</th>
+                                                                    <th>Passive (R)</th>
+                                                                    <th>Command Ability</th>
+                                                                    <th>Context Fit</th>
+                                                                    <th>Reliability</th>
+                                                                    <th>Raw Matches</th>
+                                                                    <th>Weighted Synergy</th>
+                                                                    <th>Passive Mult</th>
+                                                                    <th>Cmd?</th>
+                                                                    <th>Final</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var costume in character.SelectedCostumes)
+                                                                {
+                                                                    var costumeInfo = default(FFVIIEverCrisisAnalyzer.Services.CostumeInfo);
+                                                                    Model.WeaponCatalog.TryGetCostume(costume.CostumeName, out costumeInfo!);
+                                                                    <tr>
+                                                                        <td>@costume.CostumeName</td>
+                                                                        <td>@costume.Slot</td>
+                                                                        <td>@costume.BasePoints</td>
+                                                                        <td>@costume.PassivePoints.ToString("N1")</td>
+                                                                        <td>@costume.CommandPoints.ToString("N1")</td>
+                                                                        <td>@costume.ContextPoints.ToString("N1")</td>
+                                                                        <td>@costume.ReliabilityPoints.ToString("N1")</td>
+                                                                        <td>@costume.SynergyMatchCount</td>
+                                                                        <td>@costume.SynergyPoints</td>
+                                                                        <td>@costume.SlotMultiplier</td>
+                                                                        <td>@(costume.CommandAbilityEnabled ? "Y" : "N")</td>
+                                                                        <td><strong>@costume.FinalCostumeScore.ToString("N0")</strong></td>
+                                                                    </tr>
+                                                                    @if (costumeInfo != null && costumeInfo.AdditionalAbilities != null && costumeInfo.AdditionalAbilities.Count > 0)
+                                                                    {
+                                                                        <tr>
+                                                                            <td colspan="12" class="text-muted"><small><strong>Additional</strong>: @string.Join(" | ", costumeInfo.AdditionalAbilities)</small></td>
+                                                                        </tr>
+                                                                    }
+                                                                    @if (!string.IsNullOrWhiteSpace(costume.SynergyReason))
+                                                                    {
+                                                                        <tr>
+                                                                            <td colspan="12" class="text-muted"><small><strong>Synergy</strong>: @costume.SynergyReason</small></td>
+                                                                        </tr>
+                                                                    }
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                }
+
+                                                <div class="table-responsive">
+                                                    @if (character.UltimateWeapon != null)
+                                                    {
+                                                        <div class="mb-1"><strong>Ultimate Weapon Potency Detail</strong></div>
+                                                        <table class="table table-sm mb-3">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Weapon</th>
+                                                                    <th>Slot</th>
+                                                                    <th>OB</th>
+                                                                    <th>Pot OB10%</th>
+                                                                    <th>Pot Used%</th>
+                                                                    <th>Mult Dmg%</th>
+                                                                    <th>Eff Pot%</th>
+                                                                    <th>Pot Wt</th>
+                                                                    <th>Weak Match</th>
+                                                                    <th>Dmg Match</th>
+                                                                    <th>Pot Applied</th>
+                                                                    <th>Base</th>
+                                                                    <th>OB1</th>
+                                                                    <th>OB6</th>
+                                                                    <th>OB10</th>
+                                                                    <th>OB*10</th>
+                                                                    <th>Ultimate Mult</th>
+                                                                    <th>Final</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @if (character.UltimateWeapon.WeaponName == "(Not owned)" || character.UltimateWeapon.FinalWeaponScore <= 0)
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small>@(character.UltimateWeapon.SelectionReason ?? "Ultimate weapon")</small></td>
+                                                                    </tr>
+                                                                }
+                                                                else
+                                                                {
+                                                                    var ultimateInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                                    Model.WeaponCatalog.TryGetWeapon(character.UltimateWeapon.WeaponName, out ultimateInfo!);
+                                                                    <tr>
+                                                                        <td>@character.UltimateWeapon.WeaponName</td>
+                                                                        <td>@(character.UltimateWeapon.Slot ?? "-")</td>
+                                                                        <td>@character.UltimateWeapon.OverboostLevel</td>
+                                                                        <td>@(character.UltimateWeapon.AbilityPotPercentAtOb10?.ToString("N1") ?? "-")</td>
+                                                                        <td>
+                                                                            @(character.UltimateWeapon.AbilityPotPercentUsed?.ToString("N1") ?? "-")
+                                                                            @if (character.UltimateWeapon.HasCustomizations)
+                                                                            {
+                                                                                <span class="badge bg-info text-dark ms-1" title="@string.Join("; ", character.UltimateWeapon.CustomizationDescriptions)">C</span>
+                                                                            }
+                                                                        </td>
+                                                                        <td>@(character.UltimateWeapon.PotencyApplied ? character.UltimateWeapon.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                        <td>@(character.UltimateWeapon.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                        <td>@(character.UltimateWeapon.PotencyApplied ? character.UltimateWeapon.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                        <td>@(character.UltimateWeapon.WeaknessMatch ? "Yes" : "No")</td>
+                                                                        <td>@(character.UltimateWeapon.PreferredDamageTypeMatch ? "Yes" : "No")</td>
+                                                                        <td>@(character.UltimateWeapon.PotencyApplied ? "Yes" : "No")</td>
+                                                                        <td>@character.UltimateWeapon.BaseOwnedPoints</td>
+                                                                        <td>@character.UltimateWeapon.Ob1Points</td>
+                                                                        <td>@character.UltimateWeapon.Ob6Points</td>
+                                                                        <td>@character.UltimateWeapon.Ob10Points</td>
+                                                                        <td>@character.UltimateWeapon.IntermediateObPoints</td>
+                                                                        <td>@character.UltimateWeapon.UltimateMultiplier</td>
+                                                                        <td><strong>@character.UltimateWeapon.FinalWeaponScore.ToString("N0")</strong></td>
+                                                                    </tr>
+                                                                    @if (ultimateInfo != null && ultimateInfo.GearSearchRAbilityDescriptions.Count > 0)
+                                                                    {
+                                                                        <tr>
+                                                                            <td colspan="18" class="text-muted"><small><strong>Additional</strong>: @string.Join(" | ", ultimateInfo.GearSearchRAbilityDescriptions)</small></td>
+                                                                        </tr>
+                                                                    }
+                                                                    @if (!string.IsNullOrWhiteSpace(character.UltimateWeapon.SelectionReason))
+                                                                    {
+                                                                        <tr>
+                                                                            <td colspan="18" class="text-muted"><small><strong>Selected</strong>: @character.UltimateWeapon.SelectionReason</small></td>
+                                                                        </tr>
+                                                                    }
+                                                                    @if (!string.IsNullOrWhiteSpace(character.UltimateWeapon.SynergyReason))
+                                                                    {
+                                                                        <tr>
+                                                                            <td colspan="18" class="text-muted"><small><strong>Synergy</strong>: @character.UltimateWeapon.SynergyReason</small></td>
+                                                                        </tr>
+                                                                    }
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    }
+
+                                                    <div class="mb-1"><strong>Main / Off-hand Potency Detail</strong></div>
+                                                    <table class="table table-sm mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Weapon</th>
+                                                                <th>Slot</th>
+                                                                <th>OB</th>
+                                                                <th>Pot OB10%</th>
+                                                                <th>Pot Used%</th>
+                                                                <th>Mult Dmg%</th>
+                                                                <th>Eff Pot%</th>
+                                                                <th>Pot Wt</th>
+                                                                <th>Weak Match</th>
+                                                                <th>Dmg Match</th>
+                                                                <th>Pot Applied</th>
+                                                                <th>Base</th>
+                                                                <th>OB1</th>
+                                                                <th>OB6</th>
+                                                                <th>OB10</th>
+                                                                <th>OB*10</th>
+                                                                <th>Ultimate Mult</th>
+                                                                <th>Final</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var weapon in character.SelectedWeapons)
+                                                            {
+                                                                var weaponInfo = default(FFVIIEverCrisisAnalyzer.Services.WeaponInfo);
+                                                                Model.WeaponCatalog.TryGetWeapon(weapon.WeaponName, out weaponInfo!);
+                                                                <tr>
+                                                                    <td>@weapon.WeaponName</td>
+                                                                    <td>@(weapon.Slot ?? "-")</td>
+                                                                    <td>@weapon.OverboostLevel</td>
+                                                                    <td>@(weapon.AbilityPotPercentAtOb10?.ToString("N1") ?? "-")</td>
+                                                                    <td>
+                                                                        @(weapon.AbilityPotPercentUsed?.ToString("N1") ?? "-")
+                                                                        @if (weapon.HasCustomizations)
+                                                                        {
+                                                                            <span class="badge bg-info text-dark ms-1" title="@string.Join("; ", weapon.CustomizationDescriptions)">C</span>
+                                                                        }
+                                                                    </td>
+                                                                    <td>@(weapon.PotencyApplied ? weapon.MultiplyDamageBonusPercent.ToString("N1") : "-")</td>
+                                                                    <td>@(weapon.EffectiveAbilityPotPercentUsed?.ToString("N1") ?? "-")</td>
+                                                                    <td>@(weapon.PotencyApplied ? weapon.PotencyWeightApplied.ToString("N2") : "-")</td>
+                                                                    <td>@(weapon.WeaknessMatch ? "Yes" : "No")</td>
+                                                                    <td>@(weapon.PreferredDamageTypeMatch ? "Yes" : "No")</td>
+                                                                    <td>@(weapon.PotencyApplied ? "Yes" : "No")</td>
+                                                                    <td>@weapon.BaseOwnedPoints</td>
+                                                                    <td>@weapon.Ob1Points</td>
+                                                                    <td>@weapon.Ob6Points</td>
+                                                                    <td>@weapon.Ob10Points</td>
+                                                                    <td>@weapon.IntermediateObPoints</td>
+                                                                    <td>@weapon.UltimateMultiplier</td>
+                                                                    <td><strong>@weapon.FinalWeaponScore.ToString("N0")</strong></td>
+                                                                </tr>
+                                                                @if (weaponInfo != null && weaponInfo.GearSearchRAbilityDescriptions.Count > 0)
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Additional</strong>: @string.Join(" | ", weaponInfo.GearSearchRAbilityDescriptions)</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(weapon.SelectionReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Selected</strong>: @weapon.SelectionReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(weapon.SynergyReason))
+                                                                {
+                                                                    <tr>
+                                                                        <td colspan="18" class="text-muted"><small><strong>Synergy</strong>: @weapon.SynergyReason</small></td>
+                                                                    </tr>
+                                                                }
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.SelectedPlayerGear != null)
+        {
+            var gear = Model.SelectedPlayerGear;
+            <div class="modal fade js-gear-modal" id="@gearModalId" tabindex="-1" aria-labelledby="@(gearModalId + "_label")" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div>
+                                <h5 class="modal-title" id="@(gearModalId + "_label")">@gear.InGameName - Submitted Gear</h5>
+                                <small class="text-muted">
+                                    Score: @gear.Score.ToString("N0")
+                                    @if (gear.BestTeamCharacters.Count > 0)
+                                    {
+                                        <text> | Best Team: @string.Join(", ", gear.BestTeamCharacters)</text>
+                                    }
+                                </small>
+                            </div>
+                            <button type="button" class="btn-close js-close-gear-modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="accordion" id="@(gearModalId + "_accordion")">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="@(gearModalId + "_w_hdr")">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_w")" aria-expanded="true" aria-controls="@(gearModalId + "_w")">Weapons by Character</button>
+                                    </h2>
+                                    <div id="@(gearModalId + "_w")" class="accordion-collapse collapse show" aria-labelledby="@(gearModalId + "_w_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                        <div class="accordion-body">
+                                            @if (gear.WeaponsByCharacter.Count == 0)
+                                            {
+                                                <div class="text-muted">No owned weapons found in submission.</div>
+                                            }
+                                            else
+                                            {
+                                                @foreach (var weaponGroup in gear.WeaponsByCharacter.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+                                                {
+                                                    <div class="mb-2"><strong>@weaponGroup.Key</strong></div>
+                                                    <div class="table-responsive mb-3">
+                                                        <table class="table table-sm table-striped mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Weapon</th>
+                                                                    <th>OB</th>
+                                                                    <th>Type</th>
+                                                                    <th>Pot%</th>
+                                                                    <th>Synergy</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var weapon in weaponGroup.Value)
+                                                                {
+                                                                    <tr>
+                                                                        <td>@weapon.WeaponName</td>
+                                                                        <td>@weapon.OverboostLevel</td>
+                                                                        <td>@(weapon.IsUltimate ? "Ultimate" : "Weapon")</td>
+                                                                        <td>@(weapon.AbilityPotPercent?.ToString("N1") ?? "-")</td>
+                                                                        <td><small class="text-muted">@(string.IsNullOrWhiteSpace(weapon.SynergyReason) ? "-" : weapon.SynergyReason)</small></td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="@(gearModalId + "_c_hdr")">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_c")" aria-expanded="false" aria-controls="@(gearModalId + "_c")">Costumes by Character</button>
+                                    </h2>
+                                    <div id="@(gearModalId + "_c")" class="accordion-collapse collapse" aria-labelledby="@(gearModalId + "_c_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                        <div class="accordion-body">
+                                            @if (gear.CostumesByCharacter.Count == 0)
+                                            {
+                                                <div class="text-muted">No owned costumes found in submission.</div>
+                                            }
+                                            else
+                                            {
+                                                @foreach (var costumeGroup in gear.CostumesByCharacter.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+                                                {
+                                                    <div class="mb-1"><strong>@costumeGroup.Key</strong></div>
+                                                    <ul class="mb-3">
+                                                        @foreach (var costume in costumeGroup.Value)
+                                                        {
+                                                            <li>@costume.CostumeName</li>
+                                                        }
+                                                    </ul>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="@(gearModalId + "_u_hdr")">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_u")" aria-expanded="false" aria-controls="@(gearModalId + "_u")">Summons, Enemy Abilities, Memoria, Materia</button>
+                                    </h2>
+                                    <div id="@(gearModalId + "_u")" class="accordion-collapse collapse" aria-labelledby="@(gearModalId + "_u_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <div><strong>Summons</strong></div>
+                                                    @if (gear.Summons.Count == 0)
+                                                    {
+                                                        <div class="text-muted">None</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <ul class="mb-0">
+                                                            @foreach (var summon in gear.Summons)
+                                                            {
+                                                                <li>@summon.Name <span class="text-muted">(Lv @summon.Level/@summon.MaxLevel)</span></li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div><strong>Enemy Abilities</strong></div>
+                                                    @if (gear.EnemyAbilities.Count == 0)
+                                                    {
+                                                        <div class="text-muted">None</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <ul class="mb-0">
+                                                            @foreach (var ability in gear.EnemyAbilities)
+                                                            {
+                                                                <li>@ability.Name <span class="text-muted">(Lv @ability.Level/@ability.MaxLevel)</span></li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div><strong>Memoria</strong></div>
+                                                    @if (gear.Memoria.Count == 0)
+                                                    {
+                                                        <div class="text-muted">None</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <ul class="mb-0">
+                                                            @foreach (var memoria in gear.Memoria)
+                                                            {
+                                                                <li>@memoria.Name <span class="text-muted">(Lv @memoria.Level/@memoria.MaxLevel)</span></li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-3"><strong>Materia</strong></div>
+                                            @if (gear.Materia.Count == 0)
+                                            {
+                                                <div class="text-muted">None</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Materia</th>
+                                                                <th>11%+</th>
+                                                                <th>8-10%</th>
+                                                                <th>0-7%</th>
+                                                                <th>Total</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var materia in gear.Materia)
+                                                            {
+                                                                <tr>
+                                                                    <td>@materia.MateriaName</td>
+                                                                    <td>@materia.CountPot11Plus</td>
+                                                                    <td>@materia.CountPot8To10</td>
+                                                                    <td>@materia.CountPot0To7</td>
+                                                                    <td>@materia.TotalCount</td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (gear.MissingCatalogItems.Count > 0)
+                                {
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="@(gearModalId + "_m_hdr")">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@(gearModalId + "_m")" aria-expanded="false" aria-controls="@(gearModalId + "_m")">Missing Catalog Items (@gear.MissingCatalogItems.Count)</button>
+                                        </h2>
+                                        <div id="@(gearModalId + "_m")" class="accordion-collapse collapse" aria-labelledby="@(gearModalId + "_m_hdr")" data-bs-parent="#@(gearModalId + "_accordion")">
+                                            <div class="accordion-body">
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Item</th>
+                                                                <th>Raw Value</th>
+                                                                <th>Kind</th>
+                                                                <th>Notes</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var missing in gear.MissingCatalogItems)
+                                                            {
+                                                                <tr>
+                                                                    <td>@missing.ColumnName</td>
+                                                                    <td>@missing.RawValue</td>
+                                                                    <td>@missing.InferredKind</td>
+                                                                    <td>@missing.Notes</td>
+                                                                </tr>
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('playerPowerAnalyzerForm');
+            const guildSelect = document.getElementById('GoogleSheetUrl');
+            const playerSelect = document.getElementById('PlayerName');
+            const playerLoadingIndicator = document.getElementById('playerLoadingIndicator');
+            const playerLoadingText = document.getElementById('playerLoadingText');
+
+            function setPlayerLoadingState(isLoading, message) {
+                if (playerLoadingIndicator) {
+                    playerLoadingIndicator.hidden = !isLoading;
+                    playerLoadingIndicator.setAttribute('aria-hidden', isLoading ? 'false' : 'true');
+                }
+
+                if (playerLoadingText && message) {
+                    playerLoadingText.textContent = message;
+                }
+
+                if (playerSelect) {
+                    playerSelect.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+                }
+            }
+
+            async function loadPlayers() {
+                if (!form || !guildSelect || !playerSelect) {
+                    return;
+                }
+
+                const guildUrl = guildSelect.value;
+                const previousValue = playerSelect.value;
+                playerSelect.innerHTML = '<option value="">-- Select player --</option>';
+                playerSelect.disabled = true;
+
+                if (!guildUrl) {
+                    setPlayerLoadingState(false, 'Loading players from survey sheet...');
+                    return;
+                }
+
+                playerSelect.innerHTML = '<option value="">Loading players...</option>';
+                setPlayerLoadingState(true, 'Loading players from survey sheet...');
+
+                try {
+                    const formData = new FormData(form);
+                    const token = form.querySelector('input[name="__RequestVerificationToken"]');
+                    const response = await fetch('@Url.Page("/PlayerPowerAnalyzer", "LoadPlayers")', {
+                        method: 'POST',
+                        headers: token ? { 'RequestVerificationToken': token.value } : {},
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        playerSelect.innerHTML = '<option value="">Unable to load players</option>';
+                        return;
+                    }
+
+                    const payload = await response.json();
+                    const players = Array.isArray(payload) ? payload : (payload.players || []);
+                    playerSelect.innerHTML = '<option value="">-- Select player --</option>';
+                    players.forEach((name) => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        if (name === previousValue) {
+                            option.selected = true;
+                        }
+                        playerSelect.appendChild(option);
+                    });
+
+                    if (players.length === 0) {
+                        playerSelect.innerHTML = '<option value="">No players found</option>';
+                    }
+
+                    playerSelect.disabled = players.length === 0;
+                } finally {
+                    setPlayerLoadingState(false, 'Loading players from survey sheet...');
+                }
+            }
+
+            function wireCollapseToggleText() {
+                const toggles = document.querySelectorAll('button.js-view-toggle[data-bs-toggle="collapse"][data-bs-target]');
+                toggles.forEach((btn) => {
+                    const targetSel = btn.getAttribute('data-bs-target');
+                    if (!targetSel) {
+                        return;
+                    }
+
+                    const target = document.querySelector(targetSel);
+                    if (!target) {
+                        return;
+                    }
+
+                    const viewText = btn.getAttribute('data-view-text') || 'View';
+                    const hideText = btn.getAttribute('data-hide-text') || 'Hide';
+                    target.addEventListener('shown.bs.collapse', function () { btn.textContent = hideText; });
+                    target.addEventListener('hidden.bs.collapse', function () { btn.textContent = viewText; });
+                });
+            }
+
+            function mountGearModalsToBody() {
+                const modalEls = document.querySelectorAll('.js-gear-modal');
+                modalEls.forEach((modalEl) => {
+                    if (modalEl.dataset.appendedToBody === 'true') {
+                        return;
+                    }
+
+                    document.body.appendChild(modalEl);
+                    modalEl.dataset.appendedToBody = 'true';
+                });
+            }
+
+            function wireGearModalOpenButtons() {
+                const openButtons = document.querySelectorAll('button.js-open-gear-modal[data-gear-modal-id]');
+                openButtons.forEach((btn) => {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const modalId = btn.getAttribute('data-gear-modal-id');
+                        if (!modalId || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                            return;
+                        }
+
+                        const modalEl = document.getElementById(modalId);
+                        if (!modalEl) {
+                            return;
+                        }
+
+                        if (modalEl.dataset.guardWired !== 'true') {
+                            modalEl.addEventListener('hide.bs.modal', function (evt) {
+                                if (modalEl.dataset.allowHide === 'true') {
+                                    modalEl.dataset.allowHide = 'false';
+                                    return;
+                                }
+
+                                evt.preventDefault();
+                            });
+
+                            modalEl.dataset.allowHide = 'false';
+                            modalEl.dataset.guardWired = 'true';
+                        }
+
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                            backdrop: 'static',
+                            keyboard: false,
+                            focus: true
+                        });
+                        modalEl.dataset.allowHide = 'false';
+                        modal.show();
+                    });
+                });
+
+                const closeButtons = document.querySelectorAll('button.js-close-gear-modal');
+                closeButtons.forEach((btn) => {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const modalEl = btn.closest('.js-gear-modal');
+                        if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                            return;
+                        }
+
+                        modalEl.dataset.allowHide = 'true';
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.hide();
+                    });
+                });
+            }
+
+            if (guildSelect) {
+                guildSelect.addEventListener('change', loadPlayers);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    mountGearModalsToBody();
+                    wireCollapseToggleText();
+                    wireGearModalOpenButtons();
+                });
+            } else {
+                mountGearModalsToBody();
+                wireCollapseToggleText();
+                wireGearModalOpenButtons();
+            }
+        })();
+    </script>
+}

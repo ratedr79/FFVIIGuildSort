@@ -82,6 +82,190 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return false;
         }
 
+        private static IEnumerable<string> EnumerateEffectSegments(string? effectTextBlob)
+        {
+            if (string.IsNullOrWhiteSpace(effectTextBlob))
+            {
+                yield break;
+            }
+
+            foreach (var pipePart in effectTextBlob.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                foreach (var line in pipePart.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        yield return line.Trim();
+                    }
+                }
+            }
+        }
+
+        private static bool HasSegmentToken(string? effectTextBlob, params string[] tokens)
+        {
+            if (tokens == null || tokens.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var segment in EnumerateEffectSegments(effectTextBlob))
+            {
+                foreach (var token in tokens)
+                {
+                    if (!string.IsNullOrWhiteSpace(token) && segment.Contains(token, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasGenericDamageReceivedUpToken(string? effectTextBlob, string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return false;
+            }
+
+            foreach (var segment in EnumerateEffectSegments(effectTextBlob))
+            {
+                if (!segment.Contains(token, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (segment.Contains("Single-Tgt.", StringComparison.OrdinalIgnoreCase) ||
+                    segment.Contains("All-Tgt.", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool SegmentHasWeaknessTriggerForToken(string? effectTextBlob, params string[] tokens)
+        {
+            if (tokens == null || tokens.Length == 0)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(effectTextBlob) ||
+                effectTextBlob.IndexOf("When hitting target's weakness", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return false;
+            }
+
+            foreach (var token in tokens)
+            {
+                if (!string.IsNullOrWhiteSpace(token) &&
+                    effectTextBlob.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            foreach (var segment in EnumerateEffectSegments(effectTextBlob))
+            {
+                if (!segment.Contains("When hitting target's weakness", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                foreach (var token in tokens)
+                {
+                    if (!string.IsNullOrWhiteSpace(token) && segment.Contains(token, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool AbilityElementMatchesEnemyWeakness(string? abilityElement, Element weakness)
+        {
+            if (weakness == Element.None)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(abilityElement) ||
+                abilityElement.Equals("None", StringComparison.OrdinalIgnoreCase) ||
+                abilityElement.Equals("Non-Elemental", StringComparison.OrdinalIgnoreCase) ||
+                abilityElement.Equals("Non Elemental", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return abilityElement.Equals(weakness.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsWeaknessTriggeredEffectUnavailable(string? effectTextBlob, string? abilityElement, BattleContext? context, params string[] tokens)
+        {
+            if (context == null || context.EnemyWeakness == Element.None)
+            {
+                return false;
+            }
+
+            if (AbilityElementMatchesEnemyWeakness(abilityElement, context.EnemyWeakness))
+            {
+                return false;
+            }
+
+            return SegmentHasWeaknessTriggerForToken(effectTextBlob, tokens);
+        }
+
+        private static bool HasWeaknessTriggeredCustomizationToken(WeaponInfo weapon, params string[] tokens)
+        {
+            if (weapon.CustomizationDescriptions == null || weapon.CustomizationDescriptions.Count == 0 || tokens == null || tokens.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var description in weapon.CustomizationDescriptions)
+            {
+                if (string.IsNullOrWhiteSpace(description) ||
+                    description.IndexOf("When hitting target's weakness", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                foreach (var token in tokens)
+                {
+                    if (!string.IsNullOrWhiteSpace(token) &&
+                        description.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsWeaknessTriggeredEffectUnavailable(WeaponInfo weapon, BattleContext? context, params string[] tokens)
+        {
+            if (context == null || context.EnemyWeakness == Element.None)
+            {
+                return false;
+            }
+
+            if (AbilityElementMatchesEnemyWeakness(weapon.AbilityElement, context.EnemyWeakness))
+            {
+                return false;
+            }
+
+            return SegmentHasWeaknessTriggerForToken(weapon.EffectTextBlob, tokens) ||
+                   HasWeaknessTriggeredCustomizationToken(weapon, tokens);
+        }
+
         public static bool ProvidesWeaknessUtility(WeaponInfo weapon, Element weakness)
         {
             if (weakness == Element.None)
@@ -231,35 +415,48 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return HasToken(weapon, $"{elementName} Weapon Boost");
         }
 
-        public static bool ProvidesDamageReceivedUp(WeaponInfo weapon, DamageType preferred)
+        public static bool ProvidesDamageReceivedUp(WeaponInfo weapon, DamageType preferred, BattleContext? context = null)
         {
             return preferred switch
             {
-                DamageType.Physical => HasToken(weapon, "Phys. Dmg. Rcvd. Up"),
-                DamageType.Magical => HasToken(weapon, "Mag. Dmg. Rcvd. Up"),
-                _ => HasToken(weapon, "Phys. Dmg. Rcvd. Up") || HasToken(weapon, "Mag. Dmg. Rcvd. Up")
+                DamageType.Physical => HasGenericDamageReceivedUpToken(weapon.EffectTextBlob, "Phys. Dmg. Rcvd. Up") &&
+                                       !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Phys. Dmg. Rcvd. Up"),
+                DamageType.Magical => HasGenericDamageReceivedUpToken(weapon.EffectTextBlob, "Mag. Dmg. Rcvd. Up") &&
+                                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Mag. Dmg. Rcvd. Up"),
+                _ => (HasGenericDamageReceivedUpToken(weapon.EffectTextBlob, "Phys. Dmg. Rcvd. Up") &&
+                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Phys. Dmg. Rcvd. Up")) ||
+                     (HasGenericDamageReceivedUpToken(weapon.EffectTextBlob, "Mag. Dmg. Rcvd. Up") &&
+                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Mag. Dmg. Rcvd. Up"))
             };
         }
 
-        public static bool ProvidesSingleTargetDamageReceivedUp(WeaponInfo weapon, DamageType preferred)
+        public static bool ProvidesSingleTargetDamageReceivedUp(WeaponInfo weapon, DamageType preferred, BattleContext? context = null)
         {
             return preferred switch
             {
-                DamageType.Physical => HasAnyToken(weapon, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up"),
-                DamageType.Magical => HasAnyToken(weapon, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up"),
-                _ => HasAnyToken(weapon, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up") ||
-                     HasAnyToken(weapon, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up")
+                DamageType.Physical => HasSegmentToken(weapon.EffectTextBlob, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up") &&
+                                       !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up"),
+                DamageType.Magical => HasSegmentToken(weapon.EffectTextBlob, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up") &&
+                                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up"),
+                _ => (HasSegmentToken(weapon.EffectTextBlob, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up") &&
+                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up")) ||
+                     (HasSegmentToken(weapon.EffectTextBlob, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up") &&
+                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up"))
             };
         }
 
-        public static bool ProvidesAllTargetDamageReceivedUp(WeaponInfo weapon, DamageType preferred)
+        public static bool ProvidesAllTargetDamageReceivedUp(WeaponInfo weapon, DamageType preferred, BattleContext? context = null)
         {
             return preferred switch
             {
-                DamageType.Physical => HasAnyToken(weapon, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up"),
-                DamageType.Magical => HasAnyToken(weapon, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"),
-                _ => HasAnyToken(weapon, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up") ||
-                     HasAnyToken(weapon, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up")
+                DamageType.Physical => HasSegmentToken(weapon.EffectTextBlob, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up") &&
+                                       !IsWeaknessTriggeredEffectUnavailable(weapon, context, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up"),
+                DamageType.Magical => HasSegmentToken(weapon.EffectTextBlob, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up") &&
+                                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"),
+                _ => (HasSegmentToken(weapon.EffectTextBlob, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up") &&
+                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up")) ||
+                     (HasSegmentToken(weapon.EffectTextBlob, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up") &&
+                      !IsWeaknessTriggeredEffectUnavailable(weapon, context, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"))
             };
         }
 
@@ -644,7 +841,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (ProvidesElementalWeaponBoost(weapon, ctx.EnemyWeakness)) score += ApplyBonus(ctx, "ElementalWeaponBoost", 180);
 
             // Higher than generic: single-target damage received up is ideal for boss fights.
-            if (ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            if (ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
             {
                 var token = ctx.PreferredDamageType switch
                 {
@@ -669,7 +866,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             // All-target damage received up: same tier as single-target, for AoE abilities.
-            if (ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            if (ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
             {
                 var token = ctx.PreferredDamageType switch
                 {
@@ -692,7 +889,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            if (ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            if (ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
             {
                 var token = ctx.PreferredDamageType switch
                 {
@@ -1047,9 +1244,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var isBuffLike = ProvidesHaste(weapon) ||
                              ProvidesWeaponBoost(weapon, ctx.PreferredDamageType) ||
                              ProvidesElementalWeaponBoost(weapon, ctx.EnemyWeakness) ||
-                             ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
-                             ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
-                             ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
+                             ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx) ||
+                             ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx) ||
+                             ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx) ||
                              ProvidesDamageTypeBoost(weapon, ctx.PreferredDamageType) ||
                              ProvidesDamageTypeDamageBonus(weapon, ctx.PreferredDamageType) ||
                              ProvidesDamageTypeAtkUp(weapon, ctx.PreferredDamageType) ||
@@ -1061,9 +1258,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var isDebuffLike = ProvidesElementalResistanceDown(weapon, ctx.EnemyWeakness) ||
                                ProvidesDefenseDown(weapon, ctx.PreferredDamageType) ||
-                               ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
-                               ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
-                               ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType) ||
+                               ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx) ||
+                               ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx) ||
+                               ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx) ||
                                ProvidesTorpor(weapon);
 
             if (isBuffLike && !isDebuffLike)
@@ -1122,17 +1319,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 reasons.Add($"{ctx.EnemyWeakness} weapon boost");
             }
 
-            if (ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            if (ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
             {
                 reasons.Add($"{ctx.PreferredDamageType} damage received up");
             }
 
-            if (ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            if (ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
             {
                 reasons.Add($"{ctx.PreferredDamageType} single-target damage received up");
             }
 
-            if (ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType))
+            if (ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
             {
                 reasons.Add($"{ctx.PreferredDamageType} all-target damage received up");
             }
@@ -1206,9 +1403,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return string.Join(", ", reasons);
         }
 
-        public static int CountSynergyMatches(string? effectTextBlob, BattleContext ctx)
+        public static int CountSynergyMatches(string? effectTextBlob, BattleContext ctx, string? abilityElement = null)
         {
-            return GetSynergyMatches(effectTextBlob, ctx).Count;
+            return GetSynergyMatches(effectTextBlob, ctx, abilityElement).Count;
+        }
+
+        public static int CountSynergyMatches(WeaponInfo weapon, BattleContext ctx)
+        {
+            return GetSynergyMatches(weapon, ctx).Count;
         }
 
         public static double GetSynergyCategoryWeight(string category)
@@ -1275,21 +1477,39 @@ namespace FFVIIEverCrisisAnalyzer.Services
             };
         }
 
-        public static double CalculateSynergyMatchScore(string? effectTextBlob, BattleContext ctx)
+        public static double CalculateSynergyMatchScore(string? effectTextBlob, BattleContext ctx, string? abilityElement = null)
         {
-            var matches = GetSynergyMatches(effectTextBlob, ctx);
+            var matches = GetSynergyMatches(effectTextBlob, ctx, abilityElement);
             return Math.Round(matches.Sum(GetMatchWeight), 2);
         }
 
-        public static string DescribeSynergyMatches(string? effectTextBlob, BattleContext ctx)
+        public static double CalculateSynergyMatchScore(WeaponInfo weapon, BattleContext ctx)
         {
-            var matches = GetSynergyMatches(effectTextBlob, ctx);
+            var matches = GetSynergyMatches(weapon, ctx);
+            return Math.Round(matches.Sum(GetMatchWeight), 2);
+        }
+
+        public static string DescribeSynergyMatches(string? effectTextBlob, BattleContext ctx, string? abilityElement = null)
+        {
+            var matches = GetSynergyMatches(effectTextBlob, ctx, abilityElement);
             return string.Join(", ", matches.Select(m => DescribeSynergyCategory(m.Key)));
         }
 
-        public static string DescribeWeightedSynergyMatches(string? effectTextBlob, BattleContext ctx)
+        public static string DescribeSynergyMatches(WeaponInfo weapon, BattleContext ctx)
         {
-            var matches = GetSynergyMatches(effectTextBlob, ctx);
+            var matches = GetSynergyMatches(weapon, ctx);
+            return string.Join(", ", matches.Select(m => DescribeSynergyCategory(m.Key)));
+        }
+
+        public static string DescribeWeightedSynergyMatches(string? effectTextBlob, BattleContext ctx, string? abilityElement = null)
+        {
+            var matches = GetSynergyMatches(effectTextBlob, ctx, abilityElement);
+            return string.Join(", ", matches.Select(m => $"{DescribeSynergyCategory(m.Key)} ({GetMatchWeight(m):N2})"));
+        }
+
+        public static string DescribeWeightedSynergyMatches(WeaponInfo weapon, BattleContext ctx)
+        {
+            var matches = GetSynergyMatches(weapon, ctx);
             return string.Join(", ", matches.Select(m => $"{DescribeSynergyCategory(m.Key)} ({GetMatchWeight(m):N2})"));
         }
 
@@ -1310,7 +1530,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return false;
         }
 
-        private static List<Match> GetSynergyMatches(string? effectTextBlob, BattleContext ctx)
+        private static List<Match> GetSynergyMatches(string? effectTextBlob, BattleContext ctx, string? abilityElement = null)
         {
             var matches = new List<Match>();
 
@@ -1332,10 +1552,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 if (ctx.PreferredDamageType == DamageType.Physical)
                 {
                     if (HasToken(effectTextBlob, "Phys. Weapon Boost")) matches.Add(new Match("phys_weapon_boost"));
-                    if (HasToken(effectTextBlob, "Phys. Dmg. Rcvd. Up")) matches.Add(new Match("phys_rcvd_up"));
-                    if (HasAnyToken(effectTextBlob, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up"))
+                    if (HasGenericDamageReceivedUpToken(effectTextBlob, "Phys. Dmg. Rcvd. Up") &&
+                        !IsWeaknessTriggeredEffectUnavailable(effectTextBlob, abilityElement, ctx, "Phys. Dmg. Rcvd. Up")) matches.Add(new Match("phys_rcvd_up"));
+                    if (HasSegmentToken(effectTextBlob, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up") &&
+                        !IsWeaknessTriggeredEffectUnavailable(effectTextBlob, abilityElement, ctx, "Single-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Phys. Dmg. Rcvd. Up"))
                         matches.Add(new Match("phys_rcvd_up_single"));
-                    if (HasAnyToken(effectTextBlob, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up"))
+                    if (HasSegmentToken(effectTextBlob, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up") &&
+                        !IsWeaknessTriggeredEffectUnavailable(effectTextBlob, abilityElement, ctx, "All-Tgt. Phys. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Phys. Dmg. Rcvd. Up"))
                         matches.Add(new Match("phys_rcvd_up_all"));
                     if (HasToken(effectTextBlob, "Phys. Damage Bonus")) matches.Add(new Match("phys_dmg_bonus"));
                     if (HasToken(effectTextBlob, "PATK Up")) matches.Add(new Match("patk_up"));
@@ -1344,10 +1567,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 else if (ctx.PreferredDamageType == DamageType.Magical)
                 {
                     if (HasToken(effectTextBlob, "Mag. Weapon Boost")) matches.Add(new Match("mag_weapon_boost"));
-                    if (HasToken(effectTextBlob, "Mag. Dmg. Rcvd. Up")) matches.Add(new Match("mag_rcvd_up"));
-                    if (HasAnyToken(effectTextBlob, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up"))
+                    if (HasGenericDamageReceivedUpToken(effectTextBlob, "Mag. Dmg. Rcvd. Up") &&
+                        !IsWeaknessTriggeredEffectUnavailable(effectTextBlob, abilityElement, ctx, "Mag. Dmg. Rcvd. Up")) matches.Add(new Match("mag_rcvd_up"));
+                    if (HasSegmentToken(effectTextBlob, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up") &&
+                        !IsWeaknessTriggeredEffectUnavailable(effectTextBlob, abilityElement, ctx, "Single-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: Single-Tgt. Mag. Dmg. Rcvd. Up"))
                         matches.Add(new Match("mag_rcvd_up_single"));
-                    if (HasAnyToken(effectTextBlob, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"))
+                    if (HasSegmentToken(effectTextBlob, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up") &&
+                        !IsWeaknessTriggeredEffectUnavailable(effectTextBlob, abilityElement, ctx, "All-Tgt. Mag. Dmg. Rcvd. Up", "Status Ailment: All-Tgt. Mag. Dmg. Rcvd. Up"))
                         matches.Add(new Match("mag_rcvd_up_all"));
                     if (HasToken(effectTextBlob, "Mag. Damage Bonus")) matches.Add(new Match("mag_dmg_bonus"));
                     if (HasToken(effectTextBlob, "MATK Up")) matches.Add(new Match("matk_up"));
@@ -1380,6 +1606,54 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .GroupBy(m => m.Key)
                 .Select(g => g.First())
                 .ToList();
+        }
+
+        private static List<Match> GetSynergyMatches(WeaponInfo weapon, BattleContext ctx)
+        {
+            var matches = GetSynergyMatches(weapon.EffectTextBlob, ctx, weapon.AbilityElement);
+
+            bool RemoveMatch(string key)
+            {
+                return matches.RemoveAll(m => m.Key.Equals(key, StringComparison.OrdinalIgnoreCase)) > 0;
+            }
+
+            if (!ProvidesDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
+            {
+                if (ctx.PreferredDamageType == DamageType.Physical)
+                {
+                    RemoveMatch("phys_rcvd_up");
+                }
+                else if (ctx.PreferredDamageType == DamageType.Magical)
+                {
+                    RemoveMatch("mag_rcvd_up");
+                }
+            }
+
+            if (!ProvidesSingleTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
+            {
+                if (ctx.PreferredDamageType == DamageType.Physical)
+                {
+                    RemoveMatch("phys_rcvd_up_single");
+                }
+                else if (ctx.PreferredDamageType == DamageType.Magical)
+                {
+                    RemoveMatch("mag_rcvd_up_single");
+                }
+            }
+
+            if (!ProvidesAllTargetDamageReceivedUp(weapon, ctx.PreferredDamageType, ctx))
+            {
+                if (ctx.PreferredDamageType == DamageType.Physical)
+                {
+                    RemoveMatch("phys_rcvd_up_all");
+                }
+                else if (ctx.PreferredDamageType == DamageType.Magical)
+                {
+                    RemoveMatch("mag_rcvd_up_all");
+                }
+            }
+
+            return matches;
         }
     }
 }

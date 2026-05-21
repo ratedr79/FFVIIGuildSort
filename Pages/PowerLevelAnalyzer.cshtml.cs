@@ -532,9 +532,9 @@ public class PowerLevelAnalyzerModel : PageModel
                         }
 
                         string? synergyReason = null;
-                        if (SynergyDetection.CountSynergyMatches(weaponInfo.EffectTextBlob, context) > 0)
+                        if (SynergyDetection.CountSynergyMatches(weaponInfo, context) > 0)
                         {
-                            synergyReason = SynergyDetection.DescribeSynergyMatches(weaponInfo.EffectTextBlob, context);
+                            synergyReason = SynergyDetection.DescribeSynergyMatches(weaponInfo, context);
                         }
 
                         weaponList.Add(new PlayerGearWeaponEntry
