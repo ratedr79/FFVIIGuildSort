@@ -8,9 +8,15 @@
 
   <ItemGroup>
     <Compile Remove="artifacts\**" />
+    <Compile Remove="doc-build-artifacts\**" />
     <Content Remove="artifacts\**" />
+    <Content Remove="doc-build-artifacts\**" />
     <EmbeddedResource Remove="artifacts\**" />
+    <EmbeddedResource Remove="doc-build-artifacts\**" />
     <None Remove="artifacts\**" />
+    <None Remove="doc-build-artifacts\**" />
+    <TypeScriptCompile Remove="artifacts\**" />
+    <TypeScriptCompile Remove="doc-build-artifacts\**" />
   </ItemGroup>
 
   <ItemGroup>
