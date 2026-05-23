@@ -934,6 +934,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     Id = weapon.Id.ToString(),
                     Name = StripMarkup(localization.Get(weapon.NameLanguageId)),
+                    CharacterId = weapon.CharacterId,
                     Character = characterName,
                     ImageUrl = ResolveGearImageUrl(StripMarkup(localization.Get(weapon.NameLanguageId)), characterName, equipmentType),
                     PreviewImageUrl = ResolveGearPreviewImageUrl(StripMarkup(localization.Get(weapon.NameLanguageId)), characterName, equipmentType),
@@ -1167,6 +1168,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     Id = $"costume-{costume.Id}",
                     Name = StripMarkup(localization.Get(costume.NameLanguageId)),
+                    CharacterId = costume.CharacterId,
                     Character = characterName,
                     ImageUrl = ResolveGearImageUrl(StripMarkup(localization.Get(costume.NameLanguageId)), characterName, "Costume"),
                     PreviewImageUrl = ResolveGearPreviewImageUrl(StripMarkup(localization.Get(costume.NameLanguageId)), characterName, "Costume"),

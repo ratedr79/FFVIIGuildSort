@@ -1,0 +1,1667 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.PlayerInventoryManagementModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Player Inventory Management";
+
+    var jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    var itemsJson = JsonSerializer.Serialize(Model.Items, jsonOptions);
+    var charactersJson = JsonSerializer.Serialize(Model.AvailableCharacters, jsonOptions);
+    var levelsJson = JsonSerializer.Serialize(Model.AllowedInventoryLevels, jsonOptions);
+}
+
+<style>
+    .inventory-page-shell {
+        max-width: 1440px;
+    }
+
+    .inventory-hero-card,
+    .inventory-toolbar-card,
+    .inventory-results-card,
+    .inventory-backup-card {
+        border: 0;
+        box-shadow: 0 0.6rem 1.75rem rgba(15, 23, 42, 0.08);
+        border-radius: 1.1rem;
+    }
+
+    .inventory-hero-card {
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), rgba(111, 66, 193, 0.12));
+    }
+
+    .inventory-kicker {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #0d6efd;
+        margin-bottom: 0.45rem;
+    }
+
+    .inventory-toolbar-card {
+        position: sticky;
+        top: 1rem;
+        z-index: 20;
+    }
+
+    .inventory-toolbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+    }
+
+    .inventory-summary-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .inventory-summary-title {
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .inventory-summary-meta {
+        color: #6c757d;
+        font-size: 0.92rem;
+    }
+
+    .inventory-pagination-bar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .inventory-pagination-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem;
+    }
+
+    .inventory-pagination-status {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .inventory-page-size-select {
+        width: auto;
+        min-width: 6rem;
+    }
+
+    .inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(305px, 1fr));
+        gap: 1rem;
+    }
+
+    .inventory-card {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 1rem;
+        background: #fff;
+        overflow: hidden;
+        min-height: 100%;
+        content-visibility: auto;
+        contain-intrinsic-size: 440px;
+        transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    .inventory-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.8rem 1.8rem rgba(15, 23, 42, 0.09);
+    }
+
+    .inventory-card-owned {
+        border-color: rgba(13, 110, 253, 0.4);
+        box-shadow: inset 0 0 0 1px rgba(13, 110, 253, 0.08);
+    }
+
+    .inventory-card-header {
+        display: flex;
+        gap: 0.85rem;
+        align-items: flex-start;
+        padding: 1rem 1rem 0.75rem;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.95));
+    }
+
+    .inventory-card-visuals {
+        display: flex;
+        gap: 0.65rem;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .inventory-card-portrait-shell,
+    .inventory-card-item-shell {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.85rem;
+        overflow: hidden;
+        background: #f8f9fa;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .inventory-card-portrait-shell {
+        width: 3.1rem;
+        height: 3.1rem;
+        padding: 0.18rem;
+        background: radial-gradient(circle at top, rgba(13, 110, 253, 0.12), rgba(255, 255, 255, 0.92));
+    }
+
+    .inventory-card-item-shell {
+        width: 4.15rem;
+        height: 4.15rem;
+        padding: 0.2rem;
+    }
+
+    .inventory-item-preview-trigger {
+        padding: 0;
+        cursor: zoom-in;
+    }
+
+    .inventory-item-preview-trigger:focus-visible {
+        outline: 2px solid #0d6efd;
+        outline-offset: 2px;
+    }
+
+    .inventory-card-portrait,
+    .inventory-card-item {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 0.7rem;
+        display: block;
+    }
+
+    .inventory-card-content {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .inventory-card-character {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: #6c757d;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.35rem;
+    }
+
+    .inventory-card-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        line-height: 1.3;
+    }
+
+    .inventory-pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .inventory-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .inventory-pill-type {
+        background: rgba(13, 110, 253, 0.1);
+        color: #0b5ed7;
+    }
+
+    .inventory-pill-owned {
+        background: rgba(25, 135, 84, 0.12);
+        color: #0f5132;
+    }
+
+    .inventory-pill-unowned {
+        background: rgba(220, 53, 69, 0.1);
+        color: #842029;
+    }
+
+    .inventory-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+        padding: 0.95rem 1rem 1rem;
+        height: 100%;
+    }
+
+    .inventory-ability {
+        color: #4b5563;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        min-height: 4.1rem;
+    }
+
+    .inventory-control-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+    }
+
+    .inventory-control-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .inventory-control-block-full {
+        grid-column: 1 / -1;
+    }
+
+    .inventory-control-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .inventory-select-disabled {
+        opacity: 0.66;
+    }
+
+    .inventory-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: auto;
+    }
+
+    .inventory-empty-state {
+        display: none;
+        border: 1px dashed rgba(148, 163, 184, 0.5);
+        border-radius: 1rem;
+        padding: 2rem 1.25rem;
+        text-align: center;
+        color: #6c757d;
+        background: rgba(248, 250, 252, 0.8);
+    }
+
+    .inventory-empty-state.active {
+        display: block;
+    }
+
+    .inventory-message {
+        display: none;
+        margin-bottom: 1rem;
+    }
+
+    .inventory-message.active {
+        display: block;
+    }
+
+    .inventory-file-input {
+        display: none;
+    }
+
+    .inventory-backup-card {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 255, 255, 0.98));
+    }
+
+    #viewLevelsModal .modal-header {
+        background: linear-gradient(90deg, rgba(92, 29, 155, 0.08), rgba(92, 29, 155, 0.02));
+        border-bottom: 2px solid #b28bff;
+    }
+
+    #viewLevelsModal .snapshot-meta {
+        margin-top: 0.5rem;
+    }
+
+    #viewLevelsModal .weapon-banner-snapshot {
+        width: 100%;
+        padding-right: 0.85rem;
+    }
+
+    #viewLevelsModal .snapshot-section {
+        margin-bottom: 1rem;
+    }
+
+    #viewLevelsModal .snapshot-section-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8d79b7;
+        margin-bottom: 0.35rem;
+    }
+
+    #viewLevelsModal .snapshot-ability {
+        background-color: #f9f5ff;
+        border-left: 3px solid #b28bff;
+        border-radius: 0 0.5rem 0.5rem 0;
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
+        line-height: 1.45;
+    }
+
+    #viewLevelsModal .snapshot-stats {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    #viewLevelsModal .snapshot-stat {
+        text-align: center;
+        min-width: 80px;
+    }
+
+    #viewLevelsModal .snapshot-stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #3a2758;
+    }
+
+    #viewLevelsModal .snapshot-stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #8d79b7;
+    }
+
+    #viewLevelsModal .snapshot-rability-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    #viewLevelsModal .snapshot-rability-item {
+        padding: 0.3rem 0;
+    }
+
+    #viewLevelsModal .snapshot-rability-main {
+        display: block;
+    }
+
+    #viewLevelsModal .snapshot-rability-effects {
+        margin: 0.2rem 0 0.1rem 1.1rem;
+        padding-left: 0.4rem;
+        color: #585466;
+        font-size: 0.86rem;
+    }
+
+    #viewLevelsModal .snapshot-customization-entry {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem 0.65rem;
+        align-items: baseline;
+        padding: 0.2rem 0;
+        font-size: 0.9rem;
+    }
+
+    #viewLevelsModal .snapshot-spinner {
+        display: none;
+    }
+
+    #viewLevelsModal .snapshot-spinner.active {
+        display: inline-block;
+    }
+
+    #viewLevelsModal .snapshot-error {
+        display: none;
+        color: #dc3545;
+        font-size: 0.85rem;
+    }
+
+    #viewLevelsModal .snapshot-error.active {
+        display: block;
+    }
+
+    .inventory-snapshot-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        flex-wrap: wrap;
+    }
+
+    .inventory-snapshot-art-shell,
+    .inventory-snapshot-portrait-shell {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.9rem;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .inventory-snapshot-portrait-shell {
+        width: 3.2rem;
+        height: 3.2rem;
+    }
+
+    .inventory-snapshot-art-shell {
+        width: 4.15rem;
+        height: 4.15rem;
+        padding: 0.18rem;
+    }
+
+    .inventory-snapshot-portrait,
+    .inventory-snapshot-art {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 0.75rem;
+        display: block;
+    }
+
+    .inventory-snapshot-meta {
+        flex: 1 1 220px;
+    }
+
+    .inventory-snapshot-character {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6f42c1;
+        margin-bottom: 0.3rem;
+    }
+
+    .inventory-snapshot-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2f2553;
+        margin-bottom: 0.45rem;
+    }
+
+    .inventory-snapshot-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .preview-image-frame {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 320px;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.98));
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 1rem;
+        padding: 1rem;
+    }
+
+    .preview-image-frame img {
+        max-width: 100%;
+        max-height: min(75vh, 960px);
+        object-fit: contain;
+        display: block;
+    }
+
+    @@media (max-width: 991.98px) {
+        .inventory-toolbar-card {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .inventory-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .inventory-control-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .inventory-card-header {
+            padding-bottom: 0.55rem;
+        }
+
+        .inventory-card-portrait-shell {
+            width: 2.7rem;
+            height: 2.7rem;
+        }
+
+        .inventory-card-item-shell {
+            width: 3.65rem;
+            height: 3.65rem;
+        }
+
+        .inventory-card-actions .btn {
+            flex: 1 1 auto;
+        }
+
+        .inventory-pagination-bar,
+        .inventory-pagination-group {
+            align-items: stretch;
+        }
+    }
+</style>
+
+<div class="container-fluid inventory-page-shell mt-4 mb-5">
+    <div class="row g-4 align-items-start">
+        <div class="col-12">
+            <div class="card inventory-hero-card">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="inventory-kicker">Local Inventory</div>
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-4 align-items-lg-center">
+                        <div>
+                            <h1 class="mb-3"><i class="fas fa-box-open"></i> Player Inventory Management</h1>
+                            <p class="text-muted mb-0">Track owned costumes and weapons in your browser, search your armory quickly, and open weapon snapshots using your saved level defaults.</p>
+                        </div>
+                        <div class="text-lg-end">
+                            <div class="fw-semibold text-body-emphasis">Costumes: Own / Do Not Own</div>
+                            <div class="fw-semibold text-body-emphasis">Weapons: Do Not Own, 3 Star, 4 Star, 5 Star, OB1-OB10</div>
+                            <div class="small text-muted mt-1">Inventory levels use fixed steps: 1, then 10 through 140.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-3">
+            <div class="card inventory-toolbar-card">
+                <div class="card-body p-4">
+                    <div class="inventory-kicker">Find & Manage</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="inventorySearchInput" class="form-label fw-semibold">Search by item name</label>
+                            <input type="search" class="form-control" id="inventorySearchInput" placeholder="Search weapons and costumes" autocomplete="off" />
+                        </div>
+                        <div class="col-12">
+                            <label for="inventoryCharacterFilter" class="form-label fw-semibold">Character</label>
+                            <select class="form-select" id="inventoryCharacterFilter">
+                                <option value="all">All characters</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="inventoryTypeFilter" class="form-label fw-semibold">Item type</label>
+                            <select class="form-select" id="inventoryTypeFilter">
+                                <option value="all">All items</option>
+                                <option value="Weapon">Weapons</option>
+                                <option value="Costume">Costumes</option>
+                            </select>
+                        </div>
+                        <div class="col-12 d-grid gap-2 d-sm-flex">
+                            <button type="button" class="btn btn-outline-secondary flex-fill" id="inventoryClearFiltersButton">Clear filters</button>
+                        </div>
+                    </div>
+                    <hr class="my-4" />
+                    <div class="inventory-toolbar-actions">
+                        <button type="button" class="btn btn-primary" id="inventoryExportButton"><i class="fas fa-file-export"></i> Export</button>
+                        <button type="button" class="btn btn-outline-primary" id="inventoryImportButton"><i class="fas fa-file-import"></i> Import</button>
+                        <button type="button" class="btn btn-outline-danger" id="inventoryResetButton"><i class="fas fa-trash"></i> Reset</button>
+                    </div>
+                    <input type="file" class="inventory-file-input" id="inventoryImportFileInput" accept="application/json,.json" />
+                </div>
+            </div>
+
+            <div class="card inventory-backup-card mt-4">
+                <div class="card-body p-4">
+                    <div class="inventory-kicker text-warning-emphasis">Backup Reminder</div>
+                    <p class="mb-2 text-body-emphasis fw-semibold">Your inventory is stored only in this browser.</p>
+                    <p class="text-muted small mb-0">Nothing is saved on the server side. Use export backups regularly so you do not lose your data if browser storage is cleared.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-9">
+            <div class="card inventory-results-card">
+                <div class="card-body p-4">
+                    <div class="alert alert-success inventory-message" id="inventorySuccessMessage" role="status" aria-live="polite"></div>
+                    <div class="alert alert-danger inventory-message" id="inventoryErrorMessage" role="alert"></div>
+                    <div class="inventory-summary-bar">
+                        <div>
+                            <div class="inventory-summary-title">Inventory Catalog</div>
+                            <div class="inventory-summary-meta" id="inventorySummaryMeta">Loading inventory...</div>
+                        </div>
+                        <div class="small text-muted text-end" id="inventoryOwnedSummary"></div>
+                    </div>
+                    <div class="inventory-pagination-bar" id="inventoryPaginationBar">
+                        <div class="inventory-pagination-group">
+                            <label for="inventoryPageSizeSelect" class="small text-muted mb-0">Items per page</label>
+                            <select class="form-select form-select-sm inventory-page-size-select" id="inventoryPageSizeSelect">
+                                <option value="24">24</option>
+                                <option value="48">48</option>
+                                <option value="96">96</option>
+                            </select>
+                        </div>
+                        <div class="inventory-pagination-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryPreviousPageButton">Previous</button>
+                            <div class="inventory-pagination-status" id="inventoryPaginationStatus">Page 1 of 1</div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryNextPageButton">Next</button>
+                        </div>
+                    </div>
+                    <div class="inventory-empty-state" id="inventoryEmptyState">
+                        <div class="fs-5 fw-semibold mb-2">No items match your current filters.</div>
+                        <div class="small">Try clearing filters or searching for a different item name.</div>
+                    </div>
+                    <div class="inventory-grid" id="inventoryGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="itemImagePreviewModal" tabindex="-1" aria-labelledby="itemImagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="itemImagePreviewModalLabel">Gear Art Preview</h5>
+                    <div class="text-muted small" id="itemImagePreviewModalCaption">Larger gear art preview.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-image-frame">
+                    <img id="itemImagePreviewModalImage" alt="" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="viewLevelsModal" tabindex="-1" aria-labelledby="viewLevelsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="w-100">
+                    <h5 class="modal-title" id="viewLevelsModalLabel">View Levels</h5>
+                    <div class="snapshot-meta mt-1">
+                        <div class="inventory-snapshot-banner" id="snapshotHeader">
+                            <div class="inventory-snapshot-portrait-shell">
+                                <img class="inventory-snapshot-portrait" id="snapshotPortrait" alt="" />
+                            </div>
+                            <div class="inventory-snapshot-art-shell">
+                                <img class="inventory-snapshot-art" id="snapshotItemArt" alt="" />
+                            </div>
+                            <div class="inventory-snapshot-meta">
+                                <div class="inventory-snapshot-character" id="snapshotCharacter"></div>
+                                <div class="inventory-snapshot-name" id="snapshotWeaponName"></div>
+                                <div class="inventory-snapshot-pills">
+                                    <span class="inventory-pill inventory-pill-type" id="snapshotEquipment"></span>
+                                    <span class="inventory-pill" id="snapshotElement"></span>
+                                    <span class="inventory-pill" id="snapshotAbilityType"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6" id="snapshotOverboostCol">
+                        <label for="snapshotOverboost" class="form-label fw-semibold">Overboost</label>
+                        <select id="snapshotOverboost" class="form-select">
+                            <option value="0">5 Star</option>
+                            <option value="1">OB1</option>
+                            <option value="2">OB2</option>
+                            <option value="3">OB3</option>
+                            <option value="4">OB4</option>
+                            <option value="5">OB5</option>
+                            <option value="6">OB6</option>
+                            <option value="7">OB7</option>
+                            <option value="8">OB8</option>
+                            <option value="9">OB9</option>
+                            <option value="10">OB10</option>
+                        </select>
+                        <div class="form-text text-muted">Inventory 3 Star and 4 Star ownership opens this snapshot at the nearest supported 5 Star baseline.</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="snapshotLevel" class="form-label fw-semibold">Level</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="range" class="form-range flex-grow-1" id="snapshotLevelRange" min="1" max="@Model.UiMaxWeaponLevel" value="@Model.DefaultWeaponLevel" />
+                            <input type="number" class="form-control" id="snapshotLevel" min="1" max="@Model.UiMaxWeaponLevel" value="@Model.DefaultWeaponLevel" style="width: 5rem;" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="snapshot-section" id="snapshotAbilitySection">
+                    <div class="snapshot-section-title">Ability</div>
+                    <div class="snapshot-ability" id="snapshotAbility"><span class="text-muted">Loading...</span></div>
+                </div>
+
+                <div class="snapshot-section" id="snapshotStatsSection">
+                    <div class="snapshot-section-title">Stats</div>
+                    <div class="snapshot-stats">
+                        <div class="snapshot-stat">
+                            <div class="snapshot-stat-value" id="snapshotPatk">0</div>
+                            <div class="snapshot-stat-label">PATK</div>
+                        </div>
+                        <div class="snapshot-stat">
+                            <div class="snapshot-stat-value" id="snapshotMatk">0</div>
+                            <div class="snapshot-stat-label">MATK</div>
+                        </div>
+                        <div class="snapshot-stat">
+                            <div class="snapshot-stat-value" id="snapshotHeal">0</div>
+                            <div class="snapshot-stat-label">Heal</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="snapshot-section" id="snapshotRAbilitiesSection">
+                    <div class="snapshot-section-title">R Abilities</div>
+                    <ul class="snapshot-rability-list" id="snapshotRAbilities">
+                        <li class="text-muted">Loading...</li>
+                    </ul>
+                </div>
+
+                <div class="snapshot-section" id="snapshotCustomizationsSection">
+                    <div class="snapshot-section-title">Customizations</div>
+                    <div id="snapshotCustomizations"><span class="text-muted">Loading...</span></div>
+                </div>
+
+                <div class="snapshot-error" id="snapshotError">Failed to load weapon data. Please try again.</div>
+            </div>
+            <div class="modal-footer">
+                <span class="spinner-border spinner-border-sm snapshot-spinner me-2" id="snapshotSpinner" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script id="inventoryCatalogJson" type="application/json">@Html.Raw(itemsJson)</script>
+<script id="inventoryCharactersJson" type="application/json">@Html.Raw(charactersJson)</script>
+<script id="inventoryLevelsJson" type="application/json">@Html.Raw(levelsJson)</script>
+
+@section Scripts {
+    <script>
+        (function () {
+            const storageKey = 'player-inventory-state-v1';
+            const inventoryPageSizeOptions = [24, 48, 96];
+            const defaultInventoryPageSize = window.matchMedia('(max-width: 767.98px)').matches ? 24 : 48;
+            const inventoryGrid = document.getElementById('inventoryGrid');
+            const inventoryEmptyState = document.getElementById('inventoryEmptyState');
+            const inventorySearchInput = document.getElementById('inventorySearchInput');
+            const inventoryCharacterFilter = document.getElementById('inventoryCharacterFilter');
+            const inventoryTypeFilter = document.getElementById('inventoryTypeFilter');
+            const inventoryClearFiltersButton = document.getElementById('inventoryClearFiltersButton');
+            const inventoryExportButton = document.getElementById('inventoryExportButton');
+            const inventoryImportButton = document.getElementById('inventoryImportButton');
+            const inventoryImportFileInput = document.getElementById('inventoryImportFileInput');
+            const inventoryResetButton = document.getElementById('inventoryResetButton');
+            const inventorySummaryMeta = document.getElementById('inventorySummaryMeta');
+            const inventoryOwnedSummary = document.getElementById('inventoryOwnedSummary');
+            const inventoryPaginationBar = document.getElementById('inventoryPaginationBar');
+            const inventoryPageSizeSelect = document.getElementById('inventoryPageSizeSelect');
+            const inventoryPreviousPageButton = document.getElementById('inventoryPreviousPageButton');
+            const inventoryNextPageButton = document.getElementById('inventoryNextPageButton');
+            const inventoryPaginationStatus = document.getElementById('inventoryPaginationStatus');
+            const inventorySuccessMessage = document.getElementById('inventorySuccessMessage');
+            const inventoryErrorMessage = document.getElementById('inventoryErrorMessage');
+            const allItems = JSON.parse(document.getElementById('inventoryCatalogJson').textContent || '[]');
+            const availableCharacters = JSON.parse(document.getElementById('inventoryCharactersJson').textContent || '[]');
+            const allowedInventoryLevels = JSON.parse(document.getElementById('inventoryLevelsJson').textContent || '[]');
+            const defaultSnapshotLevel = @Model.DefaultWeaponLevel;
+            const viewLevelsModal = document.getElementById('viewLevelsModal');
+            const bsModal = viewLevelsModal ? new bootstrap.Modal(viewLevelsModal) : null;
+            const imagePreviewModalElement = document.getElementById('itemImagePreviewModal');
+            const imagePreviewModal = imagePreviewModalElement ? new bootstrap.Modal(imagePreviewModalElement) : null;
+            const imagePreviewTitle = document.getElementById('itemImagePreviewModalLabel');
+            const imagePreviewCaption = document.getElementById('itemImagePreviewModalCaption');
+            const imagePreviewImage = document.getElementById('itemImagePreviewModalImage');
+            const snapshotOverboost = document.getElementById('snapshotOverboost');
+            const snapshotLevel = document.getElementById('snapshotLevel');
+            const snapshotLevelRange = document.getElementById('snapshotLevelRange');
+            const snapshotPortrait = document.getElementById('snapshotPortrait');
+            const snapshotItemArt = document.getElementById('snapshotItemArt');
+            const snapshotCharacter = document.getElementById('snapshotCharacter');
+            const snapshotWeaponName = document.getElementById('snapshotWeaponName');
+            const snapshotEquipment = document.getElementById('snapshotEquipment');
+            const snapshotElement = document.getElementById('snapshotElement');
+            const snapshotAbilityType = document.getElementById('snapshotAbilityType');
+            const snapshotSpinner = document.getElementById('snapshotSpinner');
+            const snapshotError = document.getElementById('snapshotError');
+            const inventoryStatuses = [
+                { value: 'do-not-own', label: 'Do Not Own' },
+                { value: '3-star', label: '3 Star' },
+                { value: '4-star', label: '4 Star' },
+                { value: '5-star', label: '5 Star' },
+                { value: 'ob1', label: 'OB1' },
+                { value: 'ob2', label: 'OB2' },
+                { value: 'ob3', label: 'OB3' },
+                { value: 'ob4', label: 'OB4' },
+                { value: 'ob5', label: 'OB5' },
+                { value: 'ob6', label: 'OB6' },
+                { value: 'ob7', label: 'OB7' },
+                { value: 'ob8', label: 'OB8' },
+                { value: 'ob9', label: 'OB9' },
+                { value: 'ob10', label: 'OB10' }
+            ];
+
+            let state = loadState();
+            let currentSnapshotItem = null;
+            let snapshotDebounceTimer = null;
+            let snapshotAbortController = null;
+
+            function createDefaultState() {
+                return {
+                    version: 1,
+                    filters: {
+                        searchText: '',
+                        character: 'all',
+                        itemType: 'all',
+                        page: 1,
+                        pageSize: defaultInventoryPageSize
+                    },
+                    costumes: {},
+                    weapons: {}
+                };
+            }
+
+            function normalizeWeaponOwnership(value) {
+                const normalized = String(value || '').trim().toLowerCase();
+                return inventoryStatuses.some(entry => entry.value === normalized) ? normalized : 'do-not-own';
+            }
+
+            function normalizeWeaponLevel(value) {
+                const parsed = Number.parseInt(String(value || ''), 10);
+                return allowedInventoryLevels.includes(parsed) ? parsed : null;
+            }
+
+            function normalizeInventoryPageSize(value) {
+                const parsed = Number.parseInt(String(value || ''), 10);
+                return inventoryPageSizeOptions.includes(parsed) ? parsed : defaultInventoryPageSize;
+            }
+
+            function normalizeInventoryPage(value) {
+                const parsed = Number.parseInt(String(value || ''), 10);
+                return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+            }
+
+            function normalizeState(rawState) {
+                const baseState = createDefaultState();
+                const nextState = rawState && typeof rawState === 'object' ? rawState : {};
+                const normalized = {
+                    version: 1,
+                    filters: {
+                        searchText: typeof nextState.filters?.searchText === 'string' ? nextState.filters.searchText : '',
+                        character: typeof nextState.filters?.character === 'string' ? nextState.filters.character : 'all',
+                        itemType: typeof nextState.filters?.itemType === 'string' ? nextState.filters.itemType : 'all',
+                        page: normalizeInventoryPage(nextState.filters?.page),
+                        pageSize: normalizeInventoryPageSize(nextState.filters?.pageSize)
+                    },
+                    costumes: {},
+                    weapons: {}
+                };
+
+                if (!['all', ...availableCharacters].includes(normalized.filters.character)) {
+                    normalized.filters.character = 'all';
+                }
+
+                if (!['all', 'Weapon', 'Costume'].includes(normalized.filters.itemType)) {
+                    normalized.filters.itemType = 'all';
+                }
+
+                if (nextState.costumes && typeof nextState.costumes === 'object') {
+                    Object.entries(nextState.costumes).forEach(([itemId, value]) => {
+                        normalized.costumes[itemId] = {
+                            owned: !!value?.owned
+                        };
+                    });
+                }
+
+                if (nextState.weapons && typeof nextState.weapons === 'object') {
+                    Object.entries(nextState.weapons).forEach(([itemId, value]) => {
+                        normalized.weapons[itemId] = {
+                            ownership: normalizeWeaponOwnership(value?.ownership),
+                            level: normalizeWeaponLevel(value?.level)
+                        };
+                    });
+                }
+
+                return { ...baseState, ...normalized };
+            }
+
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(storageKey);
+                    if (!raw) {
+                        return createDefaultState();
+                    }
+
+                    return normalizeState(JSON.parse(raw));
+                } catch {
+                    return createDefaultState();
+                }
+            }
+
+            function saveState() {
+                localStorage.setItem(storageKey, JSON.stringify(state));
+            }
+
+            function hideMessages() {
+                inventorySuccessMessage.classList.remove('active');
+                inventorySuccessMessage.textContent = '';
+                inventoryErrorMessage.classList.remove('active');
+                inventoryErrorMessage.textContent = '';
+            }
+
+            function showSuccess(message) {
+                inventorySuccessMessage.textContent = message;
+                inventorySuccessMessage.classList.add('active');
+                inventoryErrorMessage.classList.remove('active');
+                inventoryErrorMessage.textContent = '';
+            }
+
+            function showError(message) {
+                inventoryErrorMessage.textContent = message;
+                inventoryErrorMessage.classList.add('active');
+                inventorySuccessMessage.classList.remove('active');
+                inventorySuccessMessage.textContent = '';
+            }
+
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function getCostumeRecord(itemId) {
+                return state.costumes[itemId] || { owned: false };
+            }
+
+            function getWeaponRecord(itemId) {
+                const record = state.weapons[itemId] || {};
+                return {
+                    ownership: normalizeWeaponOwnership(record.ownership),
+                    level: normalizeWeaponLevel(record.level)
+                };
+            }
+
+            function isOwned(item) {
+                if (String(item.equipmentType).toLowerCase() === 'costume') {
+                    return !!getCostumeRecord(item.id).owned;
+                }
+
+                return getWeaponRecord(item.id).ownership !== 'do-not-own';
+            }
+
+            function countOwnedByType() {
+                let ownedWeapons = 0;
+                let ownedCostumes = 0;
+
+                allItems.forEach(item => {
+                    if (!isOwned(item)) {
+                        return;
+                    }
+
+                    if (String(item.equipmentType).toLowerCase() === 'costume') {
+                        ownedCostumes += 1;
+                    } else {
+                        ownedWeapons += 1;
+                    }
+                });
+
+                return { ownedWeapons, ownedCostumes };
+            }
+
+            function updateInventorySummary(filteredCount, visibleCount, pageStart) {
+                const { ownedWeapons, ownedCostumes } = countOwnedByType();
+                if (filteredCount <= 0 || visibleCount <= 0) {
+                    inventorySummaryMeta.textContent = `Showing 0 of ${allItems.length.toLocaleString()} items`;
+                } else {
+                    const pageEnd = pageStart + visibleCount - 1;
+                    if (filteredCount === allItems.length) {
+                        inventorySummaryMeta.textContent = `Showing ${pageStart.toLocaleString()}-${pageEnd.toLocaleString()} of ${allItems.length.toLocaleString()} items`;
+                    } else {
+                        inventorySummaryMeta.textContent = `Showing ${pageStart.toLocaleString()}-${pageEnd.toLocaleString()} of ${filteredCount.toLocaleString()} filtered items · ${allItems.length.toLocaleString()} total`;
+                    }
+                }
+                inventoryOwnedSummary.textContent = `Owned weapons: ${ownedWeapons.toLocaleString()} · Owned costumes: ${ownedCostumes.toLocaleString()}`;
+            }
+
+            function updatePaginationControls(filteredCount, currentPage, totalPages) {
+                inventoryPaginationBar.classList.toggle('d-none', filteredCount <= 0);
+                inventoryPreviousPageButton.disabled = filteredCount <= 0 || currentPage <= 1;
+                inventoryNextPageButton.disabled = filteredCount <= 0 || currentPage >= totalPages;
+                inventoryPaginationStatus.textContent = filteredCount <= 0
+                    ? 'Page 0 of 0'
+                    : `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
+            }
+
+            function getPagedItems(filteredItems) {
+                const pageSize = normalizeInventoryPageSize(state.filters.pageSize);
+                const totalPages = filteredItems.length > 0 ? Math.ceil(filteredItems.length / pageSize) : 0;
+                const safePage = totalPages > 0 ? Math.min(normalizeInventoryPage(state.filters.page), totalPages) : 1;
+                const pageStartIndex = totalPages > 0 ? (safePage - 1) * pageSize : 0;
+                const pageItems = filteredItems.slice(pageStartIndex, pageStartIndex + pageSize);
+                return {
+                    pageItems,
+                    currentPage: safePage,
+                    totalPages,
+                    pageStart: pageItems.length > 0 ? pageStartIndex + 1 : 0
+                };
+            }
+
+            function buildOwnershipLabel(item) {
+                if (String(item.equipmentType).toLowerCase() === 'costume') {
+                    return getCostumeRecord(item.id).owned ? 'Own' : 'Do Not Own';
+                }
+
+                const record = getWeaponRecord(item.id);
+                const match = inventoryStatuses.find(entry => entry.value === record.ownership);
+                return match ? match.label : 'Do Not Own';
+            }
+
+            function getSnapshotOverboostValue(ownership) {
+                const normalized = normalizeWeaponOwnership(ownership);
+                if (normalized.startsWith('ob')) {
+                    return normalized.substring(2);
+                }
+
+                return '0';
+            }
+
+            function syncFiltersToUi() {
+                inventorySearchInput.value = state.filters.searchText;
+                inventoryCharacterFilter.value = state.filters.character;
+                inventoryTypeFilter.value = state.filters.itemType;
+                inventoryPageSizeSelect.value = String(state.filters.pageSize);
+            }
+
+            function populateCharacterOptions() {
+                inventoryCharacterFilter.innerHTML = '<option value="all">All characters</option>';
+                availableCharacters.forEach(character => {
+                    const option = document.createElement('option');
+                    option.value = character;
+                    option.textContent = character;
+                    inventoryCharacterFilter.appendChild(option);
+                });
+            }
+
+            function compareInventoryItems(left, right) {
+                const leftCharacterId = Number.parseInt(String(left?.characterId ?? 0), 10) || 0;
+                const rightCharacterId = Number.parseInt(String(right?.characterId ?? 0), 10) || 0;
+                if (leftCharacterId !== rightCharacterId) {
+                    return leftCharacterId - rightCharacterId;
+                }
+
+                const equipmentCompare = String(left?.equipmentType ?? '').localeCompare(String(right?.equipmentType ?? ''), undefined, { sensitivity: 'base' });
+                if (equipmentCompare !== 0) {
+                    return equipmentCompare;
+                }
+
+                const nameCompare = String(left?.name ?? '').localeCompare(String(right?.name ?? ''), undefined, { sensitivity: 'base' });
+                if (nameCompare !== 0) {
+                    return nameCompare;
+                }
+
+                return String(left?.id ?? '').localeCompare(String(right?.id ?? ''), undefined, { sensitivity: 'base' });
+            }
+
+            function getFilteredItems() {
+                const searchText = state.filters.searchText.trim().toLowerCase();
+                return allItems.filter(item => {
+                    if (state.filters.character !== 'all' && item.character !== state.filters.character) {
+                        return false;
+                    }
+
+                    if (state.filters.itemType !== 'all' && item.equipmentType !== state.filters.itemType) {
+                        return false;
+                    }
+
+                    if (searchText.length > 0 && !String(item.name).toLowerCase().includes(searchText)) {
+                        return false;
+                    }
+
+                    return true;
+                }).sort(compareInventoryItems);
+            }
+
+            function openItemImagePreview(previewImageUrl, fallbackImageUrl, name, equipmentType) {
+                if (!imagePreviewModal || !imagePreviewTitle || !imagePreviewCaption || !imagePreviewImage) {
+                    return;
+                }
+
+                const resolvedFallbackUrl = String(fallbackImageUrl || '').trim();
+                const resolvedPreviewUrl = String(previewImageUrl || '').trim() || resolvedFallbackUrl;
+                imagePreviewTitle.textContent = name || 'Gear Art Preview';
+                imagePreviewCaption.textContent = equipmentType
+                    ? `${equipmentType} image preview`
+                    : 'Larger gear art preview.';
+                imagePreviewImage.alt = name ? `${name} full art` : 'Gear art preview';
+                imagePreviewImage.onerror = () => {
+                    imagePreviewImage.onerror = null;
+                    if (resolvedFallbackUrl) {
+                        imagePreviewImage.src = resolvedFallbackUrl;
+                    }
+                };
+                imagePreviewImage.src = resolvedPreviewUrl;
+                imagePreviewModal.show();
+            }
+
+            function buildCostumeOptions(selectedValue) {
+                return ['do-not-own', 'own'].map(value => {
+                    const label = value === 'own' ? 'Own' : 'Do Not Own';
+                    return `<option value="${value}" ${selectedValue === value ? 'selected' : ''}>${label}</option>`;
+                }).join('');
+            }
+
+            function buildWeaponOptions(selectedValue) {
+                return inventoryStatuses.map(entry => `<option value="${entry.value}" ${selectedValue === entry.value ? 'selected' : ''}>${entry.label}</option>`).join('');
+            }
+
+            function buildLevelOptions(selectedValue) {
+                return ['<option value="">Not Set</option>']
+                    .concat(allowedInventoryLevels.map(level => `<option value="${level}" ${selectedValue === level ? 'selected' : ''}>Level ${level}</option>`))
+                    .join('');
+            }
+
+            function renderInventoryCard(item) {
+                const isCostume = String(item.equipmentType).toLowerCase() === 'costume';
+                const owned = isOwned(item);
+                const statusLabel = buildOwnershipLabel(item);
+                const weaponRecord = getWeaponRecord(item.id);
+                const costumeRecord = getCostumeRecord(item.id);
+                const levelValue = weaponRecord.level;
+                const levelDisabled = weaponRecord.ownership === 'do-not-own';
+                const pills = [
+                    `<span class="inventory-pill inventory-pill-type">${escapeHtml(item.equipmentType)}</span>`,
+                    item.element ? `<span class="inventory-pill">${escapeHtml(item.element)}</span>` : '',
+                    item.abilityType ? `<span class="inventory-pill">${escapeHtml(item.abilityType)}</span>` : '',
+                    `<span class="inventory-pill ${owned ? 'inventory-pill-owned' : 'inventory-pill-unowned'}">${escapeHtml(statusLabel)}</span>`
+                ].filter(Boolean).join('');
+
+                return `<article class="inventory-card ${owned ? 'inventory-card-owned' : ''}" data-item-id="${escapeHtml(item.id)}" data-item-type="${escapeHtml(item.equipmentType)}">
+                    <div class="inventory-card-header">
+                        <div class="inventory-card-visuals">
+                            <div class="inventory-card-portrait-shell">
+                                <img class="inventory-card-portrait" src="${escapeHtml(item.characterPortraitUrl)}" alt="${escapeHtml(item.character)} portrait" loading="lazy" />
+                            </div>
+                            <button type="button" class="inventory-card-item-shell inventory-item-preview-trigger" data-preview-image-url="${escapeHtml(item.previewImageUrl || item.imageUrl)}" data-fallback-image-url="${escapeHtml(item.imageUrl)}" data-preview-name="${escapeHtml(item.name)}" data-preview-equipment="${escapeHtml(item.equipmentType)}" aria-label="Open larger image for ${escapeHtml(item.name)}">
+                                <img class="inventory-card-item" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.name)}" loading="lazy" />
+                            </button>
+                        </div>
+                        <div class="inventory-card-content">
+                            <div class="inventory-card-character"><i class="fas fa-user"></i>${escapeHtml(item.character)}</div>
+                            <div class="inventory-card-name">${escapeHtml(item.name)}</div>
+                            <div class="inventory-pill-row">${pills}</div>
+                        </div>
+                    </div>
+                    <div class="inventory-card-body">
+                        <div class="inventory-ability">${escapeHtml(item.abilityText || 'No ability description available.')}</div>
+                        <div class="inventory-control-grid">
+                            <div class="inventory-control-block ${isCostume ? 'inventory-control-block-full' : ''}">
+                                <label class="inventory-control-label" for="ownership-${escapeHtml(item.id)}">${isCostume ? 'Costume Ownership' : 'Weapon Ownership'}</label>
+                                <select class="form-select inventory-ownership-select" id="ownership-${escapeHtml(item.id)}" data-item-id="${escapeHtml(item.id)}" data-item-type="${escapeHtml(item.equipmentType)}">
+                                    ${isCostume ? buildCostumeOptions(costumeRecord.owned ? 'own' : 'do-not-own') : buildWeaponOptions(weaponRecord.ownership)}
+                                </select>
+                            </div>
+                            ${isCostume ? '' : `<div class="inventory-control-block">
+                                <label class="inventory-control-label" for="level-${escapeHtml(item.id)}">Inventory Level</label>
+                                <select class="form-select inventory-level-select ${levelDisabled ? 'inventory-select-disabled' : ''}" id="level-${escapeHtml(item.id)}" data-item-id="${escapeHtml(item.id)}" ${levelDisabled ? 'disabled' : ''}>
+                                    ${buildLevelOptions(levelValue)}
+                                </select>
+                            </div>`}
+                        </div>
+                        <div class="inventory-card-actions">
+                            ${item.supportsViewLevels ? `<button type="button" class="btn btn-sm btn-outline-primary inventory-view-levels-button" data-item-id="${escapeHtml(item.id)}"><i class="fas fa-chart-line"></i> View Levels</button>` : ''}
+                        </div>
+                    </div>
+                </article>`;
+            }
+
+            function rerenderInventoryCard(itemId) {
+                const item = allItems.find(entry => entry.id === itemId);
+                if (!item) {
+                    return;
+                }
+
+                const selector = `.inventory-card[data-item-id="${CSS.escape(String(itemId))}"]`;
+                const existingCard = inventoryGrid.querySelector(selector);
+                if (!existingCard) {
+                    return;
+                }
+
+                existingCard.outerHTML = renderInventoryCard(item);
+            }
+
+            function renderInventory() {
+                const filteredItems = getFilteredItems();
+                const paging = getPagedItems(filteredItems);
+
+                if (state.filters.page !== paging.currentPage || state.filters.pageSize !== normalizeInventoryPageSize(state.filters.pageSize)) {
+                    state.filters.page = paging.currentPage;
+                    state.filters.pageSize = normalizeInventoryPageSize(state.filters.pageSize);
+                    saveState();
+                }
+
+                updateInventorySummary(filteredItems.length, paging.pageItems.length, paging.pageStart);
+                updatePaginationControls(filteredItems.length, paging.currentPage, paging.totalPages);
+
+                if (filteredItems.length === 0) {
+                    inventoryGrid.innerHTML = '';
+                    inventoryEmptyState.classList.add('active');
+                    return;
+                }
+
+                inventoryEmptyState.classList.remove('active');
+                inventoryGrid.innerHTML = paging.pageItems.map(renderInventoryCard).join('');
+            }
+
+            function updateFilters(nextFilters, resetPage = true) {
+                state.filters = {
+                    ...state.filters,
+                    ...nextFilters
+                };
+                if (resetPage) {
+                    state.filters.page = 1;
+                }
+                saveState();
+                syncFiltersToUi();
+                renderInventory();
+            }
+
+            function refreshInventoryMeta() {
+                const filteredItems = getFilteredItems();
+                const paging = getPagedItems(filteredItems);
+                updateInventorySummary(filteredItems.length, paging.pageItems.length, paging.pageStart);
+                updatePaginationControls(filteredItems.length, paging.currentPage, paging.totalPages);
+            }
+
+            function setCostumeOwnership(itemId, ownsItem) {
+                if (ownsItem) {
+                    state.costumes[itemId] = { owned: true };
+                } else {
+                    delete state.costumes[itemId];
+                }
+                saveState();
+                rerenderInventoryCard(itemId);
+                refreshInventoryMeta();
+            }
+
+            function setWeaponOwnership(itemId, ownership) {
+                const normalizedOwnership = normalizeWeaponOwnership(ownership);
+                const current = getWeaponRecord(itemId);
+                if (normalizedOwnership === 'do-not-own') {
+                    delete state.weapons[itemId];
+                } else {
+                    state.weapons[itemId] = {
+                        ownership: normalizedOwnership,
+                        level: current.level
+                    };
+                }
+                saveState();
+                rerenderInventoryCard(itemId);
+                refreshInventoryMeta();
+            }
+
+            function setWeaponLevel(itemId, level) {
+                const normalizedLevel = normalizeWeaponLevel(level);
+                const current = getWeaponRecord(itemId);
+                if (current.ownership === 'do-not-own') {
+                    return;
+                }
+
+                state.weapons[itemId] = {
+                    ownership: current.ownership,
+                    level: normalizedLevel
+                };
+                saveState();
+                rerenderInventoryCard(itemId);
+            }
+
+            function exportState() {
+                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                const stamp = new Date().toISOString().slice(0, 10);
+                anchor.href = url;
+                anchor.download = `player-inventory-${stamp}.json`;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                URL.revokeObjectURL(url);
+                showSuccess('Inventory exported successfully. Save the file somewhere safe.');
+            }
+
+            function importState(file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const parsed = JSON.parse(String(reader.result || '{}'));
+                        state = normalizeState(parsed);
+                        saveState();
+                        syncFiltersToUi();
+                        renderInventory();
+                        showSuccess('Inventory imported successfully.');
+                    } catch {
+                        showError('The selected file is not a valid inventory export.');
+                    }
+                };
+                reader.onerror = () => {
+                    showError('Failed to read the selected import file.');
+                };
+                reader.readAsText(file);
+            }
+
+            function setSnapshotLoading(isLoading) {
+                snapshotSpinner.classList.toggle('active', isLoading);
+                snapshotOverboost.disabled = isLoading;
+                snapshotLevel.disabled = isLoading;
+                snapshotLevelRange.disabled = isLoading;
+            }
+
+            function showSnapshotError(show) {
+                snapshotError.classList.toggle('active', show);
+            }
+
+            function formatNumber(value) {
+                return Number(value || 0).toLocaleString();
+            }
+
+            function updateSnapshotContent(data) {
+                showSnapshotError(false);
+                const snapshotAbility = document.getElementById('snapshotAbility');
+                const snapshotPatk = document.getElementById('snapshotPatk');
+                const snapshotMatk = document.getElementById('snapshotMatk');
+                const snapshotHeal = document.getElementById('snapshotHeal');
+                const snapshotRAbilities = document.getElementById('snapshotRAbilities');
+                const snapshotCustomizations = document.getElementById('snapshotCustomizations');
+                const snapshotCustomizationsSection = document.getElementById('snapshotCustomizationsSection');
+
+                snapshotAbility.innerHTML = data.abilityText ? String(data.abilityText).replace(/\r?\n/g, '<br />') : '<span class="text-muted">No ability data</span>';
+                snapshotPatk.textContent = formatNumber(data.patk);
+                snapshotMatk.textContent = formatNumber(data.matk);
+                snapshotHeal.textContent = formatNumber(data.heal);
+
+                if (typeof data.level === 'number') {
+                    snapshotLevel.value = String(data.level);
+                    snapshotLevelRange.value = String(data.level);
+                }
+
+                const baseRAbilities = Array.isArray(data.rAbilities) ? data.rAbilities : [];
+                const customizationRAbilities = Array.isArray(data.customizations)
+                    ? data.customizations.filter(entry => entry && entry.kind === 'R Ability')
+                    : [];
+                const combinedRAbilities = [
+                    ...baseRAbilities.map(entry => ({
+                        isCustomization: false,
+                        isLocked: !!entry.isLocked,
+                        lockedUntilLevel: entry.lockedUntilLevel,
+                        basePoints: entry.basePoints,
+                        upgradePoints: entry.upgradePoints,
+                        totalPoints: entry.totalPoints,
+                        skillName: entry.skillName,
+                        effects: Array.isArray(entry.effects) ? entry.effects : []
+                    })),
+                    ...customizationRAbilities.map(entry => ({
+                        isCustomization: true,
+                        isLocked: false,
+                        lockedUntilLevel: null,
+                        basePoints: 0,
+                        upgradePoints: 0,
+                        totalPoints: Number(entry.passiveSkillPoints || 0),
+                        skillName: entry.passiveSkillName || entry.description || 'Customization R Ability',
+                        effects: Array.isArray(entry.passiveEffects) ? entry.passiveEffects : []
+                    }))
+                ];
+
+                if (combinedRAbilities.length > 0) {
+                    snapshotRAbilities.innerHTML = combinedRAbilities.map(entry => {
+                        if (entry.isLocked) {
+                            const lockHint = entry.lockedUntilLevel != null ? ` <span class="text-muted">(unlocks at Lv. ${entry.lockedUntilLevel})</span>` : '';
+                            return `<li class="text-muted"><i class="fas fa-lock fa-xs me-1"></i>${escapeHtml(entry.skillName)}${lockHint}</li>`;
+                        }
+
+                        const breakdown = entry.basePoints > 0 && entry.upgradePoints > 0
+                            ? ` <small class="text-muted">(Lv. ${entry.basePoints} + OB ${entry.upgradePoints})</small>`
+                            : '';
+                        const customizationBadge = entry.isCustomization ? '<span class="badge text-bg-light me-1">Cust.</span>' : '';
+                        const effectsHtml = Array.isArray(entry.effects) && entry.effects.length > 0
+                            ? `<ul class="snapshot-rability-effects">${entry.effects
+                                .filter(effect => effect && effect.description)
+                                .map(effect => `<li>${escapeHtml(effect.description)}</li>`)
+                                .join('')}</ul>`
+                            : '';
+                        return `<li class="snapshot-rability-item"><div class="snapshot-rability-main">${customizationBadge}<strong>+${escapeHtml(entry.totalPoints)}</strong> ${escapeHtml(entry.skillName)}${breakdown}</div>${effectsHtml}</li>`;
+                    }).join('');
+                } else {
+                    snapshotRAbilities.innerHTML = '<li class="text-muted">No R Ability data at this level</li>';
+                }
+
+                const nonRAbilityCustomizations = Array.isArray(data.customizations)
+                    ? data.customizations.filter(entry => entry && entry.kind !== 'R Ability')
+                    : [];
+                if (nonRAbilityCustomizations.length > 0) {
+                    snapshotCustomizations.innerHTML = nonRAbilityCustomizations.map(entry => `<div class="snapshot-customization-entry"><span class="badge text-bg-light">${escapeHtml(entry.slot)}</span><span class="text-muted">${escapeHtml(entry.kind)}</span><span>${escapeHtml(entry.description)}</span></div>`).join('');
+                    snapshotCustomizationsSection.style.display = '';
+                } else {
+                    snapshotCustomizations.innerHTML = '<span class="text-muted">No customizations available</span>';
+                    snapshotCustomizationsSection.style.display = 'none';
+                }
+            }
+
+            function fetchSnapshot() {
+                if (!currentSnapshotItem) {
+                    return;
+                }
+
+                if (snapshotAbortController) {
+                    snapshotAbortController.abort();
+                }
+
+                snapshotAbortController = new AbortController();
+                const overboost = snapshotOverboost.value;
+                const level = snapshotLevel.value;
+                const url = `/PlayerInventoryManagement?handler=WeaponSnapshot&weaponId=${encodeURIComponent(currentSnapshotItem.id)}&overboost=${encodeURIComponent(overboost)}&level=${encodeURIComponent(level)}`;
+                setSnapshotLoading(true);
+                showSnapshotError(false);
+
+                fetch(url, { signal: snapshotAbortController.signal })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Request failed');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        updateSnapshotContent(data);
+                        setSnapshotLoading(false);
+                    })
+                    .catch(error => {
+                        if (error.name === 'AbortError') {
+                            return;
+                        }
+                        showSnapshotError(true);
+                        setSnapshotLoading(false);
+                    });
+            }
+
+            function debouncedFetchSnapshot() {
+                clearTimeout(snapshotDebounceTimer);
+                snapshotDebounceTimer = setTimeout(fetchSnapshot, 200);
+            }
+
+            function openSnapshot(itemId) {
+                const item = allItems.find(entry => entry.id === itemId);
+                if (!item || !bsModal) {
+                    return;
+                }
+
+                currentSnapshotItem = item;
+                const weaponRecord = getWeaponRecord(item.id);
+                snapshotPortrait.src = item.characterPortraitUrl;
+                snapshotPortrait.alt = `${item.character} portrait`;
+                snapshotItemArt.src = item.previewImageUrl || item.imageUrl;
+                snapshotItemArt.alt = item.name;
+                snapshotCharacter.textContent = item.character;
+                snapshotWeaponName.textContent = item.name;
+                snapshotEquipment.textContent = item.equipmentType;
+                snapshotElement.textContent = item.element || 'N/A';
+                snapshotAbilityType.textContent = item.abilityType || 'N/A';
+                snapshotOverboost.value = getSnapshotOverboostValue(weaponRecord.ownership);
+                const startingLevel = weaponRecord.level || defaultSnapshotLevel;
+                snapshotLevel.value = String(startingLevel);
+                snapshotLevelRange.value = String(startingLevel);
+                document.getElementById('snapshotAbility').innerHTML = '<span class="text-muted">Loading...</span>';
+                document.getElementById('snapshotRAbilities').innerHTML = '<li class="text-muted">Loading...</li>';
+                document.getElementById('snapshotCustomizations').innerHTML = '<span class="text-muted">Loading...</span>';
+                showSnapshotError(false);
+                bsModal.show();
+                fetchSnapshot();
+            }
+
+            inventorySearchInput.addEventListener('input', event => {
+                updateFilters({ searchText: event.target.value || '' });
+            });
+
+            inventoryCharacterFilter.addEventListener('change', event => {
+                updateFilters({ character: event.target.value || 'all' });
+            });
+
+            inventoryTypeFilter.addEventListener('change', event => {
+                updateFilters({ itemType: event.target.value || 'all' });
+            });
+
+            inventoryPageSizeSelect.addEventListener('change', event => {
+                updateFilters({ pageSize: normalizeInventoryPageSize(event.target.value), page: 1 }, false);
+            });
+
+            inventoryPreviousPageButton.addEventListener('click', () => {
+                if (state.filters.page <= 1) {
+                    return;
+                }
+
+                updateFilters({ page: state.filters.page - 1 }, false);
+            });
+
+            inventoryNextPageButton.addEventListener('click', () => {
+                updateFilters({ page: state.filters.page + 1 }, false);
+            });
+
+            inventoryClearFiltersButton.addEventListener('click', () => {
+                updateFilters({ searchText: '', character: 'all', itemType: 'all' });
+            });
+
+            inventoryExportButton.addEventListener('click', () => {
+                hideMessages();
+                exportState();
+            });
+
+            inventoryImportButton.addEventListener('click', () => {
+                inventoryImportFileInput.click();
+            });
+
+            inventoryImportFileInput.addEventListener('change', event => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) {
+                    return;
+                }
+                hideMessages();
+                importState(file);
+                inventoryImportFileInput.value = '';
+            });
+
+            inventoryResetButton.addEventListener('click', () => {
+                if (!window.confirm('Reset all local inventory data stored in this browser?')) {
+                    return;
+                }
+                hideMessages();
+                state = createDefaultState();
+                saveState();
+                syncFiltersToUi();
+                renderInventory();
+                showSuccess('Local inventory data was reset.');
+            });
+
+            inventoryGrid.addEventListener('change', event => {
+                const ownershipSelect = event.target.closest('.inventory-ownership-select');
+                const levelSelect = event.target.closest('.inventory-level-select');
+
+                if (ownershipSelect) {
+                    const itemId = ownershipSelect.getAttribute('data-item-id');
+                    const itemType = ownershipSelect.getAttribute('data-item-type');
+                    if (!itemId || !itemType) {
+                        return;
+                    }
+                    hideMessages();
+                    if (String(itemType).toLowerCase() === 'costume') {
+                        setCostumeOwnership(itemId, ownershipSelect.value === 'own');
+                    } else {
+                        setWeaponOwnership(itemId, ownershipSelect.value);
+                    }
+                    return;
+                }
+
+                if (levelSelect) {
+                    const itemId = levelSelect.getAttribute('data-item-id');
+                    if (!itemId) {
+                        return;
+                    }
+                    hideMessages();
+                    setWeaponLevel(itemId, levelSelect.value);
+                }
+            });
+
+            inventoryGrid.addEventListener('click', event => {
+                const previewTrigger = event.target.closest('.inventory-item-preview-trigger');
+                if (previewTrigger) {
+                    const previewImageUrl = previewTrigger.getAttribute('data-preview-image-url');
+                    const fallbackImageUrl = previewTrigger.getAttribute('data-fallback-image-url');
+                    const previewName = previewTrigger.getAttribute('data-preview-name');
+                    const previewEquipment = previewTrigger.getAttribute('data-preview-equipment');
+                    openItemImagePreview(previewImageUrl, fallbackImageUrl, previewName, previewEquipment);
+                    return;
+                }
+
+                const viewButton = event.target.closest('.inventory-view-levels-button');
+                if (!viewButton) {
+                    return;
+                }
+                const itemId = viewButton.getAttribute('data-item-id');
+                if (!itemId) {
+                    return;
+                }
+                openSnapshot(itemId);
+            });
+
+            snapshotOverboost.addEventListener('change', () => {
+                debouncedFetchSnapshot();
+            });
+
+            snapshotLevel.addEventListener('input', () => {
+                snapshotLevelRange.value = snapshotLevel.value;
+            });
+
+            snapshotLevel.addEventListener('change', () => {
+                snapshotLevelRange.value = snapshotLevel.value;
+                debouncedFetchSnapshot();
+            });
+
+            snapshotLevelRange.addEventListener('input', () => {
+                snapshotLevel.value = snapshotLevelRange.value;
+                debouncedFetchSnapshot();
+            });
+
+            populateCharacterOptions();
+            syncFiltersToUi();
+            renderInventory();
+        })();
+    </script>
+}

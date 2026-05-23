@@ -2533,6 +2533,12 @@
 
                 <div class="border-top pt-2 d-flex flex-wrap align-items-center gap-3">
                     <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="ownedItemsOnlyFilter" />
+                        <label class="form-check-label" for="ownedItemsOnlyFilter">
+                            Only Show Owned Items
+                        </label>
+                    </div>
+                    <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="hasCustomizationsFilter" />
                         <label class="form-check-label" for="hasCustomizationsFilter">
                             Has Customizations
@@ -2566,6 +2572,11 @@
                 }
             </select>
         </div>
+    </div>
+
+    <div id="ownedInventoryGuidance" class="alert alert-warning border d-none mb-3">
+        <strong><code>Only Show Owned Items</code> is on, but no local inventory data was found.</strong>
+        Visit <a href="/PlayerInventoryManagement" class="alert-link">Player Inventory Management</a> to mark owned gear or import an inventory backup, then return here to filter by owned items.
     </div>
 
     <div class="card mb-2 sticky-compare-panel" id="comparePanel">
@@ -3206,6 +3217,7 @@
                 }
 
                 const rowNode = table.row(dataIndex).node();
+                const rowItemId = rowNode.getAttribute('data-weapon-id') ?? '';
                 const rowCharacter = rowNode.getAttribute('data-character') ?? '';
                 const rowEquipment = rowNode.getAttribute('data-equipment') ?? '';
                 const rowElement = rowNode.getAttribute('data-element') ?? '';
@@ -3221,8 +3233,11 @@
                 });
                 const sigilMatch = selectedSigils.size === 0 || [...selectedSigils].some(s => rowSigils.includes(s));
                 const subRMatch = selectedSubRAbilities.size === 0 || [...selectedSubRAbilities].some(s => rowSubR.includes(s));
+                const ownedMatch = ownedItemsOnlyCheckbox?.checked !== true || (ownedInventoryState.hasSavedData && (rowEquipment.toLowerCase() === 'costume'
+                    ? ownedInventoryState.ownedCostumeIds.has(rowItemId)
+                    : ownedInventoryState.ownedWeaponIds.has(rowItemId)));
 
-                return characterMatch && equipmentMatch && quickElementAbilityMatch && sigilMatch && subRMatch;
+                return characterMatch && equipmentMatch && quickElementAbilityMatch && sigilMatch && subRMatch && ownedMatch;
             });
 
             const searchBox = document.getElementById('searchBox');
@@ -3239,6 +3254,16 @@
             const quickFiltersClearBtn = document.getElementById('quickFiltersClearBtn');
             const mobileClearFiltersBtn = document.getElementById('mobileClearFiltersBtn');
             const mobileApplyFiltersBtn = document.getElementById('mobileApplyFiltersBtn');
+            const ownedItemsOnlyCheckbox = document.getElementById('ownedItemsOnlyFilter');
+            const ownedInventoryGuidance = document.getElementById('ownedInventoryGuidance');
+            const inventoryStorageKey = 'player-inventory-state-v1';
+            const defaultMobileEmptyMessage = gearMobileResultsEmpty?.innerHTML ?? 'No matching gear found.';
+
+            let ownedInventoryState = {
+                hasSavedData: false,
+                ownedWeaponIds: new Set(),
+                ownedCostumeIds: new Set()
+            };
 
             const pageSizeSelect = document.getElementById('pageSize');
             pageSizeSelect.addEventListener('change', (e) => table.page.len(parseInt(e.target.value, 10)).draw());
@@ -3250,6 +3275,70 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+
+            const loadOwnedInventoryState = () => {
+                try {
+                    const raw = localStorage.getItem(inventoryStorageKey);
+                    if (!raw) {
+                        return {
+                            hasSavedData: false,
+                            ownedWeaponIds: new Set(),
+                            ownedCostumeIds: new Set()
+                        };
+                    }
+
+                    const parsed = JSON.parse(raw);
+                    const weaponEntries = parsed?.weapons && typeof parsed.weapons === 'object'
+                        ? Object.entries(parsed.weapons)
+                        : [];
+                    const costumeEntries = parsed?.costumes && typeof parsed.costumes === 'object'
+                        ? Object.entries(parsed.costumes)
+                        : [];
+
+                    const ownedWeaponIds = new Set(
+                        weaponEntries
+                            .filter(([, value]) => {
+                                const ownership = String(value?.ownership ?? '').trim().toLowerCase();
+                                return ownership.length > 0 && ownership !== 'do-not-own';
+                            })
+                            .map(([id]) => String(id)));
+
+                    const ownedCostumeIds = new Set(
+                        costumeEntries
+                            .filter(([, value]) => value?.owned === true)
+                            .map(([id]) => String(id)));
+
+                    return {
+                        hasSavedData: ownedWeaponIds.size > 0 || ownedCostumeIds.size > 0,
+                        ownedWeaponIds,
+                        ownedCostumeIds
+                    };
+                } catch {
+                    return {
+                        hasSavedData: false,
+                        ownedWeaponIds: new Set(),
+                        ownedCostumeIds: new Set()
+                    };
+                }
+            };
+
+            const refreshOwnedInventoryState = () => {
+                ownedInventoryState = loadOwnedInventoryState();
+            };
+
+            const updateOwnedInventoryGuidance = () => {
+                const showGuidance = ownedItemsOnlyCheckbox?.checked === true && !ownedInventoryState.hasSavedData;
+                ownedInventoryGuidance?.classList.toggle('d-none', !showGuidance);
+
+                if (gearMobileResultsEmpty) {
+                    gearMobileResultsEmpty.innerHTML = showGuidance
+                        ? 'No owned items can be shown yet. Open <a href="/PlayerInventoryManagement" class="alert-link">Player Inventory Management</a> to mark gear or import an inventory backup first.'
+                        : defaultMobileEmptyMessage;
+                    gearMobileResultsEmpty.classList.toggle('alert-warning', showGuidance);
+                    gearMobileResultsEmpty.classList.toggle('alert-light', !showGuidance);
+                    gearMobileResultsEmpty.classList.toggle('text-muted', !showGuidance);
+                }
+            };
 
             const defaultCharacterTheme = Object.freeze({
                 portrait: 'Cloud.jpg',
@@ -3507,7 +3596,12 @@
             const updateResultsSummary = () => {
                 const visibleCount = table.rows({ filter: 'applied' }).count();
                 const totalCount = table.rows().count();
-                resultsSummaryEl.textContent = `Showing ${visibleCount} of ${totalCount} items`;
+                const ownedSuffix = ownedItemsOnlyCheckbox?.checked === true
+                    ? ownedInventoryState.hasSavedData
+                        ? ' · Owned items only'
+                        : ' · Owned items only (no inventory data found)'
+                    : '';
+                resultsSummaryEl.textContent = `Showing ${visibleCount} of ${totalCount} items${ownedSuffix}`;
             };
 
             const syncQuickFilterButtons = () => {
@@ -3603,6 +3697,10 @@
                     entries.push({ selector: '.sigil-filter', value: cb.value, label: `Sigil: ${cb.value}` });
                 });
 
+                if (ownedItemsOnlyCheckbox?.checked) {
+                    entries.push({ kind: 'ownedOnly', label: 'Only Show Owned Items' });
+                }
+
                 if (customizationFilterCheckbox.checked) {
                     entries.push({ kind: 'hasCustomizations', label: 'Has Customizations' });
                 }
@@ -3654,6 +3752,7 @@
                 updateFilterCountBadges();
                 renderActiveFilterChips();
                 updateResultsSummary();
+                updateOwnedInventoryGuidance();
                 syncQuickFilterButtons();
                 syncFiltersToggleLabel();
             };
@@ -4423,6 +4522,27 @@
                 table.draw();
             });
 
+            if (ownedItemsOnlyCheckbox) {
+                ownedItemsOnlyCheckbox.addEventListener('change', () => {
+                    refreshOwnedInventoryState();
+                    table.draw();
+                });
+            }
+
+            window.addEventListener('storage', (event) => {
+                if (event.key !== inventoryStorageKey) {
+                    return;
+                }
+
+                refreshOwnedInventoryState();
+                if (ownedItemsOnlyCheckbox?.checked) {
+                    table.draw();
+                } else {
+                    updateOwnedInventoryGuidance();
+                    updateResultsSummary();
+                }
+            });
+
             if (mobileClearFiltersBtn) {
                 mobileClearFiltersBtn.addEventListener('click', () => {
                     clearAllFiltersBtn.click();
@@ -4493,6 +4613,12 @@
                     return;
                 }
 
+                if (kind === 'ownedOnly') {
+                    ownedItemsOnlyCheckbox.checked = false;
+                    table.draw();
+                    return;
+                }
+
                 if (kind === 'quickElementAbility' && value) {
                     selectedQuickElementAbilityFilters.delete(value);
                     table.draw();
@@ -4543,6 +4669,7 @@
                     cb.checked = false;
                 });
 
+                ownedItemsOnlyCheckbox.checked = false;
                 customizationFilterCheckbox.checked = false;
 
                 selectedCharacters.clear();
@@ -4578,6 +4705,8 @@
             const snapshotCustomizationUnlockHint = document.getElementById('snapshotCustomizationUnlockHint');
             const defaultSnapshotLevel = @Model.DefaultWeaponLevel;
             const customizationUnlockLevel = 80;
+
+            refreshOwnedInventoryState();
 
             let currentWeaponId = null;
             let currentWeaponSupportsCustomizations = false;

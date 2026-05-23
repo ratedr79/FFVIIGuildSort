@@ -6,6 +6,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
     {
         public required string Id { get; init; }
         public required string Name { get; init; }
+        public required int CharacterId { get; init; }
         public required string Character { get; init; }
         public required string ImageUrl { get; init; }
         public required string PreviewImageUrl { get; init; }
