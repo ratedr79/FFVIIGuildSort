@@ -197,7 +197,7 @@
             <h1 class="mb-3">
                 <i class="fas fa-user-gear"></i> Player Power Analyzer
             </h1>
-            <p class="text-muted mb-3">Analyze a single player from a survey sheet using the same team recommendation logic as Power Levels, without guild ranking or submission summaries.</p>
+            <p class="text-muted mb-3">Analyze a single player from a survey sheet or from your shared local inventory using the same team recommendation logic as Power Levels, without guild ranking or submission summaries.</p>
         </div>
     </div>
 
@@ -217,10 +217,26 @@
                 </div>
                 <div class="card-body">
                     <form method="post" asp-page-handler="Analyze" id="playerPowerAnalyzerForm">
+                        <input type="hidden" id="LocalInventoryStateJson" name="LocalInventoryStateJson" value="@Model.LocalInventoryStateJson" />
                         <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label for="AnalyzerInputMode" class="form-label">Input Mode</label>
+                                <select class="form-select" id="AnalyzerInputMode" name="AnalyzerInputMode">
+                                    @if (string.Equals(Model.AnalyzerInputMode, "LocalInventory", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="SurveySheet">Survey Sheet</option>
+                                        <option value="LocalInventory" selected>Local Inventory</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="SurveySheet" selected>Survey Sheet</option>
+                                        <option value="LocalInventory">Local Inventory</option>
+                                    }
+                                </select>
+                            </div>
                             <div class="col-md-6">
                                 <label for="GoogleSheetUrl" class="form-label">Survey Sheet</label>
-                                <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl">
+                                <select class="form-select" id="GoogleSheetUrl" name="GoogleSheetUrl" @(Model.IsUsingLocalInventoryMode ? "disabled" : null)>
                                     <option value="">-- Select a survey sheet --</option>
                                     @foreach (var sheet in Model.AvailableSheets)
                                     {
@@ -237,7 +253,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="PlayerName" class="form-label">Player</label>
-                                <select class="form-select" id="PlayerName" name="PlayerName" @(Model.AvailablePlayers.Count == 0 ? "disabled" : null)>
+                                <select class="form-select" id="PlayerName" name="PlayerName" @((Model.AvailablePlayers.Count == 0 || Model.IsUsingLocalInventoryMode) ? "disabled" : null)>
                                     <option value="">-- Select player --</option>
                                     @foreach (var player in Model.AvailablePlayers)
                                     {
@@ -256,6 +272,14 @@
                                     <span id="playerLoadingText">Loading players from survey sheet...</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="alert alert-info py-2 mb-3 @(Model.IsUsingLocalInventoryMode ? string.Empty : "d-none")" id="localInventoryModeNotice" role="status">
+                            <strong>Local Inventory mode</strong> uses your browser data from <strong>Player Inventory Management</strong>. Survey sheet and player selection are not required in this mode.
+                        </div>
+
+                        <div class="alert alert-secondary py-2 mb-3 @(!Model.IsUsingLocalInventoryMode ? string.Empty : "d-none")" id="surveyModeNotice" role="status">
+                            <strong>Survey Sheet mode</strong> analyzes one player from the selected guild survey sheet.
                         </div>
 
                         <div class="row g-3 mb-3">
@@ -425,10 +449,11 @@
                     <h5 class="mb-0"><i class="fas fa-info-circle"></i> Notes</h5>
                 </div>
                 <div class="card-body">
-                    <div class="mb-2"><strong>Player list</strong> comes from the selected survey sheet, similar to Should I Attack.</div>
+                    <div class="mb-2"><strong>Input modes</strong> support either a selected survey submitter or your shared Player Inventory browser state.</div>
+                    <div class="mb-2"><strong>Player list</strong> comes from the selected survey sheet when using Survey Sheet mode.</div>
                     <div class="mb-2"><strong>Analysis</strong> reuses the Power Levels optimizer and team synergy detection.</div>
                     <div class="mb-2"><strong>Output</strong> focuses on one player only, so there is no guild ranking, submission summary, or CSV export.</div>
-                    <div><strong>Submitted gear</strong> remains available by clicking the player name after analysis.</div>
+                    <div><strong>Gear details</strong> remain available by clicking the player name after analysis.</div>
                 </div>
             </div>
         </div>
@@ -454,7 +479,7 @@
                                     @if (hasGearSummary)
                                     {
                                         <button class="btn btn-link p-0 align-baseline js-open-gear-modal player-analyzer-name-link" type="button" data-gear-modal-id="@gearModalId">@team.InGameName</button>
-                                        <button class="btn player-analyzer-info-button js-open-gear-modal" type="button" data-gear-modal-id="@gearModalId" title="View submitted gear and player details" aria-label="View submitted gear and player details">
+                                        <button class="btn player-analyzer-info-button js-open-gear-modal" type="button" data-gear-modal-id="@gearModalId" title="View @Model.SelectedGearSourceLabel and player details" aria-label="View @Model.SelectedGearSourceLabel and player details">
                                             <i class="fas fa-circle-info"></i>
                                         </button>
                                     }
@@ -480,8 +505,17 @@
                             </div>
                         </div>
                         <div class="player-analyzer-team-summary text-end">
-                            <div class="small player-analyzer-header-kicker">Recommended Team</div>
-                            <div class="player-analyzer-team-value">@string.Join(", ", team.Characters)</div>
+                            <div class="small player-analyzer-header-kicker">@Model.TeamResultHeading</div>
+                            <div class="player-analyzer-team-value">
+                                @if (Model.IsPlaceholderLocalInventoryResult && (team.Characters == null || team.Characters.Count < 3))
+                                {
+                                    <span>Not enough local inventory coverage</span>
+                                }
+                                else
+                                {
+                                    @string.Join(", ", team.Characters)
+                                }
+                            </div>
                             <div class="mt-2"><span class="player-analyzer-score">@team.Score.ToString("N0")</span></div>
                         </div>
                     </div>
@@ -512,6 +546,13 @@
                                 </div>
                             </div>
                         </div>
+
+                        @if (Model.IsUsingLocalInventoryMode && !string.IsNullOrWhiteSpace(Model.LocalInventoryAvailabilityMessage))
+                        {
+                            <div class="alert @(Model.LocalInventoryAvailableCharacterCount < 3 ? "alert-warning" : "alert-info") mb-3" role="alert">
+                                <strong>Local inventory coverage:</strong> @Model.LocalInventoryAvailabilityMessage
+                            </div>
+                        }
 
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             @if (breakdown != null)
@@ -1195,7 +1236,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <div>
-                                <h5 class="modal-title" id="@(gearModalId + "_label")">@gear.InGameName - Submitted Gear</h5>
+                                <h5 class="modal-title" id="@(gearModalId + "_label")">@gear.InGameName - @Model.SelectedGearSourceLabel</h5>
                                 <small class="text-muted">
                                     Score: @gear.Score.ToString("N0")
                                     @if (gear.BestTeamCharacters.Count > 0)
@@ -1216,7 +1257,7 @@
                                         <div class="accordion-body">
                                             @if (gear.WeaponsByCharacter.Count == 0)
                                             {
-                                                <div class="text-muted">No owned weapons found in submission.</div>
+                                                <div class="text-muted">No owned weapons found in this source.</div>
                                             }
                                             else
                                             {
@@ -1262,7 +1303,7 @@
                                         <div class="accordion-body">
                                             @if (gear.CostumesByCharacter.Count == 0)
                                             {
-                                                <div class="text-muted">No owned costumes found in submission.</div>
+                                                <div class="text-muted">No owned costumes found in this source.</div>
                                             }
                                             else
                                             {
@@ -1422,11 +1463,74 @@
 @section Scripts {
     <script>
         (function () {
+            const inventoryStorageKey = 'player-inventory-state-v1';
             const form = document.getElementById('playerPowerAnalyzerForm');
+            const inputModeSelect = document.getElementById('AnalyzerInputMode');
             const guildSelect = document.getElementById('GoogleSheetUrl');
             const playerSelect = document.getElementById('PlayerName');
+            const localInventoryStateInput = document.getElementById('LocalInventoryStateJson');
             const playerLoadingIndicator = document.getElementById('playerLoadingIndicator');
             const playerLoadingText = document.getElementById('playerLoadingText');
+            const localInventoryModeNotice = document.getElementById('localInventoryModeNotice');
+            const surveyModeNotice = document.getElementById('surveyModeNotice');
+
+            function isLocalInventoryModeSelected() {
+                return inputModeSelect && inputModeSelect.value === 'LocalInventory';
+            }
+
+            function updateInputModeUi() {
+                const useLocalInventory = isLocalInventoryModeSelected();
+
+                if (guildSelect) {
+                    guildSelect.disabled = useLocalInventory;
+                }
+
+                if (playerSelect) {
+                    if (useLocalInventory) {
+                        playerSelect.disabled = true;
+                        playerSelect.innerHTML = '<option value="">Not required for local inventory</option>';
+                    } else {
+                        const shouldLoadPlayers = guildSelect && guildSelect.value;
+                        if (shouldLoadPlayers) {
+                            loadPlayers();
+                        } else {
+                            playerSelect.innerHTML = '<option value="">-- Select player --</option>';
+                            playerSelect.disabled = true;
+                        }
+                    }
+                }
+
+                if (localInventoryModeNotice) {
+                    localInventoryModeNotice.classList.toggle('d-none', !useLocalInventory);
+                }
+
+                if (surveyModeNotice) {
+                    surveyModeNotice.classList.toggle('d-none', useLocalInventory);
+                }
+
+                if (playerLoadingIndicator && useLocalInventory) {
+                    setPlayerLoadingState(false, 'Loading players from survey sheet...');
+                }
+            }
+
+            function populateLocalInventoryPayload() {
+                if (!localInventoryStateInput) {
+                    return true;
+                }
+
+                if (!isLocalInventoryModeSelected()) {
+                    localInventoryStateInput.value = '';
+                    return true;
+                }
+
+                try {
+                    localInventoryStateInput.value = localStorage.getItem(inventoryStorageKey) || '';
+                } catch {
+                    localInventoryStateInput.value = '';
+                }
+
+                return true;
+            }
 
             function setPlayerLoadingState(isLoading, message) {
                 if (playerLoadingIndicator) {
@@ -1445,6 +1549,13 @@
 
             async function loadPlayers() {
                 if (!form || !guildSelect || !playerSelect) {
+                    return;
+                }
+
+                if (isLocalInventoryModeSelected()) {
+                    setPlayerLoadingState(false, 'Loading players from survey sheet...');
+                    playerSelect.disabled = true;
+                    playerSelect.innerHTML = '<option value="">Not required for local inventory</option>';
                     return;
                 }
 
@@ -1593,13 +1704,23 @@
                 guildSelect.addEventListener('change', loadPlayers);
             }
 
+            if (inputModeSelect) {
+                inputModeSelect.addEventListener('change', updateInputModeUi);
+            }
+
+            if (form) {
+                form.addEventListener('submit', populateLocalInventoryPayload);
+            }
+
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', function () {
+                    updateInputModeUi();
                     mountGearModalsToBody();
                     wireCollapseToggleText();
                     wireGearModalOpenButtons();
                 });
             } else {
+                updateInputModeUi();
                 mountGearModalsToBody();
                 wireCollapseToggleText();
                 wireGearModalOpenButtons();

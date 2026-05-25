@@ -12,6 +12,14 @@
         </div>
     </div>
 
+    <div class="alert alert-info py-2" role="status" v-if="state.useSharedInventoryOwnership">
+        Ownership is synced with <strong>Player Inventory</strong>. Changes you make here update the shared inventory data.
+    </div>
+
+    <div class="alert alert-secondary py-2" role="status" v-else>
+        No shared <strong>Player Inventory</strong> data was found yet. Ownership changes stay local to Support Team Builder until inventory data exists.
+    </div>
+
     <div class="sticky-action-bar mb-3">
         <div class="border rounded bg-white shadow-sm px-3 py-2 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
             <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -384,6 +392,7 @@
 (function () {
     const { createApp, reactive, computed, onMounted, onBeforeUnmount, watch } = Vue;
     const storageKey = 'support-team-builder-state-v1';
+    const inventoryStorageKey = 'player-inventory-state-v1';
     const exportSchemaVersion = 1;
     const antiForgeryTokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
     const antiForgeryToken = antiForgeryTokenInput ? antiForgeryTokenInput.value : '';
@@ -540,9 +549,116 @@
             .join('\n');
     }
 
+    function createDefaultInventoryState() {
+        return {
+            version: 1,
+            filters: {
+                searchText: '',
+                character: 'all',
+                itemType: 'all'
+            },
+            costumes: {},
+            weapons: {}
+        };
+    }
+
+    function mapInventoryWeaponOwnershipToSupportSelection(ownership) {
+        const normalized = String(ownership || '').trim().toLowerCase();
+        if (!normalized || normalized === 'do-not-own') {
+            return 0;
+        }
+
+        if (normalized === '3-star' || normalized === '4-star' || normalized === '5-star') {
+            return 1;
+        }
+
+        if (normalized.startsWith('ob')) {
+            const overboost = Number.parseInt(normalized.substring(2), 10);
+            if (!Number.isFinite(overboost) || overboost <= 0) {
+                return 1;
+            }
+
+            if (overboost >= 10) {
+                return 4;
+            }
+
+            if (overboost >= 6) {
+                return 3;
+            }
+
+            return 2;
+        }
+
+        return 0;
+    }
+
+    function mapSupportSelectionToInventoryWeaponOwnership(selection) {
+        return clampInt(selection, 0, 4, 0) === 4
+            ? 'ob10'
+            : clampInt(selection, 0, 4, 0) === 3
+                ? 'ob6'
+                : clampInt(selection, 0, 4, 0) === 2
+                    ? 'ob1'
+                    : clampInt(selection, 0, 4, 0) === 1
+                        ? '5-star'
+                        : '';
+    }
+
+    function loadSharedInventorySnapshot() {
+        try {
+            const raw = localStorage.getItem(inventoryStorageKey);
+            if (!raw) {
+                return {
+                    exists: false,
+                    inventoryState: null,
+                    ownedObByWeaponId: {},
+                    ownedOutfitById: {}
+                };
+            }
+
+            const parsed = JSON.parse(raw);
+            const weaponEntries = parsed?.weapons && typeof parsed.weapons === 'object'
+                ? Object.entries(parsed.weapons)
+                : [];
+            const costumeEntries = parsed?.costumes && typeof parsed.costumes === 'object'
+                ? Object.entries(parsed.costumes)
+                : [];
+
+            const ownedObByWeaponId = {};
+            for (const [weaponId, value] of weaponEntries) {
+                const selection = mapInventoryWeaponOwnershipToSupportSelection(value?.ownership);
+                if (selection > 0) {
+                    ownedObByWeaponId[String(weaponId)] = selection;
+                }
+            }
+
+            const ownedOutfitById = {};
+            for (const [outfitId, value] of costumeEntries) {
+                if (value?.owned === true) {
+                    ownedOutfitById[String(outfitId)] = 1;
+                }
+            }
+
+            return {
+                exists: true,
+                inventoryState: parsed,
+                ownedObByWeaponId,
+                ownedOutfitById
+            };
+        } catch {
+            return {
+                exists: false,
+                inventoryState: null,
+                ownedObByWeaponId: {},
+                ownedOutfitById: {}
+            };
+        }
+    }
+
     createApp({
         setup() {
             const persisted = tryLoadState();
+            const sharedInventorySnapshot = loadSharedInventorySnapshot();
             const state = reactive({
                 options: {
                     effectTypes: [],
@@ -555,8 +671,9 @@
                 mustHaveCharacters: persisted.mustHaveCharacters,
                 excludeCharacters: persisted.excludeCharacters,
                 ui: persisted.ui,
-                ownedObByWeaponId: { ...persisted.ownedObByWeaponId },
-                ownedOutfitById: { ...persisted.ownedOutfitById },
+                ownedObByWeaponId: sharedInventorySnapshot.exists ? { ...sharedInventorySnapshot.ownedObByWeaponId } : { ...persisted.ownedObByWeaponId },
+                ownedOutfitById: sharedInventorySnapshot.exists ? { ...sharedInventorySnapshot.ownedOutfitById } : { ...persisted.ownedOutfitById },
+                useSharedInventoryOwnership: sharedInventorySnapshot.exists,
                 result: null,
                 loading: false,
                 error: '',
@@ -652,6 +769,10 @@
                     .length;
                 if (customOutfitOwnershipCount > 0) {
                     items.push(`Outfit ownership edits: ${customOutfitOwnershipCount}`);
+                }
+
+                if (state.useSharedInventoryOwnership) {
+                    items.push('Shared inventory sync');
                 }
 
                 return items;
@@ -944,6 +1065,84 @@
                 normalizeFilters();
             }
 
+            function writeSharedInventoryOwnership() {
+                if (!state.useSharedInventoryOwnership) {
+                    return;
+                }
+
+                const snapshot = loadSharedInventorySnapshot();
+                const inventoryState = snapshot.exists && snapshot.inventoryState && typeof snapshot.inventoryState === 'object'
+                    ? snapshot.inventoryState
+                    : createDefaultInventoryState();
+
+                const nextCostumes = {};
+                for (const [outfitId, value] of Object.entries(state.ownedOutfitById || {})) {
+                    if (clampInt(value, 0, 1, 0) > 0) {
+                        nextCostumes[String(outfitId)] = { owned: true };
+                    }
+                }
+
+                const existingWeapons = inventoryState.weapons && typeof inventoryState.weapons === 'object'
+                    ? inventoryState.weapons
+                    : {};
+                const nextWeapons = {};
+                for (const [weaponId, value] of Object.entries(state.ownedObByWeaponId || {})) {
+                    const ownership = mapSupportSelectionToInventoryWeaponOwnership(value);
+                    if (!ownership) {
+                        continue;
+                    }
+
+                    const existing = existingWeapons[String(weaponId)] && typeof existingWeapons[String(weaponId)] === 'object'
+                        ? existingWeapons[String(weaponId)]
+                        : {};
+                    nextWeapons[String(weaponId)] = {
+                        ownership,
+                        level: existing.level ?? null
+                    };
+                }
+
+                inventoryState.version = typeof inventoryState.version === 'number' ? inventoryState.version : 1;
+                inventoryState.filters = inventoryState.filters && typeof inventoryState.filters === 'object'
+                    ? inventoryState.filters
+                    : createDefaultInventoryState().filters;
+                inventoryState.costumes = nextCostumes;
+                inventoryState.weapons = nextWeapons;
+                localStorage.setItem(inventoryStorageKey, JSON.stringify(inventoryState));
+            }
+
+            function refreshOwnershipFromSharedInventory() {
+                const snapshot = loadSharedInventorySnapshot();
+                if (snapshot.exists) {
+                    state.useSharedInventoryOwnership = true;
+                    state.ownedObByWeaponId = { ...snapshot.ownedObByWeaponId };
+                    state.ownedOutfitById = { ...snapshot.ownedOutfitById };
+                    return true;
+                }
+
+                return false;
+            }
+
+            function handleStorageEvent(event) {
+                if (event.key !== inventoryStorageKey) {
+                    return;
+                }
+
+                if (refreshOwnershipFromSharedInventory()) {
+                    if (hasCompletedInitialLoad) {
+                        queueAutoRefresh();
+                    }
+                    return;
+                }
+
+                state.useSharedInventoryOwnership = false;
+                const localState = tryLoadState();
+                state.ownedObByWeaponId = { ...localState.ownedObByWeaponId };
+                state.ownedOutfitById = { ...localState.ownedOutfitById };
+                if (hasCompletedInitialLoad) {
+                    queueAutoRefresh();
+                }
+            }
+
             async function importStateFromFile(event) {
                 try {
                     const file = event?.target?.files?.[0];
@@ -955,6 +1154,9 @@
                     const parsed = JSON.parse(text);
                     const normalized = normalizeImportedPayload(parsed);
                     applyImportedState(normalized);
+                    if (state.useSharedInventoryOwnership) {
+                        writeSharedInventoryOwnership();
+                    }
                     persistState();
                     state.error = '';
                     await runSearch();
@@ -1110,10 +1312,16 @@
 
             function updateWeaponOwnership(weaponId, value) {
                 state.ownedObByWeaponId[weaponId] = Number.parseInt(value, 10) || 0;
+                if (state.useSharedInventoryOwnership) {
+                    writeSharedInventoryOwnership();
+                }
             }
 
             function updateOutfitOwnership(outfitId, value) {
                 state.ownedOutfitById[outfitId] = Number.parseInt(value, 10) || 0;
+                if (state.useSharedInventoryOwnership) {
+                    writeSharedInventoryOwnership();
+                }
             }
 
             function resetFiltersAndConstraints() {
@@ -1140,6 +1348,9 @@
 
                 state.ownedObByWeaponId = {};
                 state.ownedOutfitById = {};
+                if (state.useSharedInventoryOwnership) {
+                    writeSharedInventoryOwnership();
+                }
             }
 
             function normalizeFilters() {
@@ -1277,6 +1488,7 @@
                         maxCharacterCount: state.maxCharacterCount,
                         mustHaveCharacters: state.mustHaveCharacters,
                         excludeCharacters: state.excludeCharacters,
+                        useSharedInventoryOwnership: state.useSharedInventoryOwnership,
                         ownedObByWeaponId: state.ownedObByWeaponId,
                         ownedOutfitById: state.ownedOutfitById
                     };
@@ -1388,6 +1600,7 @@
             onMounted(async () => {
                 updateViewportState();
                 window.addEventListener('resize', updateViewportState);
+                window.addEventListener('storage', handleStorageEvent);
 
                 try {
                     await loadOptions();
@@ -1400,6 +1613,7 @@
 
             onBeforeUnmount(() => {
                 window.removeEventListener('resize', updateViewportState);
+                window.removeEventListener('storage', handleStorageEvent);
             });
 
             return {

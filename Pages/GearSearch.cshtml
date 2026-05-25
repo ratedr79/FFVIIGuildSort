@@ -2249,6 +2249,7 @@
                             <span>@quickSigil.Label</span>
                         </button>
                     }
+                    <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-owned="true">Only Owned</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-customizations="true">Has Customizations</button>
                 </div>
             </div>
@@ -2663,10 +2664,10 @@
                                 }
                                 else
                                 {
-                                    @string.Format("{0:N1}%", weapon.DamagePercent)
+                                    <span class="potency-cell">@string.Format("{0:N1}%", weapon.DamagePercent)</span>
                                 }
                             </td>
-                            <td>
+                            <td class="stats-cell">
                                 @if (costumeNoAbility)
                                 {
                                     <span class="text-muted">N/A</span>
@@ -3250,6 +3251,7 @@
             const quickEquipmentButtons = Array.from(document.querySelectorAll('[data-quick-equipment]'));
             const quickElementAbilityButtons = Array.from(document.querySelectorAll('[data-quick-element][data-quick-ability]'));
             const quickSigilButtons = Array.from(document.querySelectorAll('[data-quick-sigil]'));
+            const quickOwnedButton = document.querySelector('[data-quick-owned="true"]');
             const quickCustomizationButton = document.querySelector('[data-quick-customizations="true"]');
             const quickFiltersClearBtn = document.getElementById('quickFiltersClearBtn');
             const mobileClearFiltersBtn = document.getElementById('mobileClearFiltersBtn');
@@ -3258,12 +3260,34 @@
             const ownedInventoryGuidance = document.getElementById('ownedInventoryGuidance');
             const inventoryStorageKey = 'player-inventory-state-v1';
             const defaultMobileEmptyMessage = gearMobileResultsEmpty?.innerHTML ?? 'No matching gear found.';
+            const inventoryStatuses = Object.freeze([
+                { value: 'do-not-own', label: 'Do Not Own' },
+                { value: '3-star', label: '3 Star' },
+                { value: '4-star', label: '4 Star' },
+                { value: '5-star', label: '5 Star' },
+                { value: 'ob1', label: 'OB1' },
+                { value: 'ob2', label: 'OB2' },
+                { value: 'ob3', label: 'OB3' },
+                { value: 'ob4', label: 'OB4' },
+                { value: 'ob5', label: 'OB5' },
+                { value: 'ob6', label: 'OB6' },
+                { value: 'ob7', label: 'OB7' },
+                { value: 'ob8', label: 'OB8' },
+                { value: 'ob9', label: 'OB9' },
+                { value: 'ob10', label: 'OB10' }
+            ]);
+            const allowedInventoryLevels = Object.freeze([1, ...Array.from({ length: @Model.UiMaxWeaponLevel / 10 }, (_, index) => (index + 1) * 10)]);
 
             let ownedInventoryState = {
                 hasSavedData: false,
                 ownedWeaponIds: new Set(),
-                ownedCostumeIds: new Set()
+                ownedCostumeIds: new Set(),
+                weaponRecords: new Map()
             };
+            const ownedWeaponSnapshotCache = new Map();
+            const ownedWeaponSnapshotRequestCache = new Map();
+            const originalWeaponRowContent = new Map();
+            let ownedWeaponDisplayRefreshScheduled = false;
 
             const pageSizeSelect = document.getElementById('pageSize');
             pageSizeSelect.addEventListener('change', (e) => table.page.len(parseInt(e.target.value, 10)).draw());
@@ -3276,6 +3300,33 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
 
+            const normalizeWeaponOwnership = (value) => {
+                const normalized = String(value ?? '').trim().toLowerCase();
+                return inventoryStatuses.some(entry => entry.value === normalized) ? normalized : 'do-not-own';
+            };
+
+            const normalizeWeaponLevel = (value) => {
+                const parsed = Number.parseInt(String(value ?? ''), 10);
+                return allowedInventoryLevels.includes(parsed) ? parsed : null;
+            };
+
+            const getSnapshotOverboostValue = (ownership) => {
+                const normalized = normalizeWeaponOwnership(ownership);
+                if (normalized.startsWith('ob')) {
+                    return normalized.substring(2);
+                }
+
+                return '0';
+            };
+
+            const getWeaponOwnershipLabel = (ownership) => {
+                const normalized = normalizeWeaponOwnership(ownership);
+                const match = inventoryStatuses.find(entry => entry.value === normalized);
+                return match?.label ?? 'Do Not Own';
+            };
+
+            const formatDamagePercent = (value) => `${Number(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
             const loadOwnedInventoryState = () => {
                 try {
                     const raw = localStorage.getItem(inventoryStorageKey);
@@ -3283,7 +3334,8 @@
                         return {
                             hasSavedData: false,
                             ownedWeaponIds: new Set(),
-                            ownedCostumeIds: new Set()
+                            ownedCostumeIds: new Set(),
+                            weaponRecords: new Map()
                         };
                     }
 
@@ -3295,13 +3347,21 @@
                         ? Object.entries(parsed.costumes)
                         : [];
 
-                    const ownedWeaponIds = new Set(
-                        weaponEntries
-                            .filter(([, value]) => {
-                                const ownership = String(value?.ownership ?? '').trim().toLowerCase();
-                                return ownership.length > 0 && ownership !== 'do-not-own';
-                            })
-                            .map(([id]) => String(id)));
+                    const ownedWeaponIds = new Set();
+                    const weaponRecords = new Map();
+                    weaponEntries.forEach(([id, value]) => {
+                        const normalizedId = String(id);
+                        const ownership = normalizeWeaponOwnership(value?.ownership);
+                        if (ownership === 'do-not-own') {
+                            return;
+                        }
+
+                        ownedWeaponIds.add(normalizedId);
+                        weaponRecords.set(normalizedId, {
+                            ownership,
+                            level: normalizeWeaponLevel(value?.level)
+                        });
+                    });
 
                     const ownedCostumeIds = new Set(
                         costumeEntries
@@ -3311,19 +3371,265 @@
                     return {
                         hasSavedData: ownedWeaponIds.size > 0 || ownedCostumeIds.size > 0,
                         ownedWeaponIds,
-                        ownedCostumeIds
+                        ownedCostumeIds,
+                        weaponRecords
                     };
                 } catch {
                     return {
                         hasSavedData: false,
                         ownedWeaponIds: new Set(),
-                        ownedCostumeIds: new Set()
+                        ownedCostumeIds: new Set(),
+                        weaponRecords: new Map()
                     };
                 }
             };
 
             const refreshOwnedInventoryState = () => {
                 ownedInventoryState = loadOwnedInventoryState();
+            };
+
+            const getOwnedWeaponRecord = (weaponId) => {
+                const record = ownedInventoryState.weaponRecords?.get(String(weaponId));
+                if (!record) {
+                    return null;
+                }
+
+                return {
+                    ownership: normalizeWeaponOwnership(record.ownership),
+                    level: normalizeWeaponLevel(record.level) ?? defaultSnapshotLevel,
+                    overboost: getSnapshotOverboostValue(record.ownership)
+                };
+            };
+
+            const buildOwnedWeaponSnapshotKey = (weaponId, ownedRecord) => `${String(weaponId)}|${ownedRecord.overboost}|${ownedRecord.level}`;
+
+            const getOriginalWeaponRowContent = (rowNode) => {
+                const weaponId = rowNode?.getAttribute('data-weapon-id') ?? '';
+                if (!weaponId) {
+                    return null;
+                }
+
+                if (!originalWeaponRowContent.has(weaponId)) {
+                    const potencyCell = rowNode.querySelector('.potency-cell');
+                    const statsCell = rowNode.querySelector('.stats-cell');
+                    const rabilitiesCell = rowNode.querySelector('.rabilities-cell');
+                    originalWeaponRowContent.set(weaponId, {
+                        potencyHtml: potencyCell?.outerHTML ?? '',
+                        statsHtml: statsCell?.innerHTML ?? '',
+                        rabilitiesHtml: rabilitiesCell?.innerHTML ?? '',
+                        abilityTemplateHtml: rabilitiesCell?.querySelector('.ability-template')?.innerHTML ?? ''
+                    });
+                }
+
+                return originalWeaponRowContent.get(weaponId) ?? null;
+            };
+
+            const buildOwnedAbilityTemplateHtml = (abilityText, originalAbilityTemplateHtml) => {
+                const originalTemplate = document.createElement('div');
+                originalTemplate.innerHTML = originalAbilityTemplateHtml ?? '';
+                const abilityMetaHtml = Array.from(originalTemplate.querySelectorAll('.ability-meta'))
+                    .map(element => element.outerHTML)
+                    .join('');
+                const abilityContentHtml = String(abilityText ?? '').trim().length > 0
+                    ? `<div>${escapeHtml(String(abilityText)).replace(/\r?\n/g, '<br />')}</div>`
+                    : '<span class="text-muted">No ability data</span>';
+
+                return `${abilityContentHtml}${abilityMetaHtml}`;
+            };
+
+            const buildOwnedCustomizationTemplateHtml = (customizations) => {
+                const resolvedCustomizations = Array.isArray(customizations)
+                    ? customizations.filter(customization => customization)
+                    : [];
+                if (resolvedCustomizations.length === 0) {
+                    return '';
+                }
+
+                return `<div class="customization-template d-none">${resolvedCustomizations
+                    .map(customization => `<div class="customization-entry"><span class="customization-slot">${escapeHtml(customization.slot)}</span><span class="customization-kind">${escapeHtml(customization.kind)}</span><span class="customization-description">${escapeHtml(customization.description)}</span></div>`)
+                    .join('')}</div>`;
+            };
+
+            const buildOwnedRAbilitiesCellHtml = (snapshot, originalContent) => {
+                const baseRAbilities = Array.isArray(snapshot?.rAbilities) ? snapshot.rAbilities : [];
+                const customizationRAbilities = Array.isArray(snapshot?.customizations)
+                    ? snapshot.customizations.filter(customization => customization && customization.kind === 'R Ability')
+                    : [];
+
+                const baseRAbilityHtml = baseRAbilities.length > 0
+                    ? `<ul class="list-unstyled small mb-0">${baseRAbilities.map(passive => {
+                        if (passive?.isLocked) {
+                            const lockHint = passive.lockedUntilLevel != null
+                                ? ` <span class="text-muted">(unlocks at Lv. ${escapeHtml(passive.lockedUntilLevel)})</span>`
+                                : '';
+                            return `<li class="text-muted"><i class="fas fa-lock fa-xs me-1"></i>${escapeHtml(passive.skillName)}${lockHint}</li>`;
+                        }
+
+                        const effectLines = Array.isArray(passive?.effects)
+                            ? passive.effects.map(effect => effect?.description).filter(Boolean)
+                            : [];
+                        const hoverText = effectLines.length > 0 ? effectLines.join(' | ') : 'No effect details';
+                        return `<li><span class="rability-hoverable" tabindex="0" role="button" aria-label="Show passive effect details" data-rability-effects="${escapeHtml(hoverText)}"><strong>+${escapeHtml(passive.totalPoints)}</strong> ${escapeHtml(passive.skillName)}</span></li>`;
+                    }).join('')}</ul>`
+                    : '<span class="text-muted">No OB data</span>';
+
+                const customizationRAbilityHtml = customizationRAbilities.length > 0
+                    ? `<ul class="list-unstyled small mb-0 cust-rability-list">${customizationRAbilities.map(customization => {
+                        const passiveName = customization.passiveSkillName || customization.description || 'Customization R Ability';
+                        const effectLines = Array.isArray(customization.passiveEffects)
+                            ? customization.passiveEffects.map(effect => effect?.description).filter(Boolean)
+                            : [];
+                        const hoverText = effectLines.length > 0 ? effectLines.join(' | ') : 'No effect details';
+                        const pointsPrefix = Number(customization.passiveSkillPoints ?? 0) > 0
+                            ? `<strong>+${escapeHtml(customization.passiveSkillPoints)}</strong> `
+                            : '';
+                        return `<li><span class="cust-rability-badge">Cust.</span><span class="rability-hoverable" tabindex="0" role="button" aria-label="Show passive effect details" data-rability-effects="${escapeHtml(hoverText)}">${pointsPrefix}${escapeHtml(passiveName)}</span></li>`;
+                    }).join('')}</ul>`
+                    : '';
+
+                const abilityTemplateHtml = buildOwnedAbilityTemplateHtml(snapshot?.abilityText, originalContent?.abilityTemplateHtml ?? '');
+                const customizationTemplateHtml = buildOwnedCustomizationTemplateHtml(snapshot?.customizations);
+                return `${baseRAbilityHtml}${customizationRAbilityHtml}<div class="ability-template d-none">${abilityTemplateHtml}</div>${customizationTemplateHtml}`;
+            };
+
+            const revertWeaponRowDisplayToOriginal = (rowNode) => {
+                const originalContent = getOriginalWeaponRowContent(rowNode);
+                if (!originalContent) {
+                    return false;
+                }
+
+                const previouslyAppliedKey = rowNode.getAttribute('data-owned-snapshot-applied-key') ?? '';
+                const potencyCell = rowNode.querySelector('.potency-cell');
+                const statsCell = rowNode.querySelector('.stats-cell');
+                const rabilitiesCell = rowNode.querySelector('.rabilities-cell');
+
+                if (potencyCell && originalContent.potencyHtml) {
+                    potencyCell.outerHTML = originalContent.potencyHtml;
+                }
+                if (statsCell) {
+                    statsCell.innerHTML = originalContent.statsHtml;
+                }
+                if (rabilitiesCell) {
+                    rabilitiesCell.innerHTML = originalContent.rabilitiesHtml;
+                }
+
+                rowNode.removeAttribute('data-owned-snapshot-applied-key');
+                rowNode.removeAttribute('data-owned-snapshot-request-key');
+                return previouslyAppliedKey.length > 0;
+            };
+
+            const applyOwnedWeaponSnapshotToRow = (rowNode, snapshot, ownedRecord, snapshotKey) => {
+                const potencyCell = rowNode.querySelector('.potency-cell');
+                const statsCell = rowNode.querySelector('.stats-cell');
+                const rabilitiesCell = rowNode.querySelector('.rabilities-cell');
+                const weaponId = rowNode?.getAttribute('data-weapon-id') ?? '';
+                const originalContent = getOriginalWeaponRowContent(rowNode);
+                if (!potencyCell || !statsCell || !rabilitiesCell || !originalContent) {
+                    return false;
+                }
+
+                potencyCell.textContent = formatDamagePercent(snapshot?.damagePercent);
+                const statTitle = escapeHtml(`Lv. ${snapshot?.level ?? ownedRecord.level} / ${getWeaponOwnershipLabel(ownedRecord.ownership)}`);
+                statsCell.innerHTML = `<div class="stat-stack" title="${statTitle}"><span class="stat-stack-item"><img class="stat-stack-icon" src="/images/ui_icon_parameter_buff_physical_attack.png" alt="Physical attack" /><span class="stat-stack-value">${formatNumber(snapshot?.patk)}</span></span><span class="stat-stack-item"><img class="stat-stack-icon" src="/images/ui_icon_parameter_buff_magical_attack.png" alt="Magical attack" /><span class="stat-stack-value">${formatNumber(snapshot?.matk)}</span></span><span class="stat-stack-item"><img class="stat-stack-icon" src="/images/ui_icon_parameter_buff_heal.png" alt="Heal" /><span class="stat-stack-value">${formatNumber(snapshot?.heal)}</span></span></div>`;
+                rabilitiesCell.innerHTML = buildOwnedRAbilitiesCellHtml(snapshot, originalContent);
+                rowNode.setAttribute('data-owned-snapshot-applied-key', snapshotKey);
+                if (weaponId && compareItems.has(weaponId)) {
+                    const refreshedCompareData = scrapeWeaponData(weaponId);
+                    if (refreshedCompareData) {
+                        compareItems.set(weaponId, refreshedCompareData);
+                    }
+                }
+                return true;
+            };
+
+            const fetchOwnedWeaponSnapshot = (weaponId, ownedRecord) => {
+                const snapshotKey = buildOwnedWeaponSnapshotKey(weaponId, ownedRecord);
+                if (ownedWeaponSnapshotCache.has(snapshotKey)) {
+                    return Promise.resolve(ownedWeaponSnapshotCache.get(snapshotKey));
+                }
+
+                if (ownedWeaponSnapshotRequestCache.has(snapshotKey)) {
+                    return ownedWeaponSnapshotRequestCache.get(snapshotKey);
+                }
+
+                const url = `/GearSearch?handler=WeaponSnapshot&weaponId=${encodeURIComponent(weaponId)}&overboost=${encodeURIComponent(ownedRecord.overboost)}&level=${encodeURIComponent(ownedRecord.level)}`;
+                const request = fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Request failed');
+                        }
+
+                        return response.json();
+                    })
+                    .then(snapshot => {
+                        ownedWeaponSnapshotCache.set(snapshotKey, snapshot);
+                        ownedWeaponSnapshotRequestCache.delete(snapshotKey);
+                        return snapshot;
+                    })
+                    .catch(error => {
+                        ownedWeaponSnapshotRequestCache.delete(snapshotKey);
+                        throw error;
+                    });
+
+                ownedWeaponSnapshotRequestCache.set(snapshotKey, request);
+                return request;
+            };
+
+            const applyOwnedWeaponDisplayStateToRow = (rowNode) => {
+                const weaponId = rowNode?.getAttribute('data-weapon-id') ?? '';
+                const equipment = String(rowNode?.getAttribute('data-equipment') ?? '').trim().toLowerCase();
+                if (!weaponId || equipment === 'costume') {
+                    return Promise.resolve(false);
+                }
+
+                const ownedRecord = getOwnedWeaponRecord(weaponId);
+                if (!ownedRecord) {
+                    return Promise.resolve(revertWeaponRowDisplayToOriginal(rowNode));
+                }
+
+                const snapshotKey = buildOwnedWeaponSnapshotKey(weaponId, ownedRecord);
+                rowNode.setAttribute('data-owned-snapshot-request-key', snapshotKey);
+
+                if (rowNode.getAttribute('data-owned-snapshot-applied-key') === snapshotKey) {
+                    return Promise.resolve(false);
+                }
+
+                if (ownedWeaponSnapshotCache.has(snapshotKey)) {
+                    return Promise.resolve(applyOwnedWeaponSnapshotToRow(rowNode, ownedWeaponSnapshotCache.get(snapshotKey), ownedRecord, snapshotKey));
+                }
+
+                return fetchOwnedWeaponSnapshot(weaponId, ownedRecord)
+                    .then(snapshot => {
+                        if (rowNode.getAttribute('data-owned-snapshot-request-key') !== snapshotKey) {
+                            return false;
+                        }
+
+                        return applyOwnedWeaponSnapshotToRow(rowNode, snapshot, ownedRecord, snapshotKey);
+                    })
+                    .catch(() => false);
+            };
+
+            const refreshOwnedWeaponDisplayState = () => {
+                const currentPageRows = table.rows({ page: 'current' }).nodes().toArray();
+                Promise.all(currentPageRows.map(rowNode => applyOwnedWeaponDisplayStateToRow(rowNode)))
+                    .then(changedStates => {
+                        if (changedStates.some(Boolean)) {
+                            renderDecorations();
+                        }
+                    })
+                    .catch(() => { });
+            };
+
+            const scheduleOwnedWeaponDisplayRefresh = () => {
+                if (ownedWeaponDisplayRefreshScheduled) {
+                    return;
+                }
+
+                ownedWeaponDisplayRefreshScheduled = true;
+                window.requestAnimationFrame(() => {
+                    ownedWeaponDisplayRefreshScheduled = false;
+                    refreshOwnedWeaponDisplayState();
+                });
             };
 
             const updateOwnedInventoryGuidance = () => {
@@ -3624,6 +3930,10 @@
                     button.classList.toggle('active', isChecked);
                 });
 
+                if (quickOwnedButton) {
+                    quickOwnedButton.classList.toggle('active', ownedItemsOnlyCheckbox?.checked === true);
+                }
+
                 if (quickCustomizationButton) {
                     quickCustomizationButton.classList.toggle('active', customizationFilterCheckbox.checked);
                 }
@@ -3817,6 +4127,13 @@
                 });
             }
 
+            if (quickOwnedButton && ownedItemsOnlyCheckbox) {
+                quickOwnedButton.addEventListener('click', () => {
+                    ownedItemsOnlyCheckbox.checked = !ownedItemsOnlyCheckbox.checked;
+                    ownedItemsOnlyCheckbox.dispatchEvent(new Event('change'));
+                });
+            }
+
             if (quickFiltersClearBtn) {
                 quickFiltersClearBtn.addEventListener('click', () => {
                     document.querySelectorAll('.equipment-filter:checked').forEach(cb => {
@@ -3828,6 +4145,7 @@
                     selectedEquipmentTypes.clear();
                     selectedSigils.clear();
                     selectedQuickElementAbilityFilters.clear();
+                    ownedItemsOnlyCheckbox.checked = false;
                     customizationFilterCheckbox.checked = false;
                     table.draw();
                 });
@@ -4541,6 +4859,8 @@
                     updateOwnedInventoryGuidance();
                     updateResultsSummary();
                 }
+
+                scheduleOwnedWeaponDisplayRefresh();
             });
 
             if (mobileClearFiltersBtn) {
@@ -4941,10 +5261,12 @@
                 snapshotOverboost.classList.toggle('d-none', isUltimate);
                 document.getElementById('snapshotOverboostNa').classList.toggle('d-none', !isUltimate);
 
-                // Reset controls to defaults
-                snapshotOverboost.value = '10';
-                snapshotLevel.value = defaultSnapshotLevel.toString();
-                snapshotLevelRange.value = defaultSnapshotLevel.toString();
+                const ownedRecord = getOwnedWeaponRecord(currentWeaponId);
+                snapshotOverboost.value = isUltimate
+                    ? '0'
+                    : ownedRecord?.overboost ?? '10';
+                snapshotLevel.value = String(ownedRecord?.level ?? defaultSnapshotLevel);
+                snapshotLevelRange.value = String(ownedRecord?.level ?? defaultSnapshotLevel);
                 updateSnapshotCustomizationUnlockHint();
 
                 // Clear previous content
@@ -4966,9 +5288,11 @@
             renderDecorations();
             syncFilterUi();
             syncFiltersPresentation();
+            scheduleOwnedWeaponDisplayRefresh();
             table.on('draw', () => {
                 renderDecorations();
                 syncFilterUi();
+                scheduleOwnedWeaponDisplayRefresh();
             });
 
             window.addEventListener('resize', () => {

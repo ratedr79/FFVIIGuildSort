@@ -2,11 +2,19 @@ using FFVIIEverCrisisAnalyzer.Models;
 using FFVIIEverCrisisAnalyzer.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Text.Json;
 
 namespace FFVIIEverCrisisAnalyzer.Pages;
 
 public class PlayerPowerAnalyzerModel : PageModel
 {
+    private const string SurveySheetInputMode = "SurveySheet";
+    private const string LocalInventoryInputMode = "LocalInventory";
+    private static readonly JsonSerializerOptions InventoryJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly ILogger<PlayerPowerAnalyzerModel> _logger;
     private readonly IConfiguration _configuration;
     private readonly Gb20Analyzer _gb20Analyzer;
@@ -15,6 +23,7 @@ public class PlayerPowerAnalyzerModel : PageModel
     private readonly SummonCatalog _summonCatalog;
     private readonly EnemyAbilityCatalog _enemyAbilityCatalog;
     private readonly MemoriaCatalog _memoriaCatalog;
+    private readonly WeaponSearchDataService _weaponSearchDataService;
 
     private enum MateriaTier
     {
@@ -32,7 +41,8 @@ public class PlayerPowerAnalyzerModel : PageModel
         TeamTemplateCatalog teamTemplateCatalog,
         SummonCatalog summonCatalog,
         EnemyAbilityCatalog enemyAbilityCatalog,
-        MemoriaCatalog memoriaCatalog)
+        MemoriaCatalog memoriaCatalog,
+        WeaponSearchDataService weaponSearchDataService)
     {
         _logger = logger;
         _configuration = configuration;
@@ -42,6 +52,7 @@ public class PlayerPowerAnalyzerModel : PageModel
         _summonCatalog = summonCatalog;
         _enemyAbilityCatalog = enemyAbilityCatalog;
         _memoriaCatalog = memoriaCatalog;
+        _weaponSearchDataService = weaponSearchDataService;
     }
 
     public WeaponCatalog WeaponCatalog => _weaponCatalog;
@@ -51,6 +62,12 @@ public class PlayerPowerAnalyzerModel : PageModel
 
     [BindProperty]
     public string PlayerName { get; set; } = string.Empty;
+
+    [BindProperty]
+    public string AnalyzerInputMode { get; set; } = SurveySheetInputMode;
+
+    [BindProperty]
+    public string LocalInventoryStateJson { get; set; } = string.Empty;
 
     [BindProperty]
     public Element EnemyWeakness { get; set; } = Element.None;
@@ -73,17 +90,30 @@ public class PlayerPowerAnalyzerModel : PageModel
     public string? ErrorMessage { get; set; }
     public BestTeamResult? SelectedTeam { get; set; }
     public PlayerGearSummary? SelectedPlayerGear { get; set; }
+    public bool IsUsingLocalInventoryMode { get; private set; }
+    public string SelectedGearSourceLabel { get; private set; } = "Submitted Gear";
+    public int LocalInventoryAvailableCharacterCount { get; private set; }
+    public string? LocalInventoryAvailabilityMessage { get; private set; }
+    public bool IsPlaceholderLocalInventoryResult { get; private set; }
+    public string TeamResultHeading { get; private set; } = "Recommended Team";
 
     public void OnGet()
     {
+        AnalyzerInputMode = SurveySheetInputMode;
         LoadAvailableSheets();
         LoadAvailableTeamTemplates();
     }
 
     public async Task<IActionResult> OnPostLoadPlayersAsync()
     {
+        AnalyzerInputMode = NormalizeAnalyzerInputMode(AnalyzerInputMode);
         LoadAvailableSheets();
         LoadAvailableTeamTemplates();
+
+        if (IsLocalInventoryMode())
+        {
+            return new JsonResult(new { players = Array.Empty<string>() });
+        }
 
         if (string.IsNullOrWhiteSpace(GoogleSheetUrl))
         {
@@ -102,8 +132,44 @@ public class PlayerPowerAnalyzerModel : PageModel
 
     public async Task<IActionResult> OnPostAnalyzeAsync()
     {
+        AnalyzerInputMode = NormalizeAnalyzerInputMode(AnalyzerInputMode);
+        IsUsingLocalInventoryMode = IsLocalInventoryMode();
+        SelectedGearSourceLabel = IsUsingLocalInventoryMode ? "Local Inventory Snapshot" : "Submitted Gear";
+
         LoadAvailableSheets();
         LoadAvailableTeamTemplates();
+
+        var battleContext = new BattleContext
+        {
+            EnemyWeakness = EnemyWeakness,
+            PreferredDamageType = PreferredDamageType,
+            TargetScenario = TargetScenario,
+            SynergyEffectBonusPercents = SynergyEffectBonusPercents,
+            EnabledTeamTemplates = EnabledTeamTemplates
+                .Where(kvp => kvp.Value)
+                .Select(kvp => kvp.Key)
+                .ToList()
+        };
+
+        if (IsUsingLocalInventoryMode)
+        {
+            var localInventoryAccount = TryBuildLocalInventoryAccount();
+            if (localInventoryAccount == null)
+            {
+                return Page();
+            }
+
+            SelectedTeam = (await _gb20Analyzer.AnalyzeAsync(new[] { localInventoryAccount }, battleContext)).FirstOrDefault();
+            if (SelectedTeam == null)
+            {
+                ErrorMessage = "Unable to analyze the local inventory selection.";
+                return Page();
+            }
+
+            SelectedPlayerGear = BuildPlayerGearSummary(localInventoryAccount, SelectedTeam, battleContext);
+            UpdateLocalInventoryAvailabilityMessage(SelectedPlayerGear, SelectedTeam);
+            return Page();
+        }
 
         if (string.IsNullOrWhiteSpace(GoogleSheetUrl))
         {
@@ -136,20 +202,6 @@ public class PlayerPowerAnalyzerModel : PageModel
             return Page();
         }
 
-        var enabledTemplateNames = EnabledTeamTemplates
-            .Where(kvp => kvp.Value)
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        var battleContext = new BattleContext
-        {
-            EnemyWeakness = EnemyWeakness,
-            PreferredDamageType = PreferredDamageType,
-            TargetScenario = TargetScenario,
-            SynergyEffectBonusPercents = SynergyEffectBonusPercents,
-            EnabledTeamTemplates = enabledTemplateNames
-        };
-
         var analyzedTeams = await _gb20Analyzer.AnalyzeAsync(new[] { selectedAccount }, battleContext);
         SelectedTeam = analyzedTeams.FirstOrDefault();
         if (SelectedTeam == null)
@@ -170,6 +222,66 @@ public class PlayerPowerAnalyzerModel : PageModel
 
         SelectedPlayerGear = BuildPlayerGearSummary(selectedAccount, SelectedTeam, battleContext);
         return Page();
+    }
+
+    private void UpdateLocalInventoryAvailabilityMessage(PlayerGearSummary? gearSummary, BestTeamResult? selectedTeam)
+    {
+        LocalInventoryAvailableCharacterCount = 0;
+        LocalInventoryAvailabilityMessage = null;
+        IsPlaceholderLocalInventoryResult = false;
+        TeamResultHeading = "Recommended Team";
+
+        if (!IsUsingLocalInventoryMode || gearSummary == null)
+        {
+            return;
+        }
+
+        var availableCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var characterName in gearSummary.WeaponsByCharacter.Keys)
+        {
+            if (!string.IsNullOrWhiteSpace(characterName))
+            {
+                availableCharacters.Add(characterName.Trim());
+            }
+        }
+
+        foreach (var characterName in gearSummary.CostumesByCharacter.Keys)
+        {
+            if (!string.IsNullOrWhiteSpace(characterName))
+            {
+                availableCharacters.Add(characterName.Trim());
+            }
+        }
+
+        LocalInventoryAvailableCharacterCount = availableCharacters.Count;
+        var recommendedTeamCount = selectedTeam?.Characters?.Count ?? 0;
+
+        if (LocalInventoryAvailableCharacterCount < 3)
+        {
+            IsPlaceholderLocalInventoryResult = true;
+            TeamResultHeading = "Placeholder Result";
+            LocalInventoryAvailabilityMessage = $"Your local inventory currently has owned gear for {LocalInventoryAvailableCharacterCount} character{(LocalInventoryAvailableCharacterCount == 1 ? string.Empty : "s")}. The optimizer is designed around 3-character teams, so results may be incomplete or act like a placeholder until at least 3 characters have owned weapons or costumes.";
+            return;
+        }
+
+        if (recommendedTeamCount < 3)
+        {
+            IsPlaceholderLocalInventoryResult = true;
+            TeamResultHeading = "Incomplete Team Result";
+            LocalInventoryAvailabilityMessage = $"Your local inventory has owned gear for {LocalInventoryAvailableCharacterCount} characters, but the optimizer could not assemble a full 3-character recommended team from the current snapshot. Review owned weapons/costumes for more characters or broader role coverage.";
+        }
+    }
+
+    private bool IsLocalInventoryMode()
+    {
+        return string.Equals(AnalyzerInputMode, LocalInventoryInputMode, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeAnalyzerInputMode(string? rawValue)
+    {
+        return string.Equals(rawValue, LocalInventoryInputMode, StringComparison.OrdinalIgnoreCase)
+            ? LocalInventoryInputMode
+            : SurveySheetInputMode;
     }
 
     private void LoadAvailableSheets()
@@ -228,6 +340,93 @@ public class PlayerPowerAnalyzerModel : PageModel
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private AccountRow? TryBuildLocalInventoryAccount()
+    {
+        if (string.IsNullOrWhiteSpace(LocalInventoryStateJson))
+        {
+            ErrorMessage = "No Player Inventory data was supplied. Update or import inventory on the Player Inventory Management page, then try again.";
+            return null;
+        }
+
+        LocalInventoryState? inventoryState;
+        try
+        {
+            inventoryState = JsonSerializer.Deserialize<LocalInventoryState>(LocalInventoryStateJson, InventoryJsonOptions);
+        }
+        catch (JsonException)
+        {
+            ErrorMessage = "The supplied Player Inventory data could not be read. Please refresh the page and try again.";
+            return null;
+        }
+
+        if (inventoryState == null)
+        {
+            ErrorMessage = "The supplied Player Inventory data was empty. Please refresh the page and try again.";
+            return null;
+        }
+
+        var account = new AccountRow
+        {
+            InGameName = "Local Inventory"
+        };
+
+        foreach (var item in _weaponSearchDataService.GetWeapons())
+        {
+            if (string.Equals(item.EquipmentType, "Costume", StringComparison.OrdinalIgnoreCase))
+            {
+                if (inventoryState.Costumes.TryGetValue(item.Id, out var costumeState) && costumeState?.Owned == true)
+                {
+                    account.ItemResponsesByColumnName[item.Name] = "Own";
+                }
+
+                continue;
+            }
+
+            if (!inventoryState.Weapons.TryGetValue(item.Id, out var weaponState))
+            {
+                continue;
+            }
+
+            var mappedOwnership = MapInventoryWeaponOwnershipToAnalyzerValue(weaponState?.Ownership);
+            if (!string.IsNullOrWhiteSpace(mappedOwnership))
+            {
+                account.ItemResponsesByColumnName[item.Name] = mappedOwnership;
+            }
+        }
+
+        if (account.ItemResponsesByColumnName.Count == 0)
+        {
+            ErrorMessage = "No owned weapons or costumes were found in Player Inventory. Add or import inventory data, then try again.";
+            return null;
+        }
+
+        return account;
+    }
+
+    private static string? MapInventoryWeaponOwnershipToAnalyzerValue(string? rawOwnership)
+    {
+        var normalized = (rawOwnership ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized) || normalized == "do-not-own")
+        {
+            return null;
+        }
+
+        if (normalized is "3-star" or "4-star" or "5-star")
+        {
+            return "5 Star";
+        }
+
+        if (normalized.StartsWith("ob", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(normalized[2..], out var overboost)
+            && overboost >= 0
+            && overboost <= 10)
+        {
+            return $"OB{overboost}";
+        }
+
+        return null;
     }
 
     private PlayerGearSummary BuildPlayerGearSummary(AccountRow account, BestTeamResult team, BattleContext context)
@@ -548,5 +747,22 @@ public class PlayerPowerAnalyzerModel : PageModel
         }
 
         return null;
+    }
+
+    private sealed class LocalInventoryState
+    {
+        public Dictionary<string, LocalInventoryCostumeState> Costumes { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, LocalInventoryWeaponState> Weapons { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private sealed class LocalInventoryCostumeState
+    {
+        public bool Owned { get; set; }
+    }
+
+    private sealed class LocalInventoryWeaponState
+    {
+        public string Ownership { get; set; } = string.Empty;
+        public int? Level { get; set; }
     }
 }

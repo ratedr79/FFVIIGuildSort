@@ -88,10 +88,20 @@
         gap: 0.65rem;
     }
 
+    .inventory-pagination-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
     .inventory-pagination-status {
         color: #6c757d;
         font-size: 0.9rem;
         font-weight: 600;
+        text-align: center;
+        min-width: 7.5rem;
     }
 
     .inventory-page-size-select {
@@ -126,6 +136,11 @@
     .inventory-card-owned {
         border-color: rgba(13, 110, 253, 0.4);
         box-shadow: inset 0 0 0 1px rgba(13, 110, 253, 0.08);
+    }
+
+    .inventory-card-selected {
+        border-color: rgba(111, 66, 193, 0.52);
+        box-shadow: inset 0 0 0 2px rgba(111, 66, 193, 0.12), 0 0.7rem 1.65rem rgba(111, 66, 193, 0.12);
     }
 
     .inventory-card-header {
@@ -189,6 +204,18 @@
     .inventory-card-content {
         min-width: 0;
         flex: 1 1 auto;
+    }
+
+    .inventory-card-selection {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .inventory-card-selection .form-check-input {
+        width: 1.15rem;
+        height: 1.15rem;
+        cursor: pointer;
+        margin-top: 0.1rem;
     }
 
     .inventory-card-character {
@@ -291,6 +318,112 @@
         flex-wrap: wrap;
         gap: 0.6rem;
         margin-top: auto;
+    }
+
+    .inventory-bulk-panel {
+        margin-bottom: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 1rem;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.98));
+        padding: 1rem;
+    }
+
+    .inventory-bulk-summary {
+        color: #64748b;
+        font-size: 0.92rem;
+    }
+
+    .inventory-bulk-title-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .inventory-help-trigger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.7rem;
+        height: 1.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(13, 110, 253, 0.22);
+        background: rgba(13, 110, 253, 0.08);
+        color: #0d6efd;
+        padding: 0;
+    }
+
+    .inventory-help-trigger:hover,
+    .inventory-help-trigger:focus-visible {
+        background: rgba(13, 110, 253, 0.14);
+        color: #0a58ca;
+    }
+
+    .inventory-bulk-help-list {
+        display: grid;
+        gap: 1rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .inventory-bulk-help-list li {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 0.95rem;
+        padding: 0.9rem 1rem;
+        background: rgba(248, 250, 252, 0.72);
+    }
+
+    .inventory-bulk-help-list h6 {
+        margin-bottom: 0.45rem;
+        font-weight: 700;
+    }
+
+    .inventory-bulk-help-list p:last-child {
+        margin-bottom: 0;
+    }
+
+    .inventory-bulk-selection-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.55rem;
+    }
+
+    .inventory-paste-help {
+        color: #6c757d;
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    .inventory-import-summary {
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 0.85rem;
+        background: rgba(248, 250, 252, 0.92);
+        padding: 0.85rem 1rem;
+        font-size: 0.92rem;
+        color: #475569;
+    }
+
+    .inventory-import-errors:empty {
+        display: none;
+    }
+
+    .inventory-import-preview-empty {
+        padding: 1rem;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .inventory-import-preview-table th,
+    .inventory-import-preview-table td {
+        vertical-align: top;
+        font-size: 0.9rem;
+    }
+
+    .inventory-import-preview-table td small {
+        display: block;
+        color: #64748b;
+        margin-top: 0.2rem;
     }
 
     .inventory-empty-state {
@@ -551,6 +684,33 @@
         .inventory-pagination-group {
             align-items: stretch;
         }
+
+        .inventory-pagination-bar {
+            flex-direction: column;
+        }
+
+        .inventory-pagination-group {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .inventory-pagination-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+
+        .inventory-pagination-actions .btn,
+        .inventory-page-size-select {
+            width: 100%;
+        }
+
+        .inventory-pagination-status {
+            width: 100%;
+            min-width: 0;
+            order: -1;
+        }
     }
 </style>
 
@@ -606,6 +766,7 @@
                     <div class="inventory-toolbar-actions">
                         <button type="button" class="btn btn-primary" id="inventoryExportButton"><i class="fas fa-file-export"></i> Export</button>
                         <button type="button" class="btn btn-outline-primary" id="inventoryImportButton"><i class="fas fa-file-import"></i> Import</button>
+                        <button type="button" class="btn btn-outline-secondary" id="inventoryPasteImportButton"><i class="fas fa-paste"></i> Paste Import</button>
                         <button type="button" class="btn btn-outline-danger" id="inventoryResetButton"><i class="fas fa-trash"></i> Reset</button>
                     </div>
                     <input type="file" class="inventory-file-input" id="inventoryImportFileInput" accept="application/json,.json" />
@@ -633,6 +794,89 @@
                         </div>
                         <div class="small text-muted text-end" id="inventoryOwnedSummary"></div>
                     </div>
+                    <div class="inventory-bulk-panel">
+                        <div class="inventory-kicker mb-1 inventory-bulk-title-row">
+                            <span>Bulk Update</span>
+                            <button type="button" class="inventory-help-trigger" id="inventoryBulkHelpButton" aria-label="Learn how to use bulk update tools">
+                                <i class="fas fa-circle-info"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-3">
+                            <div>
+                                <div class="fw-semibold text-body-emphasis">Batch update your filtered results, current page, or selected items.</div>
+                                <div class="inventory-bulk-summary" id="inventoryBulkScopeSummary">Loading scope summary...</div>
+                            </div>
+                            <div class="inventory-bulk-selection-meta">
+                                <span class="badge text-bg-light" id="inventorySelectionCountBadge">0 selected</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="inventorySelectCurrentPageButton">Select Current Page</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryClearSelectionButton">Clear Selection</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning" id="inventoryUndoBulkUpdateButton" disabled>Undo Last Bulk Update</button>
+                            </div>
+                        </div>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-12 col-lg-4">
+                                <label for="inventoryBulkScope" class="form-label fw-semibold">Bulk scope</label>
+                                <select class="form-select" id="inventoryBulkScope">
+                                    <option value="filtered">Filtered results</option>
+                                    <option value="current-page">Current page</option>
+                                    <option value="selected">Selected items</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <label for="bulkWeaponOwnershipSelect" class="form-label fw-semibold">Weapon ownership</label>
+                                <div class="input-group">
+                                    <select class="form-select" id="bulkWeaponOwnershipSelect">
+                                        <option value="">Choose ownership...</option>
+                                        <option value="do-not-own">Do Not Own</option>
+                                        <option value="3-star">3 Star</option>
+                                        <option value="4-star">4 Star</option>
+                                        <option value="5-star">5 Star</option>
+                                        <option value="ob1">OB1</option>
+                                        <option value="ob2">OB2</option>
+                                        <option value="ob3">OB3</option>
+                                        <option value="ob4">OB4</option>
+                                        <option value="ob5">OB5</option>
+                                        <option value="ob6">OB6</option>
+                                        <option value="ob7">OB7</option>
+                                        <option value="ob8">OB8</option>
+                                        <option value="ob9">OB9</option>
+                                        <option value="ob10">OB10</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" id="applyBulkWeaponOwnershipButton">Apply</button>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <label for="bulkWeaponLevelSelect" class="form-label fw-semibold">Weapon level</label>
+                                <div class="input-group">
+                                    <select class="form-select" id="bulkWeaponLevelSelect">
+                                        <option value="">Choose level...</option>
+                                        @foreach (var level in Model.AllowedInventoryLevels)
+                                        {
+                                            <option value="@level">Level @level</option>
+                                        }
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" id="applyBulkWeaponLevelButton">Apply</button>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                                <label for="bulkCostumeOwnershipSelect" class="form-label fw-semibold">Costume ownership</label>
+                                <div class="input-group">
+                                    <select class="form-select" id="bulkCostumeOwnershipSelect">
+                                        <option value="">Choose ownership...</option>
+                                        <option value="own">Own</option>
+                                        <option value="do-not-own">Do Not Own</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" id="applyBulkCostumeOwnershipButton">Apply</button>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-8">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-secondary" id="clearBulkWeaponLevelButton">Clear Weapon Levels</button>
+                                    <button type="button" class="btn btn-outline-danger" id="resetBulkScopeButton">Reset Scope to Do Not Own</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="inventory-pagination-bar" id="inventoryPaginationBar">
                         <div class="inventory-pagination-group">
                             <label for="inventoryPageSizeSelect" class="small text-muted mb-0">Items per page</label>
@@ -643,9 +887,13 @@
                             </select>
                         </div>
                         <div class="inventory-pagination-group">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryPreviousPageButton">Previous</button>
                             <div class="inventory-pagination-status" id="inventoryPaginationStatus">Page 1 of 1</div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryNextPageButton">Next</button>
+                            <div class="inventory-pagination-actions">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryFirstPageButton">First</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryPreviousPageButton">Previous</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryNextPageButton">Next</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="inventoryLastPageButton">Last</button>
+                            </div>
                         </div>
                     </div>
                     <div class="inventory-empty-state" id="inventoryEmptyState">
@@ -781,6 +1029,131 @@
     </div>
 </div>
 
+<div class="modal fade" id="inventoryBulkHelpModal" tabindex="-1" aria-labelledby="inventoryBulkHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="inventoryBulkHelpModalLabel">How to Use Bulk Update</h5>
+                    <div class="text-muted small">A quick walkthrough for updating many inventory items without editing every card one by one.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="inventory-bulk-help-list">
+                    <li>
+                        <h6>1. Choose what items you want to affect</h6>
+                        <p class="mb-2">Use the page filters first if you want to narrow the list by character, item type, or name. Then choose a bulk scope:</p>
+                        <p class="mb-1"><strong>Filtered results</strong> updates everything that currently matches your filters.</p>
+                        <p class="mb-1"><strong>Current page</strong> updates only the visible page of cards.</p>
+                        <p><strong>Selected items</strong> updates only the cards whose checkboxes you turned on.</p>
+                    </li>
+                    <li>
+                        <h6>2. Use selection when you want extra control</h6>
+                        <p class="mb-2">Each card has a checkbox in the top-right corner. This is the safest option when you only want to change a handful of items.</p>
+                        <p class="mb-1">Use <strong>Select Current Page</strong> to quickly mark every card you can currently see.</p>
+                        <p>Use <strong>Clear Selection</strong> if you want to start over.</p>
+                    </li>
+                    <li>
+                        <h6>3. Apply one type of change at a time</h6>
+                        <p class="mb-2">Pick the change you want, then click <strong>Apply</strong>.</p>
+                        <p class="mb-1"><strong>Weapon ownership</strong> changes ownership status like 5 Star or OB10.</p>
+                        <p class="mb-1"><strong>Weapon level</strong> sets the stored level for owned weapons.</p>
+                        <p class="mb-1"><strong>Costume ownership</strong> marks costumes as own or do not own.</p>
+                        <p class="mb-0"><strong>Clear Weapon Levels</strong> removes saved levels but keeps ownership. <strong>Reset Scope to Do Not Own</strong> clears ownership in the chosen scope.</p>
+                    </li>
+                    <li>
+                        <h6>4. Use Paste Import when you already have a list</h6>
+                        <p class="mb-2">The <strong>Paste Import</strong> button is useful when you copied rows from notes or a spreadsheet.</p>
+                        <p class="mb-1">You can paste CSV, TSV, or simple lines like <code>Murasame - OB10 - 140</code>.</p>
+                        <p class="mb-1">Click <strong>Parse Rows</strong> first to preview matches, warnings, and skipped rows.</p>
+                        <p>Nothing changes until you click <strong>Apply Import</strong>.</p>
+                    </li>
+                    <li>
+                        <h6>5. Pick the right import mode</h6>
+                        <p class="mb-1"><strong>Merge matched rows</strong> updates matched items with the values you provided.</p>
+                        <p class="mb-1"><strong>Only fill blanks / unowned entries</strong> avoids overwriting items you already filled in.</p>
+                        <p><strong>Replace matched rows</strong> is the strongest option and can clear existing stored levels if your pasted replacement row leaves level blank.</p>
+                    </li>
+                    <li>
+                        <h6>6. If something looks wrong, use Undo</h6>
+                        <p class="mb-0">After a bulk action or paste import, use <strong>Undo Last Bulk Update</strong> right away if you need to roll it back. It only keeps the most recent bulk-style change, so it is best used immediately.</p>
+                    </li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="pasteImportModal" tabindex="-1" aria-labelledby="pasteImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="pasteImportModalLabel">Paste Inventory Import</h5>
+                    <div class="text-muted small">Paste CSV, TSV, or simple lines such as <code>Murasame - OB10 - 140</code> to preview bulk updates before applying them.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-4">
+                    <div class="col-12 col-lg-5">
+                        <label for="pasteImportInput" class="form-label fw-semibold">Paste rows</label>
+                        <textarea class="form-control" id="pasteImportInput" rows="15" placeholder="Weapon,Ownership,Level&#10;Murasame,OB10,140&#10;Sun Umbrella,5 Star,120&#10;Fairy Tale,Do Not Own&#10;Guide Gloves Costume,Own"></textarea>
+                        <div class="inventory-paste-help mt-2">
+                            Exact item names work best. Weapon rows can include ownership, level, or both. Costume rows only support ownership.
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-7">
+                        <div class="row g-3 align-items-end mb-3">
+                            <div class="col-12 col-md-5">
+                                <label for="pasteImportMode" class="form-label fw-semibold">Apply mode</label>
+                                <select class="form-select" id="pasteImportMode">
+                                    <option value="merge">Merge matched rows</option>
+                                    <option value="fill-blanks">Only fill blanks / unowned entries</option>
+                                    <option value="replace">Replace matched rows</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-7">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-primary" id="parsePasteImportButton">Parse Rows</button>
+                                    <button type="button" class="btn btn-success" id="applyPasteImportButton" disabled>Apply Import</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="clearPasteImportButton">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inventory-import-summary mb-3" id="pasteImportSummary">Parse pasted rows to see matches, skipped lines, and proposed updates.</div>
+                        <div class="alert alert-danger inventory-import-errors" id="pasteImportErrors" role="alert"></div>
+                        <div class="table-responsive border rounded">
+                            <table class="table table-sm align-middle mb-0 inventory-import-preview-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Line</th>
+                                        <th scope="col">Matched Item</th>
+                                        <th scope="col">Parsed Data</th>
+                                        <th scope="col">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pasteImportPreviewBody">
+                                    <tr>
+                                        <td colspan="4" class="inventory-import-preview-empty">Parse rows to preview bulk inventory updates.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script id="inventoryCatalogJson" type="application/json">@Html.Raw(itemsJson)</script>
 <script id="inventoryCharactersJson" type="application/json">@Html.Raw(charactersJson)</script>
 <script id="inventoryLevelsJson" type="application/json">@Html.Raw(levelsJson)</script>
@@ -792,6 +1165,7 @@
             const inventoryPageSizeOptions = [24, 48, 96];
             const defaultInventoryPageSize = window.matchMedia('(max-width: 767.98px)').matches ? 24 : 48;
             const inventoryGrid = document.getElementById('inventoryGrid');
+            const inventoryResultsCard = inventoryGrid?.closest('.inventory-results-card');
             const inventoryEmptyState = document.getElementById('inventoryEmptyState');
             const inventorySearchInput = document.getElementById('inventorySearchInput');
             const inventoryCharacterFilter = document.getElementById('inventoryCharacterFilter');
@@ -800,13 +1174,31 @@
             const inventoryExportButton = document.getElementById('inventoryExportButton');
             const inventoryImportButton = document.getElementById('inventoryImportButton');
             const inventoryImportFileInput = document.getElementById('inventoryImportFileInput');
+            const inventoryPasteImportButton = document.getElementById('inventoryPasteImportButton');
+            const inventoryBulkHelpButton = document.getElementById('inventoryBulkHelpButton');
             const inventoryResetButton = document.getElementById('inventoryResetButton');
             const inventorySummaryMeta = document.getElementById('inventorySummaryMeta');
             const inventoryOwnedSummary = document.getElementById('inventoryOwnedSummary');
+            const inventoryBulkScope = document.getElementById('inventoryBulkScope');
+            const inventoryBulkScopeSummary = document.getElementById('inventoryBulkScopeSummary');
+            const inventorySelectionCountBadge = document.getElementById('inventorySelectionCountBadge');
+            const inventorySelectCurrentPageButton = document.getElementById('inventorySelectCurrentPageButton');
+            const inventoryClearSelectionButton = document.getElementById('inventoryClearSelectionButton');
+            const inventoryUndoBulkUpdateButton = document.getElementById('inventoryUndoBulkUpdateButton');
+            const bulkWeaponOwnershipSelect = document.getElementById('bulkWeaponOwnershipSelect');
+            const applyBulkWeaponOwnershipButton = document.getElementById('applyBulkWeaponOwnershipButton');
+            const bulkWeaponLevelSelect = document.getElementById('bulkWeaponLevelSelect');
+            const applyBulkWeaponLevelButton = document.getElementById('applyBulkWeaponLevelButton');
+            const clearBulkWeaponLevelButton = document.getElementById('clearBulkWeaponLevelButton');
+            const bulkCostumeOwnershipSelect = document.getElementById('bulkCostumeOwnershipSelect');
+            const applyBulkCostumeOwnershipButton = document.getElementById('applyBulkCostumeOwnershipButton');
+            const resetBulkScopeButton = document.getElementById('resetBulkScopeButton');
             const inventoryPaginationBar = document.getElementById('inventoryPaginationBar');
             const inventoryPageSizeSelect = document.getElementById('inventoryPageSizeSelect');
+            const inventoryFirstPageButton = document.getElementById('inventoryFirstPageButton');
             const inventoryPreviousPageButton = document.getElementById('inventoryPreviousPageButton');
             const inventoryNextPageButton = document.getElementById('inventoryNextPageButton');
+            const inventoryLastPageButton = document.getElementById('inventoryLastPageButton');
             const inventoryPaginationStatus = document.getElementById('inventoryPaginationStatus');
             const inventorySuccessMessage = document.getElementById('inventorySuccessMessage');
             const inventoryErrorMessage = document.getElementById('inventoryErrorMessage');
@@ -821,6 +1213,18 @@
             const imagePreviewTitle = document.getElementById('itemImagePreviewModalLabel');
             const imagePreviewCaption = document.getElementById('itemImagePreviewModalCaption');
             const imagePreviewImage = document.getElementById('itemImagePreviewModalImage');
+            const inventoryBulkHelpModalElement = document.getElementById('inventoryBulkHelpModal');
+            const inventoryBulkHelpModal = inventoryBulkHelpModalElement ? new bootstrap.Modal(inventoryBulkHelpModalElement) : null;
+            const pasteImportModalElement = document.getElementById('pasteImportModal');
+            const pasteImportModal = pasteImportModalElement ? new bootstrap.Modal(pasteImportModalElement) : null;
+            const pasteImportInput = document.getElementById('pasteImportInput');
+            const pasteImportMode = document.getElementById('pasteImportMode');
+            const parsePasteImportButton = document.getElementById('parsePasteImportButton');
+            const applyPasteImportButton = document.getElementById('applyPasteImportButton');
+            const clearPasteImportButton = document.getElementById('clearPasteImportButton');
+            const pasteImportSummary = document.getElementById('pasteImportSummary');
+            const pasteImportErrors = document.getElementById('pasteImportErrors');
+            const pasteImportPreviewBody = document.getElementById('pasteImportPreviewBody');
             const snapshotOverboost = document.getElementById('snapshotOverboost');
             const snapshotLevel = document.getElementById('snapshotLevel');
             const snapshotLevelRange = document.getElementById('snapshotLevelRange');
@@ -852,8 +1256,13 @@
 
             let state = loadState();
             let currentSnapshotItem = null;
+            let inventorySearchDebounceTimer = null;
             let snapshotDebounceTimer = null;
             let snapshotAbortController = null;
+            let selectedItemIds = new Set();
+            let undoStateSnapshot = null;
+            let lastParsedPasteImport = null;
+            const itemNameLookup = buildItemNameLookup(allItems);
 
             function createDefaultState() {
                 return {
@@ -1037,8 +1446,10 @@
 
             function updatePaginationControls(filteredCount, currentPage, totalPages) {
                 inventoryPaginationBar.classList.toggle('d-none', filteredCount <= 0);
+                inventoryFirstPageButton.disabled = filteredCount <= 0 || currentPage <= 1;
                 inventoryPreviousPageButton.disabled = filteredCount <= 0 || currentPage <= 1;
                 inventoryNextPageButton.disabled = filteredCount <= 0 || currentPage >= totalPages;
+                inventoryLastPageButton.disabled = filteredCount <= 0 || currentPage >= totalPages;
                 inventoryPaginationStatus.textContent = filteredCount <= 0
                     ? 'Page 0 of 0'
                     : `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
@@ -1114,6 +1525,193 @@
                 return String(left?.id ?? '').localeCompare(String(right?.id ?? ''), undefined, { sensitivity: 'base' });
             }
 
+            function isCostumeItem(item) {
+                return String(item?.equipmentType ?? '').toLowerCase() === 'costume';
+            }
+
+            function cloneInventoryEntries(entries) {
+                return JSON.parse(JSON.stringify(entries || {}));
+            }
+
+            function normalizeImportName(value) {
+                return String(value ?? '')
+                    .trim()
+                    .toLowerCase()
+                    .replace(/[’‘]/g, "'")
+                    .replace(/[“”]/g, '"')
+                    .replace(/\s+/g, ' ');
+            }
+
+            function buildItemNameLookup(items) {
+                const lookup = new Map();
+                items.forEach(item => {
+                    const key = normalizeImportName(item?.name);
+                    if (!key) {
+                        return;
+                    }
+
+                    if (!lookup.has(key)) {
+                        lookup.set(key, []);
+                    }
+
+                    lookup.get(key).push(item);
+                });
+                return lookup;
+            }
+
+            function getCurrentPageItems() {
+                return getPagedItems(getFilteredItems()).pageItems;
+            }
+
+            function getItemsForScope(scopeValue) {
+                if (scopeValue === 'selected') {
+                    return allItems.filter(item => selectedItemIds.has(String(item.id)));
+                }
+
+                if (scopeValue === 'current-page') {
+                    return getCurrentPageItems();
+                }
+
+                return getFilteredItems();
+            }
+
+            function getBulkScopeBreakdown(scopeValue) {
+                const items = getItemsForScope(scopeValue);
+                let weaponCount = 0;
+                let costumeCount = 0;
+                let ownedWeaponCount = 0;
+                let weaponLevelCount = 0;
+
+                items.forEach(item => {
+                    if (isCostumeItem(item)) {
+                        costumeCount += 1;
+                        return;
+                    }
+
+                    weaponCount += 1;
+                    const record = getWeaponRecord(item.id);
+                    if (record.ownership !== 'do-not-own') {
+                        ownedWeaponCount += 1;
+                    }
+                    if (record.level != null) {
+                        weaponLevelCount += 1;
+                    }
+                });
+
+                return {
+                    items,
+                    totalCount: items.length,
+                    weaponCount,
+                    costumeCount,
+                    ownedWeaponCount,
+                    weaponLevelCount
+                };
+            }
+
+            function updateBulkActionUi() {
+                const scopeValue = inventoryBulkScope?.value || 'filtered';
+                const breakdown = getBulkScopeBreakdown(scopeValue);
+                const selectedCount = selectedItemIds.size;
+                const scopeLabel = scopeValue === 'selected'
+                    ? 'Selected items'
+                    : scopeValue === 'current-page'
+                        ? 'Current page'
+                        : 'Filtered results';
+                const selectionHint = scopeValue === 'selected' && selectedCount === 0
+                    ? ' · Select one or more cards to use this scope.'
+                    : '';
+
+                inventorySelectionCountBadge.textContent = `${selectedCount.toLocaleString()} selected`;
+                inventoryBulkScopeSummary.textContent = `${scopeLabel}: ${breakdown.totalCount.toLocaleString()} items in scope · ${breakdown.weaponCount.toLocaleString()} weapons · ${breakdown.costumeCount.toLocaleString()} costumes · ${breakdown.ownedWeaponCount.toLocaleString()} owned weapons${selectionHint}`;
+                inventorySelectCurrentPageButton.disabled = getCurrentPageItems().length === 0;
+                inventoryClearSelectionButton.disabled = selectedCount === 0;
+                inventoryUndoBulkUpdateButton.disabled = !undoStateSnapshot;
+                applyBulkWeaponOwnershipButton.disabled = breakdown.weaponCount === 0 || !bulkWeaponOwnershipSelect.value;
+                applyBulkWeaponLevelButton.disabled = breakdown.ownedWeaponCount === 0 || !bulkWeaponLevelSelect.value;
+                clearBulkWeaponLevelButton.disabled = breakdown.weaponLevelCount === 0;
+                applyBulkCostumeOwnershipButton.disabled = breakdown.costumeCount === 0 || !bulkCostumeOwnershipSelect.value;
+                resetBulkScopeButton.disabled = breakdown.totalCount === 0;
+            }
+
+            function setItemSelection(itemId, isSelected) {
+                const normalizedItemId = String(itemId || '');
+                if (!normalizedItemId) {
+                    return;
+                }
+
+                if (isSelected) {
+                    selectedItemIds.add(normalizedItemId);
+                } else {
+                    selectedItemIds.delete(normalizedItemId);
+                }
+
+                updateBulkActionUi();
+            }
+
+            function clearSelection() {
+                if (selectedItemIds.size === 0) {
+                    updateBulkActionUi();
+                    return;
+                }
+
+                selectedItemIds.clear();
+                renderInventory();
+            }
+
+            function selectCurrentPageItems() {
+                const pageItems = getCurrentPageItems();
+                if (pageItems.length === 0) {
+                    updateBulkActionUi();
+                    return;
+                }
+
+                pageItems.forEach(item => selectedItemIds.add(String(item.id)));
+                renderInventory();
+            }
+
+            function storeUndoSnapshot(description) {
+                undoStateSnapshot = {
+                    description: String(description || 'bulk update'),
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+                updateBulkActionUi();
+            }
+
+            function clearUndoSnapshot() {
+                undoStateSnapshot = null;
+                updateBulkActionUi();
+            }
+
+            function undoLastBulkUpdate() {
+                if (!undoStateSnapshot) {
+                    return;
+                }
+
+                state = {
+                    ...state,
+                    costumes: cloneInventoryEntries(undoStateSnapshot.costumes),
+                    weapons: cloneInventoryEntries(undoStateSnapshot.weapons)
+                };
+                saveState();
+                const description = undoStateSnapshot.description;
+                undoStateSnapshot = null;
+                renderInventory();
+                showSuccess(`Reverted the last bulk update${description ? ` (${description})` : ''}.`);
+            }
+
+            function confirmBulkAction(itemCount, message, destructive = false) {
+                if (itemCount <= 0) {
+                    return false;
+                }
+
+                if (!destructive && itemCount < 36) {
+                    return true;
+                }
+
+                return window.confirm(message);
+            }
+
             function getFilteredItems() {
                 const searchText = state.filters.searchText.trim().toLowerCase();
                 return allItems.filter(item => {
@@ -1121,7 +1719,15 @@
                         return false;
                     }
 
-                    if (state.filters.itemType !== 'all' && item.equipmentType !== state.filters.itemType) {
+                    if (state.filters.itemType === 'Weapon') {
+                        if (String(item.equipmentType).toLowerCase() === 'costume') {
+                            return false;
+                        }
+                    } else if (state.filters.itemType === 'Costume') {
+                        if (String(item.equipmentType).toLowerCase() !== 'costume') {
+                            return false;
+                        }
+                    } else if (state.filters.itemType !== 'all' && item.equipmentType !== state.filters.itemType) {
                         return false;
                     }
 
@@ -1175,6 +1781,7 @@
             function renderInventoryCard(item) {
                 const isCostume = String(item.equipmentType).toLowerCase() === 'costume';
                 const owned = isOwned(item);
+                const isSelected = selectedItemIds.has(String(item.id));
                 const statusLabel = buildOwnershipLabel(item);
                 const weaponRecord = getWeaponRecord(item.id);
                 const costumeRecord = getCostumeRecord(item.id);
@@ -1187,7 +1794,7 @@
                     `<span class="inventory-pill ${owned ? 'inventory-pill-owned' : 'inventory-pill-unowned'}">${escapeHtml(statusLabel)}</span>`
                 ].filter(Boolean).join('');
 
-                return `<article class="inventory-card ${owned ? 'inventory-card-owned' : ''}" data-item-id="${escapeHtml(item.id)}" data-item-type="${escapeHtml(item.equipmentType)}">
+                return `<article class="inventory-card ${owned ? 'inventory-card-owned' : ''} ${isSelected ? 'inventory-card-selected' : ''}" data-item-id="${escapeHtml(item.id)}" data-item-type="${escapeHtml(item.equipmentType)}">
                     <div class="inventory-card-header">
                         <div class="inventory-card-visuals">
                             <div class="inventory-card-portrait-shell">
@@ -1201,6 +1808,9 @@
                             <div class="inventory-card-character"><i class="fas fa-user"></i>${escapeHtml(item.character)}</div>
                             <div class="inventory-card-name">${escapeHtml(item.name)}</div>
                             <div class="inventory-pill-row">${pills}</div>
+                        </div>
+                        <div class="inventory-card-selection form-check">
+                            <input class="form-check-input inventory-selection-checkbox" type="checkbox" value="${escapeHtml(item.id)}" data-item-id="${escapeHtml(item.id)}" aria-label="Select ${escapeHtml(item.name)} for bulk actions" ${isSelected ? 'checked' : ''} />
                         </div>
                     </div>
                     <div class="inventory-card-body">
@@ -1257,11 +1867,13 @@
                 if (filteredItems.length === 0) {
                     inventoryGrid.innerHTML = '';
                     inventoryEmptyState.classList.add('active');
+                    updateBulkActionUi();
                     return;
                 }
 
                 inventoryEmptyState.classList.remove('active');
                 inventoryGrid.innerHTML = paging.pageItems.map(renderInventoryCard).join('');
+                updateBulkActionUi();
             }
 
             function updateFilters(nextFilters, resetPage = true) {
@@ -1277,11 +1889,30 @@
                 renderInventory();
             }
 
+            function scrollInventoryResultsToTop() {
+                const scrollTarget = inventoryPaginationBar || inventoryResultsCard || inventoryGrid;
+                if (!scrollTarget) {
+                    return;
+                }
+
+                const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+                scrollTarget.scrollIntoView({ behavior, block: 'start' });
+            }
+
+            function commitSearchFilter(searchText) {
+                if (String(searchText || '') === String(state.filters.searchText || '')) {
+                    return;
+                }
+
+                updateFilters({ searchText: searchText || '' });
+            }
+
             function refreshInventoryMeta() {
                 const filteredItems = getFilteredItems();
                 const paging = getPagedItems(filteredItems);
                 updateInventorySummary(filteredItems.length, paging.pageItems.length, paging.pageStart);
                 updatePaginationControls(filteredItems.length, paging.currentPage, paging.totalPages);
+                updateBulkActionUi();
             }
 
             function setCostumeOwnership(itemId, ownsItem) {
@@ -1290,6 +1921,7 @@
                 } else {
                     delete state.costumes[itemId];
                 }
+                clearUndoSnapshot();
                 saveState();
                 rerenderInventoryCard(itemId);
                 refreshInventoryMeta();
@@ -1306,6 +1938,7 @@
                         level: current.level
                     };
                 }
+                clearUndoSnapshot();
                 saveState();
                 rerenderInventoryCard(itemId);
                 refreshInventoryMeta();
@@ -1322,8 +1955,10 @@
                     ownership: current.ownership,
                     level: normalizedLevel
                 };
+                clearUndoSnapshot();
                 saveState();
                 rerenderInventoryCard(itemId);
+                refreshInventoryMeta();
             }
 
             function exportState() {
@@ -1346,6 +1981,7 @@
                     try {
                         const parsed = JSON.parse(String(reader.result || '{}'));
                         state = normalizeState(parsed);
+                        clearUndoSnapshot();
                         saveState();
                         syncFiltersToUi();
                         renderInventory();
@@ -1358,6 +1994,816 @@
                     showError('Failed to read the selected import file.');
                 };
                 reader.readAsText(file);
+            }
+
+            function getWeaponOwnershipLabelFromValue(value) {
+                const match = inventoryStatuses.find(entry => entry.value === normalizeWeaponOwnership(value));
+                return match ? match.label : 'Do Not Own';
+            }
+
+            function formatBulkScopeLabel(scopeValue) {
+                if (scopeValue === 'selected') {
+                    return 'selected items';
+                }
+
+                if (scopeValue === 'current-page') {
+                    return 'the current page';
+                }
+
+                return 'filtered results';
+            }
+
+            function applyBulkWeaponOwnershipUpdate() {
+                hideMessages();
+                const scopeValue = inventoryBulkScope.value || 'filtered';
+                const ownership = bulkWeaponOwnershipSelect.value;
+                const breakdown = getBulkScopeBreakdown(scopeValue);
+                if (!ownership) {
+                    showError('Choose a weapon ownership value before applying a bulk update.');
+                    return;
+                }
+
+                if (breakdown.weaponCount === 0) {
+                    showError(`No weapons are available in ${formatBulkScopeLabel(scopeValue)}.`);
+                    return;
+                }
+
+                const destructive = ownership === 'do-not-own';
+                const confirmMessage = destructive
+                    ? `Reset ${breakdown.weaponCount.toLocaleString()} weapon entries in ${formatBulkScopeLabel(scopeValue)} to Do Not Own? This also clears stored weapon levels.`
+                    : `Apply ${getWeaponOwnershipLabelFromValue(ownership)} to ${breakdown.weaponCount.toLocaleString()} weapons in ${formatBulkScopeLabel(scopeValue)}?`;
+                if (!confirmBulkAction(breakdown.weaponCount, confirmMessage, destructive)) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: `weapon ownership (${getWeaponOwnershipLabelFromValue(ownership)})`,
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+                let changedCount = 0;
+
+                breakdown.items.forEach(item => {
+                    if (isCostumeItem(item)) {
+                        return;
+                    }
+
+                    const current = getWeaponRecord(item.id);
+                    if (ownership === 'do-not-own') {
+                        if (current.ownership !== 'do-not-own' || current.level != null) {
+                            delete state.weapons[item.id];
+                            changedCount += 1;
+                        }
+                        return;
+                    }
+
+                    if (current.ownership === ownership) {
+                        return;
+                    }
+
+                    state.weapons[item.id] = {
+                        ownership,
+                        level: current.level
+                    };
+                    changedCount += 1;
+                });
+
+                if (changedCount === 0) {
+                    showError(`Weapons in ${formatBulkScopeLabel(scopeValue)} already use ${getWeaponOwnershipLabelFromValue(ownership)}.`);
+                    return;
+                }
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                showSuccess(`Updated ${changedCount.toLocaleString()} weapons to ${getWeaponOwnershipLabelFromValue(ownership)}.`);
+            }
+
+            function applyBulkWeaponLevelUpdate() {
+                hideMessages();
+                const scopeValue = inventoryBulkScope.value || 'filtered';
+                const targetLevel = normalizeWeaponLevel(bulkWeaponLevelSelect.value);
+                const breakdown = getBulkScopeBreakdown(scopeValue);
+                if (targetLevel == null) {
+                    showError('Choose a weapon level before applying a bulk update.');
+                    return;
+                }
+
+                if (breakdown.ownedWeaponCount === 0) {
+                    showError(`No owned weapons are available in ${formatBulkScopeLabel(scopeValue)}.`);
+                    return;
+                }
+
+                if (!confirmBulkAction(breakdown.ownedWeaponCount, `Apply Level ${targetLevel} to ${breakdown.ownedWeaponCount.toLocaleString()} owned weapons in ${formatBulkScopeLabel(scopeValue)}?`)) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: `weapon level (${targetLevel})`,
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+                let changedCount = 0;
+
+                breakdown.items.forEach(item => {
+                    if (isCostumeItem(item)) {
+                        return;
+                    }
+
+                    const current = getWeaponRecord(item.id);
+                    if (current.ownership === 'do-not-own' || current.level === targetLevel) {
+                        return;
+                    }
+
+                    state.weapons[item.id] = {
+                        ownership: current.ownership,
+                        level: targetLevel
+                    };
+                    changedCount += 1;
+                });
+
+                if (changedCount === 0) {
+                    showError(`Owned weapons in ${formatBulkScopeLabel(scopeValue)} already use Level ${targetLevel}.`);
+                    return;
+                }
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                showSuccess(`Updated ${changedCount.toLocaleString()} owned weapons to Level ${targetLevel}.`);
+            }
+
+            function clearBulkWeaponLevels() {
+                hideMessages();
+                const scopeValue = inventoryBulkScope.value || 'filtered';
+                const breakdown = getBulkScopeBreakdown(scopeValue);
+                if (breakdown.weaponLevelCount === 0) {
+                    showError(`No stored weapon levels are available in ${formatBulkScopeLabel(scopeValue)}.`);
+                    return;
+                }
+
+                if (!confirmBulkAction(breakdown.weaponLevelCount, `Clear stored weapon levels for ${breakdown.weaponLevelCount.toLocaleString()} weapons in ${formatBulkScopeLabel(scopeValue)}?`, true)) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: 'clear weapon levels',
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+                let changedCount = 0;
+
+                breakdown.items.forEach(item => {
+                    if (isCostumeItem(item)) {
+                        return;
+                    }
+
+                    const current = getWeaponRecord(item.id);
+                    if (current.ownership === 'do-not-own' || current.level == null) {
+                        return;
+                    }
+
+                    state.weapons[item.id] = {
+                        ownership: current.ownership,
+                        level: null
+                    };
+                    changedCount += 1;
+                });
+
+                if (changedCount === 0) {
+                    showError(`No stored weapon levels were changed in ${formatBulkScopeLabel(scopeValue)}.`);
+                    return;
+                }
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                showSuccess(`Cleared stored levels for ${changedCount.toLocaleString()} weapons.`);
+            }
+
+            function applyBulkCostumeOwnershipUpdate() {
+                hideMessages();
+                const scopeValue = inventoryBulkScope.value || 'filtered';
+                const targetOwnership = bulkCostumeOwnershipSelect.value;
+                const breakdown = getBulkScopeBreakdown(scopeValue);
+                if (!targetOwnership) {
+                    showError('Choose a costume ownership value before applying a bulk update.');
+                    return;
+                }
+
+                if (breakdown.costumeCount === 0) {
+                    showError(`No costumes are available in ${formatBulkScopeLabel(scopeValue)}.`);
+                    return;
+                }
+
+                const markOwned = targetOwnership === 'own';
+                const confirmMessage = markOwned
+                    ? `Mark ${breakdown.costumeCount.toLocaleString()} costumes in ${formatBulkScopeLabel(scopeValue)} as owned?`
+                    : `Reset ${breakdown.costumeCount.toLocaleString()} costumes in ${formatBulkScopeLabel(scopeValue)} to Do Not Own?`;
+                if (!confirmBulkAction(breakdown.costumeCount, confirmMessage, !markOwned)) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: `costume ownership (${markOwned ? 'Own' : 'Do Not Own'})`,
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+                let changedCount = 0;
+
+                breakdown.items.forEach(item => {
+                    if (!isCostumeItem(item)) {
+                        return;
+                    }
+
+                    const currentlyOwned = getCostumeRecord(item.id).owned;
+                    if (currentlyOwned === markOwned) {
+                        return;
+                    }
+
+                    if (markOwned) {
+                        state.costumes[item.id] = { owned: true };
+                    } else {
+                        delete state.costumes[item.id];
+                    }
+                    changedCount += 1;
+                });
+
+                if (changedCount === 0) {
+                    showError(`Costumes in ${formatBulkScopeLabel(scopeValue)} already use ${markOwned ? 'Own' : 'Do Not Own'}.`);
+                    return;
+                }
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                showSuccess(`Updated ${changedCount.toLocaleString()} costumes to ${markOwned ? 'Own' : 'Do Not Own'}.`);
+            }
+
+            function resetBulkScope() {
+                hideMessages();
+                const scopeValue = inventoryBulkScope.value || 'filtered';
+                const breakdown = getBulkScopeBreakdown(scopeValue);
+                if (breakdown.totalCount === 0) {
+                    showError(`No items are available in ${formatBulkScopeLabel(scopeValue)}.`);
+                    return;
+                }
+
+                if (!confirmBulkAction(breakdown.totalCount, `Reset ${breakdown.totalCount.toLocaleString()} items in ${formatBulkScopeLabel(scopeValue)} to Do Not Own? This clears weapon levels too.`, true)) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: 'reset scope to Do Not Own',
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+                let changedCount = 0;
+
+                breakdown.items.forEach(item => {
+                    if (isCostumeItem(item)) {
+                        if (getCostumeRecord(item.id).owned) {
+                            delete state.costumes[item.id];
+                            changedCount += 1;
+                        }
+                        return;
+                    }
+
+                    const current = getWeaponRecord(item.id);
+                    if (current.ownership !== 'do-not-own' || current.level != null) {
+                        delete state.weapons[item.id];
+                        changedCount += 1;
+                    }
+                });
+
+                if (changedCount === 0) {
+                    showError(`Items in ${formatBulkScopeLabel(scopeValue)} are already unowned.`);
+                    return;
+                }
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                showSuccess(`Reset ${changedCount.toLocaleString()} items to Do Not Own.`);
+            }
+
+            function parseDelimitedLine(line, delimiter) {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let index = 0; index < line.length; index += 1) {
+                    const character = line[index];
+                    if (character === '"') {
+                        if (inQuotes && line[index + 1] === '"') {
+                            current += '"';
+                            index += 1;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                        continue;
+                    }
+
+                    if (!inQuotes && character === delimiter) {
+                        result.push(current);
+                        current = '';
+                        continue;
+                    }
+
+                    current += character;
+                }
+
+                result.push(current);
+                return result.map(value => String(value || '').trim());
+            }
+
+            function normalizeHeaderKey(value) {
+                return normalizeImportName(value).replace(/[^a-z0-9]/g, '');
+            }
+
+            function detectStructuredHeader(columns) {
+                const normalized = columns.map(normalizeHeaderKey);
+                const nameIndex = normalized.findIndex(value => ['name', 'item', 'itemname', 'weapon', 'weaponname', 'costume', 'costumename'].includes(value));
+                const ownershipIndex = normalized.findIndex(value => ['ownership', 'owned', 'status', 'ob', 'overboost'].includes(value));
+                const levelIndex = normalized.findIndex(value => ['level', 'lv', 'weaponlevel'].includes(value));
+                if (nameIndex < 0 || (ownershipIndex < 0 && levelIndex < 0)) {
+                    return null;
+                }
+
+                return {
+                    nameIndex,
+                    ownershipIndex,
+                    levelIndex
+                };
+            }
+
+            function looksLikeOwnershipToken(value) {
+                const normalized = normalizeImportName(value).replace(/[^a-z0-9]/g, '');
+                return normalized === 'own'
+                    || normalized === 'owned'
+                    || normalized === 'donotown'
+                    || normalized === 'notown'
+                    || normalized === 'unowned'
+                    || normalized === '3star'
+                    || normalized === '4star'
+                    || normalized === '5star'
+                    || /^ob(?:0|[1-9]|10)$/.test(normalized);
+            }
+
+            function looksLikeLevelToken(value) {
+                const normalized = normalizeImportName(value).replace(/\s+/g, '');
+                if (!normalized) {
+                    return false;
+                }
+
+                return /^lv\d+$/.test(normalized) || /^level\d+$/.test(normalized) || /^\d+$/.test(normalized);
+            }
+
+            function parseLooseImportLine(line, lineNumber) {
+                const segments = String(line || '').split(/\s+-\s+/).map(value => value.trim()).filter(Boolean);
+                const fallback = {
+                    lineNumber,
+                    rawLine: line,
+                    name: String(line || '').trim(),
+                    normalizedName: normalizeImportName(line),
+                    ownershipToken: '',
+                    levelToken: ''
+                };
+                if (segments.length <= 1) {
+                    return fallback;
+                }
+
+                const name = segments.shift() || '';
+                let ownershipToken = '';
+                let levelToken = '';
+                segments.forEach(segment => {
+                    if (!ownershipToken && looksLikeOwnershipToken(segment)) {
+                        ownershipToken = segment;
+                        return;
+                    }
+
+                    if (!levelToken && looksLikeLevelToken(segment)) {
+                        levelToken = segment;
+                        return;
+                    }
+
+                    if (!ownershipToken) {
+                        ownershipToken = segment;
+                        return;
+                    }
+
+                    if (!levelToken) {
+                        levelToken = segment;
+                    }
+                });
+
+                return {
+                    lineNumber,
+                    rawLine: line,
+                    name,
+                    normalizedName: normalizeImportName(name),
+                    ownershipToken,
+                    levelToken
+                };
+            }
+
+            function parseStructuredImportLine(line, lineNumber, headerConfig = null) {
+                const delimiter = line.includes('\t') ? '\t' : ',';
+                const values = parseDelimitedLine(line, delimiter);
+                const config = headerConfig || { nameIndex: 0, ownershipIndex: 1, levelIndex: 2 };
+                const name = values[config.nameIndex] || '';
+                return {
+                    lineNumber,
+                    rawLine: line,
+                    name,
+                    normalizedName: normalizeImportName(name),
+                    ownershipToken: config.ownershipIndex >= 0 ? values[config.ownershipIndex] || '' : '',
+                    levelToken: config.levelIndex >= 0 ? values[config.levelIndex] || '' : ''
+                };
+            }
+
+            function parsePasteImportText(text) {
+                const sourceLines = String(text || '').split(/\r?\n/);
+                const rows = [];
+                let headerConfig = null;
+
+                sourceLines.forEach((rawLine, index) => {
+                    const trimmed = String(rawLine || '').trim();
+                    if (!trimmed) {
+                        return;
+                    }
+
+                    if (!headerConfig && (trimmed.includes('\t') || trimmed.includes(','))) {
+                        const candidateColumns = parseDelimitedLine(trimmed, trimmed.includes('\t') ? '\t' : ',');
+                        const detectedHeader = detectStructuredHeader(candidateColumns);
+                        if (detectedHeader) {
+                            headerConfig = detectedHeader;
+                            return;
+                        }
+                    }
+
+                    rows.push((trimmed.includes('\t') || trimmed.includes(','))
+                        ? parseStructuredImportLine(trimmed, index + 1, headerConfig)
+                        : parseLooseImportLine(trimmed, index + 1));
+                });
+
+                const duplicateNameCounts = new Map();
+                rows.forEach(row => {
+                    if (!row.normalizedName) {
+                        return;
+                    }
+                    duplicateNameCounts.set(row.normalizedName, (duplicateNameCounts.get(row.normalizedName) || 0) + 1);
+                });
+
+                return {
+                    rows,
+                    duplicateNameCounts
+                };
+            }
+
+            function resolveImportItem(row) {
+                if (!row.normalizedName) {
+                    return { item: null, error: 'Missing item name.' };
+                }
+
+                const matches = itemNameLookup.get(row.normalizedName) || [];
+                if (matches.length === 0) {
+                    return { item: null, error: 'No catalog item matched this name.' };
+                }
+
+                if (matches.length > 1) {
+                    return {
+                        item: null,
+                        error: `Multiple catalog items matched this name: ${matches.map(match => `${match.name} (${match.character}, ${match.equipmentType})`).join('; ')}`
+                    };
+                }
+
+                return { item: matches[0], error: '' };
+            }
+
+            function parseImportOwnershipForItem(item, token) {
+                const trimmed = String(token || '').trim();
+                if (!trimmed) {
+                    return { supplied: false, value: null, label: 'Not supplied', error: '' };
+                }
+
+                const normalized = normalizeImportName(trimmed).replace(/[^a-z0-9]/g, '');
+                if (isCostumeItem(item)) {
+                    if (['own', 'owned', 'yes', 'true', '1'].includes(normalized)) {
+                        return { supplied: true, value: 'own', label: 'Own', error: '' };
+                    }
+
+                    if (['donotown', 'notown', 'unowned', 'no', 'false', '0'].includes(normalized)) {
+                        return { supplied: true, value: 'do-not-own', label: 'Do Not Own', error: '' };
+                    }
+
+                    return { supplied: true, value: null, label: trimmed, error: 'Invalid costume ownership token.' };
+                }
+
+                if (['donotown', 'notown', 'unowned', 'no', 'false', '0'].includes(normalized)) {
+                    return { supplied: true, value: 'do-not-own', label: 'Do Not Own', error: '' };
+                }
+
+                if (['own', 'owned', 'yes', 'true', '1', 'ob0'].includes(normalized)) {
+                    return { supplied: true, value: '5-star', label: '5 Star', error: '' };
+                }
+
+                if (normalized === '3star') {
+                    return { supplied: true, value: '3-star', label: '3 Star', error: '' };
+                }
+
+                if (normalized === '4star') {
+                    return { supplied: true, value: '4-star', label: '4 Star', error: '' };
+                }
+
+                if (normalized === '5star') {
+                    return { supplied: true, value: '5-star', label: '5 Star', error: '' };
+                }
+
+                const obMatch = /^ob([1-9]|10)$/.exec(normalized);
+                if (obMatch) {
+                    const value = `ob${obMatch[1]}`;
+                    return { supplied: true, value, label: getWeaponOwnershipLabelFromValue(value), error: '' };
+                }
+
+                return { supplied: true, value: null, label: trimmed, error: 'Invalid weapon ownership token.' };
+            }
+
+            function parseImportLevelToken(token) {
+                const trimmed = String(token || '').trim();
+                if (!trimmed) {
+                    return { supplied: false, value: null, label: 'Not supplied', error: '' };
+                }
+
+                const normalized = normalizeImportName(trimmed).replace(/\s+/g, '');
+                const numericValue = normalized.startsWith('level')
+                    ? Number.parseInt(normalized.substring(5), 10)
+                    : normalized.startsWith('lv')
+                        ? Number.parseInt(normalized.substring(2), 10)
+                        : Number.parseInt(normalized, 10);
+                if (!allowedInventoryLevels.includes(numericValue)) {
+                    return { supplied: true, value: null, label: trimmed, error: 'Invalid inventory level.' };
+                }
+
+                return { supplied: true, value: numericValue, label: `Level ${numericValue}`, error: '' };
+            }
+
+            function buildImportRowPreview(row, mode) {
+                const duplicateCount = lastParsedPasteImport?.duplicateNameCounts?.get(row.normalizedName) || 0;
+                const issues = [];
+                if (duplicateCount > 1) {
+                    issues.push('Duplicate item name appears multiple times in the pasted rows.');
+                }
+
+                const resolved = resolveImportItem(row);
+                if (resolved.error) {
+                    issues.push(resolved.error);
+                }
+
+                const item = resolved.item;
+                const ownership = item ? parseImportOwnershipForItem(item, row.ownershipToken) : { supplied: false, value: null, label: 'Unavailable', error: '' };
+                const level = parseImportLevelToken(row.levelToken);
+                if (ownership.error) {
+                    issues.push(ownership.error);
+                }
+                if (level.error) {
+                    issues.push(level.error);
+                }
+
+                if (item) {
+                    if (isCostumeItem(item)) {
+                        if (!ownership.supplied) {
+                            issues.push('Costume rows require ownership.');
+                        }
+                        if (level.supplied) {
+                            issues.push('Costume rows do not support levels.');
+                        }
+                    } else {
+                        const currentWeapon = getWeaponRecord(item.id);
+                        if (!ownership.supplied && !level.supplied) {
+                            issues.push('Weapon rows require ownership, level, or both.');
+                        }
+                        if (ownership.supplied && ownership.value === 'do-not-own' && level.supplied) {
+                            issues.push('Do Not Own rows cannot also set a level.');
+                        }
+                        if (level.supplied && !ownership.supplied && currentWeapon.ownership === 'do-not-own') {
+                            issues.push('Set weapon ownership before importing a level for an unowned weapon.');
+                        }
+                    }
+                }
+
+                if (issues.length > 0) {
+                    return {
+                        row,
+                        item,
+                        ownership,
+                        level,
+                        currentState: null,
+                        nextState: null,
+                        canApply: false,
+                        wouldChange: false,
+                        badgeClass: 'text-bg-danger',
+                        statusLabel: 'Invalid',
+                        details: issues
+                    };
+                }
+
+                if (isCostumeItem(item)) {
+                    const currentState = { owned: getCostumeRecord(item.id).owned };
+                    const nextState = { ...currentState };
+                    const details = [];
+                    if (mode === 'fill-blanks' && currentState.owned) {
+                        details.push('Skipped because this costume is already owned.');
+                    } else {
+                        nextState.owned = ownership.value === 'own';
+                    }
+
+                    const wouldChange = currentState.owned !== nextState.owned;
+                    return {
+                        row,
+                        item,
+                        ownership,
+                        level,
+                        currentState,
+                        nextState,
+                        canApply: wouldChange,
+                        wouldChange,
+                        badgeClass: wouldChange ? 'text-bg-success' : details.length > 0 ? 'text-bg-warning' : 'text-bg-secondary',
+                        statusLabel: wouldChange ? 'Will update' : details.length > 0 ? 'Skipped' : 'No change',
+                        details: details.length > 0 ? details : [`${ownership.label} will be applied.`]
+                    };
+                }
+
+                const currentState = getWeaponRecord(item.id);
+                const nextState = { ...currentState };
+                const details = [];
+                if (ownership.supplied) {
+                    if (mode === 'fill-blanks' && currentState.ownership !== 'do-not-own') {
+                        details.push('Skipped ownership because this weapon is already owned.');
+                    } else {
+                        nextState.ownership = ownership.value;
+                        if (ownership.value === 'do-not-own') {
+                            nextState.level = null;
+                        }
+                    }
+                }
+
+                if (level.supplied) {
+                    if (mode === 'fill-blanks' && currentState.level != null) {
+                        details.push('Skipped level because a level is already stored.');
+                    } else if (nextState.ownership === 'do-not-own') {
+                        details.push('Skipped level because the weapon would remain unowned.');
+                    } else {
+                        nextState.level = level.value;
+                    }
+                } else if (mode === 'replace' && ownership.supplied && ownership.value !== 'do-not-own' && currentState.level != null) {
+                    nextState.level = null;
+                    details.push('Replace mode clears the existing stored level when no level is supplied.');
+                }
+
+                const wouldChange = currentState.ownership !== nextState.ownership || currentState.level !== nextState.level;
+                return {
+                    row,
+                    item,
+                    ownership,
+                    level,
+                    currentState,
+                    nextState,
+                    canApply: wouldChange,
+                    wouldChange,
+                    badgeClass: wouldChange ? 'text-bg-success' : details.length > 0 ? 'text-bg-warning' : 'text-bg-secondary',
+                    statusLabel: wouldChange ? 'Will update' : details.length > 0 ? 'Skipped' : 'No change',
+                    details: details.length > 0 ? details : ['No changes are needed for this weapon.']
+                };
+            }
+
+            function renderPasteImportPreview() {
+                const mode = pasteImportMode.value || 'merge';
+                if (!lastParsedPasteImport || !Array.isArray(lastParsedPasteImport.rows) || lastParsedPasteImport.rows.length === 0) {
+                    pasteImportSummary.textContent = 'Parse pasted rows to see matches, skipped lines, and proposed updates.';
+                    pasteImportErrors.innerHTML = '';
+                    pasteImportPreviewBody.innerHTML = '<tr><td colspan="4" class="inventory-import-preview-empty">Parse rows to preview bulk inventory updates.</td></tr>';
+                    applyPasteImportButton.disabled = true;
+                    return;
+                }
+
+                const previews = lastParsedPasteImport.rows.map(row => buildImportRowPreview(row, mode));
+                const invalidCount = previews.filter(entry => entry.statusLabel === 'Invalid').length;
+                const updateCount = previews.filter(entry => entry.canApply).length;
+                const skippedCount = previews.filter(entry => !entry.canApply && entry.statusLabel === 'Skipped').length;
+                const matchedCount = previews.filter(entry => !!entry.item).length;
+                pasteImportSummary.textContent = `${previews.length.toLocaleString()} pasted rows · ${matchedCount.toLocaleString()} matched catalog items · ${updateCount.toLocaleString()} rows will update · ${skippedCount.toLocaleString()} skipped · ${invalidCount.toLocaleString()} invalid`;
+
+                const invalidMessages = previews
+                    .filter(entry => entry.statusLabel === 'Invalid')
+                    .map(entry => `<li>Line ${entry.row.lineNumber}: ${entry.details.map(detail => escapeHtml(detail)).join(' ')}</li>`);
+                pasteImportErrors.innerHTML = invalidMessages.length > 0
+                    ? `<div class="fw-semibold mb-1">Some rows need attention before they can apply.</div><ul class="mb-0 ps-3">${invalidMessages.join('')}</ul>`
+                    : '';
+
+                pasteImportPreviewBody.innerHTML = previews.map(entry => {
+                    const itemCell = entry.item
+                        ? `<div class="fw-semibold">${escapeHtml(entry.item.name)}</div><small>${escapeHtml(entry.item.character)} · ${escapeHtml(entry.item.equipmentType)}</small>`
+                        : `<span class="text-muted">No match</span>`;
+                    const parsedBits = [
+                        `<div><strong>Name:</strong> ${escapeHtml(entry.row.name || '(blank)')}</div>`,
+                        `<div><strong>Ownership:</strong> ${escapeHtml(entry.ownership.label)}</div>`,
+                        `<div><strong>Level:</strong> ${escapeHtml(entry.level.label)}</div>`
+                    ].join('');
+                    const detailHtml = entry.details.map(detail => `<small>${escapeHtml(detail)}</small>`).join('');
+                    return `<tr>
+                        <td>${entry.row.lineNumber.toLocaleString()}</td>
+                        <td>${itemCell}</td>
+                        <td>${parsedBits}<small>${escapeHtml(entry.row.rawLine)}</small></td>
+                        <td><span class="badge ${entry.badgeClass}">${escapeHtml(entry.statusLabel)}</span>${detailHtml}</td>
+                    </tr>`;
+                }).join('');
+
+                lastParsedPasteImport.previews = previews;
+                applyPasteImportButton.disabled = updateCount === 0;
+            }
+
+            function clearPasteImportSession(clearInput = false) {
+                lastParsedPasteImport = null;
+                if (clearInput) {
+                    pasteImportInput.value = '';
+                }
+                renderPasteImportPreview();
+            }
+
+            function parsePasteImportInputText() {
+                hideMessages();
+                const text = pasteImportInput.value || '';
+                if (!text.trim()) {
+                    clearPasteImportSession(false);
+                    showError('Paste some inventory rows before parsing.');
+                    return;
+                }
+
+                const parsed = parsePasteImportText(text);
+                if (!parsed.rows.length) {
+                    clearPasteImportSession(false);
+                    showError('No import rows were found in the pasted text.');
+                    return;
+                }
+
+                lastParsedPasteImport = parsed;
+                renderPasteImportPreview();
+            }
+
+            function applyParsedPasteImport() {
+                hideMessages();
+                if (!lastParsedPasteImport || !Array.isArray(lastParsedPasteImport.previews)) {
+                    showError('Parse your pasted rows before applying them.');
+                    return;
+                }
+
+                const applicableRows = lastParsedPasteImport.previews.filter(entry => entry.canApply && entry.item);
+                if (applicableRows.length === 0) {
+                    showError('No parsed rows are ready to apply.');
+                    return;
+                }
+
+                const mode = pasteImportMode.value || 'merge';
+                const confirmMessage = mode === 'replace'
+                    ? `Apply ${applicableRows.length.toLocaleString()} pasted updates in Replace mode? Existing stored levels may be cleared when a replacement row omits a level.`
+                    : `Apply ${applicableRows.length.toLocaleString()} pasted updates to your local inventory?`;
+                if (!confirmBulkAction(applicableRows.length, confirmMessage, mode === 'replace')) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: `paste import (${mode})`,
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+
+                applicableRows.forEach(entry => {
+                    if (isCostumeItem(entry.item)) {
+                        if (entry.nextState.owned) {
+                            state.costumes[entry.item.id] = { owned: true };
+                        } else {
+                            delete state.costumes[entry.item.id];
+                        }
+                        return;
+                    }
+
+                    if (entry.nextState.ownership === 'do-not-own') {
+                        delete state.weapons[entry.item.id];
+                        return;
+                    }
+
+                    state.weapons[entry.item.id] = {
+                        ownership: entry.nextState.ownership,
+                        level: entry.nextState.level
+                    };
+                });
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                clearPasteImportSession(false);
+                pasteImportModal?.hide();
+                showSuccess(`Applied ${applicableRows.length.toLocaleString()} pasted inventory updates.`);
             }
 
             function setSnapshotLoading(isLoading) {
@@ -1528,7 +2974,16 @@
             }
 
             inventorySearchInput.addEventListener('input', event => {
-                updateFilters({ searchText: event.target.value || '' });
+                clearTimeout(inventorySearchDebounceTimer);
+                const nextValue = event.target.value || '';
+                inventorySearchDebounceTimer = setTimeout(() => {
+                    commitSearchFilter(nextValue);
+                }, 200);
+            });
+
+            inventorySearchInput.addEventListener('change', event => {
+                clearTimeout(inventorySearchDebounceTimer);
+                commitSearchFilter(event.target.value || '');
             });
 
             inventoryCharacterFilter.addEventListener('change', event => {
@@ -1541,6 +2996,16 @@
 
             inventoryPageSizeSelect.addEventListener('change', event => {
                 updateFilters({ pageSize: normalizeInventoryPageSize(event.target.value), page: 1 }, false);
+                scrollInventoryResultsToTop();
+            });
+
+            inventoryFirstPageButton.addEventListener('click', () => {
+                if (state.filters.page <= 1) {
+                    return;
+                }
+
+                updateFilters({ page: 1 }, false);
+                scrollInventoryResultsToTop();
             });
 
             inventoryPreviousPageButton.addEventListener('click', () => {
@@ -1549,19 +3014,42 @@
                 }
 
                 updateFilters({ page: state.filters.page - 1 }, false);
+                scrollInventoryResultsToTop();
             });
 
             inventoryNextPageButton.addEventListener('click', () => {
                 updateFilters({ page: state.filters.page + 1 }, false);
+                scrollInventoryResultsToTop();
+            });
+
+            inventoryLastPageButton.addEventListener('click', () => {
+                const filteredItems = getFilteredItems();
+                const { totalPages } = getPagedItems(filteredItems);
+                if (totalPages <= 0 || state.filters.page >= totalPages) {
+                    return;
+                }
+
+                updateFilters({ page: totalPages }, false);
+                scrollInventoryResultsToTop();
             });
 
             inventoryClearFiltersButton.addEventListener('click', () => {
+                clearTimeout(inventorySearchDebounceTimer);
                 updateFilters({ searchText: '', character: 'all', itemType: 'all' });
             });
 
             inventoryExportButton.addEventListener('click', () => {
                 hideMessages();
                 exportState();
+            });
+
+            inventoryBulkHelpButton.addEventListener('click', () => {
+                inventoryBulkHelpModal?.show();
+            });
+
+            inventoryPasteImportButton.addEventListener('click', () => {
+                clearPasteImportSession(false);
+                pasteImportModal?.show();
             });
 
             inventoryImportButton.addEventListener('click', () => {
@@ -1584,15 +3072,97 @@
                 }
                 hideMessages();
                 state = createDefaultState();
+                clearUndoSnapshot();
+                selectedItemIds.clear();
                 saveState();
                 syncFiltersToUi();
                 renderInventory();
                 showSuccess('Local inventory data was reset.');
             });
 
+            inventoryBulkScope.addEventListener('change', () => {
+                updateBulkActionUi();
+            });
+
+            bulkWeaponOwnershipSelect.addEventListener('change', () => {
+                updateBulkActionUi();
+            });
+
+            bulkWeaponLevelSelect.addEventListener('change', () => {
+                updateBulkActionUi();
+            });
+
+            bulkCostumeOwnershipSelect.addEventListener('change', () => {
+                updateBulkActionUi();
+            });
+
+            inventorySelectCurrentPageButton.addEventListener('click', () => {
+                hideMessages();
+                selectCurrentPageItems();
+            });
+
+            inventoryClearSelectionButton.addEventListener('click', () => {
+                hideMessages();
+                clearSelection();
+            });
+
+            inventoryUndoBulkUpdateButton.addEventListener('click', () => {
+                hideMessages();
+                undoLastBulkUpdate();
+            });
+
+            applyBulkWeaponOwnershipButton.addEventListener('click', () => {
+                applyBulkWeaponOwnershipUpdate();
+            });
+
+            applyBulkWeaponLevelButton.addEventListener('click', () => {
+                applyBulkWeaponLevelUpdate();
+            });
+
+            clearBulkWeaponLevelButton.addEventListener('click', () => {
+                clearBulkWeaponLevels();
+            });
+
+            applyBulkCostumeOwnershipButton.addEventListener('click', () => {
+                applyBulkCostumeOwnershipUpdate();
+            });
+
+            resetBulkScopeButton.addEventListener('click', () => {
+                resetBulkScope();
+            });
+
+            parsePasteImportButton.addEventListener('click', () => {
+                parsePasteImportInputText();
+            });
+
+            applyPasteImportButton.addEventListener('click', () => {
+                applyParsedPasteImport();
+            });
+
+            clearPasteImportButton.addEventListener('click', () => {
+                clearPasteImportSession(true);
+            });
+
+            pasteImportMode.addEventListener('change', () => {
+                renderPasteImportPreview();
+            });
+
             inventoryGrid.addEventListener('change', event => {
+                const selectionCheckbox = event.target.closest('.inventory-selection-checkbox');
                 const ownershipSelect = event.target.closest('.inventory-ownership-select');
                 const levelSelect = event.target.closest('.inventory-level-select');
+
+                if (selectionCheckbox) {
+                    const itemId = selectionCheckbox.getAttribute('data-item-id');
+                    if (!itemId) {
+                        return;
+                    }
+
+                    setItemSelection(itemId, selectionCheckbox.checked);
+                    const card = selectionCheckbox.closest('.inventory-card');
+                    card?.classList.toggle('inventory-card-selected', selectionCheckbox.checked);
+                    return;
+                }
 
                 if (ownershipSelect) {
                     const itemId = ownershipSelect.getAttribute('data-item-id');
@@ -1659,8 +3229,13 @@
                 debouncedFetchSnapshot();
             });
 
+            pasteImportModalElement?.addEventListener('hidden.bs.modal', () => {
+                clearPasteImportSession(false);
+            });
+
             populateCharacterOptions();
             syncFiltersToUi();
+            renderPasteImportPreview();
             renderInventory();
         })();
     </script>

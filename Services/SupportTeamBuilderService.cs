@@ -141,7 +141,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                var selectedOb = ResolveOwnedObSelection(weapon.Id, request.OwnedObByWeaponId);
+                var selectedOb = ResolveOwnedObSelection(weapon.Id, request.OwnedObByWeaponId, request.UseSharedInventoryOwnership);
                 var snapshot = _weaponSearchDataService.GetWeaponSnapshot(
                     weapon.Id,
                     SelectionToOverboost(selectedOb),
@@ -185,7 +185,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                var selected = ResolveOwnedOutfitSelection(outfit.Id, request.OwnedOutfitById);
+                var selected = ResolveOwnedOutfitSelection(outfit.Id, request.OwnedOutfitById, request.UseSharedInventoryOwnership);
                 var abilityText = outfit.AbilityText;
                 var effectCandidates = ExtractEffectLineCandidates(abilityText, filter.EffectType);
                 var candidate = effectCandidates
@@ -500,24 +500,24 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return "all";
         }
 
-        private static int ResolveOwnedObSelection(string weaponId, Dictionary<string, int> selected)
+        private static int ResolveOwnedObSelection(string weaponId, Dictionary<string, int> selected, bool useSharedInventoryOwnership)
         {
             if (selected.TryGetValue(weaponId, out var value))
             {
                 return Math.Clamp(value, 0, 4);
             }
 
-            return 4;
+            return useSharedInventoryOwnership ? 0 : 4;
         }
 
-        private static int ResolveOwnedOutfitSelection(string outfitId, Dictionary<string, int> selected)
+        private static int ResolveOwnedOutfitSelection(string outfitId, Dictionary<string, int> selected, bool useSharedInventoryOwnership)
         {
             if (selected.TryGetValue(outfitId, out var value))
             {
                 return Math.Clamp(value, 0, 1);
             }
 
-            return 1;
+            return useSharedInventoryOwnership ? 0 : 1;
         }
 
         private static int SelectionToOverboost(int selection)

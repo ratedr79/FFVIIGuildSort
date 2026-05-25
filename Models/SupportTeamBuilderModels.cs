@@ -35,6 +35,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int MaxCharacterCount { get; set; } = 2;
         public HashSet<string> MustHaveCharacters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> ExcludeCharacters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public bool UseSharedInventoryOwnership { get; set; }
         public Dictionary<string, int> OwnedObByWeaponId { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, int> OwnedOutfitById { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
