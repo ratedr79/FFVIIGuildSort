@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/FFVIIEverCrisisAnalyzer.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <header>
@@ -58,6 +59,11 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/PlayerPowerAnalyzer">
                                 <i class="fas fa-user-gear"></i> Player Power Analyzer
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-page="/PlayerPowerAnalyzerV2">
+                                <i class="fas fa-user-gear"></i> Player Power Analyzer V2
                             </a>
                         </li>
                         <li class="nav-item">

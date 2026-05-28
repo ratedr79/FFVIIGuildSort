@@ -3,6 +3,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
     public class TeamTemplateConfiguration
     {
         public List<TeamTemplate> ValidTeamTemplates { get; set; } = new();
+        public List<List<string>> MutuallyExclusiveCharacterGroups { get; set; } = new();
     }
 
     public class TeamTemplate

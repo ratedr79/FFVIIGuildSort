@@ -114,6 +114,66 @@
         "Fire Pot. Up +15 pts",
         "Phys. & Mag. Pot. Up vs. Humanoids +15 pts"
       ]
+    },
+    {
+      "name": "Memoria of 2.5 Anniv.",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Lightning Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Wingeds +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Weapon Majeure",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Fire Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Weapons (Great Hunt) +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of DC Ep. 2",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Earth Pot. Up +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Revenant Mother Alissa",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Water Pot. Up +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Abzu",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Fire Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Terrestrials +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of Behemoth Steward",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Earth Pot. Up +15 pts",
+        "Phys. & Mag. Pot. Up vs. Quadrupeds +15 pts"
+      ]
+    },
+    {
+      "name": "Memoria of DC Ep. 3",
+      "maxLevel": 10,
+      "abilities": [
+        "Max. ATB Increased +15 pts",
+        "Wind Pot. Up +15 pts"
+      ]
     }
   ]
 }

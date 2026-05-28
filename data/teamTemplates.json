@@ -1,4 +1,7 @@
 {
+  "mutuallyExclusiveCharacterGroups": [
+    ["Sephiroth", "Sephiroth (Original)"]
+  ],
   "validTeamTemplates": [
     {
       "name": "DPS/Support/Healer",

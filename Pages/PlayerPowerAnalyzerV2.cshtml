@@ -1,0 +1,503 @@
+@page "/PlayerPowerAnalyzerV2"
+@using FFVIIEverCrisisAnalyzer.Models
+@model FFVIIEverCrisisAnalyzer.Pages.PlayerPowerAnalyzerV2Model
+@{
+    ViewData["Title"] = "Player Power Analyzer V2";
+}
+
+<div class="container-xxl py-4 power-v2-page">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+        <div>
+            <div class="text-uppercase small text-primary fw-semibold mb-2">Local Inventory Engine</div>
+            <h1 class="display-6 fw-bold mb-2">Player Power Analyzer V2</h1>
+            <p class="text-muted mb-0">Uses your saved inventory OB and level state to build a recommended 3-character team with explicit off-hand, sub-weapon, outfit, required-effect, and boss-immunity handling.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary" href="/PlayerInventoryManagement">Open Inventory</a>
+            <a class="btn btn-outline-primary" href="/PlayerPowerAnalyzer">Legacy Analyzer</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info mb-4">
+        This V2 page reads inventory from the shared browser storage key <code>player-inventory-state-v1</code>. It does not use survey-sheet ownership.
+    </div>
+
+    <form method="post" asp-page-handler="Analyze" id="playerPowerAnalyzerV2Form" class="d-grid gap-4">
+        <input asp-for="LocalInventoryStateJson" type="hidden" id="LocalInventoryStateJson" />
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="EnemyWeakness" class="form-label fw-semibold">Enemy Weakness</label>
+                        <select asp-for="EnemyWeakness" class="form-select" asp-items="Html.GetEnumSelectList<Element>()"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="PreferredDamageType" class="form-label fw-semibold">Preferred Damage Type</label>
+                        <select asp-for="PreferredDamageType" class="form-select" asp-items="Html.GetEnumSelectList<DamageType>()"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="TargetScenario" class="form-label fw-semibold">Target Scenario</label>
+                        <select asp-for="TargetScenario" class="form-select" asp-items="Html.GetEnumSelectList<EnemyTargetScenario>()"></select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Team Templates</h2>
+                        <div class="d-grid gap-2">
+                            @foreach (var template in Model.AvailableTeamTemplates)
+                            {
+                                <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                    <input class="form-check-input me-2" type="checkbox" name="EnabledTeamTemplates[@template.Name]" value="true" @(Model.EnabledTeamTemplates.TryGetValue(template.Name, out var isEnabled) && isEnabled ? "checked" : null) />
+                                    <input type="hidden" name="EnabledTeamTemplates[@template.Name]" value="false" />
+                                    <span class="form-check-label">@template.Name</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Boss Immunities</h2>
+                        @foreach (var group in Model.BossImmunityOptionsByGroup)
+                        {
+                            <div class="mb-3">
+                                <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
+                                <div class="d-grid gap-2">
+                                    @foreach (var option in group.Value)
+                                    {
+                                        <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                            <input class="form-check-input me-2" type="checkbox" name="BossImmunityKeys" value="@option.Key" @(Model.BossImmunityKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
+                                            <span class="form-check-label">@option.Label</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Analysis Notes</h2>
+                        <div class="small text-muted d-grid gap-2">
+                            <div>Main weapon, off-hand, ultimate, and main outfit effects are scored as active team utility.</div>
+                            <div>Off-hand contributes half-value stats and passive points, rounded down immediately, but still uses its ability for utility scoring.</div>
+                            <div>Sub-weapons and sub-outfits only contribute half-value stats and passive points, rounded down immediately.</div>
+                            <div>Sub weapons are shared across the full team and cannot be duplicated once equipped.</div>
+                            <div>Hard-required effects invalidate a build. Preferred effects boost score without invalidating.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Hard-Required Effects</h2>
+                        @foreach (var group in Model.EffectOptionsByGroup)
+                        {
+                            <div class="mb-3">
+                                <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
+                                <div class="d-grid gap-2">
+                                    @foreach (var option in group.Value)
+                                    {
+                                        <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                            <input class="form-check-input me-2" type="checkbox" name="HardRequiredEffectKeys" value="@option.Key" @(Model.HardRequiredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
+                                            <span class="form-check-label">@option.Label</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-bold mb-3">Preferred Effects</h2>
+                        @foreach (var group in Model.EffectOptionsByGroup)
+                        {
+                            <div class="mb-3">
+                                <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
+                                <div class="d-grid gap-2">
+                                    @foreach (var option in group.Value)
+                                    {
+                                        <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                            <input class="form-check-input me-2" type="checkbox" name="SoftPreferredEffectKeys" value="@option.Key" @(Model.SoftPreferredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
+                                            <span class="form-check-label">@option.Label</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">Analyze V2 Team</button>
+            <a class="btn btn-outline-secondary btn-lg" href="/PlayerPowerAnalyzerV2">Reset</a>
+        </div>
+    </form>
+
+    @if (Model.AnalysisResult != null && !Model.AnalysisResult.HasResult)
+    {
+        <div class="alert alert-warning mt-4">@Model.AnalysisResult.FailureReason</div>
+    }
+
+    @if (Model.AnalysisResult?.HasResult == true)
+    {
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body p-4">
+                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                    <div>
+                        <div class="text-uppercase small text-primary fw-semibold mb-2">Recommended Team</div>
+                        <h2 class="h3 fw-bold mb-2">@string.Join(" / ", Model.AnalysisResult.TeamCharacters)</h2>
+                        <div class="text-muted">Score: @Model.AnalysisResult.Score.ToString("N2")</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-content-start">
+                        @if (!string.IsNullOrWhiteSpace(Model.AnalysisResult.MatchedTemplateName))
+                        {
+                            <span class="badge power-v2-pill-primary px-3 py-2">@Model.AnalysisResult.MatchedTemplateName</span>
+                        }
+                        @foreach (var label in Model.AnalysisResult.ProvidedEffectLabels)
+                        {
+                            <span class="badge power-v2-pill px-3 py-2">@label</span>
+                        }
+                    </div>
+                </div>
+
+                @if (Model.AnalysisResult.Warnings.Count > 0)
+                {
+                    <div class="alert alert-warning">
+                        @foreach (var warning in Model.AnalysisResult.Warnings)
+                        {
+                            <div>@warning</div>
+                        }
+                    </div>
+                }
+
+                <div class="row g-3 mb-3">
+                    <div class="col-lg-4">
+                        <div class="border rounded-3 p-3 h-100">
+                            <div class="small text-uppercase text-muted fw-semibold mb-2">Hard Requirements</div>
+                            <div class="small mb-2"><strong>Matched:</strong> @(Model.AnalysisResult.MatchedRequiredEffects.Count > 0 ? string.Join(", ", Model.AnalysisResult.MatchedRequiredEffects) : "None")</div>
+                            <div class="small"><strong>Missing:</strong> @(Model.AnalysisResult.MissingRequiredEffects.Count > 0 ? string.Join(", ", Model.AnalysisResult.MissingRequiredEffects) : "None")</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="border rounded-3 p-3 h-100">
+                            <div class="small text-uppercase text-muted fw-semibold mb-2">Preferred Effects</div>
+                            <div class="small mb-2"><strong>Matched:</strong> @(Model.AnalysisResult.MatchedPreferredEffects.Count > 0 ? string.Join(", ", Model.AnalysisResult.MatchedPreferredEffects) : "None")</div>
+                            <div class="small"><strong>Missing:</strong> @(Model.AnalysisResult.MissingPreferredEffects.Count > 0 ? string.Join(", ", Model.AnalysisResult.MissingPreferredEffects) : "None")</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="border rounded-3 p-3 h-100">
+                            <div class="small text-uppercase text-muted fw-semibold mb-2">Inventory Coverage</div>
+                            <div class="small mb-2"><strong>Characters:</strong> @Model.AnalysisResult.AvailableCharacterCount</div>
+                            <div class="small"><strong>Unset Levels:</strong> @Model.AnalysisResult.UnsetLevelWeaponCount</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.AnalysisResult.SuppressedEffectNotes.Count > 0)
+                {
+                    <div class="alert alert-secondary">
+                        @foreach (var note in Model.AnalysisResult.SuppressedEffectNotes)
+                        {
+                            <div>@note</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+            @foreach (var character in Model.AnalysisResult.Characters)
+            {
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <img src="@character.CharacterPortraitUrl" alt="@character.CharacterName" class="rounded-3 character-portrait" />
+                                    <div>
+                                        <h3 class="h4 fw-bold mb-1">@character.CharacterName</h3>
+                                        <div class="text-muted">@character.Role • Score @character.Score.ToString("N2")</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 align-content-start">
+                                    <span class="badge power-v2-pill px-3 py-2">PATK @character.TotalPatk</span>
+                                    <span class="badge power-v2-pill px-3 py-2">MATK @character.TotalMatk</span>
+                                    <span class="badge power-v2-pill px-3 py-2">HEAL @character.TotalHeal</span>
+                                </div>
+                            </div>
+
+                            @if (character.ProvidedEffectLabels.Count > 0)
+                            {
+                                <div class="mb-3 d-flex flex-wrap gap-2">
+                                    @foreach (var label in character.ProvidedEffectLabels)
+                                    {
+                                        <span class="badge power-v2-pill-accent px-3 py-2">@label</span>
+                                    }
+                                </div>
+                            }
+
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <div class="border rounded-3 p-3 h-100">
+                                        <div class="small text-uppercase text-muted fw-semibold mb-2">Weapons</div>
+                                        @foreach (var slot in new[] { character.MainWeapon, character.OffHandWeapon, character.UltimateWeapon }.Where(slot => slot != null))
+                                        {
+                                            <div class="slot-entry mb-3">
+                                                <div class="fw-semibold">@slot!.SlotName: @slot.Name</div>
+                                                <div class="small text-muted">Lv @slot.Level • OB @slot.OverboostLevel • Score @slot.Score.ToString("N2")</div>
+                                                @if (!string.IsNullOrWhiteSpace(slot.SelectedCustomization))
+                                                {
+                                                    <div class="small">Customization: @slot.SelectedCustomization</div>
+                                                }
+                                                @if (slot.PassiveSummaries.Count > 0)
+                                                {
+                                                    <div class="small text-muted">@string.Join(" • ", slot.PassiveSummaries)</div>
+                                                }
+                                            </div>
+                                        }
+                                        @if (character.SubWeapons.Count > 0)
+                                        {
+                                            <div class="small text-uppercase text-muted fw-semibold mb-2 mt-3">Sub Weapons</div>
+                                            @foreach (var sub in character.SubWeapons)
+                                            {
+                                                <div class="slot-entry mb-2">
+                                                    <div class="fw-semibold">@sub.Name</div>
+                                                    <div class="small text-muted">Lv @sub.Level • OB @sub.OverboostLevel • @string.Join(" • ", sub.PassiveSummaries)</div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="border rounded-3 p-3 h-100">
+                                        <div class="small text-uppercase text-muted fw-semibold mb-2">Outfits & Passive Stack</div>
+                                        @foreach (var slot in new[] { character.MainOutfit }.Where(slot => slot != null))
+                                        {
+                                            <div class="slot-entry mb-3">
+                                                <div class="fw-semibold">@slot!.SlotName: @slot.Name</div>
+                                                <div class="small text-muted">@string.Join(" • ", slot.PassiveSummaries)</div>
+                                            </div>
+                                        }
+                                        @if (character.SubOutfits.Count > 0)
+                                        {
+                                            <div class="small text-uppercase text-muted fw-semibold mb-2 mt-3">Sub Outfits</div>
+                                            @foreach (var sub in character.SubOutfits)
+                                            {
+                                                <div class="slot-entry mb-2">
+                                                    <div class="fw-semibold">@sub.Name</div>
+                                                    <div class="small text-muted">@string.Join(" • ", sub.PassiveSummaries)</div>
+                                                </div>
+                                            }
+                                        }
+
+                                        @if (character.KeyRAbilities.Count > 0)
+                                        {
+                                            <div class="small text-uppercase text-muted fw-semibold mb-2 mt-3">Top Passive Totals</div>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var passive in character.KeyRAbilities)
+                                                {
+                                                    <span class="badge power-v2-pill px-3 py-2">@passive</span>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (Model.AnalysisResult.AlternateTeams.Count > 0 || Model.AnalysisResult.DebugNotes.Count > 0)
+        {
+            <div class="row g-4 mt-1">
+                @if (Model.AnalysisResult.AlternateTeams.Count > 0)
+                {
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h3 class="h5 fw-bold mb-3">Other Teams</h3>
+                                <div class="d-grid gap-2">
+                                    @foreach (var team in Model.AnalysisResult.AlternateTeams)
+                                    {
+                                        <div class="border rounded-3 p-3">
+                                            <div class="fw-semibold">@string.Join(" / ", team.Characters)</div>
+                                            <div class="small text-muted">Score @team.Score.ToString("N2")</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (Model.AnalysisResult.DebugNotes.Count > 0)
+                {
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h3 class="h5 fw-bold mb-3">Debug Notes</h3>
+                                <div class="small text-muted d-grid gap-2">
+                                    @foreach (var note in Model.AnalysisResult.DebugNotes)
+                                    {
+                                        <div>@note</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+<div id="playerPowerAnalyzerV2ProcessingOverlay" class="power-v2-processing-overlay" aria-hidden="true">
+    <div class="power-v2-processing-dialog shadow-lg">
+        <div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
+        <h2 class="h4 fw-bold mb-2">Analyzing V2 Team</h2>
+        <p class="text-muted mb-3">Team generation can take a while for large inventories. Please keep this tab open while I process your builds.</p>
+        <div id="playerPowerAnalyzerV2ProcessingStatus" class="fw-semibold">Loading inventory snapshot...</div>
+        <div class="small text-muted mt-2">This page will update automatically when analysis finishes.</div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .power-v2-page .power-v2-pill {
+            background: #f8fafc;
+            color: #0f172a;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+        }
+
+        .power-v2-page .power-v2-pill-primary {
+            background: #1d4ed8;
+            color: #eff6ff;
+            border: 1px solid #1d4ed8;
+        }
+
+        .power-v2-page .power-v2-pill-accent {
+            background: #dbeafe;
+            color: #1e3a8a;
+            border: 1px solid rgba(30, 58, 138, 0.16);
+        }
+
+        .power-v2-page .character-portrait {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+            border: 1px solid rgba(15, 23, 42, 0.1);
+        }
+
+        .power-v2-page .slot-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .power-v2-processing-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.52);
+            backdrop-filter: blur(4px);
+            z-index: 1080;
+        }
+
+        .power-v2-processing-overlay.is-visible {
+            display: flex;
+        }
+
+        .power-v2-processing-dialog {
+            width: min(100%, 32rem);
+            border-radius: 1rem;
+            background: #ffffff;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        body.power-v2-processing-active {
+            overflow: hidden;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            const storageKey = 'player-inventory-state-v1';
+            const input = document.getElementById('LocalInventoryStateJson');
+            const form = document.getElementById('playerPowerAnalyzerV2Form');
+            const overlay = document.getElementById('playerPowerAnalyzerV2ProcessingOverlay');
+            const status = document.getElementById('playerPowerAnalyzerV2ProcessingStatus');
+            const analyzeButton = form ? form.querySelector('button[type="submit"]') : null;
+            const processingMessages = [
+                'Loading inventory snapshot...',
+                'Scoring main-hand, off-hand, and ultimate weapon options...',
+                'Assembling character variants and passive totals...',
+                'Assigning shared sub-weapons across the full team...',
+                'Checking required effects, boss immunities, and team templates...',
+                'Finalizing the highest-scoring teams...'
+            ];
+            let processingTimer = null;
+
+            function hydrateInventoryState() {
+                if (!input) {
+                    return;
+                }
+
+                input.value = window.localStorage.getItem(storageKey) || '';
+            }
+
+            function startProcessingOverlay() {
+                if (!overlay || !status) {
+                    return;
+                }
+
+                let index = 0;
+                status.textContent = processingMessages[index];
+                overlay.classList.add('is-visible');
+                overlay.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('power-v2-processing-active');
+                if (analyzeButton) {
+                    analyzeButton.setAttribute('disabled', 'disabled');
+                }
+
+                processingTimer = window.setInterval(function () {
+                    index = (index + 1) % processingMessages.length;
+                    status.textContent = processingMessages[index];
+                }, 2400);
+            }
+
+            hydrateInventoryState();
+            if (form) {
+                form.addEventListener('submit', function () {
+                    hydrateInventoryState();
+                    startProcessingOverlay();
+                });
+            }
+        })();
+    </script>
+}

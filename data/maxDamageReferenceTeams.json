@@ -1,0 +1,1404 @@
+{
+  "version": 1,
+  "mode": "MaxDamageChallengeReference",
+  "lastUpdatedUtc": "2026-05-27",
+  "notes": [
+    "Store each observed leaderboard team as its own entry.",
+    "Use the same archetypeId across slight variations of the same build shell.",
+    "Keep gear names aligned with the app's existing weapon, costume, materia, and memoria naming when possible.",
+    "teamMemoria is a single shared team-level memoria entry.",
+    "Each character stores their own two sub costumes in subCostumes."
+  ],
+  "materiaNotes": [
+    "[Element] Breach materia applies a low-pot debuff for that element and can be important setup, not just filler.",
+    "Mana Breach applies low-pot MDEF Down. Breach applies low-pot PDEF Down.",
+    "Some teams rely on materia-applied low-pot debuffs so follow-up abilities can amplify them.",
+    "Example: Aerith with Abraxas can turn an existing low-pot debuff from materia into a high-pot debuff in one use, while Zack's Festive Jacket-style effect raises debuffs one stage at a time.",
+    "Cura and Ruinra may appear only as stat sticks based on materia RNG rather than as intended combat casts.",
+    "Element materia such as Watera/Watera Blow or Aerora/Aerora Blow can also provide RNG-based elemental potency and MATK/PATK bonuses.",
+    "Blow materia variants are PATK-oriented. Non-Blow elemental materia variants are MATK-oriented."
+  ],
+  "teams": [
+    {
+      "id": "mdc-fire-2026-05-rank01A",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "fire",
+      "element": "Fire",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "fire-phys-aerith-tifa-zack",
+      "variantLabel": "A",
+      "rank": 1,
+      "score": 2147483647,
+      "sourcePlayerAlias": "EF",
+      "notes": [""],
+      "strategyTags": [
+        "fire",
+        "max_damage",
+		"physical"
+      ],
+      "teamMemoria": "Memoria of Weapon Majeure",
+      "characters": [
+        {
+          "characterName": "Aerith",
+          "roleHint": "Healer",
+          "mainWeapon": "Gorgeous Staff",
+          "offHandWeapon": "Gambanteinn",
+          "ultimateWeapon": "Abraxas",
+          "subWeapons": [
+            "Work Glove",
+            "Deroplatys",
+            "Gauntlets of the Worthy"
+          ],
+          "costume": "Gorgeous Dress",
+          "subCostumes": [
+            "Garb of the Possessed",
+            "Festive Dress"
+          ],
+          "materia": [
+            "Breach",
+            "Fire Breach",
+            "Ruinra"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Gloves",
+          "offHandWeapon": "Leather Combat Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Crystal Sword (Z)",
+            "Skysplitter",
+            "Volcanic Heat"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "Golden Flower Kimono",
+            "AC Style"
+          ],
+          "materia": [
+            "Fire Blow",
+            "Fire Blow",
+            "Fire Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Zenithian Sword",
+          "offHandWeapon": "Festive Sword",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Bahamut Greatsword",
+            "Greatsword (A)",
+            "Headphones"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Rabbit Butler",
+            "Zenithian Armour"
+          ],
+          "materia": [
+            "Fire Blow",
+            "Fire Blow",
+            "Fire Blow"
+          ],
+          "notes": []
+        }
+      ]
+    },
+	{
+      "id": "mdc-fire-2026-05-rank01B",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "fire",
+      "element": "Fire",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "fire-phys-Lucia-tifa-zack",
+      "variantLabel": "A",
+      "rank": 1,
+      "score": 2147483647,
+      "sourcePlayerAlias": "Neviutz",
+      "notes": [""],
+      "strategyTags": [
+        "fire",
+        "max_damage",
+		"physical"
+      ],
+      "teamMemoria": "Memoria of Weapon Majeure",
+      "characters": [
+        {
+          "characterName": "Lucia",
+          "roleHint": "Support",
+          "mainWeapon": "Shinra Ceremonial Rifle",
+          "offHandWeapon": "Killer Falcon",
+          "ultimateWeapon": "Total Eclipse",
+          "subWeapons": [
+            "Sōba",
+            "Gun of the Worthy",
+            "Deroplatys"
+          ],
+          "costume": "Shinra Ceremonial Uniform",
+          "subCostumes": [
+            "Marksqueen",
+            "Disciplined P0 SOLDIER"
+          ],
+          "materia": [
+            "Mana Breach",
+            "Fire Breach",
+            "Fire Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Gloves",
+          "offHandWeapon": "Demon's Impetus",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Crystal Sword (Z)",
+            "Prototype Crumson Blade",
+            "Volcanic Heat"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "Golden Flower Kimono",
+            "AC Style"
+          ],
+          "materia": [
+            "Fire Blow",
+            "Fire Blow",
+            "Fire Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Sword",
+          "offHandWeapon": "Surfer Blade",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Gauntlets of the Worthy",
+            "Bahamut Cutter",
+            "Trumpet Shell"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Polygon Zack",
+            "SOLDIER: First Class Future Hero"
+          ],
+          "materia": [
+            "Fire Blow",
+            "Fire Blow",
+            "Fire Blow"
+          ],
+          "notes": []
+        }
+      ]
+    },
+	{
+      "id": "mdc-fire-2026-05-rank39",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "fire",
+      "element": "Fire",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "fire-phys-oseph-tifa-aerith",
+      "variantLabel": "A",
+      "rank": 39,
+      "score": 1266869949,
+      "sourcePlayerAlias": "rockam101",
+      "notes": [""],
+      "strategyTags": [
+        "fire",
+        "max_damage",
+		"magic"
+      ],
+      "teamMemoria": "Memoria of the Church Two Years Later",
+      "characters": [
+        {
+          "characterName": "Sephiorth (Original)",
+          "roleHint": "DPS",
+          "mainWeapon": "Shiranui",
+          "offHandWeapon": "Muramasa",
+          "ultimateWeapon": "Heaven's Cloud",
+          "subWeapons": [
+            "Innocent Warrior",
+            "Electrocannon",
+            "Rocker's Guitar"
+          ],
+          "costume": "Conqueror of the Planet",
+          "subCostumes": [
+            "One with the Blade",
+            "Corruptor of the Planet"
+          ],
+          "materia": [
+            "Fira",
+            "Fira",
+            "Fira"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Shell Knuckles",
+          "offHandWeapon": "Leather Combat Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Stream Guard",
+            "Bahamut Fangs",
+            "Galian Roar"
+          ],
+          "costume": "Golden Flower Kimono",
+          "subCostumes": [
+            "Battle Ensemble",
+            "AC Style"
+          ],
+          "materia": [
+            "Fira",
+            "Fira",
+            "Fira"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Aerith",
+          "roleHint": "Healer",
+          "mainWeapon": "Crimson Staff",
+          "offHandWeapon": "Lightning's Rod",
+          "ultimateWeapon": "Abraxas",
+          "subWeapons": [
+            "Protector's Blade",
+            "Fusion Sword",
+            "Blue Daffodil Gloves"
+          ],
+          "costume": "Garb of the Possessed",
+          "subCostumes": [
+            "Terra's Garb",
+            "Guardian Corps Uniform (Aerith)"
+          ],
+          "materia": [
+            "Fira",
+            "Fira",
+            "Breach"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-ice-2026-05-rank01",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "ice",
+      "element": "Ice",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "ice-tifa-aerith-zack",
+      "variantLabel": "A",
+      "rank": 1,
+      "score": 1563877706,
+      "sourcePlayerAlias": "Giummo",
+      "notes": [""],
+      "strategyTags": [
+        "ice",
+        "max_damage",
+        "magic"
+      ],
+      "teamMemoria": "Memoria of Lightning",
+      "characters": [
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Lightning's Gloves",
+          "offHandWeapon": "Leather Combat Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Starsoul Blade",
+            "Festive Blade",
+            "Crimson Blitz"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "Guardian Corps Uniform (Tifa)",
+            "AC Style"
+          ],
+          "materia": [
+            "Blizzara",
+            "Blizzara",
+            "Blizzara"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Aerith",
+          "roleHint": "Healer",
+          "mainWeapon": "Crimson Staff",
+          "offHandWeapon": "Festive Rod",
+          "ultimateWeapon": "Abraxas",
+          "subWeapons": [
+            "Rocket Lance",
+            "Bouquet",
+            "Dragoon Lance"
+          ],
+          "costume": "Festive Dress",
+          "subCostumes": [
+            "Garb of the Possessed",
+            "Guardian Corps Uniform (Aerith)"
+          ],
+          "materia": [
+            "Blizzara",
+            "Blizzara",
+            "Breach"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Gelid Sword",
+          "offHandWeapon": "Festive Sword",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Bahamut Fangs",
+            "Protector's Blade",
+            "Cath Palug"
+          ],
+          "costume": "Glacier Armor",
+          "subCostumes": [
+            "Festive Jacket",
+            "Rabbit Butler"
+          ],
+          "materia": [
+            "Blizzara",
+            "Blizzara",
+            "Blizzara"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-ice-2026-05-rank07",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "ice",
+      "element": "Ice",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "ice-seph-zack-cid",
+      "variantLabel": "A",
+      "rank": 7,
+      "score": 1323672604,
+      "sourcePlayerAlias": "BonBinky",
+      "notes": [""],
+      "strategyTags": [
+        "ice",
+        "max_damage",
+        "physical"
+      ],
+      "teamMemoria": "Memoria of Bahamut SIN",
+      "characters": [
+        {
+          "characterName": "Sephiroth",
+          "roleHint": "DPS",
+          "mainWeapon": "Sōba",
+          "offHandWeapon": "Phoenix Odachi",
+          "ultimateWeapon": "Metsumato",
+          "subWeapons": [
+            "Enemy Launcher",
+            "Surfer Blade",
+            "Desperado Rifle"
+          ],
+          "costume": "Remnant Suit",
+          "subCostumes": [
+            "Edged Wings Training Garb",
+            "Cape of the Worthy"
+          ],
+          "materia": [
+            "Blizzara Blow",
+            "Blizzara Blow",
+            "Blizzara Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Cid",
+          "roleHint": "Support",
+          "mainWeapon": "Patissier's Spear",
+          "offHandWeapon": "Rocket Lance",
+          "ultimateWeapon": "Venus Gospel",
+          "subWeapons": [
+            "Gun of the Worthy",
+            "Stream Saber",
+            "Mad Minute"
+          ],
+          "costume": "Patissier Frock",
+          "subCostumes": [
+            "Holidays Attire",
+            "Astronaut"
+          ],
+          "materia": [
+            "Blizzara Blow",
+            "Blizzara Blow",
+            "Blizzara Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Pressure Ridge",
+          "offHandWeapon": "Festive Sword",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Shinra Ceremonial Rifle",
+            "Deroplatys",
+            "Bahamut Greatsword"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Glacier Armor",
+            "Rabbit Butler"
+          ],
+          "materia": [
+            "Blizzara Blow",
+            "Bravery",
+            "Breach"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-lightning-2026-05-rank02",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "lightning",
+      "element": "Lightning",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "lightning-cloud_aerith-oseph",
+      "variantLabel": "A",
+      "rank": 2,
+      "score": 1521809353,
+      "sourcePlayerAlias": "Kirka59",
+      "notes": [""],
+      "strategyTags": [
+        "lightning",
+        "max_damage",
+        "magic"
+      ],
+      "teamMemoria": "Memoria of 2.5 Year Anniv.",
+      "characters": [
+        {
+          "characterName": "Aerith",
+          "roleHint": "Healer",
+          "mainWeapon": "Festive Rod",
+          "offHandWeapon": "Mermaid Rod",
+          "ultimateWeapon": "Abraxas",
+          "subWeapons": [
+            "Pirate Collar",
+            "Protector's Blade",
+            "Elegant Gloves"
+          ],
+          "costume": "Garb of the Possessed",
+          "subCostumes": [
+            "Festive Dress",
+            "Guardian Corps Uniform (Aerith)"
+          ],
+          "materia": [
+            "Thundara",
+            "Lightning Breach",
+            "Breach"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Sephiroth (Original)",
+          "roleHint": "DPS",
+          "mainWeapon": "Starsoul Blade",
+          "offHandWeapon": "Muramasa",
+          "ultimateWeapon": "Heaven's Cloud",
+          "subWeapons": [
+            "Dragoon Lance",
+            "Witch's Broom",
+            "CC Alloy Sword"
+          ],
+          "costume": "One with the Blade",
+          "subCostumes": [
+            "Corruptor of the Planet",
+            "Conqueror of the Planet"
+          ],
+          "materia": [
+            "Thundara",
+            "Thundara",
+            "Thundara"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Cloud",
+          "roleHint": "DPS",
+          "mainWeapon": "Noble Parasol",
+          "offHandWeapon": "Mystic Sword",
+          "ultimateWeapon": "Ragnarok",
+          "subWeapons": [
+            "Festive Blade",
+            "Bahamut Fangs",
+            "Crimson Staff"
+          ],
+          "costume": "CLassic Dress",
+          "subCostumes": [
+            "Equilibrium",
+            "Erdrick' Armour"
+          ],
+          "materia": [
+            "Thundara",
+            "Thundara",
+            "Thundara"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-lightning-2026-05-rank08",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "lightning",
+      "element": "Lightning",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "lightning-tifa-zack-oseph",
+      "variantLabel": "A",
+      "rank": 8,
+      "score": 1306569736,
+      "sourcePlayerAlias": "Giummo",
+      "notes": [""],
+      "strategyTags": [
+        "lightning",
+        "max_damage",
+        "magic"
+      ],
+      "teamMemoria": "Memoria of Rufus",
+      "characters": [
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Kirin Gloves",
+          "offHandWeapon": "Leather Combat Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Pandemonic Sword",
+            "Bahamut Fangs",
+            "Protector's Blade"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "Kirin Suit",
+            "AC Style"
+          ],
+          "materia": [
+            "Thundara",
+            "Thundara",
+            "Thundara"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Sephiroth (Original)",
+          "roleHint": "DPS",
+          "mainWeapon": "Starsoul Blade",
+          "offHandWeapon": "Muramasa",
+          "ultimateWeapon": "Heaven's Cloud",
+          "subWeapons": [
+            "Dragoon Lance",
+            "Thunderbird",
+            "CC Alloy Sword"
+          ],
+          "costume": "Conqueror of the PLanet",
+          "subCostumes": [
+            "One with the Blade",
+            "Corruptor of the Planet"
+          ],
+          "materia": [
+            "Thundara",
+            "Thundara",
+            "Thundara"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Gelid Sword",
+          "offHandWeapon": "Stream Guard",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Crimson Staff",
+            "Pirate Collar",
+            "Battle Trumpet"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Shinra Full Dress Uniform",
+            "Surfer Look"
+          ],
+          "materia": [
+            "Lightning Breach",
+            "Breach",
+            "Ruinra"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-lightning-2026-05-rank45",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "lightning",
+      "element": "Lightning",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "lightning-yuffie-zack-oseph",
+      "variantLabel": "A",
+      "rank": 45,
+      "score": 811009391,
+      "sourcePlayerAlias": "Stoven",
+      "notes": [""],
+      "strategyTags": [
+        "lightning",
+        "max_damage",
+        "physical"
+      ],
+      "teamMemoria": "Memoria of Bahamut SIN",
+      "characters": [
+        {
+          "characterName": "Yuffie",
+          "roleHint": "DPS",
+          "mainWeapon": "Winged Chakram",
+          "offHandWeapon": "Heirloom Brush",
+          "ultimateWeapon": "Rising Sun",
+          "subWeapons": [
+            "Bahamut Cutter",
+            "Bird of Prey",
+            "Witch's Broom"
+          ],
+          "costume": "Moogle Hat & Cape",
+          "subCostumes": [
+            "Heirloom Kimono",
+            "Savior Ensemble"
+          ],
+          "materia": [
+            "Thundara Blow",
+            "Thundara Blow",
+            "Thundara Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Sephiroth (Original)",
+          "roleHint": "DPS",
+          "mainWeapon": "Muramasa",
+          "offHandWeapon": "Kikuichimonji",
+          "ultimateWeapon": "Heaven's Cloud",
+          "subWeapons": [
+            "Erdrick's Sword",
+            "Cool Cat's Megaphone",
+            "Bahamut Greatsword"
+          ],
+          "costume": "One with the Blade",
+          "subCostumes": [
+            "Conqueror of the Planet",
+            "Corruptor of the Planet"
+          ],
+          "materia": [
+            "Thundara Blow",
+            "Thundara Blow",
+            "Thundara Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Sword",
+          "offHandWeapon": "Surfer Blade",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Deroplatys",
+            "Festive Gloves",
+            "Shinra Ceremonial Rifle"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Zinogre Armor",
+            "Surfer Look"
+          ],
+          "materia": [
+            "Lightning Breach",
+            "Mana Breach",
+            "Ruinra"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-earth-2026-05-rank01",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "earth",
+      "element": "Earth",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "earth-yuffie-zack-tifa",
+      "variantLabel": "A",
+      "rank": 1,
+      "score": 1792158469,
+      "sourcePlayerAlias": "Jirka59",
+      "notes": [""],
+      "strategyTags": [
+        "earth",
+        "max_damage",
+        "magic"
+      ],
+      "teamMemoria": "Memoria of 2B",
+      "characters": [
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Elegant Gloves",
+          "offHandWeapon": "Guantlets of the Worthy",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Electrocannon",
+            "Double Stem E",
+            "Razor Ring"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "Elegant Dress",
+            "Armor of the Worthy"
+          ],
+          "materia": [
+            "Quakera",
+            "Quakera",
+            "Quakera"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Yuffie",
+          "roleHint": "DPS",
+          "mainWeapon": "Uber 4-Point Shuriken",
+          "offHandWeapon": "Fatum Ex Machina",
+          "ultimateWeapon": "Rising Sun",
+          "subWeapons": [
+            "Ghost Ensis",
+            "Sawed-Off GS",
+            "Rocker's Guitar"
+          ],
+          "costume": "AC Outfit",
+          "subCostumes": [
+            "Savior Ensemble",
+            "Heirloom Kimono"
+          ],
+          "materia": [
+            "Quakera",
+            "Quakera",
+            "Quakera"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Sword",
+          "offHandWeapon": "Stream Guard",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Crimson Staff",
+            "Bamboo Ring",
+            "Rubber Band Gun"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Glacier Armor",
+            "Surfer Look"
+          ],
+          "materia": [
+            "Quakera",
+            "Breach",
+            "Quakera"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-earth-2026-05-rank07",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "earth",
+      "element": "Earth",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "earth-seph-zack-tifa",
+      "variantLabel": "A",
+      "rank": 7,
+      "score": 1405083112,
+      "sourcePlayerAlias": "Lunafreya",
+      "notes": [""],
+      "strategyTags": [
+        "earth",
+        "max_damage",
+        "physical"
+      ],
+      "teamMemoria": "Memoria of Three Ex-SOLDIERs",
+      "characters": [
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Guantlets of the Worthy",
+          "offHandWeapon": "AC Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Bird of Prey",
+            "Greatsword (A)",
+            "Cruel Successor"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "AC Style",
+            "Armor of the Worthy"
+          ],
+          "materia": [
+            "Quakera Blow",
+            "Quakera Blow",
+            "Quakera Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Sephiroth",
+          "roleHint": "DPS",
+          "mainWeapon": "Immaculate Blade",
+          "offHandWeapon": "Phoenix Odachi",
+          "ultimateWeapon": "Metsumato",
+          "subWeapons": [
+            "Bahamut Greatsword",
+            "Bahamut Cutter",
+            "Sequoiadendron"
+          ],
+          "costume": "The Immaculate",
+          "subCostumes": [
+            "Garb of the World-Ender",
+            "Cape of the Worthy"
+          ],
+          "materia": [
+            "Quakera Blow",
+            "Quakera Blow",
+            "Quakera Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Sword",
+          "offHandWeapon": "Surfer Blade",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Gun of the Worthy",
+            "Deroplatys",
+            "Nail Bat"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Glacier Armor",
+            "Surfer Look"
+          ],
+          "materia": [
+            "Cura",
+            "Ruinra",
+            "Mana Breach"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-water-2026-05-rank01",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "water",
+      "element": "Water",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "water-cloud-aerith-oseph",
+      "variantLabel": "A",
+      "rank": 1,
+      "score": 1634029631,
+      "sourcePlayerAlias": "Jirka59",
+      "notes": [""],
+      "strategyTags": [
+        "water",
+        "max_damage",
+        "magic"
+      ],
+      "teamMemoria": "Memoria of Mother Alissa",
+      "characters": [
+        {
+          "characterName": "Cloud",
+          "roleHint": "DPS",
+          "mainWeapon": "Umbralschwert",
+          "offHandWeapon": "Noble Parasol",
+          "ultimateWeapon": "Ragnarok",
+          "subWeapons": [
+            "Electrocannon",
+            "Bahamut Fangs",
+            "Feathered Gloves"
+          ],
+          "costume": "Classic Dress",
+          "subCostumes": [
+            "AC Mode",
+            "The Sable"
+          ],
+          "materia": [
+            "Watera",
+            "Watera",
+            "Watera"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Aerith",
+          "roleHint": "Healer",
+          "mainWeapon": "Festive Rod",
+          "offHandWeapon": "Team Leader's Bamboo Sword",
+          "ultimateWeapon": "Abraxas",
+          "subWeapons": [
+            "Crimson Staff",
+            "Pirate Collar",
+            "Kikuichimonji"
+          ],
+          "costume": "Garb of the Possessed",
+          "subCostumes": [
+            "Festive Dress",
+            "Seventh High Team Cetra"
+          ],
+          "materia": [
+            "Watera",
+            "Watera",
+            "Breach"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Sephiroth (Original)",
+          "roleHint": "DPS",
+          "mainWeapon": "Osafune",
+          "offHandWeapon": "Starsoul Blade",
+          "ultimateWeapon": "Heaven's Cloud",
+          "subWeapons": [
+            "Edgar's Coiled Blade",
+            "Noble Collar",
+            "Protector's Blade"
+          ],
+          "costume": "Conqueror of the Planet",
+          "subCostumes": [
+            "One with the Blade",
+            "Corruptor of the Planet"
+          ],
+          "materia": [
+            "Watera",
+            "Watera",
+            "Watera"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-water-2026-05-rank03",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "water",
+      "element": "Water",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "water-seph-zack-tifa",
+      "variantLabel": "A",
+      "rank": 3,
+      "score": 1285592138,
+      "sourcePlayerAlias": "Lunafreya",
+      "notes": [""],
+      "strategyTags": [
+        "water",
+        "max_damage",
+        "physical"
+      ],
+      "teamMemoria": "Memoria of Master Tonberry",
+      "characters": [
+        {
+          "characterName": "Sephiroth",
+          "roleHint": "DPS",
+          "mainWeapon": "Overture",
+          "offHandWeapon": "Phoenix Odachi",
+          "ultimateWeapon": "Metsumato",
+          "subWeapons": [
+            "Stream Saber",
+            "Bahamut Greatsword",
+            "Bird of Prey"
+          ],
+          "costume": "Knight of Etro",
+          "subCostumes": [
+            "Cape of the Worthy",
+            "Edgar's Attire"
+          ],
+          "materia": [
+            "Watera Blow",
+            "Watera Blow",
+            "Watera Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Sword",
+          "offHandWeapon": "Black Whiskers",
+          "ultimateWeapon": "Devine Emissary",
+          "subWeapons": [
+            "Deroplatys",
+            "Tranquility",
+            "Nail Bat"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Glacier Armor",
+            "Surfer Look"
+          ],
+          "materia": [
+            "Watera Blow",
+            "Bravery",
+            "Mana Breach"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Gloves",
+          "offHandWeapon": "AC Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Blue Daffodil Gloves",
+            "Tempest",
+            "Shining Gloves"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "AC Style",
+            "Shing Spirit Beachwear"
+          ],
+          "materia": [
+            "Watera Blow",
+            "Watera Blow",
+            "Watera Blow"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-wind-2026-05-rank03",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "wind",
+      "element": "Wind",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "wind-vincent-zack-tifa",
+      "variantLabel": "A",
+      "rank": 2,
+      "score": 1556834152,
+      "sourcePlayerAlias": "Lunafreya",
+      "notes": [""],
+      "strategyTags": [
+        "wind",
+        "max_damage",
+        "physical"
+      ],
+      "teamMemoria": "Memoria of DC Ep. 1",
+      "characters": [
+        {
+          "characterName": "Vincent",
+          "roleHint": "DPS",
+          "mainWeapon": "Transgressor",
+          "offHandWeapon": "Shortbarrel",
+          "ultimateWeapon": "Fomalhaut",
+          "subWeapons": [
+            "Bahamut Cutter",
+            "Bahamut Greatsword",
+            "Ultimatic"
+          ],
+          "costume": "Auditing Uniform",
+          "subCostumes": [
+            "Coat of the Worthy",
+            "Bouncer Suit"
+          ],
+          "materia": [
+            "Aerora Blow",
+            "Aerora Blow",
+            "Aerora Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Battering Sword",
+          "offHandWeapon": "Festive Sword",
+          "ultimateWeapon": "Devine Emissary",
+          "subWeapons": [
+            "Deroplatys",
+            "Mop",
+            "Rocket Lance"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Heavy Shield Armor",
+            "Glacier Armor"
+          ],
+          "materia": [
+            "Aerora",
+            "Breach",
+            "Wind Breach"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Gloves",
+          "offHandWeapon": "AC Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Slash Lance",
+            "Shinra Ceremonial Rifle",
+            "Guantlets of the Worthy"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "Feather Style",
+            "AC Style"
+          ],
+          "materia": [
+            "Aerora Blow",
+            "Aerora Blow",
+            "Mana Breach"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-wind-2026-05-rank22",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "wind",
+      "element": "Wind",
+      "isNonElementBattle": false,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "wind-zack-red-cloud",
+      "variantLabel": "A",
+      "rank": 22,
+      "score": 934927730,
+      "sourcePlayerAlias": "Ikari",
+      "notes": [""],
+      "strategyTags": [
+        "wind",
+        "max_damage",
+        "magical"
+      ],
+      "teamMemoria": "Memoria of the Stallion of Good Fortune",
+      "characters": [
+        {
+          "characterName": "Red",
+          "roleHint": "Healer",
+          "mainWeapon": "Patissier's Collar",
+          "offHandWeapon": "Brilliant Collar",
+          "ultimateWeapon": "Limited Moon",
+          "subWeapons": [
+            "Crimson Staff",
+            "Shinra Ceremonial Rifle",
+            "Pirate Collar"
+          ],
+          "costume": "Patissier Outfit",
+          "subCostumes": [
+            "Canyon Duds",
+            "Pilot's Jacket"
+          ],
+          "materia": [
+            "Aerora",
+            "Wind Breach",
+            "Mana Breach"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Battering Sword",
+          "offHandWeapon": "Festive Sword",
+          "ultimateWeapon": "Devine Emissary",
+          "subWeapons": [
+            "Floral Wand",
+            "Protector's Blade",
+            "Bahamut Fangs"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Heavy Shield Armor",
+            "Valiant Suit"
+          ],
+          "materia": [
+            "Aerora",
+            "Aerora",
+            "Aerora"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Cloud",
+          "roleHint": "DPS",
+          "mainWeapon": "Holiday Blade",
+          "offHandWeapon": "Noble Parasol",
+          "ultimateWeapon": "Ragnarok",
+          "subWeapons": [
+            "Partisan",
+            "Festive Blade",
+            "Starsoul Blade"
+          ],
+          "costume": "Classic Dress",
+          "subCostumes": [
+            "Holiday Outfit",
+            "AC Mode"
+          ],
+          "materia": [
+            "Aerora",
+            "Aerora",
+            "Aerora"
+          ],
+          "notes": []
+        }
+      ]
+    },
+    {
+      "id": "mdc-none-2026-05-rank01",
+      "mode": "MaxDamageChallenge",
+      "battleKey": "non-element",
+      "element": "None",
+      "isNonElementBattle": true,
+      "patchLabel": "NA",
+      "seasonLabel": "NA",
+      "archetypeId": "ne-aerith-tifa-zack",
+      "variantLabel": "A",
+      "rank": 1,
+      "score": 2147483647,
+      "sourcePlayerAlias": "EF",
+      "notes": [""],
+      "strategyTags": [
+        "non-elemental",
+		"fire",
+        "max_damage",
+		"physical"
+      ],
+      "teamMemoria": "Memoria of Weapon Majeure",
+      "characters": [
+        {
+          "characterName": "Aerith",
+          "roleHint": "Healer",
+          "mainWeapon": "Gorgeous Staff",
+          "offHandWeapon": "Gambanteinn",
+          "ultimateWeapon": "Abraxas",
+          "subWeapons": [
+            "Work Glove",
+            "Deroplatys",
+            "Gauntlets of the Worthy"
+          ],
+          "costume": "Gorgeous Dress",
+          "subCostumes": [
+            "Garb of the Possessed",
+            "Festive Dress"
+          ],
+          "materia": [
+            "Breach",
+            "Fire Breach",
+            "Ruinra"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Tifa",
+          "roleHint": "DPS",
+          "mainWeapon": "Festive Gloves",
+          "offHandWeapon": "Leather Combat Gloves",
+          "ultimateWeapon": "Dragon Claw",
+          "subWeapons": [
+            "Crystal Sword (Z)",
+            "Skysplitter",
+            "Volcanic Heat"
+          ],
+          "costume": "Festive Style",
+          "subCostumes": [
+            "Golden Flower Kimono",
+            "AC Style"
+          ],
+          "materia": [
+            "Fire Blow",
+            "Fire Blow",
+            "Fire Blow"
+          ],
+          "notes": []
+        },
+        {
+          "characterName": "Zack",
+          "roleHint": "DPS",
+          "mainWeapon": "Zenithian Sword",
+          "offHandWeapon": "Festive Sword",
+          "ultimateWeapon": "Divine Emissary",
+          "subWeapons": [
+            "Bahamut Greatsword",
+            "Greatsword (A)",
+            "Sōba"
+          ],
+          "costume": "Festive Jacket",
+          "subCostumes": [
+            "Rabbit Butler",
+            "Zenithian Armour"
+          ],
+          "materia": [
+            "Fire Blow",
+            "Fire Blow",
+            "Fire Blow"
+          ],
+          "notes": []
+        }
+      ]
+    }
+  ]
+}
