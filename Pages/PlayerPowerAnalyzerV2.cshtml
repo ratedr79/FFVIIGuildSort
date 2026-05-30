@@ -180,6 +180,14 @@
                     </div>
                 </div>
 
+                @if (!string.IsNullOrWhiteSpace(Model.AnalysisResult.OffensiveAbilitySummary))
+                {
+                    <div class="border rounded-3 p-3 mb-3 bg-light-subtle">
+                        <div class="small text-uppercase text-muted fw-semibold mb-2">Offensive Ability Summary</div>
+                        <div>@Model.AnalysisResult.OffensiveAbilitySummary</div>
+                    </div>
+                }
+
                 @if (Model.AnalysisResult.Warnings.Count > 0)
                 {
                     <div class="alert alert-warning">

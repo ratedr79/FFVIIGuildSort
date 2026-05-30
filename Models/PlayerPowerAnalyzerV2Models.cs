@@ -20,6 +20,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public bool IsPlaceholder { get; set; }
         public string? FailureReason { get; set; }
         public string? MatchedTemplateName { get; set; }
+        public string? OffensiveAbilitySummary { get; set; }
         public double Score { get; set; }
         public List<string> TeamCharacters { get; set; } = new();
         public List<PlayerPowerAnalyzerV2CharacterBuild> Characters { get; set; } = new();
@@ -32,6 +33,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<string> SuppressedEffectNotes { get; set; } = new();
         public List<string> Warnings { get; set; } = new();
         public List<string> DebugNotes { get; set; } = new();
+        public List<PlayerPowerAnalyzerV2ScoreComponent> ScoreBreakdown { get; set; } = new();
         public int AvailableCharacterCount { get; set; }
         public int UnsetLevelWeaponCount { get; set; }
     }
@@ -54,6 +56,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<string> KeyRAbilities { get; set; } = new();
         public List<string> ProvidedEffectLabels { get; set; } = new();
         public List<string> DebugNotes { get; set; } = new();
+        public List<PlayerPowerAnalyzerV2ScoreComponent> ScoreBreakdown { get; set; } = new();
         public PlayerPowerAnalyzerV2ItemSlot? MainWeapon { get; set; }
         public PlayerPowerAnalyzerV2ItemSlot? OffHandWeapon { get; set; }
         public PlayerPowerAnalyzerV2ItemSlot? UltimateWeapon { get; set; }
@@ -86,6 +89,14 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string? SelectedCustomization { get; set; }
         public List<string> PassiveSummaries { get; set; } = new();
         public List<string> ProvidedEffectLabels { get; set; } = new();
+        public List<PlayerPowerAnalyzerV2ScoreComponent> ScoreBreakdown { get; set; } = new();
+    }
+
+    public sealed class PlayerPowerAnalyzerV2ScoreComponent
+    {
+        public string Category { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public double Value { get; set; }
     }
 
     public sealed class PlayerPowerAnalyzerV2EffectOption
