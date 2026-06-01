@@ -2630,6 +2630,7 @@
                         var abilityMarkup = !string.IsNullOrWhiteSpace(weapon.AbilityText)
                             ? $"<div>{System.Net.WebUtility.HtmlEncode(weapon.AbilityText).Replace("\r\n", "<br />").Replace("\n", "<br />")}</div>"
                             : "<span class=\"text-muted\">No ability data</span>";
+                        var atbMarkup = $"<div class=\"ability-meta\">ATB Cost: {weapon.CommandAtb}</div>";
                         var rechargeMarkup = !string.IsNullOrWhiteSpace(weapon.RechargeTime)
                             ? $"<div class=\"ability-meta\">Recharge: {System.Net.WebUtility.HtmlEncode(weapon.RechargeTime)}</div>"
                             : string.Empty;
@@ -2772,6 +2773,7 @@
                                 }
                                 <div class="ability-template d-none">
                                     @Html.Raw(abilityMarkup)
+                                    @Html.Raw(atbMarkup)
                                     @Html.Raw(rechargeMarkup)
                                     @Html.Raw(useCountMarkup)
                                 </div>
@@ -3424,17 +3426,23 @@
                 return originalWeaponRowContent.get(weaponId) ?? null;
             };
 
-            const buildOwnedAbilityTemplateHtml = (abilityText, originalAbilityTemplateHtml) => {
+            const buildOwnedAbilityTemplateHtml = (snapshot, abilityText, originalAbilityTemplateHtml) => {
                 const originalTemplate = document.createElement('div');
                 originalTemplate.innerHTML = originalAbilityTemplateHtml ?? '';
-                const abilityMetaHtml = Array.from(originalTemplate.querySelectorAll('.ability-meta'))
+                const preservedMetaElements = Array.from(originalTemplate.querySelectorAll('.ability-meta'));
+                const preservedMetaHtml = preservedMetaElements
+                    .filter(element => !String(element.textContent ?? '').trim().toLowerCase().startsWith('atb cost:'))
                     .map(element => element.outerHTML)
                     .join('');
+                const atbValue = Number.isFinite(Number(snapshot?.commandAtb)) ? Number(snapshot.commandAtb) : null;
+                const atbMetaHtml = atbValue != null
+                    ? `<div class="ability-meta">ATB Cost: ${escapeHtml(atbValue)}</div>`
+                    : '';
                 const abilityContentHtml = String(abilityText ?? '').trim().length > 0
                     ? `<div>${escapeHtml(String(abilityText)).replace(/\r?\n/g, '<br />')}</div>`
                     : '<span class="text-muted">No ability data</span>';
 
-                return `${abilityContentHtml}${abilityMetaHtml}`;
+                return `${abilityContentHtml}${atbMetaHtml}${preservedMetaHtml}`;
             };
 
             const buildOwnedCustomizationTemplateHtml = (customizations) => {
@@ -3487,7 +3495,7 @@
                     }).join('')}</ul>`
                     : '';
 
-                const abilityTemplateHtml = buildOwnedAbilityTemplateHtml(snapshot?.abilityText, originalContent?.abilityTemplateHtml ?? '');
+                const abilityTemplateHtml = buildOwnedAbilityTemplateHtml(snapshot, snapshot?.abilityText, originalContent?.abilityTemplateHtml ?? '');
                 const customizationTemplateHtml = buildOwnedCustomizationTemplateHtml(snapshot?.customizations);
                 return `${baseRAbilityHtml}${customizationRAbilityHtml}<div class="ability-template d-none">${abilityTemplateHtml}</div>${customizationTemplateHtml}`;
             };
@@ -5057,11 +5065,14 @@
 
                 // Ability
                 const abilityEl = document.getElementById('snapshotAbility');
-                if (data.abilityText) {
-                    abilityEl.innerHTML = data.abilityText.replace(/\r?\n/g, '<br />');
-                } else {
-                    abilityEl.innerHTML = '<span class="text-muted">No ability data</span>';
-                }
+                const abilityContentHtml = data.abilityText
+                    ? data.abilityText.replace(/\r?\n/g, '<br />')
+                    : '<span class="text-muted">No ability data</span>';
+                const atbCost = Number.isFinite(Number(data.commandAtb)) ? Number(data.commandAtb) : null;
+                const atbMetaHtml = atbCost != null
+                    ? `<div class="ability-meta">ATB Cost: ${escapeHtml(atbCost)}</div>`
+                    : '';
+                abilityEl.innerHTML = `${abilityContentHtml}${atbMetaHtml}`;
 
                 // Stats
                 document.getElementById('snapshotPatk').textContent = formatNumber(data.patk);

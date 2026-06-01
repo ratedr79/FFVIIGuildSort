@@ -5,6 +5,72 @@
     ViewData["Title"] = "Player Power Analyzer V2";
 }
 
+@functions {
+    private static string BuildQuickCopyText(PlayerPowerAnalyzerV2Result result)
+    {
+        return string.Join(Environment.NewLine + Environment.NewLine, result.Characters.Select(BuildQuickCopyCharacterLine));
+    }
+
+    private static string BuildQuickCopyCharacterLine(PlayerPowerAnalyzerV2CharacterBuild character)
+    {
+        var parts = new List<string>();
+
+        var pairedWeapons = new[] { character.MainWeapon?.Name, character.OffHandWeapon?.Name }
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Cast<string>()
+            .ToList();
+        if (pairedWeapons.Count > 0)
+        {
+            parts.Add($"{character.CharacterName} w/ {JoinWithAnd(pairedWeapons)}.");
+        }
+        else
+        {
+            parts.Add(character.CharacterName + ".");
+        }
+
+        if (!string.IsNullOrWhiteSpace(character.MainOutfit?.Name))
+        {
+            parts.Add($"{character.MainOutfit.Name} costume.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(character.UltimateWeapon?.Name))
+        {
+            parts.Add($"{character.UltimateWeapon.Name} UW.");
+        }
+
+        var subWeaponNames = character.SubWeapons
+            .Select(slot => slot.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
+        if (subWeaponNames.Count > 0)
+        {
+            parts.Add($"{JoinWithAnd(subWeaponNames)} for sub {(subWeaponNames.Count == 1 ? "weapon" : "weapons")}.");
+        }
+
+        var subOutfitNames = character.SubOutfits
+            .Select(slot => slot.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
+        if (subOutfitNames.Count > 0)
+        {
+            parts.Add($"{JoinWithAnd(subOutfitNames)} for sub {(subOutfitNames.Count == 1 ? "costume" : "costumes")}.");
+        }
+
+        return string.Join(" ", parts);
+    }
+
+    private static string JoinWithAnd(IReadOnlyList<string> values)
+    {
+        return values.Count switch
+        {
+            0 => string.Empty,
+            1 => values[0],
+            2 => values[0] + " and " + values[1],
+            _ => string.Join(", ", values.Take(values.Count - 1)) + ", and " + values[^1]
+        };
+    }
+}
+
 <div class="container-xxl py-4 power-v2-page">
     <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
         <div>
@@ -13,6 +79,7 @@
             <p class="text-muted mb-0">Uses your saved inventory OB and level state to build a recommended 3-character team with explicit off-hand, sub-weapon, outfit, required-effect, and boss-immunity handling.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-dark" id="playerPowerAnalyzerV2ImportButton">Load Repro File</button>
             <a class="btn btn-outline-secondary" href="/PlayerInventoryManagement">Open Inventory</a>
             <a class="btn btn-outline-primary" href="/PlayerPowerAnalyzer">Legacy Analyzer</a>
         </div>
@@ -22,23 +89,30 @@
         This V2 page reads inventory from the shared browser storage key <code>player-inventory-state-v1</code>. It does not use survey-sheet ownership.
     </div>
 
+    <input type="file" id="playerPowerAnalyzerV2ImportFile" class="d-none" accept=".json,application/json" />
+    <div id="playerPowerAnalyzerV2ImportStatus" class="alert alert-secondary mb-4 d-none"></div>
+
     <form method="post" asp-page-handler="Analyze" id="playerPowerAnalyzerV2Form" class="d-grid gap-4">
         <input asp-for="LocalInventoryStateJson" type="hidden" id="LocalInventoryStateJson" />
 
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label asp-for="EnemyWeakness" class="form-label fw-semibold">Enemy Weakness</label>
                         <select asp-for="EnemyWeakness" class="form-select" asp-items="Html.GetEnumSelectList<Element>()"></select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label asp-for="PreferredDamageType" class="form-label fw-semibold">Preferred Damage Type</label>
                         <select asp-for="PreferredDamageType" class="form-select" asp-items="Html.GetEnumSelectList<DamageType>()"></select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label asp-for="TargetScenario" class="form-label fw-semibold">Target Scenario</label>
                         <select asp-for="TargetScenario" class="form-select" asp-items="Html.GetEnumSelectList<EnemyTargetScenario>()"></select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="SearchMode" class="form-label fw-semibold">Search Mode</label>
+                        <select asp-for="SearchMode" class="form-select" asp-items="Html.GetEnumSelectList<PlayerPowerAnalyzerV2SearchMode>()"></select>
                     </div>
                 </div>
             </div>
@@ -265,6 +339,34 @@
                                 </div>
                             }
 
+                            @if (character.RecommendedMateria.Count > 0)
+                            {
+                                <div class="border rounded-3 p-3 mb-3 bg-light-subtle">
+                                    <div class="small text-uppercase text-muted fw-semibold mb-2">Assumed Materia Setup</div>
+                                    <div class="row g-2">
+                                        @foreach (var slotNumber in Enumerable.Range(1, 3))
+                                        {
+                                            var materia = character.RecommendedMateria.FirstOrDefault(item => item.SlotNumber == slotNumber);
+                                            <div class="col-md-4">
+                                                <div class="border rounded-3 p-3 h-100 bg-white">
+                                                    <div class="small text-uppercase text-muted fw-semibold mb-1">Materia Slot @slotNumber</div>
+                                                    @if (materia == null)
+                                                    {
+                                                        <div class="small text-muted">Open / no current engine assumption.</div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="fw-semibold">@materia.Name</div>
+                                                        <div class="small text-muted">Provides @materia.ProvidedEffectLabel</div>
+                                                        <div class="small text-muted mt-1">@materia.Reason</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
                             <div class="row g-3">
                                 <div class="col-lg-6">
                                     <div class="border rounded-3 p-3 h-100">
@@ -274,6 +376,12 @@
                                             <div class="slot-entry mb-3">
                                                 <div class="fw-semibold">@slot!.SlotName: @slot.Name</div>
                                                 <div class="small text-muted">Lv @slot.Level • OB @slot.OverboostLevel • Score @slot.Score.ToString("N2")</div>
+                                                @if ((string.Equals(slot.SlotName, "Main Weapon", StringComparison.OrdinalIgnoreCase)
+                                                    || string.Equals(slot.SlotName, "Off-hand", StringComparison.OrdinalIgnoreCase))
+                                                    && !string.IsNullOrWhiteSpace(slot.AbilityText))
+                                                {
+                                                    <div class="small mt-1">Ability: @slot.AbilityText</div>
+                                                }
                                                 @if (!string.IsNullOrWhiteSpace(slot.SelectedCustomization))
                                                 {
                                                     <div class="small">Customization: @slot.SelectedCustomization</div>
@@ -304,6 +412,10 @@
                                         {
                                             <div class="slot-entry mb-3">
                                                 <div class="fw-semibold">@slot!.SlotName: @slot.Name</div>
+                                                @if (!string.IsNullOrWhiteSpace(slot.AbilityText))
+                                                {
+                                                    <div class="small mt-1">Ability: @slot.AbilityText</div>
+                                                }
                                                 <div class="small text-muted">@string.Join(" • ", slot.PassiveSummaries)</div>
                                             </div>
                                         }
@@ -338,31 +450,42 @@
             }
         </div>
 
-        @if (Model.AnalysisResult.AlternateTeams.Count > 0 || Model.AnalysisResult.DebugNotes.Count > 0)
-        {
-            <div class="row g-4 mt-1">
-                @if (Model.AnalysisResult.AlternateTeams.Count > 0)
-                {
-                    <div class="col-lg-6">
-                        <div class="card shadow-sm border-0 h-100">
-                            <div class="card-body p-4">
-                                <h3 class="h5 fw-bold mb-3">Other Teams</h3>
-                                <div class="d-grid gap-2">
-                                    @foreach (var team in Model.AnalysisResult.AlternateTeams)
-                                    {
-                                        <div class="border rounded-3 p-3">
-                                            <div class="fw-semibold">@string.Join(" / ", team.Characters)</div>
-                                            <div class="small text-muted">Score @team.Score.ToString("N2")</div>
-                                        </div>
-                                    }
-                                </div>
+        <div class="row g-4 mt-1">
+            <div class="col-xl-4 col-lg-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+                            <h3 class="h5 fw-bold mb-0">Quick Copy</h3>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="playerPowerAnalyzerV2QuickCopyButton">Copy</button>
+                        </div>
+                        <div class="small text-muted mb-2">Simple text version of the recommended team for quick paste and follow-up analysis.</div>
+                        <textarea class="form-control power-v2-quick-copy-text" id="playerPowerAnalyzerV2QuickCopyText" readonly>@BuildQuickCopyText(Model.AnalysisResult)</textarea>
+                        <div class="small text-muted mt-2" id="playerPowerAnalyzerV2QuickCopyStatus"></div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.AnalysisResult.AlternateTeams.Count > 0)
+            {
+                <div class="col-xl-4 col-lg-6">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body p-4">
+                            <h3 class="h5 fw-bold mb-3">Other Teams</h3>
+                            <div class="d-grid gap-2">
+                                @foreach (var team in Model.AnalysisResult.AlternateTeams)
+                                {
+                                    <div class="border rounded-3 p-3">
+                                        <div class="fw-semibold">@string.Join(" / ", team.Characters)</div>
+                                        <div class="small text-muted">Score @team.Score.ToString("N2")</div>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>
-                }
-                @if (Model.AnalysisResult.DebugNotes.Count > 0)
-                {
-                    <div class="col-lg-6">
+                </div>
+            }
+            @if (Model.AnalysisResult.DebugNotes.Count > 0)
+            {
+                <div class="col-xl-4 col-lg-6">
                         <div class="card shadow-sm border-0 h-100">
                             <div class="card-body p-4">
                                 <h3 class="h5 fw-bold mb-3">Debug Notes</h3>
@@ -374,10 +497,24 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                }
+                </div>
+            }
             </div>
-        }
+
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body p-4">
+                <h3 class="h5 fw-bold mb-3">Issues or Suggestions?</h3>
+                <p class="text-muted mb-3">Do you believe this team build is incorrect or misleading? Export a repro file, then send that file along with a detailed description of what you believe is wrong to <strong>ddelaneyca</strong> on Discord or <a href="mailto:ddelaneyca@gmail.com">ddelaneyca@gmail.com</a>.</p>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" class="btn btn-primary" id="playerPowerAnalyzerV2ExportButton">Export V2 Repro File</button>
+                    <button type="button" class="btn btn-outline-secondary" id="playerPowerAnalyzerV2ImportResultButton">Load Repro File and Re-run</button>
+                </div>
+                <div class="small text-muted d-grid gap-2">
+                    <div>The exported file includes your local inventory snapshot and the current V2 analyzer settings from this page.</div>
+                    <div>Anyone with the file can load it back into this page to reproduce the same analyzer request and compare the resulting team.</div>
+                </div>
+            </div>
+        </div>
     }
 </div>
 
@@ -422,6 +559,13 @@
             margin-bottom: 0;
         }
 
+        .power-v2-page .power-v2-quick-copy-text {
+            min-height: 14rem;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.94rem;
+            white-space: pre-wrap;
+        }
+
         .power-v2-processing-overlay {
             position: fixed;
             inset: 0;
@@ -451,16 +595,25 @@
         }
     </style>
 }
-
 @section Scripts {
     <script>
         (function () {
             const storageKey = 'player-inventory-state-v1';
+            const exportSchema = 'player-power-analyzer-v2-repro';
+            const exportSchemaVersion = 1;
             const input = document.getElementById('LocalInventoryStateJson');
             const form = document.getElementById('playerPowerAnalyzerV2Form');
             const overlay = document.getElementById('playerPowerAnalyzerV2ProcessingOverlay');
             const status = document.getElementById('playerPowerAnalyzerV2ProcessingStatus');
             const analyzeButton = form ? form.querySelector('button[type="submit"]') : null;
+            const exportButton = document.getElementById('playerPowerAnalyzerV2ExportButton');
+            const importButton = document.getElementById('playerPowerAnalyzerV2ImportButton');
+            const importResultButton = document.getElementById('playerPowerAnalyzerV2ImportResultButton');
+            const importFileInput = document.getElementById('playerPowerAnalyzerV2ImportFile');
+            const importStatus = document.getElementById('playerPowerAnalyzerV2ImportStatus');
+            const quickCopyButton = document.getElementById('playerPowerAnalyzerV2QuickCopyButton');
+            const quickCopyText = document.getElementById('playerPowerAnalyzerV2QuickCopyText');
+            const quickCopyStatus = document.getElementById('playerPowerAnalyzerV2QuickCopyStatus');
             const processingMessages = [
                 'Loading inventory snapshot...',
                 'Scoring main-hand, off-hand, and ultimate weapon options...',
@@ -479,9 +632,197 @@
                 input.value = window.localStorage.getItem(storageKey) || '';
             }
 
+            function setImportStatus(message, isError) {
+                if (!importStatus) {
+                    return;
+                }
+
+                if (!message) {
+                    importStatus.textContent = '';
+                    importStatus.classList.add('d-none');
+                    importStatus.classList.remove('alert-danger');
+                    importStatus.classList.add('alert-secondary');
+                    return;
+                }
+
+                importStatus.textContent = message;
+                importStatus.classList.remove('d-none');
+                importStatus.classList.toggle('alert-danger', !!isError);
+                importStatus.classList.toggle('alert-secondary', !isError);
+            }
+
+            function getCheckedValues(name) {
+                return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(function (element) {
+                    return element.value;
+                });
+            }
+
+            function getEnabledTeamTemplates() {
+                const enabled = [];
+                document.querySelectorAll('input[name^="EnabledTeamTemplates["][type="checkbox"]').forEach(function (checkbox) {
+                    if (checkbox.checked) {
+                        const match = checkbox.name.match(/^EnabledTeamTemplates\[(.*)\]$/);
+                        if (match && match[1]) {
+                            enabled.push(match[1]);
+                        }
+                    }
+                });
+                return enabled;
+            }
+
+            function buildAnalyzerRequestSnapshot() {
+                const enemyWeakness = document.getElementById('EnemyWeakness');
+                const preferredDamageType = document.getElementById('PreferredDamageType');
+                const targetScenario = document.getElementById('TargetScenario');
+                const searchMode = document.getElementById('SearchMode');
+                return {
+                    enemyWeakness: enemyWeakness ? enemyWeakness.value : 'None',
+                    preferredDamageType: preferredDamageType ? preferredDamageType.value : 'Any',
+                    targetScenario: targetScenario ? targetScenario.value : 'Unknown',
+                    searchMode: searchMode ? searchMode.value : 'Adaptive',
+                    enabledTeamTemplates: getEnabledTeamTemplates(),
+                    bossImmunityKeys: getCheckedValues('BossImmunityKeys'),
+                    hardRequiredEffectKeys: getCheckedValues('HardRequiredEffectKeys'),
+                    softPreferredEffectKeys: getCheckedValues('SoftPreferredEffectKeys')
+                };
+            }
+
+            function createExportPayload() {
+                hydrateInventoryState();
+                return {
+                    schema: exportSchema,
+                    schemaVersion: exportSchemaVersion,
+                    exportedAtUtc: new Date().toISOString(),
+                    sourcePage: 'PlayerPowerAnalyzerV2',
+                    inventoryStorageKey: storageKey,
+                    localInventoryStateJson: input ? (input.value || '') : '',
+                    analyzerRequest: buildAnalyzerRequestSnapshot()
+                };
+            }
+
+            function exportStateToFile() {
+                const payload = createExportPayload();
+                if (!payload.localInventoryStateJson) {
+                    setImportStatus('No local inventory snapshot is currently loaded. Update inventory first, then analyze or export again.', true);
+                    return;
+                }
+
+                const json = JSON.stringify(payload, null, 2);
+                const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+                anchor.href = url;
+                anchor.download = `player-power-analyzer-v2-repro-${stamp}.json`;
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+                URL.revokeObjectURL(url);
+                setImportStatus('Repro file exported. Send it with a description of the issue so the build can be replicated.', false);
+            }
+
+            function setSelectValue(id, value) {
+                const select = document.getElementById(id);
+                if (select && typeof value === 'string' && value.length > 0) {
+                    select.value = value;
+                }
+            }
+
+            function setCheckboxGroup(name, selectedValues) {
+                const selected = new Set(Array.isArray(selectedValues) ? selectedValues : []);
+                document.querySelectorAll(`input[name="${name}"][type="checkbox"]`).forEach(function (checkbox) {
+                    checkbox.checked = selected.has(checkbox.value);
+                });
+            }
+
+            function setEnabledTeamTemplates(selectedTemplates) {
+                const selected = new Set(Array.isArray(selectedTemplates) ? selectedTemplates : []);
+                document.querySelectorAll('input[name^="EnabledTeamTemplates["][type="checkbox"]').forEach(function (checkbox) {
+                    const match = checkbox.name.match(/^EnabledTeamTemplates\[(.*)\]$/);
+                    checkbox.checked = !!(match && selected.has(match[1]));
+                });
+            }
+
+            function applyImportedPayload(payload) {
+                const request = payload && typeof payload === 'object' && payload.analyzerRequest && typeof payload.analyzerRequest === 'object'
+                    ? payload.analyzerRequest
+                    : payload;
+                const importedInventoryJson = payload && typeof payload.localInventoryStateJson === 'string'
+                    ? payload.localInventoryStateJson
+                    : '';
+
+                if (!importedInventoryJson) {
+                    throw new Error('The selected repro file does not contain a local inventory snapshot.');
+                }
+
+                window.localStorage.setItem(storageKey, importedInventoryJson);
+                if (input) {
+                    input.value = importedInventoryJson;
+                }
+
+                setSelectValue('EnemyWeakness', request.enemyWeakness);
+                setSelectValue('PreferredDamageType', request.preferredDamageType);
+                setSelectValue('TargetScenario', request.targetScenario);
+                setSelectValue('SearchMode', request.searchMode);
+                setEnabledTeamTemplates(request.enabledTeamTemplates);
+                setCheckboxGroup('BossImmunityKeys', request.bossImmunityKeys);
+                setCheckboxGroup('HardRequiredEffectKeys', request.hardRequiredEffectKeys);
+                setCheckboxGroup('SoftPreferredEffectKeys', request.softPreferredEffectKeys);
+            }
+
+            function triggerImportState() {
+                if (!importFileInput) {
+                    return;
+                }
+
+                importFileInput.value = '';
+                importFileInput.click();
+            }
+
+            function setQuickCopyStatus(message) {
+                if (!quickCopyStatus) {
+                    return;
+                }
+
+                quickCopyStatus.textContent = message || '';
+            }
+
+            function copyQuickCopyText() {
+                if (!quickCopyText) {
+                    return;
+                }
+
+                const text = quickCopyText.value || '';
+                if (!text.trim()) {
+                    setQuickCopyStatus('Nothing to copy.');
+                    return;
+                }
+
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                    navigator.clipboard.writeText(text).then(function () {
+                        setQuickCopyStatus('Copied to clipboard.');
+                    }).catch(function () {
+                        quickCopyText.focus();
+                        quickCopyText.select();
+                        document.execCommand('copy');
+                        setQuickCopyStatus('Copied to clipboard.');
+                    });
+                    return;
+                }
+
+                quickCopyText.focus();
+                quickCopyText.select();
+                document.execCommand('copy');
+                setQuickCopyStatus('Copied to clipboard.');
+            }
+
             function startProcessingOverlay() {
                 if (!overlay || !status) {
                     return;
+                }
+
+                if (processingTimer) {
+                    window.clearInterval(processingTimer);
                 }
 
                 let index = 0;
@@ -500,8 +841,68 @@
             }
 
             hydrateInventoryState();
+
+            if (exportButton) {
+                exportButton.addEventListener('click', exportStateToFile);
+            }
+
+            if (quickCopyButton) {
+                quickCopyButton.addEventListener('click', copyQuickCopyText);
+            }
+
+            if (importButton) {
+                importButton.addEventListener('click', triggerImportState);
+            }
+
+            if (importResultButton) {
+                importResultButton.addEventListener('click', triggerImportState);
+            }
+
+            if (importFileInput) {
+                importFileInput.addEventListener('change', function (event) {
+                    const file = event.target && event.target.files ? event.target.files[0] : null;
+                    if (!file) {
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function () {
+                        try {
+                            const raw = typeof reader.result === 'string' ? reader.result : '';
+                            const payload = JSON.parse(raw);
+                            if (!payload || typeof payload !== 'object') {
+                                throw new Error('The selected file is not a valid JSON object.');
+                            }
+
+                            if (payload.schema && payload.schema !== exportSchema) {
+                                throw new Error(`Unexpected repro schema '${payload.schema}'.`);
+                            }
+
+                            applyImportedPayload(payload);
+                            setImportStatus('Repro file loaded. Re-running V2 analysis with the imported inventory and settings...', false);
+                            if (form) {
+                                if (typeof form.requestSubmit === 'function') {
+                                    form.requestSubmit();
+                                }
+                                else {
+                                    form.submit();
+                                }
+                            }
+                        }
+                        catch (error) {
+                            setImportStatus(error instanceof Error ? error.message : 'The selected repro file could not be loaded.', true);
+                        }
+                    };
+                    reader.onerror = function () {
+                        setImportStatus('The selected repro file could not be read.', true);
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
             if (form) {
                 form.addEventListener('submit', function () {
+                    setImportStatus('', false);
                     hydrateInventoryState();
                     startProcessingOverlay();
                 });

@@ -106,6 +106,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required int Level { get; init; }
         public required int MaxLevel { get; init; }
         public required string AbilityText { get; init; }
+        public required int CommandAtb { get; init; }
         public required double DamagePercent { get; init; }
         public required int Patk { get; init; }
         public required int Matk { get; init; }

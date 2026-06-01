@@ -543,6 +543,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 Level = level,
                 MaxLevel = maxWeaponLevel,
                 AbilityText = abilityText,
+                CommandAtb = item.CommandAtb,
                 DamagePercent = damagePercent,
                 Patk = statResult.PhysicalAttack,
                 Matk = statResult.MagicalAttack,

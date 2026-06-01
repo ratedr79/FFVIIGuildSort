@@ -3,11 +3,18 @@ using System.Collections.Generic;
 
 namespace FFVIIEverCrisisAnalyzer.Models
 {
+    public enum PlayerPowerAnalyzerV2SearchMode
+    {
+        Adaptive = 0,
+        Exhaustive = 1
+    }
+
     public sealed class PlayerPowerAnalyzerV2Request
     {
         public Element EnemyWeakness { get; set; } = Element.None;
         public DamageType PreferredDamageType { get; set; } = DamageType.Any;
         public EnemyTargetScenario TargetScenario { get; set; } = EnemyTargetScenario.Unknown;
+        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Adaptive;
         public List<string> EnabledTeamTemplates { get; set; } = new();
         public List<string> BossImmunityKeys { get; set; } = new();
         public List<string> HardRequiredEffectKeys { get; set; } = new();
@@ -63,6 +70,16 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<PlayerPowerAnalyzerV2ItemSlot> SubWeapons { get; set; } = new();
         public PlayerPowerAnalyzerV2ItemSlot? MainOutfit { get; set; }
         public List<PlayerPowerAnalyzerV2ItemSlot> SubOutfits { get; set; } = new();
+        public List<PlayerPowerAnalyzerV2MateriaRecommendation> RecommendedMateria { get; set; } = new();
+    }
+
+    public sealed class PlayerPowerAnalyzerV2MateriaRecommendation
+    {
+        public int SlotNumber { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ProvidedEffectLabel { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+        public bool IsAssumed { get; set; }
     }
 
     public sealed class PlayerPowerAnalyzerV2ItemSlot
@@ -77,6 +94,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string Element { get; set; } = string.Empty;
         public string AbilityType { get; set; } = string.Empty;
         public string AbilityText { get; set; } = string.Empty;
+        public int CommandAtb { get; set; }
         public int OverboostLevel { get; set; }
         public int Level { get; set; }
         public bool IsUltimate { get; set; }

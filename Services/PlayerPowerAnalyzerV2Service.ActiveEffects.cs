@@ -28,8 +28,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public string SourceAbilityType { get; set; } = string.Empty;
             public string SourceElement { get; set; } = string.Empty;
             public double? PotencyPercent { get; set; }
+            public int? PotencyTierRank { get; set; }
             public double? DurationSeconds { get; set; }
             public double? ExtensionSeconds { get; set; }
+            public int? MaxPotencyTierRank { get; set; }
             public ActiveEffectTargetScope TargetScope { get; set; }
             public bool IsAssumedMateria { get; set; }
         }
@@ -41,6 +43,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public List<DetectedActiveEffect> AssumedEffects { get; set; } = new();
             public DetectedActiveEffect? PrimaryEffect { get; set; }
             public double BestPotencyFactor { get; set; } = 1.0;
+            public double BestRampFactor { get; set; } = 1.0;
             public double BestSustainFactor { get; set; } = 1.0;
             public double BestScopeMultiplier { get; set; } = 1.0;
             public bool HasExplicitCoverage => ExplicitEffects.Count > 0;
@@ -52,6 +55,46 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public double Score { get; set; }
             public List<string> Notes { get; set; } = new();
         }
+
+        private static readonly HashSet<string> ExplicitPreferredAssumedFallbackFamilies = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "defense_debuff",
+            "elemental_resistance_debuff",
+            "attack_buff",
+            "damage_bonus",
+            "weapon_boost",
+            "damage_up",
+            "damage_received_up"
+        };
+
+        private static readonly HashSet<string> ExtendableBuffEffectKeys = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "patk_up",
+            "matk_up",
+            "pdef_up",
+            "mdef_up",
+            "elemental_damage_up"
+        };
+
+        private static readonly HashSet<string> ExtendableDebuffEffectKeys = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "patk_down",
+            "matk_down",
+            "pdef_down",
+            "mdef_down",
+            "elemental_resistance_down"
+        };
+
+        private static readonly Regex PotencyTierMarkerRegex = new(@"\[Pot:\s*(?<value>[A-Za-z][A-Za-z\s-]*)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex MaxPotencyTierMarkerRegex = new(@"\[(?:Max Pot|Max Tier):\s*(?<value>[A-Za-z][A-Za-z\s-]*)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Dictionary<string, int> PotencyTierRanks = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Low"] = 1,
+            ["Mid"] = 2,
+            ["High"] = 3,
+            ["Extra High"] = 4,
+            ["Extreme"] = 5
+        };
 
         private static IReadOnlyList<DetectedActiveEffect> DetectActiveEffects(
             IEnumerable<string> effectTags,
@@ -116,8 +159,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         effect.SourceType,
                         effect.TargetScope,
                         effect.PotencyPercent?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                        effect.PotencyTierRank?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                         effect.DurationSeconds?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                        effect.ExtensionSeconds?.ToString(CultureInfo.InvariantCulture) ?? string.Empty),
+                        effect.ExtensionSeconds?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                        effect.MaxPotencyTierRank?.ToString(CultureInfo.InvariantCulture) ?? string.Empty),
                     StringComparer.OrdinalIgnoreCase)
                 .Select(group => group.First())
                 .ToList();
@@ -151,8 +196,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 SourceAbilityType = sourceAbilityType ?? string.Empty,
                 SourceElement = sourceElement ?? string.Empty,
                 PotencyPercent = TryParseMarker(PotencyMarkerRegex, snippet) ?? TryParseMarker(PotencyMarkerRegex, blob),
+                PotencyTierRank = TryParseTierMarker(PotencyTierMarkerRegex, snippet) ?? TryParseTierMarker(PotencyTierMarkerRegex, blob),
                 DurationSeconds = TryParseMarker(DurationMarkerRegex, snippet) ?? TryParseMarker(DurationMarkerRegex, blob),
                 ExtensionSeconds = TryParseMarker(ExtensionMarkerRegex, snippet) ?? TryParseMarker(ExtensionMarkerRegex, blob),
+                MaxPotencyTierRank = TryParseTierMarker(MaxPotencyTierMarkerRegex, snippet) ?? TryParseTierMarker(MaxPotencyTierMarkerRegex, blob),
                 TargetScope = ParseTargetScope(snippet, blob),
                 IsAssumedMateria = isAssumedMateria
             });
@@ -209,6 +256,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             return double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
                 ? value
+                : null;
+        }
+
+        private static int? TryParseTierMarker(Regex regex, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var match = regex.Match(text);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var rawValue = match.Groups["value"].Value.Trim();
+            return PotencyTierRanks.TryGetValue(rawValue, out var rank)
+                ? rank
                 : null;
         }
 
@@ -314,6 +380,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var score = ScoreEffectKeyWithReferenceTuning(effect.Key, role, request, false, referenceTuningProfile);
             score *= GetStructuredTargetingMultiplier(effect, role, request);
             score *= GetPotencyFactor(effect);
+            score *= GetRampFactor(effect, role);
             score *= GetSustainFactor(effect);
             if (effect.IsAssumedMateria && MateriaAssumableFamilies.Contains(effect.FamilyKey))
             {
@@ -327,11 +394,73 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             if (!effect.PotencyPercent.HasValue)
             {
-                return 1.0;
+                if (!UsesQualitativeTierPotencyScoring(effect))
+                {
+                    return 1.0;
+                }
+
+                return effect.PotencyTierRank switch
+                {
+                    1 => 0.84,
+                    2 => 0.96,
+                    3 => 1.08,
+                    4 => 1.18,
+                    >= 5 => 1.24,
+                    _ => 1.0
+                };
             }
 
             var potency = Math.Max(0d, effect.PotencyPercent.Value);
             return 0.8 + Math.Min(0.4, potency / 100d * 0.5);
+        }
+
+        private static bool UsesQualitativeTierPotencyScoring(DetectedActiveEffect effect)
+        {
+            return IsThresholdSensitiveSetupEffect(effect.Key);
+        }
+
+        private static double GetRampFactor(DetectedActiveEffect effect, CharacterRole role)
+        {
+            if (!IsThresholdSensitiveSetupEffect(effect.Key)
+                || !effect.PotencyTierRank.HasValue)
+            {
+                return 1.0;
+            }
+
+            var currentTierRank = Math.Max(1, effect.PotencyTierRank.Value);
+            var maxTierRank = Math.Max(currentTierRank, effect.MaxPotencyTierRank ?? currentTierRank);
+            var desiredTierRank = Math.Min(GetDesiredSetupThresholdTierRank(effect.Key, role), maxTierRank);
+            var extraCastsRequired = Math.Max(0, desiredTierRank - currentTierRank);
+            if (extraCastsRequired == 0)
+            {
+                return 1.0;
+            }
+
+            var penaltyPerExtraCast = effect.TargetScope is ActiveEffectTargetScope.AllAllies or ActiveEffectTargetScope.AllEnemies
+                ? 0.18
+                : 0.14;
+            return Math.Clamp(1.0 - (extraCastsRequired * penaltyPerExtraCast), 0.58, 1.0);
+        }
+
+        private static bool IsThresholdSensitiveSetupEffect(string key)
+        {
+            return key is "patk_up"
+                or "matk_up"
+                or "pdef_down"
+                or "mdef_down"
+                or "elemental_resistance_down"
+                or "elemental_damage_up"
+                or "elemental_damage_received_up";
+        }
+
+        private static int GetDesiredSetupThresholdTierRank(string key, CharacterRole role)
+        {
+            return key switch
+            {
+                "patk_up" or "matk_up" or "pdef_down" or "mdef_down" or "elemental_resistance_down" => 3,
+                "elemental_damage_up" or "elemental_damage_received_up" => role == CharacterRole.DPS ? 2 : 3,
+                _ => 2
+            };
         }
 
         private static double GetSustainFactor(DetectedActiveEffect effect)
@@ -339,14 +468,37 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var durationValue = effect.DurationSeconds.HasValue
                 ? Math.Max(0d, (effect.DurationSeconds.Value - 15d) / 120d)
                 : 0d;
-            var extensionValue = effect.ExtensionSeconds.HasValue
+            var extensionValue = effect.ExtensionSeconds.HasValue && IsExtendableBuffDebuffEffectKey(effect.Key)
                 ? Math.Max(0d, effect.ExtensionSeconds.Value / 100d)
                 : 0d;
             return 1.0 + Math.Min(0.22, durationValue + extensionValue);
         }
 
+        private static bool IsExtendableBuffDebuffEffectKey(string effectKey)
+        {
+            return IsExtendableBuffEffectKey(effectKey)
+                || IsExtendableDebuffEffectKey(effectKey);
+        }
+
+        private static bool IsExtendableBuffEffectKey(string effectKey)
+        {
+            return !string.IsNullOrWhiteSpace(effectKey)
+                && ExtendableBuffEffectKeys.Contains(effectKey);
+        }
+
+        private static bool IsExtendableDebuffEffectKey(string effectKey)
+        {
+            return !string.IsNullOrWhiteSpace(effectKey)
+                && ExtendableDebuffEffectKeys.Contains(effectKey);
+        }
+
         private static IReadOnlyList<DetectedActiveEffect> GetDetectedEffectsForVariant(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
         {
+            if (variant.CachedDetectedEffects != null)
+            {
+                return variant.CachedDetectedEffects;
+            }
+
             var effects = new List<DetectedActiveEffect>();
             AddDetectedEffectsFromSlot(effects, variant.MainWeapon, request);
             if (variant.OffHandWeapon != null)
@@ -364,6 +516,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 AddDetectedEffectsFromSlot(effects, variant.MainOutfit, request);
             }
 
+            variant.CachedDetectedEffects = effects;
             return effects;
         }
 
@@ -416,6 +569,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var familyScore = ScoreEffectKey(entry.PrimaryEffect.Key, CharacterRole.Support, request, false)
                     * entry.BestPotencyFactor
+                    * entry.BestRampFactor
                     * entry.BestSustainFactor
                     * entry.BestScopeMultiplier;
 
@@ -425,18 +579,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
                 else if (!entry.HasExplicitCoverage)
                 {
-                    familyScore *= 0.38;
+                    familyScore *= GetAssumedOnlyFamilyCoverageMultiplier(entry);
                 }
 
-                if (entry.ExplicitEffects.Count > 1)
-                {
-                    var breadthSupport = entry.ExplicitEffects
-                        .Select(effect => GetActiveEffectTargetingMultiplier(effect.Key, CharacterRole.Support, request, effect.SourceText, effect.SourceAbilityType, effect.SourceElement))
-                        .OrderByDescending(value => value)
-                        .Skip(1)
-                        .FirstOrDefault();
-                    familyScore += Math.Min(28d, Math.Max(0d, (breadthSupport - 1.0) * 40d));
-                }
+                familyScore += GetExplicitBreadthSupportBonus(entry, request);
+                familyScore -= GetExplicitRedundancyPenalty(entry, request);
 
                 result.Score += familyScore;
             }
@@ -491,6 +638,70 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return result;
+        }
+
+        private static double GetAssumedOnlyFamilyCoverageMultiplier(EffectFamilyLedgerEntry entry)
+        {
+            if (ExplicitPreferredAssumedFallbackFamilies.Contains(entry.FamilyKey))
+            {
+                return 0.18;
+            }
+
+            return MateriaAssumableFamilies.Contains(entry.FamilyKey)
+                ? 0.26
+                : 0.38;
+        }
+
+        private static double GetExplicitBreadthSupportBonus(EffectFamilyLedgerEntry entry, PlayerPowerAnalyzerV2Request request)
+        {
+            if (entry.ExplicitEffects.Count <= 1 || entry.FamilyKey == "attack_buff")
+            {
+                return 0d;
+            }
+
+            var breadthSupport = entry.ExplicitEffects
+                .Select(effect => GetActiveEffectTargetingMultiplier(effect.Key, CharacterRole.Support, request, effect.SourceText, effect.SourceAbilityType, effect.SourceElement))
+                .OrderByDescending(value => value)
+                .Skip(1)
+                .FirstOrDefault();
+            return Math.Min(12d, Math.Max(0d, (breadthSupport - 1.0) * 24d));
+        }
+
+        private static double GetExplicitRedundancyPenalty(EffectFamilyLedgerEntry entry, PlayerPowerAnalyzerV2Request request)
+        {
+            if (entry.PrimaryEffect == null || entry.ExplicitEffects.Count <= 1)
+            {
+                return 0d;
+            }
+
+            if (entry.PrimaryEffect.Key is not "patk_up" and not "matk_up")
+            {
+                return 0d;
+            }
+
+            var duplicateEffects = entry.ExplicitEffects
+                .Where(effect => effect.Key.Equals(entry.PrimaryEffect.Key, StringComparison.OrdinalIgnoreCase))
+                .Skip(1)
+                .ToList();
+            if (duplicateEffects.Count == 0)
+            {
+                return 0d;
+            }
+
+            var basePenalty = ScoreEffectKey(entry.PrimaryEffect.Key, CharacterRole.Support, request, false) * 0.85;
+            return duplicateEffects.Sum(effect => basePenalty * GetDuplicateAttackBuffPenaltyMultiplier(effect.TargetScope));
+        }
+
+        private static double GetDuplicateAttackBuffPenaltyMultiplier(ActiveEffectTargetScope targetScope)
+        {
+            return targetScope switch
+            {
+                ActiveEffectTargetScope.AllAllies => 1.0,
+                ActiveEffectTargetScope.OtherAllies => 0.92,
+                ActiveEffectTargetScope.SingleAlly => 0.78,
+                ActiveEffectTargetScope.Self => 0.58,
+                _ => 0.84
+            };
         }
 
         private static string? BuildOffensiveAbilitySummary(
@@ -721,12 +932,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 var primaryCandidates = entry.HasExplicitCoverage ? entry.ExplicitEffects : entry.AssumedEffects;
                 entry.PrimaryEffect = primaryCandidates
-                    .OrderByDescending(effect => GetPotencyFactor(effect))
+                    .OrderByDescending(effect => GetPotencyFactor(effect) * GetRampFactor(effect, CharacterRole.Support))
                     .ThenByDescending(effect => GetSustainFactor(effect))
                     .ThenByDescending(effect => GetStructuredTargetingMultiplier(effect, CharacterRole.Support, request))
                     .FirstOrDefault();
                 entry.BestPotencyFactor = (entry.ExplicitEffects.Count > 0 ? entry.ExplicitEffects : entry.AssumedEffects)
                     .Select(GetPotencyFactor)
+                    .DefaultIfEmpty(1.0)
+                    .Max();
+                entry.BestRampFactor = (entry.ExplicitEffects.Count > 0 ? entry.ExplicitEffects : entry.AssumedEffects)
+                    .Select(effect => GetRampFactor(effect, CharacterRole.Support))
                     .DefaultIfEmpty(1.0)
                     .Max();
                 entry.BestSustainFactor = (entry.ExplicitEffects.Count > 0 ? entry.ExplicitEffects : entry.AssumedEffects)
@@ -798,8 +1013,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 SourceAbilityType = string.Empty,
                 SourceElement = sourceElement,
                 PotencyPercent = TryParseMarker(PotencyMarkerRegex, sourceText),
+                PotencyTierRank = TryParseTierMarker(PotencyTierMarkerRegex, sourceText),
                 DurationSeconds = TryParseMarker(DurationMarkerRegex, sourceText),
                 ExtensionSeconds = TryParseMarker(ExtensionMarkerRegex, sourceText),
+                MaxPotencyTierRank = TryParseTierMarker(MaxPotencyTierMarkerRegex, sourceText),
                 TargetScope = ParseTargetScope(sourceText, sourceText),
                 IsAssumedMateria = true
             };
