@@ -817,10 +817,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var commandAtb = isUltimate ? 0 : skillActive?.Cost ?? 0;
                 var commandSigil = ResolveCommandSigil(skillWeapon.SkillNotesSetId, skillNotesSets);
 
+                var initialChargeTimeSec = 0;
                 var useCount = string.Empty;
                 var rechargeTime = string.Empty;
                 if (isUltimate && skillLegendaries.TryGetValue(skillForStats.WeaponSkillId, out var legendary))
                 {
+                    initialChargeTimeSec = legendary.InitialChargeTimeSec;
                     useCount = legendary.UseCountLimit > 0 ? legendary.UseCountLimit.ToString() : "Unlimited";
                     rechargeTime = legendary.RechargeTimeSec > 0 ? $"{legendary.RechargeTimeSec}s" : string.Empty;
                 }
@@ -950,6 +952,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     MateriaSupport0 = materia0,
                     MateriaSupport1 = materia1,
                     MateriaSupport2 = materia2,
+                    InitialChargeTimeSec = initialChargeTimeSec,
                     RechargeTime = rechargeTime,
                     UseCount = useCount,
                     UpgradeSkills = upgradeSkillData,
@@ -1184,6 +1187,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     MateriaSupport0 = string.Empty,
                     MateriaSupport1 = string.Empty,
                     MateriaSupport2 = string.Empty,
+                    InitialChargeTimeSec = 0,
                     RechargeTime = string.Empty,
                     UseCount = useCount,
                     UpgradeSkills = new List<UpgradeSkillData>(),

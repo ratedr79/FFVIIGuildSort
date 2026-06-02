@@ -28,6 +28,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public string SourceAbilityType { get; set; } = string.Empty;
             public string SourceElement { get; set; } = string.Empty;
             public double? PotencyPercent { get; set; }
+            public double? FlatAmount { get; set; }
             public int? PotencyTierRank { get; set; }
             public double? DurationSeconds { get; set; }
             public double? ExtensionSeconds { get; set; }
@@ -87,6 +88,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static readonly Regex PotencyTierMarkerRegex = new(@"\[Pot:\s*(?<value>[A-Za-z][A-Za-z\s-]*)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex MaxPotencyTierMarkerRegex = new(@"\[(?:Max Pot|Max Tier):\s*(?<value>[A-Za-z][A-Za-z\s-]*)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AtbGainMarkerRegex = new(@"(?:(?<value>[-+]?\d+(?:\.\d+)?)\s*ATB Gauge|ATB\+\s*(?<valueAlt>\d+(?:\.\d+)?))", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Dictionary<string, int> PotencyTierRanks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Low"] = 1,
@@ -129,6 +131,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             TryAddDetectedEffect(effects, blob, "mag_damage_bonus", "Mag. Damage Bonus", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_weapon_boost", "Phys. Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "mag_weapon_boost", "Mag. Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "atb_conservation", "Phys. ATB Conservation Effect", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "atb_conservation", "Mag. ATB Conservation Effect", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "patk_up", "PATK Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "matk_up", "MATK Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "pdef_up", "PDEF Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
@@ -146,6 +150,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             TryAddDetectedEffect(effects, blob, "enfeeble", "Enfeeble", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "enliven", "Enliven", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "torpor", "Torpor", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDirectAtbGainEffect(effects, abilityText ?? string.Empty, sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "healing_support", "Heal", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "healing_support", "HP Recovery", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
 
@@ -159,6 +164,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         effect.SourceType,
                         effect.TargetScope,
                         effect.PotencyPercent?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                        effect.FlatAmount?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                         effect.PotencyTierRank?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                         effect.DurationSeconds?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                         effect.ExtensionSeconds?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
@@ -205,6 +211,47 @@ namespace FFVIIEverCrisisAnalyzer.Services
             });
         }
 
+        private static void TryAddDirectAtbGainEffect(
+            List<DetectedActiveEffect> effects,
+            string blob,
+            string sourceType,
+            string sourceName,
+            string? sourceAbilityType,
+            string? sourceElement,
+            bool isAssumedMateria)
+        {
+            if (string.IsNullOrWhiteSpace(blob) || !blob.Contains("ATB", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var amount = TryParseAtbGainAmount(blob);
+            if (!amount.HasValue)
+            {
+                return;
+            }
+
+            var match = AtbGainMarkerRegex.Match(blob);
+            var snippet = match.Success
+                ? ExtractEffectSnippet(blob, match.Value)
+                : ExtractEffectSnippet(blob, "ATB Gauge");
+
+            effects.Add(new DetectedActiveEffect
+            {
+                Key = "atb_gain",
+                FamilyKey = GetActiveEffectFamilyKey("atb_gain"),
+                AxisKey = GetActiveEffectAxisKey("atb_gain"),
+                SourceName = sourceName,
+                SourceType = sourceType,
+                SourceText = string.IsNullOrWhiteSpace(snippet) ? blob : snippet,
+                SourceAbilityType = sourceAbilityType ?? string.Empty,
+                SourceElement = sourceElement ?? string.Empty,
+                FlatAmount = amount,
+                TargetScope = ParseTargetScope(snippet, blob),
+                IsAssumedMateria = isAssumedMateria
+            });
+        }
+
         private static string ExtractEffectSnippet(string blob, string label)
         {
             var index = blob.IndexOf(label, StringComparison.OrdinalIgnoreCase);
@@ -214,19 +261,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var start = 0;
-            foreach (var separator in new[] { '|', '\n' })
+            foreach (var separator in new[] { "|", "\n", "\\n" })
             {
-                var separatorIndex = blob.LastIndexOf(separator, index);
+                var separatorIndex = blob.LastIndexOf(separator, index, StringComparison.Ordinal);
                 if (separatorIndex >= 0)
                 {
-                    start = Math.Max(start, separatorIndex + 1);
+                    start = Math.Max(start, separatorIndex + separator.Length);
                 }
             }
 
             var end = blob.Length;
-            foreach (var separator in new[] { '|', '\n', '.' })
+            foreach (var separator in new[] { "|", "\n", "\\n" })
             {
-                var separatorIndex = blob.IndexOf(separator, index);
+                var separatorIndex = blob.IndexOf(separator, index, StringComparison.Ordinal);
                 if (separatorIndex >= 0)
                 {
                     end = Math.Min(end, separatorIndex);
@@ -275,6 +322,28 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var rawValue = match.Groups["value"].Value.Trim();
             return PotencyTierRanks.TryGetValue(rawValue, out var rank)
                 ? rank
+                : null;
+        }
+
+        private static double? TryParseAtbGainAmount(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var match = AtbGainMarkerRegex.Match(text);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var rawValue = match.Groups["value"].Success
+                ? match.Groups["value"].Value
+                : match.Groups["valueAlt"].Value;
+
+            return double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+                ? value
                 : null;
         }
 
@@ -352,6 +421,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "phys_damage_bonus" or "mag_damage_bonus" or "elemental_damage_bonus" => "damage_bonus",
                 "phys_weapon_boost" or "mag_weapon_boost" or "elemental_weapon_boost" => "weapon_boost",
                 "patk_up" or "matk_up" => "attack_buff",
+                "atb_conservation" or "atb_gain" => "tempo_utility",
                 "pdef_down" or "mdef_down" => "defense_debuff",
                 "pdef_up" or "mdef_up" => "defense_buff",
                 "patk_down" or "matk_down" => "attack_debuff",
@@ -392,6 +462,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static double GetPotencyFactor(DetectedActiveEffect effect)
         {
+            if (effect.Key == "atb_gain")
+            {
+                if (!effect.FlatAmount.HasValue)
+                {
+                    return 1.0;
+                }
+
+                return 1.0 + Math.Min(0.24, effect.FlatAmount.Value * 0.06);
+            }
+
             if (!effect.PotencyPercent.HasValue)
             {
                 if (!UsesQualitativeTierPotencyScoring(effect))
@@ -615,6 +695,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 result.Score += 24;
             }
 
+            if (ledger.TryGetValue("tempo_utility", out var tempoUtility)
+                && tempoUtility.HasExplicitCoverage
+                && (familySet.Contains("attack_buff")
+                    || familySet.Contains("damage_bonus")
+                    || familySet.Contains("weapon_boost")
+                    || familySet.Contains("damage_up")
+                    || ledger.TryGetValue("exploit_weakness", out var exploitWeakness) && exploitWeakness.HasExplicitCoverage))
+            {
+                result.Score += 22;
+            }
+
             if (ledger.TryGetValue("buff_amplifier", out var buffAmplifier)
                 && buffAmplifier.HasExplicitCoverage
                 && ledger.TryGetValue("attack_buff", out var attackBuff)
@@ -637,7 +728,103 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 result.Score += 16;
             }
 
+            var chainDepthBonus = GetExplicitOffensiveChainDepthBonus(ledger, request, result.Notes);
+            result.Score += chainDepthBonus;
+
             return result;
+        }
+
+        private static double GetExplicitOffensiveChainDepthBonus(
+            IReadOnlyDictionary<string, EffectFamilyLedgerEntry> ledger,
+            PlayerPowerAnalyzerV2Request request,
+            List<string> notes)
+        {
+            var explicitFamilies = new HashSet<string>(
+                ledger.Values
+                    .Where(entry => entry.HasExplicitCoverage)
+                    .Select(entry => entry.FamilyKey),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (explicitFamilies.Count == 0)
+            {
+                return 0d;
+            }
+
+            var hasAttackBuff = explicitFamilies.Contains("attack_buff");
+            var hasDefenseDebuff = explicitFamilies.Contains("defense_debuff");
+            var hasElementalResistanceDebuff = explicitFamilies.Contains("elemental_resistance_debuff");
+            var hasDamageUp = explicitFamilies.Contains("damage_up");
+            var hasDamageReceivedUp = explicitFamilies.Contains("damage_received_up");
+            var hasDamageBonus = explicitFamilies.Contains("damage_bonus");
+            var hasWeaponBoost = explicitFamilies.Contains("weapon_boost");
+            var hasExploitWeakness = explicitFamilies.Contains("exploit_weakness");
+            var hasBuffAmplifier = explicitFamilies.Contains("buff_amplifier");
+            var hasDebuffAmplifier = explicitFamilies.Contains("debuff_amplifier");
+            var hasEnfeeble = explicitFamilies.Contains("enfeeble");
+            var hasEnliven = explicitFamilies.Contains("enliven");
+
+            var hasFoundationLayer = hasAttackBuff || hasDefenseDebuff || hasElementalResistanceDebuff;
+            var hasEnhancementLayer = hasDamageUp || hasDamageReceivedUp;
+            var hasMultiplierLayer = hasDamageBonus || hasWeaponBoost;
+
+            var coreLayerCount = 0;
+            if (hasFoundationLayer)
+            {
+                coreLayerCount++;
+            }
+
+            if (hasEnhancementLayer)
+            {
+                coreLayerCount++;
+            }
+
+            if (hasMultiplierLayer)
+            {
+                coreLayerCount++;
+            }
+
+            var bonus = 0d;
+
+            if (coreLayerCount >= 3)
+            {
+                bonus += 30d;
+            }
+
+            if (hasExploitWeakness && coreLayerCount >= 2)
+            {
+                bonus += 22d;
+            }
+
+            if (hasBuffAmplifier && hasAttackBuff && (hasEnhancementLayer || hasMultiplierLayer))
+            {
+                bonus += request.PreferredDamageType == DamageType.Magical ? 16d : 18d;
+            }
+
+            if (hasDebuffAmplifier
+                && (hasDefenseDebuff || hasElementalResistanceDebuff)
+                && (hasEnhancementLayer || hasExploitWeakness))
+            {
+                bonus += request.PreferredDamageType == DamageType.Magical ? 18d : 20d;
+            }
+
+            if (hasEnliven && hasAttackBuff && (hasEnhancementLayer || hasMultiplierLayer))
+            {
+                bonus += 12d;
+            }
+
+            if (hasEnfeeble
+                && (hasDefenseDebuff || hasElementalResistanceDebuff)
+                && (hasDamageReceivedUp || hasExploitWeakness))
+            {
+                bonus += 12d;
+            }
+
+            if (bonus > 0)
+            {
+                notes.Add($"Offensive chain depth bonus: {coreLayerCount} core layer(s), exploit={(hasExploitWeakness ? "yes" : "no")}, buff amp={(hasBuffAmplifier ? "yes" : "no")}, debuff amp={(hasDebuffAmplifier ? "yes" : "no")}.");
+            }
+
+            return bonus;
         }
 
         private static double GetAssumedOnlyFamilyCoverageMultiplier(EffectFamilyLedgerEntry entry)
@@ -837,6 +1024,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     "patk_up" => request.PreferredDamageType == DamageType.Magical ? 1.0 : 1.45,
                     "matk_up" => request.PreferredDamageType == DamageType.Magical ? 1.45 : 1.0,
                     "pdef_up" or "mdef_up" => role == CharacterRole.DPS ? 1.0 : 1.2,
+                    "atb_conservation" => role == CharacterRole.DPS ? 1.14 : 1.24,
+                    "atb_gain" => role == CharacterRole.DPS ? 1.18 : 1.28,
                     "healing_support" => role == CharacterRole.Healer ? 1.18 : 1.08,
                     "exploit_weakness" => 1.24,
                     _ => 1.1
@@ -845,14 +1034,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     "patk_up" => request.PreferredDamageType == DamageType.Magical ? 0.95 : 1.22,
                     "matk_up" => request.PreferredDamageType == DamageType.Magical ? 1.22 : 0.95,
+                    "atb_conservation" => 1.12,
+                    "atb_gain" => 1.14,
                     _ => 1.05
                 },
                 ActiveEffectTargetScope.SingleAlly => effect.Key switch
                 {
                     "patk_up" => request.PreferredDamageType == DamageType.Magical ? 0.85 : 1.08,
                     "matk_up" => request.PreferredDamageType == DamageType.Magical ? 1.08 : 0.85,
+                    "atb_conservation" => 1.04,
+                    "atb_gain" => 1.08,
                     _ => 0.96
                 },
+                ActiveEffectTargetScope.Self when effect.Key == "atb_gain" => role == CharacterRole.DPS ? 1.02 : 0.94,
                 ActiveEffectTargetScope.Self when IsOffensiveSetupEffect(effect.Key) => role != CharacterRole.DPS
                     ? 0.2
                     : (request.PreferredDamageType != DamageType.Any
@@ -1013,6 +1207,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 SourceAbilityType = string.Empty,
                 SourceElement = sourceElement,
                 PotencyPercent = TryParseMarker(PotencyMarkerRegex, sourceText),
+                FlatAmount = TryParseAtbGainAmount(sourceText),
                 PotencyTierRank = TryParseTierMarker(PotencyTierMarkerRegex, sourceText),
                 DurationSeconds = TryParseMarker(DurationMarkerRegex, sourceText),
                 ExtensionSeconds = TryParseMarker(ExtensionMarkerRegex, sourceText),

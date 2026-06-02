@@ -19,7 +19,8 @@
                     <select class="form-select" id="plannerElement" name="element" onchange="this.form.submit()">
                         @foreach (var element in planner.AvailableElements)
                         {
-                            <option value="@element" selected="@(element == planner.SelectedElement ? "selected" : null)">@element</option>
+                            var isSelected = element == planner.SelectedElement;
+                            <option value="@element" selected="@isSelected">@element</option>
                         }
                     </select>
                 </div>
@@ -28,7 +29,8 @@
                     <select class="form-select" id="plannerAbilityType" name="abilityType" onchange="this.form.submit()">
                         @foreach (var abilityType in planner.AvailableAbilityTypes)
                         {
-                            <option value="@abilityType" selected="@(abilityType == planner.SelectedAbilityType ? "selected" : null)">@abilityType</option>
+                            var isSelected = abilityType == planner.SelectedAbilityType;
+                            <option value="@abilityType" selected="@isSelected">@abilityType</option>
                         }
                     </select>
                 </div>
@@ -63,7 +65,8 @@
                                     <h3 class="h5 mb-1">@characterPlan.Character</h3>
                                     <div class="text-muted small">Survey-ready gear options for this battle context.</div>
                                 </div>
-                                <span class="planner-pill planner-pill-role planner-pill-role-@characterPlan.Role.ToString().ToLowerInvariant()">@characterPlan.Role</span>
+                                @{ var roleCssClass = $"planner-pill planner-pill-role planner-pill-role-{characterPlan.Role.ToString().ToLowerInvariant()}"; }
+                                <span class="@roleCssClass">@characterPlan.Role</span>
                             </div>
 
                             @if (!characterPlan.HasAnySuggestions)
@@ -83,9 +86,10 @@
                                         <ul class="list-group list-group-flush planner-list">
                                             @foreach (var suggestion in characterPlan.OutfitSuggestions)
                                             {
+                                                var previewImageUrl = string.IsNullOrWhiteSpace(suggestion.PreviewImageUrl) ? suggestion.ImageUrl : suggestion.PreviewImageUrl;
                                                 <li class="list-group-item px-0 planner-list-item">
                                                     <div class="d-flex gap-3 align-items-start planner-gear-row">
-                                                        <button type="button" class="planner-thumb-button" data-bs-toggle="modal" data-bs-target="#plannerPreviewModal" data-image-url="@(string.IsNullOrWhiteSpace(suggestion.PreviewImageUrl) ? suggestion.ImageUrl : suggestion.PreviewImageUrl)" data-image-title="@suggestion.Name">
+                                                        <button type="button" class="planner-thumb-button" data-bs-toggle="modal" data-bs-target="#plannerPreviewModal" data-image-url="@previewImageUrl" data-image-title="@suggestion.Name">
                                                             <img src="@suggestion.ImageUrl" alt="@suggestion.Name" class="planner-thumb-image" />
                                                         </button>
                                                         <div class="flex-grow-1">
@@ -126,9 +130,10 @@
                                         <ul class="list-group list-group-flush planner-list">
                                             @foreach (var suggestion in characterPlan.DpsWeaponSuggestions)
                                             {
+                                                var previewImageUrl = string.IsNullOrWhiteSpace(suggestion.PreviewImageUrl) ? suggestion.ImageUrl : suggestion.PreviewImageUrl;
                                                 <li class="list-group-item px-0 planner-list-item">
                                                     <div class="d-flex gap-3 align-items-start planner-gear-row">
-                                                        <button type="button" class="planner-thumb-button" data-bs-toggle="modal" data-bs-target="#plannerPreviewModal" data-image-url="@(string.IsNullOrWhiteSpace(suggestion.PreviewImageUrl) ? suggestion.ImageUrl : suggestion.PreviewImageUrl)" data-image-title="@suggestion.Name">
+                                                        <button type="button" class="planner-thumb-button" data-bs-toggle="modal" data-bs-target="#plannerPreviewModal" data-image-url="@previewImageUrl" data-image-title="@suggestion.Name">
                                                             <img src="@suggestion.ImageUrl" alt="@suggestion.Name" class="planner-thumb-image" />
                                                         </button>
                                                         <div class="flex-grow-1">
@@ -166,9 +171,10 @@
                                         <ul class="list-group list-group-flush planner-list">
                                             @foreach (var suggestion in characterPlan.UtilityWeaponSuggestions)
                                             {
+                                                var previewImageUrl = string.IsNullOrWhiteSpace(suggestion.PreviewImageUrl) ? suggestion.ImageUrl : suggestion.PreviewImageUrl;
                                                 <li class="list-group-item px-0 planner-list-item">
                                                     <div class="d-flex gap-3 align-items-start planner-gear-row">
-                                                        <button type="button" class="planner-thumb-button" data-bs-toggle="modal" data-bs-target="#plannerPreviewModal" data-image-url="@(string.IsNullOrWhiteSpace(suggestion.PreviewImageUrl) ? suggestion.ImageUrl : suggestion.PreviewImageUrl)" data-image-title="@suggestion.Name">
+                                                        <button type="button" class="planner-thumb-button" data-bs-toggle="modal" data-bs-target="#plannerPreviewModal" data-image-url="@previewImageUrl" data-image-title="@suggestion.Name">
                                                             <img src="@suggestion.ImageUrl" alt="@suggestion.Name" class="planner-thumb-image" />
                                                         </button>
                                                         <div class="flex-grow-1">

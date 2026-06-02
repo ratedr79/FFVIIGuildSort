@@ -21,6 +21,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public required string MateriaSupport0 { get; init; }
         public required string MateriaSupport1 { get; init; }
         public required string MateriaSupport2 { get; init; }
+        public int InitialChargeTimeSec { get; init; }
         public required string RechargeTime { get; init; }
         public required string UseCount { get; init; }
         public required List<UpgradeSkillData> UpgradeSkills { get; init; }
