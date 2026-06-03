@@ -96,6 +96,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string AbilityText { get; set; } = string.Empty;
         public int CommandAtb { get; set; }
         public int InitialChargeTimeSec { get; set; }
+        public string UseCount { get; set; } = string.Empty;
         public int OverboostLevel { get; set; }
         public int Level { get; set; }
         public bool IsUltimate { get; set; }

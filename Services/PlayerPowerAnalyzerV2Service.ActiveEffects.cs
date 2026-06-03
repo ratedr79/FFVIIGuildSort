@@ -150,6 +150,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             TryAddDetectedEffect(effects, blob, "enfeeble", "Enfeeble", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "enliven", "Enliven", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "torpor", "Torpor", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "gear_c_ability_uses", "Gear C. Ability Uses", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDirectAtbGainEffect(effects, abilityText ?? string.Empty, sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "healing_support", "Heal", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "healing_support", "HP Recovery", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);

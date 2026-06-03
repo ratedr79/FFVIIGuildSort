@@ -120,6 +120,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             new() { Key = "mag_damage_bonus", Label = "Mag. Damage Bonus", Group = "Damage Support" },
             new() { Key = "phys_weapon_boost", Label = "Phys. Weapon Boost", Group = "Damage Support" },
             new() { Key = "mag_weapon_boost", Label = "Mag. Weapon Boost", Group = "Damage Support" },
+            new() { Key = "gear_c_ability_uses", Label = "Gear C. Ability Uses", Group = "Status / Utility" },
             new() { Key = "patk_up", Label = "PATK Up", Group = "Buffs / Debuffs" },
             new() { Key = "matk_up", Label = "MATK Up", Group = "Buffs / Debuffs" },
             new() { Key = "pdef_up", Label = "PDEF Up", Group = "Buffs / Debuffs" },
@@ -689,11 +690,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var subOutfits = new List<PlayerPowerAnalyzerV2ItemSlot>();
             var subOutfitPassivePoints = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var seedVariants = mainWeapons
+            var rankedMainWeapons = mainWeapons
                 .Select(w => GetOrCreateWeaponSlot(w, role, request, referenceTuningProfile, "Main Weapon", 1.0, true, true, weaponSlotEvaluationCache))
                 .OrderByDescending(x => x.Score)
                 .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var retainedMainWeapons = rankedMainWeapons
                 .Take(adaptiveSearchProfile.MainWeaponOptionsPerCharacter)
+                .ToList();
+            retainedMainWeapons.AddRange(rankedMainWeapons
+                .Where(main => !retainedMainWeapons.Any(existing => existing.Name.Equals(main.Name, StringComparison.OrdinalIgnoreCase))
+                    && ShouldPreserveContextualSupportSeedMain(main, role, request))
+                .Take(2));
+
+            var seedVariants = retainedMainWeapons
                 .Select(main => ComposeCharacterVariantCandidate(
                     character,
                     role,
@@ -708,9 +718,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     request))
                 .ToList();
 
-            return OrderCharacterVariantsForSelection(seedVariants, request)
-                .Take(adaptiveSearchProfile.MainWeaponOptionsPerCharacter)
-                .ToList();
+            return OrderCharacterVariantsForSelection(seedVariants, request).ToList();
         }
 
         private static AdaptiveSearchProfile BuildAdaptiveSearchProfile(int rosterSize, PlayerPowerAnalyzerV2Request request)
@@ -871,13 +879,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var supportCandidateLimit = Math.Max(6, Math.Min(10, adaptiveSearchProfile.SkeletonExpansionLimit));
             foreach (var anchor in anchorCandidates)
             {
-                var supportCandidates = seedPool
+                var rankedSupportCandidates = seedPool
                     .Where(candidate => !candidate.CharacterName.Equals(anchor.CharacterName, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(candidate => ScoreSupportSeedForAnchor(anchor, candidate, request))
                     .ThenByDescending(candidate => GetVariantSelectionScore(candidate, request))
                     .ThenBy(BuildCharacterVariantEquipmentKey, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var supportCandidates = rankedSupportCandidates
                     .Take(supportCandidateLimit)
                     .ToList();
+                supportCandidates.AddRange(rankedSupportCandidates
+                    .Where(candidate => !supportCandidates.Contains(candidate)
+                        && ShouldPreserveContextualSupportSeedVariant(candidate, request))
+                    .Take(2));
                 for (var i = 0; i < supportCandidates.Count; i++)
                 {
                     for (var j = i + 1; j < supportCandidates.Count; j++)
@@ -931,9 +945,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var explicitDetectedEffects = seedVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
             var effectPackage = ScoreEffectPackage(explicitDetectedEffects, seedVariants, request);
             var anchorSupportScore = ScoreAnchorSupportSynergy(seedVariants, explicitDetectedEffects, request);
+            var contextualVariantBonus = GetVariantContextualTeamBonus(seedVariants, request);
             var score = seedVariants.Sum(variant => GetVariantSelectionScore(variant, request));
             score += effectPackage.Score;
             score += anchorSupportScore.Score;
+            score += contextualVariantBonus;
             score += ScoreTeamEffects(providedEffectKeys, request) * 0.12;
             score += PreferredCoverageBonus(providedEffectKeys, request);
             score += ScorePyramidCoverage(providedEffectKeys, request);
@@ -965,6 +981,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var anchorSupportScore = ScoreAnchorSupportSynergy(variants, explicitDetectedEffects, request).Score;
             var score = GetVariantSelectionScore(support, request) * 0.85;
             score += anchorSupportScore;
+            score += GetVariantContextualTeamBonus(support, request);
             score += PreferredCoverageBonus(providedEffectKeys, request) * 0.45;
             score += ScorePyramidCoverage(providedEffectKeys, request) * 0.35;
             return score;
@@ -1118,6 +1135,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var providedKeys = new HashSet<string>(variant.ProvidedEffectKeys, StringComparer.OrdinalIgnoreCase);
             var bonus = PreferredCoverageBonus(providedKeys, request);
             bonus += GetAnchorCandidateSelectionBonus(variant, request);
+            bonus += GetVariantWeaponOrientationSelectionBonus(variant, request);
+            bonus += GetVariantGearCAbilityUsesSelectionBonus(variant, request);
 
             if (providedKeys.Count == 0)
             {
@@ -1125,9 +1144,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             if (providedKeys.Contains("stat_buff_tier_increase", StringComparer.OrdinalIgnoreCase)
-                && providedKeys.Any(key => key is "patk_up" or "matk_up" or "pdef_up" or "mdef_up"))
+                && providedKeys.Any(key => key is "patk_up" or "matk_up"))
             {
                 bonus += request.PreferredDamageType == DamageType.Magical ? 115 : 135;
+            }
+            else if (providedKeys.Contains("stat_buff_tier_increase", StringComparer.OrdinalIgnoreCase)
+                && providedKeys.Any(key => key is "pdef_up" or "mdef_up"))
+            {
+                bonus += request.PreferredDamageType == DamageType.Magical ? 38 : 42;
             }
 
             if (providedKeys.Contains("stat_debuff_tier_increase", StringComparer.OrdinalIgnoreCase)
@@ -1146,6 +1170,202 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var selectionScore = variant.BaseScore + bonus;
             variant.SelectionScoreOverride = selectionScore;
             return selectionScore;
+        }
+
+        private static double GetVariantGearCAbilityUsesSelectionBonus(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            if (variant.Role is not CharacterRole.Healer and not CharacterRole.Support
+                || variant.MainOutfit == null
+                || !TryParseLimitedUseCount(variant.MainOutfit.UseCount, out _))
+            {
+                return 0d;
+            }
+
+            var gearCProvider = new[] { variant.MainWeapon, variant.OffHandWeapon }
+                .Where(slot => slot != null)
+                .FirstOrDefault(slot => slot!.ProvidedEffectLabels.Contains("Gear C. Ability Uses", StringComparer.OrdinalIgnoreCase));
+            if (gearCProvider == null)
+            {
+                return 0d;
+            }
+
+            var outfitEffectKeys = DetectEffectKeys(Array.Empty<string>(), variant.MainOutfit.AbilityText, request, request.BossImmunityKeys)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var outfitAbilityMatchesRequest = request.PreferredDamageType == DamageType.Any
+                || string.IsNullOrWhiteSpace(variant.MainOutfit.AbilityType)
+                || MatchesRequestedDamageType(variant.MainOutfit.AbilityType, request.PreferredDamageType);
+            var outfitIsRelevantLimitedUseAbility = outfitEffectKeys.Any(IsOffensiveSetupEffect)
+                || outfitEffectKeys.Any(key => key is "stat_buff_tier_increase" or "stat_debuff_tier_increase" or "atb_conservation" or "atb_gain" or "enfeeble" or "enliven" or "torpor");
+            var providerAddsOnAxisDamageBonus = request.PreferredDamageType switch
+            {
+                DamageType.Physical => gearCProvider.ProvidedEffectLabels.Contains("Phys. Damage Bonus", StringComparer.OrdinalIgnoreCase),
+                DamageType.Magical => gearCProvider.ProvidedEffectLabels.Contains("Mag. Damage Bonus", StringComparer.OrdinalIgnoreCase),
+                _ => gearCProvider.ProvidedEffectLabels.Contains("Phys. Damage Bonus", StringComparer.OrdinalIgnoreCase)
+                    || gearCProvider.ProvidedEffectLabels.Contains("Mag. Damage Bonus", StringComparer.OrdinalIgnoreCase)
+            };
+
+            var bonus = 28d;
+            if (outfitAbilityMatchesRequest)
+            {
+                bonus += 12d;
+            }
+
+            if (outfitIsRelevantLimitedUseAbility)
+            {
+                bonus += 20d;
+            }
+
+            if (providerAddsOnAxisDamageBonus)
+            {
+                bonus += 16d;
+            }
+
+            return bonus;
+        }
+
+        private static double GetVariantContextualTeamBonus(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            return GetVariantGearCAbilityUsesSelectionBonus(variant, request);
+        }
+
+        private static double GetVariantContextualTeamBonus(IEnumerable<CharacterBuildCandidate> variants, PlayerPowerAnalyzerV2Request request)
+        {
+            return variants.Sum(variant => GetVariantContextualTeamBonus(variant, request));
+        }
+
+        private static bool ShouldPreserveContextualSupportSeedMain(SlotEvaluation main, CharacterRole role, PlayerPowerAnalyzerV2Request request)
+        {
+            if (role is not CharacterRole.Healer and not CharacterRole.Support)
+            {
+                return false;
+            }
+
+            var providedKeys = main.ProvidedEffectKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (!providedKeys.Contains("gear_c_ability_uses"))
+            {
+                return false;
+            }
+
+            var relevantMultiplierKeys = GetRelevantVariantMultiplierKeys(request);
+            return relevantMultiplierKeys.Any(key => providedKeys.Contains(key));
+        }
+
+        private static bool ShouldPreserveContextualSupportSeedVariant(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            if (variant.Role is not CharacterRole.Healer and not CharacterRole.Support)
+            {
+                return false;
+            }
+
+            var providedKeys = variant.ProvidedEffectKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (!providedKeys.Contains("gear_c_ability_uses"))
+            {
+                return false;
+            }
+
+            var relevantMultiplierKeys = GetRelevantVariantMultiplierKeys(request);
+            return relevantMultiplierKeys.Any(key => providedKeys.Contains(key));
+        }
+
+        private static bool TryParseLimitedUseCount(string? rawUseCount, out int useCount)
+        {
+            useCount = 0;
+            return !string.IsNullOrWhiteSpace(rawUseCount)
+                && int.TryParse(rawUseCount, NumberStyles.Integer, CultureInfo.InvariantCulture, out useCount)
+                && useCount > 0;
+        }
+
+        private static double GetVariantWeaponOrientationSelectionBonus(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            return GetVariantWeaponOrientationBonus(variant.Role, variant.MainPassivePoints, variant.OffPassivePoints, request);
+        }
+
+        private static double GetVariantWeaponOrientationBonus(
+            CharacterRole role,
+            IReadOnlyDictionary<string, int> mainPassivePoints,
+            IReadOnlyDictionary<string, int> offPassivePoints,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            if (offPassivePoints.Count == 0)
+            {
+                return 0d;
+            }
+
+            var mainTeamPriorityScore = ScorePassivePointsByPredicate(mainPassivePoints, role, request, IsAnchorPriorityTeamWidePassive);
+            var offTeamPriorityScore = ScorePassivePointsByPredicate(offPassivePoints, role, request, IsAnchorPriorityTeamWidePassive);
+            var mainSelfPriorityScore = ScorePassivePointsByPredicate(mainPassivePoints, role, request, IsAnchorPrioritySelfPassive);
+            var offSelfPriorityScore = ScorePassivePointsByPredicate(offPassivePoints, role, request, IsAnchorPrioritySelfPassive);
+            var mainSupportUtilityScore = ScorePassivePointsByPredicate(mainPassivePoints, role, request, IsOrientationSupportUtilityPassive);
+            var offSupportUtilityScore = ScorePassivePointsByPredicate(offPassivePoints, role, request, IsOrientationSupportUtilityPassive);
+
+            if (mainTeamPriorityScore <= 0.001
+                && offTeamPriorityScore <= 0.001
+                && mainSelfPriorityScore <= 0.001
+                && offSelfPriorityScore <= 0.001)
+            {
+                return 0d;
+            }
+
+            var bonus = 0d;
+            if (role == CharacterRole.DPS)
+            {
+                bonus += (mainSelfPriorityScore - offSelfPriorityScore) * 0.22;
+                bonus += (mainTeamPriorityScore - offTeamPriorityScore) * 0.14;
+                return bonus;
+            }
+
+            bonus += (mainTeamPriorityScore - offTeamPriorityScore) * 0.72;
+
+            if (mainTeamPriorityScore > 0.001 || offTeamPriorityScore > 0.001)
+            {
+                bonus += (offSupportUtilityScore - mainSupportUtilityScore) * 0.50;
+            }
+
+            if (mainTeamPriorityScore > offTeamPriorityScore && offSupportUtilityScore > 0.001)
+            {
+                bonus += Math.Min(offSupportUtilityScore, mainTeamPriorityScore) * 0.10;
+            }
+
+            if (offTeamPriorityScore > mainTeamPriorityScore && mainSupportUtilityScore > 0.001)
+            {
+                bonus -= Math.Min(mainSupportUtilityScore, offTeamPriorityScore) * 0.08;
+            }
+
+            return bonus * 1.55;
+        }
+
+        private static double ScorePassivePointsByPredicate(
+            IReadOnlyDictionary<string, int> passivePoints,
+            CharacterRole role,
+            PlayerPowerAnalyzerV2Request request,
+            Func<string, PlayerPowerAnalyzerV2Request, bool> predicate)
+        {
+            var score = 0d;
+            foreach (var kvp in passivePoints)
+            {
+                if (kvp.Value <= 0 || !predicate(kvp.Key, request))
+                {
+                    continue;
+                }
+
+                score += ScorePassiveSkill(kvp.Key, kvp.Value, role, request);
+            }
+
+            return score;
+        }
+
+        private static bool IsOrientationSupportUtilityPassive(string skillName, PlayerPowerAnalyzerV2Request request)
+        {
+            if (string.IsNullOrWhiteSpace(skillName))
+            {
+                return false;
+            }
+
+            var normalized = skillName.ToLowerInvariant();
+            return IsBuffDebuffExtensionPassive(normalized)
+                || normalized.Contains("heal", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("all (cure spells)", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("all (esuna)", StringComparison.OrdinalIgnoreCase);
         }
 
         private static double GetVariantOffHandComplementBonus(
@@ -1204,10 +1424,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             if (offDuplicatesAttackBuff && !offAddsRelevantMultiplier && !offAddsEnhancement && !offAddsAmplifier)
             {
-                bonus -= role == CharacterRole.Healer ? 88d : 76d;
+                bonus -= role == CharacterRole.Healer ? 136d : 118d;
                 if (baselineHasFoundation && baselineHasEnhancement)
                 {
-                    bonus -= role == CharacterRole.Healer ? 52d : 44d;
+                    bonus -= role == CharacterRole.Healer ? 76d : 64d;
                 }
             }
 
@@ -1222,6 +1442,37 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 DamageType.Magical => new[] { "mag_damage_bonus", "mag_weapon_boost", "elemental_damage_bonus", "elemental_weapon_boost" },
                 _ => new[] { "phys_damage_bonus", "phys_weapon_boost", "mag_damage_bonus", "mag_weapon_boost", "elemental_damage_bonus", "elemental_weapon_boost" }
             };
+        }
+
+        private static double GetFinalTeamRedundantOffHandPenalty(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            if (variant.OffHandWeapon == null)
+            {
+                return 0d;
+            }
+
+            var detectedEffects = GetDetectedEffectsForVariant(variant, request);
+            var baselineProvidedKeys = detectedEffects
+                .Where(effect => effect.SourceType.Equals("Main Weapon", StringComparison.OrdinalIgnoreCase)
+                    || effect.SourceType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase)
+                    || effect.SourceType.Equals("Main Outfit", StringComparison.OrdinalIgnoreCase))
+                .Select(effect => effect.Key)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var offHandProvidedKeys = detectedEffects
+                .Where(effect => effect.SourceType.Equals("Off-hand", StringComparison.OrdinalIgnoreCase))
+                .Select(effect => effect.Key)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var complementBonus = GetVariantOffHandComplementBonus(baselineProvidedKeys, offHandProvidedKeys, variant.Role, request);
+            return complementBonus < 0d
+                ? complementBonus * 1.65
+                : 0d;
+        }
+
+        private static double GetFinalTeamRedundantOffHandPenalty(
+            IReadOnlyList<CharacterBuildCandidate> baseVariants,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            return baseVariants.Sum(variant => GetFinalTeamRedundantOffHandPenalty(variant, request));
         }
 
         private static double GetAnchorCandidateSelectionBonus(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
@@ -1546,6 +1797,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var nonPassiveScore = main.NonPassiveScore + (off?.NonPassiveScore ?? 0) + (ultimate?.NonPassiveScore ?? 0) + (mainCostume?.NonPassiveScore ?? 0) + subOutfitScore;
             var passiveScore = ScorePassivePoints(passivePoints, role, request);
             var characterScore = nonPassiveScore + passiveScore;
+            if (off != null)
+            {
+                characterScore += GetVariantWeaponOrientationBonus(role, main.PassivePoints, off.PassivePoints, request);
+            }
+
             var providedKeys = new HashSet<string>(main.ProvidedEffectKeys, StringComparer.OrdinalIgnoreCase);
             var baselineProvidedKeys = new HashSet<string>(providedKeys, StringComparer.OrdinalIgnoreCase);
 
@@ -1848,9 +2104,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var explicitDetectedEffects = baseVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
             var effectPackage = ScoreEffectPackage(explicitDetectedEffects, baseVariants, request);
             var anchorSupportScore = ScoreAnchorSupportSynergy(baseVariants, explicitDetectedEffects, request);
+            var redundantOffHandPenalty = GetFinalTeamRedundantOffHandPenalty(baseVariants, request);
+            var contextualVariantBonus = GetVariantContextualTeamBonus(baseVariants, request);
             score += effectPackage.Score;
             score += anchorSupportScore.Score;
             score += ScoreTeamEffects(providedEffectKeys, request) * 0.18;
+            score += redundantOffHandPenalty;
+            score += contextualVariantBonus;
             score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 90;
             score += request.HardRequiredEffectKeys.Count * 40;
             score += ScoreReferencePatternSynergyBonus(baseVariants, providedEffectKeys, request, referenceTuningProfile);
@@ -1895,6 +2155,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var characterOutputs = baseVariants.Select(v => v.ToOutput()).ToList();
             var characterOutputsByName = characterOutputs.ToDictionary(c => c.CharacterName, StringComparer.OrdinalIgnoreCase);
             var baseNonPassiveScoresByCharacter = baseVariants.ToDictionary(v => v.CharacterName, v => v.NonPassiveScore, StringComparer.OrdinalIgnoreCase);
+            var hasRequestedElementMainOrOffHandByCharacter = baseVariants.ToDictionary(v => v.CharacterName, v => HasRequestedElementMainOrOffHand(v, request), StringComparer.OrdinalIgnoreCase);
             var passivePointsByCharacter = baseVariants.ToDictionary(v => v.CharacterName, v => new Dictionary<string, int>(v.PassivePoints, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
             var subWeaponNonPassiveScoreByCharacter = baseVariants.ToDictionary(v => v.CharacterName, _ => 0d, StringComparer.OrdinalIgnoreCase);
             var availableSubWeapons = ownedWeapons
@@ -1958,6 +2219,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             assignment.CharacterName,
                             anchorCharacterName,
                             anchorRole.Value,
+                            hasRequestedElementMainOrOffHandByCharacter[assignment.CharacterName],
                             request)
                         : GetSubWeaponMarginalGain(
                             assignment.Evaluation.PassivePoints,
@@ -1968,6 +2230,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             characterRole,
                             teamRoles,
                             providedEffectKeysByCharacter[assignment.CharacterName],
+                            hasRequestedElementMainOrOffHandByCharacter[assignment.CharacterName],
                             request);
 
                     if (gain > bestGain + 0.001
@@ -2046,8 +2309,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var effectPackage = ScoreEffectPackage(explicitDetectedEffects, baseVariants, request);
             var anchorSupportScore = ScoreAnchorSupportSynergy(baseVariants, explicitDetectedEffects, request);
             var legacyTeamEffectScore = ScoreTeamEffects(providedEffectKeys, request) * 0.18;
+            var redundantOffHandPenalty = GetFinalTeamRedundantOffHandPenalty(baseVariants, request);
+            var contextualVariantBonus = GetVariantContextualTeamBonus(baseVariants, request);
             var score = characterOutputs.Sum(c => c.Score);
             score += effectPackage.Score + legacyTeamEffectScore + anchorSupportScore.Score;
+            score += redundantOffHandPenalty;
+            score += contextualVariantBonus;
             score += matchedPreferred.Count * 90;
             score += request.HardRequiredEffectKeys.Count * 40;
             var referencePatternBonus = ScoreReferencePatternSynergyBonus(baseVariants, providedEffectKeys, request, referenceTuningProfile);
@@ -2071,6 +2338,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (anchorSupportScore.Score != 0)
             {
                 teamScoreBreakdown.Add(CreateScoreComponent("anchor", "Anchor-DPS support synergy", anchorSupportScore.Score));
+            }
+
+            if (redundantOffHandPenalty != 0)
+            {
+                teamScoreBreakdown.Add(CreateScoreComponent("loadout", "Redundant same-character off-hand attack buff", redundantOffHandPenalty));
+            }
+
+            if (contextualVariantBonus != 0)
+            {
+                teamScoreBreakdown.Add(CreateScoreComponent("loadout", "Limited-use Gear C ability support", contextualVariantBonus));
             }
 
             var matchedPreferredBonus = matchedPreferred.Count * 90;
@@ -2567,6 +2844,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     AbilityText = weapon.Snapshot.AbilityText,
                     CommandAtb = weapon.Item.CommandAtb,
                     InitialChargeTimeSec = weapon.Item.InitialChargeTimeSec,
+                    UseCount = weapon.Item.UseCount,
                     OverboostLevel = weapon.OverboostLevel,
                     Level = weapon.Level,
                     IsUltimate = weapon.IsUltimate,
@@ -2649,6 +2927,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     AbilityText = costume.Item.AbilityText,
                     CommandAtb = costume.Item.CommandAtb,
                     InitialChargeTimeSec = costume.Item.InitialChargeTimeSec,
+                    UseCount = costume.Item.UseCount,
                     SlotMultiplier = slotMultiplier,
                     Score = Math.Round(score, 2),
                     PassiveSummaries = passivePoints.OrderByDescending(kvp => kvp.Value).Take(5).Select(kvp => $"{FormatPassiveDisplayLabel(kvp.Key)} +{kvp.Value} pts").ToList(),
@@ -2877,6 +3156,31 @@ namespace FFVIIEverCrisisAnalyzer.Services
             IReadOnlyCollection<string> equippingProvidedEffectKeys,
             PlayerPowerAnalyzerV2Request request)
         {
+            return GetSubWeaponMarginalGain(
+                weaponPassivePoints,
+                nonPassiveScore,
+                battleFitMultiplier,
+                currentCharacterPassivePoints,
+                currentTeamWidePassivePoints,
+                equippingRole,
+                teamRoles,
+                equippingProvidedEffectKeys,
+                true,
+                request);
+        }
+
+        private static double GetSubWeaponMarginalGain(
+            IReadOnlyDictionary<string, int> weaponPassivePoints,
+            double nonPassiveScore,
+            double battleFitMultiplier,
+            IReadOnlyDictionary<string, int> currentCharacterPassivePoints,
+            IReadOnlyDictionary<string, int> currentTeamWidePassivePoints,
+            CharacterRole equippingRole,
+            IReadOnlyCollection<CharacterRole> teamRoles,
+            IReadOnlyCollection<string> equippingProvidedEffectKeys,
+            bool hasRequestedElementMainOrOffHand,
+            PlayerPowerAnalyzerV2Request request)
+        {
             return GetSubWeaponMarginalGainWithAnchorContext(
                 weaponPassivePoints,
                 nonPassiveScore,
@@ -2889,6 +3193,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 string.Empty,
                 null,
                 CharacterRole.DPS,
+                hasRequestedElementMainOrOffHand,
                 request);
         }
 
@@ -2934,6 +3239,37 @@ namespace FFVIIEverCrisisAnalyzer.Services
             CharacterRole anchorRole,
             PlayerPowerAnalyzerV2Request request)
         {
+            return GetSubWeaponMarginalGainWithAnchorContext(
+                weaponPassivePoints,
+                nonPassiveScore,
+                battleFitMultiplier,
+                currentCharacterPassivePoints,
+                currentTeamWidePassivePoints,
+                equippingRole,
+                teamRoles,
+                equippingProvidedEffectKeys,
+                equippingCharacterName,
+                anchorCharacterName,
+                anchorRole,
+                true,
+                request);
+        }
+
+        private static double GetSubWeaponMarginalGainWithAnchorContext(
+            IReadOnlyDictionary<string, int> weaponPassivePoints,
+            double nonPassiveScore,
+            double battleFitMultiplier,
+            IReadOnlyDictionary<string, int> currentCharacterPassivePoints,
+            IReadOnlyDictionary<string, int> currentTeamWidePassivePoints,
+            CharacterRole equippingRole,
+            IReadOnlyCollection<CharacterRole> teamRoles,
+            IReadOnlyCollection<string> equippingProvidedEffectKeys,
+            string equippingCharacterName,
+            string? anchorCharacterName,
+            CharacterRole anchorRole,
+            bool hasRequestedElementMainOrOffHand,
+            PlayerPowerAnalyzerV2Request request)
+        {
             var effectiveBattleFitMultiplier = equippingRole == CharacterRole.DPS
                 ? battleFitMultiplier
                 : 1.0;
@@ -2949,17 +3285,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (IsTeamWidePassive(kvp.Key))
                 {
-                    var currentPoints = currentCharacterPassivePoints.TryGetValue(kvp.Key, out var existingProviderPoints) ? existingProviderPoints : 0;
+                    var currentPoints = currentTeamWidePassivePoints.TryGetValue(kvp.Key, out var existingTeamWidePoints) ? existingTeamWidePoints : 0;
                     var nextPoints = currentPoints + kvp.Value;
+                    var teamWidePassiveMarginalMultiplier = GetSubWeaponTeamWidePassiveMarginalMultiplier(kvp.Key, equippingRole, request);
                     foreach (var teamRole in teamRoles)
                     {
-                        gain += ScoreTeamWidePassiveSkillForRecipient(kvp.Key, nextPoints, teamRole, request)
-                            - ScoreTeamWidePassiveSkillForRecipient(kvp.Key, currentPoints, teamRole, request);
+                        gain += (ScoreTeamWidePassiveSkillForRecipient(kvp.Key, nextPoints, teamRole, request)
+                            - ScoreTeamWidePassiveSkillForRecipient(kvp.Key, currentPoints, teamRole, request))
+                            * teamWidePassiveMarginalMultiplier;
                     }
 
                     if (!string.IsNullOrWhiteSpace(anchorCharacterName))
                     {
-                        gain += GetAnchorTeamWidePassiveMarginalBonus(kvp.Key, currentPoints, nextPoints, anchorRole, request);
+                        gain += GetAnchorTeamWidePassiveMarginalBonus(kvp.Key, currentPoints, nextPoints, anchorRole, request)
+                            * teamWidePassiveMarginalMultiplier;
                     }
 
                     continue;
@@ -2968,7 +3307,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var currentCharacterPoints = currentCharacterPassivePoints.TryGetValue(kvp.Key, out var existingCharacterPoints) ? existingCharacterPoints : 0;
                 var passiveDelta = ScorePassiveSkill(kvp.Key, currentCharacterPoints + kvp.Value, equippingRole, request)
                     - ScorePassiveSkill(kvp.Key, currentCharacterPoints, equippingRole, request);
-                gain += passiveDelta * effectiveBattleFitMultiplier;
+                var selfPassiveCoherenceMultiplier = GetSubWeaponSelfPassiveCoherenceMultiplier(kvp.Key, equippingRole, hasRequestedElementMainOrOffHand, request);
+                gain += passiveDelta * effectiveBattleFitMultiplier * selfPassiveCoherenceMultiplier;
                 gain += GetSupportMaintenancePassiveMarginalBonus(
                     kvp.Key,
                     existingCharacterPoints,
@@ -2979,11 +3319,84 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (isAnchorEquipper)
                 {
-                    gain += GetAnchorSelfPassiveMarginalBonus(kvp.Key, currentCharacterPoints, currentCharacterPoints + kvp.Value, anchorRole, request) * effectiveBattleFitMultiplier;
+                    gain += GetAnchorSelfPassiveMarginalBonus(kvp.Key, currentCharacterPoints, currentCharacterPoints + kvp.Value, anchorRole, request) * effectiveBattleFitMultiplier * selfPassiveCoherenceMultiplier;
                 }
             }
 
             return gain;
+        }
+
+        private static double GetSubWeaponTeamWidePassiveMarginalMultiplier(string skillName, CharacterRole equippingRole, PlayerPowerAnalyzerV2Request request)
+        {
+            if (!ShouldFavorOffenseInDefaultSubWeaponAssignment(request) || string.IsNullOrWhiteSpace(skillName))
+            {
+                return 1.0;
+            }
+
+            var normalized = skillName.ToLowerInvariant();
+            if (!normalized.Contains("boost pdef (all allies)", StringComparison.OrdinalIgnoreCase)
+                && !normalized.Contains("boost mdef (all allies)", StringComparison.OrdinalIgnoreCase))
+            {
+                return 1.0;
+            }
+
+            return equippingRole switch
+            {
+                CharacterRole.Healer => 0.42,
+                CharacterRole.Support => 0.5,
+                CharacterRole.Tank => 0.78,
+                _ => 1.0
+            };
+        }
+
+        private static double GetSubWeaponSelfPassiveCoherenceMultiplier(
+            string skillName,
+            CharacterRole equippingRole,
+            bool hasRequestedElementMainOrOffHand,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            if (equippingRole != CharacterRole.DPS
+                || hasRequestedElementMainOrOffHand
+                || request.EnemyWeakness == Element.None
+                || string.IsNullOrWhiteSpace(skillName))
+            {
+                return 1.0;
+            }
+
+            var normalized = skillName.ToLowerInvariant();
+            if (IsElementOffensivePassiveLabel(normalized)
+                && normalized.Contains(request.EnemyWeakness.ToString().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
+            {
+                return 0.32;
+            }
+
+            return 1.0;
+        }
+
+        private static bool ShouldFavorOffenseInDefaultSubWeaponAssignment(PlayerPowerAnalyzerV2Request request)
+        {
+            if (request.PreferredDamageType == DamageType.Any)
+            {
+                return false;
+            }
+
+            return !request.HardRequiredEffectKeys.Concat(request.SoftPreferredEffectKeys)
+                .Any(key => key.Equals("pdef_up", StringComparison.OrdinalIgnoreCase)
+                    || key.Equals("mdef_up", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool HasRequestedElementMainOrOffHand(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            if (request.EnemyWeakness == Element.None)
+            {
+                return true;
+            }
+
+            return new[] { variant.MainWeapon, variant.OffHandWeapon }
+                .Where(slot => slot != null)
+                .Any(slot => !string.IsNullOrWhiteSpace(slot!.Element)
+                    && !slot.Element.Equals("None", StringComparison.OrdinalIgnoreCase)
+                    && MatchesRequestedElement(slot.Element, request.EnemyWeakness));
         }
 
         private static double GetSupportMaintenancePassiveMarginalBonus(
@@ -3211,7 +3624,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (request.PreferredDamageType == DamageType.Physical
                 && normalized.Contains("boost patk (all allies)", StringComparison.OrdinalIgnoreCase))
             {
-                return 0.06 * beneficiaryMultiplier;
+                return (ShouldFavorOffenseInDefaultSubWeaponAssignment(request) ? 0.18 : 0.06) * beneficiaryMultiplier;
             }
 
             return normalized.Contains("boost atk (all allies)", StringComparison.OrdinalIgnoreCase)
@@ -3891,6 +4304,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "enfeeble" => 135,
                 "enliven" => 95,
                 "torpor" => 120,
+                "gear_c_ability_uses" => 0,
                 "healing_support" => role == CharacterRole.Healer ? 140 : 85,
                 _ => 80
             };
