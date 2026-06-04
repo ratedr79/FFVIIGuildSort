@@ -120,6 +120,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             new() { Key = "mag_damage_bonus", Label = "Mag. Damage Bonus", Group = "Damage Support" },
             new() { Key = "phys_weapon_boost", Label = "Phys. Weapon Boost", Group = "Damage Support" },
             new() { Key = "mag_weapon_boost", Label = "Mag. Weapon Boost", Group = "Damage Support" },
+            new() { Key = "phys_damage_received_up", Label = "Phys. Damage Received Up", Group = "Damage Support" },
+            new() { Key = "mag_damage_received_up", Label = "Mag. Damage Received Up", Group = "Damage Support" },
             new() { Key = "gear_c_ability_uses", Label = "Gear C. Ability Uses", Group = "Status / Utility" },
             new() { Key = "patk_up", Label = "PATK Up", Group = "Buffs / Debuffs" },
             new() { Key = "matk_up", Label = "MATK Up", Group = "Buffs / Debuffs" },
@@ -819,7 +821,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         weaponSlotEvaluationCache,
                         costumeSlotEvaluationCache,
                         seed.MainWeapon.Name,
-                        false);
+                        true);
                     if (variants.Count == 0)
                     {
                         expansionFailed = true;
@@ -999,7 +1001,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 : request.PreferredDamageType == DamageType.Physical
                     ? new[] { "patk_up", "pdef_down" }
                     : new[] { "patk_up", "matk_up", "pdef_down", "mdef_down" };
-            var enhancementKeys = new[] { "elemental_resistance_down", "elemental_damage_up", "elemental_damage_received_up" };
+            var enhancementKeys = new[] { "elemental_resistance_down" }
+                .Concat(GetRelevantEnhancementKeys(request))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
             var multiplierKeys = request.PreferredDamageType == DamageType.Magical
                 ? new[] { "mag_damage_bonus", "mag_weapon_boost", "elemental_damage_bonus", "elemental_weapon_boost" }
                 : request.PreferredDamageType == DamageType.Physical
@@ -1133,6 +1138,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static double GetVariantSelectionScore(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
         {
             var providedKeys = new HashSet<string>(variant.ProvidedEffectKeys, StringComparer.OrdinalIgnoreCase);
+            var detectedEffects = GetDetectedEffectsForVariant(variant, request);
             var bonus = PreferredCoverageBonus(providedKeys, request);
             bonus += GetAnchorCandidateSelectionBonus(variant, request);
             bonus += GetVariantWeaponOrientationSelectionBonus(variant, request);
@@ -1165,11 +1171,85 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return variant.SelectionScoreOverride.Value;
             }
 
-            bonus += (ScoreEffectPackage(GetDetectedEffectsForVariant(variant, request), Array.Empty<CharacterBuildCandidate>(), request).Score * 0.09)
+            bonus -= GetVariantOffAxisPackagePenalty(variant, providedKeys, detectedEffects, request);
+            bonus += (ScoreEffectPackage(detectedEffects, Array.Empty<CharacterBuildCandidate>(), request).Score * 0.09)
                 + (ScoreTeamEffects(providedKeys, request) * 0.03);
             var selectionScore = variant.BaseScore + bonus;
             variant.SelectionScoreOverride = selectionScore;
             return selectionScore;
+        }
+
+        private static double GetVariantOffAxisPackagePenalty(
+            CharacterBuildCandidate variant,
+            IReadOnlyCollection<string> providedEffectKeys,
+            IReadOnlyCollection<DetectedActiveEffect> detectedEffects,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            if (providedEffectKeys.Count == 0)
+            {
+                return 0d;
+            }
+
+            var penalty = 0d;
+            var baseRole = CharacterRoleRegistry.GetRoleOrDefault(variant.CharacterName);
+            var treatAsNonDps = variant.Role != CharacterRole.DPS || baseRole != CharacterRole.DPS;
+            var matchingRequestedElementResDownCount = request.EnemyWeakness == Element.None
+                ? 0
+                : detectedEffects
+                    .Select(GetDetectedElementalResistanceDownTargetElement)
+                    .Where(targetElement => !string.IsNullOrWhiteSpace(targetElement)
+                        && targetElement.Equals(request.EnemyWeakness.ToString(), StringComparison.OrdinalIgnoreCase))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count();
+            var offAxisElementResDownCount = request.EnemyWeakness == Element.None
+                ? 0
+                : detectedEffects
+                    .Select(GetDetectedElementalResistanceDownTargetElement)
+                    .Where(targetElement => !string.IsNullOrWhiteSpace(targetElement)
+                        && !targetElement.Equals(request.EnemyWeakness.ToString(), StringComparison.OrdinalIgnoreCase))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count();
+            if (request.EnemyWeakness != Element.None
+                && providedEffectKeys.Contains("elemental_resistance_down", StringComparer.OrdinalIgnoreCase)
+                && matchingRequestedElementResDownCount == 0)
+            {
+                penalty += treatAsNonDps ? 220d : 64d;
+                if (offAxisElementResDownCount > 1)
+                {
+                    penalty += (offAxisElementResDownCount - 1) * (treatAsNonDps ? 118d : 34d);
+                }
+            }
+
+            if (!treatAsNonDps || request.PreferredDamageType == DamageType.Any)
+            {
+                return penalty;
+            }
+
+            var hasRelevantDamageBonus = request.PreferredDamageType switch
+            {
+                DamageType.Physical => providedEffectKeys.Any(key => key is "phys_damage_bonus" or "phys_weapon_boost" or "elemental_damage_bonus" or "elemental_weapon_boost"),
+                DamageType.Magical => providedEffectKeys.Any(key => key is "mag_damage_bonus" or "mag_weapon_boost" or "elemental_damage_bonus" or "elemental_weapon_boost"),
+                _ => false
+            };
+            var hasOffAxisDamageBonus = request.PreferredDamageType switch
+            {
+                DamageType.Physical => providedEffectKeys.Any(key => key is "mag_damage_bonus" or "mag_weapon_boost"),
+                DamageType.Magical => providedEffectKeys.Any(key => key is "phys_damage_bonus" or "phys_weapon_boost"),
+                _ => false
+            };
+            var hasRelevantFoundation = request.PreferredDamageType switch
+            {
+                DamageType.Physical => providedEffectKeys.Any(key => key is "patk_up" or "pdef_down" or "elemental_resistance_down"),
+                DamageType.Magical => providedEffectKeys.Any(key => key is "matk_up" or "mdef_down" or "elemental_resistance_down"),
+                _ => false
+            };
+
+            if (hasOffAxisDamageBonus && !hasRelevantDamageBonus)
+            {
+                penalty += hasRelevantFoundation ? 170d : 240d;
+            }
+
+            return penalty;
         }
 
         private static double GetVariantGearCAbilityUsesSelectionBonus(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
@@ -1277,13 +1357,27 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static double GetVariantWeaponOrientationSelectionBonus(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
         {
-            return GetVariantWeaponOrientationBonus(variant.Role, variant.MainPassivePoints, variant.OffPassivePoints, request);
+            var mainProvidedEffectKeys = DetectEffectKeys(variant.MainWeapon.ProvidedEffectLabels, variant.MainWeapon.AbilityText, request, request.BossImmunityKeys)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            IReadOnlyCollection<string> offHandProvidedEffectKeys = variant.OffHandWeapon == null
+                ? Array.Empty<string>()
+                : DetectEffectKeys(variant.OffHandWeapon.ProvidedEffectLabels, variant.OffHandWeapon.AbilityText, request, request.BossImmunityKeys)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return GetVariantWeaponOrientationBonus(
+                variant.Role,
+                variant.MainPassivePoints,
+                variant.OffPassivePoints,
+                mainProvidedEffectKeys,
+                offHandProvidedEffectKeys,
+                request);
         }
 
         private static double GetVariantWeaponOrientationBonus(
             CharacterRole role,
             IReadOnlyDictionary<string, int> mainPassivePoints,
             IReadOnlyDictionary<string, int> offPassivePoints,
+            IReadOnlyCollection<string> mainProvidedEffectKeys,
+            IReadOnlyCollection<string>? offHandProvidedEffectKeys,
             PlayerPowerAnalyzerV2Request request)
         {
             if (offPassivePoints.Count == 0)
@@ -1307,6 +1401,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var bonus = 0d;
+            var mainKeys = mainProvidedEffectKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var offKeys = (offHandProvidedEffectKeys ?? Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (role == CharacterRole.DPS)
             {
                 bonus += (mainSelfPriorityScore - offSelfPriorityScore) * 0.22;
@@ -1329,6 +1425,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (offTeamPriorityScore > mainTeamPriorityScore && mainSupportUtilityScore > 0.001)
             {
                 bonus -= Math.Min(mainSupportUtilityScore, offTeamPriorityScore) * 0.08;
+            }
+
+            var mainHasRequestedAxisFoundation = request.PreferredDamageType switch
+            {
+                DamageType.Physical => mainKeys.Any(key => key is "patk_up" or "pdef_down" or "phys_damage_bonus" or "phys_weapon_boost" or "elemental_damage_bonus" or "elemental_weapon_boost"),
+                DamageType.Magical => mainKeys.Any(key => key is "matk_up" or "mdef_down" or "mag_damage_bonus" or "mag_weapon_boost" or "elemental_damage_bonus" or "elemental_weapon_boost"),
+                _ => mainKeys.Any(key => key is "patk_up" or "matk_up" or "pdef_down" or "mdef_down" or "phys_damage_bonus" or "phys_weapon_boost" or "mag_damage_bonus" or "mag_weapon_boost" or "elemental_damage_bonus" or "elemental_weapon_boost")
+            };
+            var offIsHealingSupportOnly = offKeys.Count > 0
+                && offKeys.All(key => key.Equals("healing_support", StringComparison.OrdinalIgnoreCase));
+            if (mainHasRequestedAxisFoundation
+                && offIsHealingSupportOnly
+                && mainTeamPriorityScore > offTeamPriorityScore
+                && offSupportUtilityScore > 0.001)
+            {
+                bonus -= Math.Min(offSupportUtilityScore, Math.Max(mainTeamPriorityScore, 1d)) * 0.42;
             }
 
             return bonus * 1.55;
@@ -1371,6 +1483,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static double GetVariantOffHandComplementBonus(
             IReadOnlyCollection<string> baselineProvidedEffectKeys,
             IReadOnlyCollection<string> offHandProvidedEffectKeys,
+            IReadOnlyCollection<DetectedActiveEffect>? baselineDetectedEffects,
+            IReadOnlyCollection<DetectedActiveEffect>? offHandDetectedEffects,
             CharacterRole role,
             PlayerPowerAnalyzerV2Request request)
         {
@@ -1379,28 +1493,54 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return 0d;
             }
 
-            if (offHandProvidedEffectKeys.Count == 0)
-            {
-                return 0d;
-            }
-
             var baselineKeys = baselineProvidedEffectKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
             var offKeys = offHandProvidedEffectKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var baselineEffects = baselineDetectedEffects ?? Array.Empty<DetectedActiveEffect>();
+            var offEffects = offHandDetectedEffects ?? Array.Empty<DetectedActiveEffect>();
             var relevantMultiplierKeys = GetRelevantVariantMultiplierKeys(request);
             var baselineHasFoundation = baselineKeys.Contains("patk_up")
                 || baselineKeys.Contains("matk_up")
                 || baselineKeys.Contains("pdef_down")
                 || baselineKeys.Contains("mdef_down")
-                || baselineKeys.Contains("elemental_resistance_down");
-            var baselineHasEnhancement = baselineKeys.Contains("elemental_damage_up")
-                || baselineKeys.Contains("elemental_damage_received_up");
+                || baselineEffects.Any(effect => IsRequestedElementalResistanceDownEffect(effect, request));
+            var enhancementKeys = GetRelevantEnhancementKeys(request);
+            var baselineHasEnhancement = enhancementKeys.Any(key => baselineKeys.Contains(key));
             var offAddsRelevantMultiplier = relevantMultiplierKeys.Any(key => offKeys.Contains(key) && !baselineKeys.Contains(key));
-            var offAddsEnhancement = new[] { "elemental_damage_up", "elemental_damage_received_up" }
-                .Any(key => offKeys.Contains(key) && !baselineKeys.Contains(key));
+            var offAddsEnhancement = enhancementKeys.Any(key => offKeys.Contains(key) && !baselineKeys.Contains(key));
             var offAddsAmplifier = new[] { "exploit_weakness", "enfeeble", "enliven", "torpor", "stat_buff_tier_increase", "stat_debuff_tier_increase", "atb_conservation", "atb_gain" }
                 .Any(key => offKeys.Contains(key) && !baselineKeys.Contains(key));
+            var offAddsFoundation = request.PreferredDamageType switch
+            {
+                DamageType.Physical => offKeys.Any(key => key is "patk_up" or "pdef_down")
+                    || offEffects.Any(effect => IsRequestedElementalResistanceDownEffect(effect, request)),
+                DamageType.Magical => offKeys.Any(key => key is "matk_up" or "mdef_down")
+                    || offEffects.Any(effect => IsRequestedElementalResistanceDownEffect(effect, request)),
+                _ => offKeys.Any(key => key is "patk_up" or "matk_up" or "pdef_down" or "mdef_down")
+                    || offEffects.Any(effect => effect.Key.Equals("elemental_resistance_down", StringComparison.OrdinalIgnoreCase))
+            };
+            var offAddsOperationalUtility = offKeys.Any(key => key is "haste" or "atb_conservation" or "atb_gain");
+            var offHasPhysicalSupportSignal = offKeys.Any(key => key is "patk_up" or "pdef_down" or "phys_damage_bonus" or "phys_weapon_boost");
+            var offHasMagicalSupportSignal = offKeys.Any(key => key is "matk_up" or "mdef_down" or "mag_damage_bonus" or "mag_weapon_boost");
+            var baselineAddsOnlyOffAxisMultiplier = request.PreferredDamageType switch
+            {
+                DamageType.Physical => baselineKeys.Any(key => key is "mag_damage_bonus" or "mag_weapon_boost")
+                    && !baselineKeys.Any(key => key is "phys_damage_bonus" or "phys_weapon_boost" or "elemental_damage_bonus" or "elemental_weapon_boost"),
+                DamageType.Magical => baselineKeys.Any(key => key is "phys_damage_bonus" or "phys_weapon_boost")
+                    && !baselineKeys.Any(key => key is "mag_damage_bonus" or "mag_weapon_boost" or "elemental_damage_bonus" or "elemental_weapon_boost"),
+                _ => false
+            };
+            var offAddsOnlyOffAxisSupport = request.PreferredDamageType switch
+            {
+                DamageType.Physical => offHasMagicalSupportSignal && !offHasPhysicalSupportSignal && !offAddsFoundation,
+                DamageType.Magical => offHasPhysicalSupportSignal && !offHasMagicalSupportSignal && !offAddsFoundation,
+                _ => false
+            };
             var offDuplicatesAttackBuff = (offKeys.Contains("patk_up") && baselineKeys.Contains("patk_up"))
                 || (offKeys.Contains("matk_up") && baselineKeys.Contains("matk_up"));
+            var offIsHealingSupportOnly = offKeys.Count > 0
+                && offKeys.All(key => key.Equals("healing_support", StringComparison.OrdinalIgnoreCase));
+            var baselineIsHealingSupportOnly = baselineKeys.Count > 0
+                && baselineKeys.All(key => key.Equals("healing_support", StringComparison.OrdinalIgnoreCase));
 
             var bonus = 0d;
             if (offAddsRelevantMultiplier)
@@ -1431,6 +1571,64 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
+            if (baselineHasFoundation
+                && !offAddsFoundation
+                && !offAddsRelevantMultiplier
+                && !offAddsEnhancement
+                && !offAddsAmplifier
+                && !offAddsOperationalUtility)
+            {
+                if (offKeys.Count == 0)
+                {
+                    bonus -= role == CharacterRole.Healer ? 152d : 136d;
+                }
+                else if (offIsHealingSupportOnly)
+                {
+                    bonus -= role == CharacterRole.Healer ? 188d : 166d;
+                }
+                else
+                {
+                    bonus -= role == CharacterRole.Healer ? 126d : 112d;
+                }
+            }
+
+            if (baselineHasFoundation
+                && offAddsOnlyOffAxisSupport
+                && !offAddsRelevantMultiplier
+                && !offAddsEnhancement
+                && !offAddsAmplifier)
+            {
+                bonus -= role == CharacterRole.Healer ? 178d : 156d;
+                if (baselineHasEnhancement)
+                {
+                    bonus -= role == CharacterRole.Healer ? 84d : 72d;
+                }
+            }
+
+            if (baselineAddsOnlyOffAxisMultiplier
+                && offAddsFoundation
+                && !offAddsRelevantMultiplier
+                && !offAddsEnhancement)
+            {
+                bonus -= role == CharacterRole.Healer ? 244d : 216d;
+                if (offAddsOperationalUtility)
+                {
+                    bonus -= role == CharacterRole.Healer ? 48d : 42d;
+                }
+            }
+
+            if (baselineIsHealingSupportOnly
+                && offAddsFoundation
+                && !offAddsRelevantMultiplier
+                && !offAddsEnhancement)
+            {
+                bonus -= role == CharacterRole.Healer ? 168d : 148d;
+                if (offAddsOperationalUtility)
+                {
+                    bonus -= role == CharacterRole.Healer ? 24d : 20d;
+                }
+            }
+
             return bonus;
         }
 
@@ -1441,6 +1639,237 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 DamageType.Physical => new[] { "phys_damage_bonus", "phys_weapon_boost", "elemental_damage_bonus", "elemental_weapon_boost" },
                 DamageType.Magical => new[] { "mag_damage_bonus", "mag_weapon_boost", "elemental_damage_bonus", "elemental_weapon_boost" },
                 _ => new[] { "phys_damage_bonus", "phys_weapon_boost", "mag_damage_bonus", "mag_weapon_boost", "elemental_damage_bonus", "elemental_weapon_boost" }
+            };
+        }
+
+        private static string[] GetRelevantDamageReceivedUpKeys(PlayerPowerAnalyzerV2Request request)
+        {
+            return request.PreferredDamageType switch
+            {
+                DamageType.Physical => new[] { "phys_damage_received_up", "elemental_damage_received_up" },
+                DamageType.Magical => new[] { "mag_damage_received_up", "elemental_damage_received_up" },
+                _ => new[] { "phys_damage_received_up", "mag_damage_received_up", "elemental_damage_received_up" }
+            };
+        }
+
+        private static string[] GetRelevantEnhancementKeys(PlayerPowerAnalyzerV2Request request)
+        {
+            return new[] { "elemental_damage_up" }
+                .Concat(GetRelevantDamageReceivedUpKeys(request))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        private static EffectiveSubWeaponRoleInference InferEffectiveSubWeaponRole(
+            CharacterRole baseRole,
+            PlayerPowerAnalyzerV2ItemSlot mainWeapon,
+            PlayerPowerAnalyzerV2ItemSlot? offHandWeapon,
+            PlayerPowerAnalyzerV2ItemSlot? ultimateWeapon,
+            PlayerPowerAnalyzerV2ItemSlot? mainOutfit,
+            IReadOnlyCollection<string> providedEffectKeys,
+            IReadOnlyDictionary<string, int> passivePoints,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            var totalPatk = mainWeapon.Patk + (offHandWeapon?.Patk ?? 0) + (ultimateWeapon?.Patk ?? 0) + (mainOutfit?.Patk ?? 0);
+            var totalMatk = mainWeapon.Matk + (offHandWeapon?.Matk ?? 0) + (ultimateWeapon?.Matk ?? 0) + (mainOutfit?.Matk ?? 0);
+            var totalHeal = mainWeapon.Heal + (offHandWeapon?.Heal ?? 0) + (ultimateWeapon?.Heal ?? 0) + (mainOutfit?.Heal ?? 0);
+            var primaryOffenseStat = request.PreferredDamageType switch
+            {
+                DamageType.Physical => totalPatk,
+                DamageType.Magical => totalMatk,
+                _ => Math.Max(totalPatk, totalMatk)
+            };
+            var supportSignalCount = CountMatchingKeys(
+                providedEffectKeys,
+                GetRelevantDamageReceivedUpKeys(request)
+                    .Concat(new[]
+                    {
+                        "patk_up",
+                        "matk_up",
+                        "pdef_down",
+                        "mdef_down",
+                        "elemental_resistance_down",
+                        "elemental_damage_up",
+                        "elemental_damage_bonus",
+                        "elemental_weapon_boost",
+                        "exploit_weakness",
+                        "enfeeble",
+                        "enliven",
+                        "torpor",
+                        "stat_buff_tier_increase",
+                        "stat_debuff_tier_increase",
+                        "atb_conservation",
+                        "atb_gain"
+                    })
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray());
+            var amplifierSignalCount = CountMatchingKeys(
+                providedEffectKeys,
+                "exploit_weakness",
+                "enfeeble",
+                "enliven",
+                "torpor",
+                "stat_buff_tier_increase",
+                "stat_debuff_tier_increase",
+                "atb_conservation",
+                "atb_gain");
+            var defenseSignalCount = CountMatchingKeys(providedEffectKeys, "pdef_up", "mdef_up");
+            var relevantMultiplierCount = CountMatchingKeys(providedEffectKeys, GetRelevantVariantMultiplierKeys(request));
+            var requestedDamageAlignmentCount = new[] { mainWeapon, offHandWeapon, ultimateWeapon }
+                .Where(slot => slot != null)
+                .Count(slot => MatchesRequestedDamageType(slot!.AbilityType, request.PreferredDamageType));
+            var requestedElementAlignmentCount = request.EnemyWeakness == Element.None
+                ? 0
+                : new[] { mainWeapon, offHandWeapon, ultimateWeapon }
+                    .Where(slot => slot != null)
+                    .Count(slot => !string.IsNullOrWhiteSpace(slot!.Element)
+                        && !slot.Element.Equals("None", StringComparison.OrdinalIgnoreCase)
+                        && MatchesRequestedElement(slot.Element, request.EnemyWeakness));
+            var anchorSignalCount = CountAnchorOffensiveSignals(providedEffectKeys, request);
+            var healerPassivePoints = SumPassivePoints(passivePoints, normalized => normalized.Contains("heal", StringComparison.OrdinalIgnoreCase));
+            var extensionPoints = SumPassivePoints(passivePoints, normalized => IsBuffDebuffExtensionPassive(normalized));
+            var hpPassivePoints = SumPassivePoints(passivePoints, normalized => normalized.Contains("boost hp", StringComparison.OrdinalIgnoreCase));
+            var localDefensePassivePoints = SumPassivePoints(
+                passivePoints,
+                normalized => !normalized.Contains("all allies", StringComparison.OrdinalIgnoreCase)
+                    && (normalized.Contains("pdef", StringComparison.OrdinalIgnoreCase)
+                        || normalized.Contains("mdef", StringComparison.OrdinalIgnoreCase)));
+            var offensivePassiveScore = ScorePassivePointsByPredicate(passivePoints, CharacterRole.DPS, request, IsAnchorPrioritySelfPassive)
+                + ScorePassivePointsByPredicate(passivePoints, CharacterRole.DPS, request, IsAnchorPriorityTeamWidePassive);
+
+            var scores = new Dictionary<CharacterRole, double>
+            {
+                [CharacterRole.DPS] = GetBaseRoleInferenceBias(baseRole, CharacterRole.DPS),
+                [CharacterRole.Support] = GetBaseRoleInferenceBias(baseRole, CharacterRole.Support),
+                [CharacterRole.Healer] = GetBaseRoleInferenceBias(baseRole, CharacterRole.Healer),
+                [CharacterRole.Tank] = GetBaseRoleInferenceBias(baseRole, CharacterRole.Tank)
+            };
+
+            scores[CharacterRole.DPS] += requestedDamageAlignmentCount * 0.8;
+            scores[CharacterRole.DPS] += requestedElementAlignmentCount * 0.72;
+            scores[CharacterRole.DPS] += anchorSignalCount * 0.32;
+            scores[CharacterRole.DPS] += offensivePassiveScore * 0.008;
+            if (primaryOffenseStat > 0 && totalHeal < primaryOffenseStat * 0.82)
+            {
+                scores[CharacterRole.DPS] += 0.62;
+            }
+
+            scores[CharacterRole.Support] += supportSignalCount * 0.58;
+            scores[CharacterRole.Support] += amplifierSignalCount * 0.24;
+            scores[CharacterRole.Support] += relevantMultiplierCount * 0.36;
+            if (extensionPoints > 0)
+            {
+                scores[CharacterRole.Support] += 0.72;
+            }
+
+            if (supportSignalCount >= 3 && relevantMultiplierCount > 0)
+            {
+                scores[CharacterRole.Support] += 0.44;
+            }
+
+            scores[CharacterRole.Healer] += healerPassivePoints > 0 ? 1.08 : 0d;
+            scores[CharacterRole.Healer] += extensionPoints > 0 ? 0.66 : 0d;
+            scores[CharacterRole.Healer] += defenseSignalCount * 0.16;
+            if (primaryOffenseStat > 0)
+            {
+                var healRatio = (double)totalHeal / primaryOffenseStat;
+                if (healRatio >= 1.0)
+                {
+                    scores[CharacterRole.Healer] += 1.1;
+                }
+                else if (healRatio >= 0.8)
+                {
+                    scores[CharacterRole.Healer] += 0.62;
+                }
+            }
+            else if (totalHeal > 0)
+            {
+                scores[CharacterRole.Healer] += 0.7;
+            }
+
+            scores[CharacterRole.Tank] += defenseSignalCount == 2 ? 1.18 : defenseSignalCount * 0.3;
+            scores[CharacterRole.Tank] += hpPassivePoints > 0 ? 0.72 : 0d;
+            scores[CharacterRole.Tank] += localDefensePassivePoints > 0 ? 0.84 : 0d;
+
+            if (supportSignalCount >= 3 && healerPassivePoints <= 0 && totalHeal < primaryOffenseStat * 0.85)
+            {
+                scores[CharacterRole.Healer] -= 0.36;
+            }
+
+            var chosenRole = scores
+                .OrderByDescending(entry => entry.Value)
+                .ThenByDescending(entry => GetRoleInferencePreference(entry.Key, baseRole))
+                .Select(entry => entry.Key)
+                .First();
+            if (chosenRole != baseRole)
+            {
+                var requiredMargin = chosenRole == CharacterRole.DPS && baseRole != CharacterRole.DPS ? 0.9 : 0.3;
+                if (scores[chosenRole] - scores[baseRole] < requiredMargin)
+                {
+                    chosenRole = baseRole;
+                }
+            }
+
+            var reasonPrefix = chosenRole == baseRole
+                ? $"preserved base role {baseRole}"
+                : $"shifted from {baseRole} to {chosenRole}";
+            var offenseRatio = primaryOffenseStat <= 0 ? 0d : Math.Round((double)totalHeal / primaryOffenseStat, 2);
+            var reason = $"{reasonPrefix}; scores DPS={scores[CharacterRole.DPS]:0.##}, Support={scores[CharacterRole.Support]:0.##}, Healer={scores[CharacterRole.Healer]:0.##}, Tank={scores[CharacterRole.Tank]:0.##}; supportKeys={supportSignalCount}, amplifiers={amplifierSignalCount}, defenseKeys={defenseSignalCount}, healToOffense={offenseRatio:0.##}.";
+            return new EffectiveSubWeaponRoleInference
+            {
+                Role = chosenRole,
+                Reason = reason
+            };
+        }
+
+        private static int CountMatchingKeys(IReadOnlyCollection<string> keys, params string[] targetKeys)
+        {
+            if (keys.Count == 0 || targetKeys.Length == 0)
+            {
+                return 0;
+            }
+
+            return targetKeys.Count(target => keys.Contains(target, StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static double SumPassivePoints(IReadOnlyDictionary<string, int> passivePoints, Func<string, bool> predicate)
+        {
+            return passivePoints
+                .Where(kvp => kvp.Value > 0 && predicate(kvp.Key.ToLowerInvariant()))
+                .Sum(kvp => kvp.Value);
+        }
+
+        private static double GetBaseRoleInferenceBias(CharacterRole baseRole, CharacterRole candidateRole)
+        {
+            if (baseRole == candidateRole)
+            {
+                return 1.2;
+            }
+
+            return candidateRole switch
+            {
+                CharacterRole.Support => 0.42,
+                CharacterRole.Healer => 0.38,
+                CharacterRole.Tank => 0.24,
+                CharacterRole.DPS => 0.22,
+                _ => 0.2
+            };
+        }
+
+        private static int GetRoleInferencePreference(CharacterRole candidateRole, CharacterRole baseRole)
+        {
+            if (candidateRole == baseRole)
+            {
+                return 5;
+            }
+
+            return candidateRole switch
+            {
+                CharacterRole.Support => 4,
+                CharacterRole.Healer => 3,
+                CharacterRole.DPS => 2,
+                CharacterRole.Tank => 1,
+                _ => 0
             };
         }
 
@@ -1462,7 +1891,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .Where(effect => effect.SourceType.Equals("Off-hand", StringComparison.OrdinalIgnoreCase))
                 .Select(effect => effect.Key)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var complementBonus = GetVariantOffHandComplementBonus(baselineProvidedKeys, offHandProvidedKeys, variant.Role, request);
+            var baselineDetectedEffects = detectedEffects
+                .Where(effect => effect.SourceType.Equals("Main Weapon", StringComparison.OrdinalIgnoreCase)
+                    || effect.SourceType.Equals("Ultimate", StringComparison.OrdinalIgnoreCase)
+                    || effect.SourceType.Equals("Main Outfit", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var offHandDetectedEffects = detectedEffects
+                .Where(effect => effect.SourceType.Equals("Off-hand", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var complementBonus = GetVariantOffHandComplementBonus(baselineProvidedKeys, offHandProvidedKeys, baselineDetectedEffects, offHandDetectedEffects, variant.Role, request);
             return complementBonus < 0d
                 ? complementBonus * 1.65
                 : 0d;
@@ -1473,6 +1910,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
             PlayerPowerAnalyzerV2Request request)
         {
             return baseVariants.Sum(variant => GetFinalTeamRedundantOffHandPenalty(variant, request));
+        }
+
+        private static double GetFinalTeamVariantAlignmentPenalty(
+            IReadOnlyList<CharacterBuildCandidate> baseVariants,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            return baseVariants.Sum(variant => GetVariantOffAxisPackagePenalty(
+                variant,
+                variant.ProvidedEffectKeys,
+                GetDetectedEffectsForVariant(variant, request),
+                request) * 1.5);
         }
 
         private static double GetAnchorCandidateSelectionBonus(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
@@ -1566,6 +2014,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 activeSourceNames.Add(anchor.MainOutfit.Name);
             }
 
+            var anchorDetectedEffects = GetDetectedEffectsForVariant(anchor, request);
+
             return new AnchorScoringContext
             {
                 CharacterName = anchor.CharacterName,
@@ -1573,7 +2023,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 CandidateScore = ScoreAnchorCandidate(anchor, request),
                 ActiveSourceNames = activeSourceNames,
                 MissingPriorityKeys = GetAnchorPriorityKeys(request)
-                    .Where(key => !anchor.ProvidedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
+                    .Where(key => key.Equals("elemental_resistance_down", StringComparison.OrdinalIgnoreCase)
+                        ? request.EnemyWeakness == Element.None
+                            ? !anchor.ProvidedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)
+                            : !anchorDetectedEffects.Any(effect => IsRequestedElementalResistanceDownEffect(effect, request))
+                        : !anchor.ProvidedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList()
             };
@@ -1585,7 +2039,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 "elemental_resistance_down",
                 "elemental_damage_up",
-                "elemental_damage_received_up",
                 "exploit_weakness",
                 "enfeeble",
                 "enliven",
@@ -1593,6 +2046,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "stat_buff_tier_increase",
                 "stat_debuff_tier_increase"
             };
+            keys.AddRange(GetRelevantDamageReceivedUpKeys(request));
 
             if (request.PreferredDamageType == DamageType.Magical)
             {
@@ -1630,6 +2084,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return result;
             }
 
+            var allyDetectedEffects = explicitDetectedEffects
+                .Where(effect => !anchorContext.ActiveSourceNames.Contains(effect.SourceName))
+                .Where(IsAnchorSupportEligibleEffect)
+                .ToList();
             var allyExplicitKeys = explicitDetectedEffects
                 .Where(effect => !anchorContext.ActiveSourceNames.Contains(effect.SourceName))
                 .Where(IsAnchorSupportEligibleEffect)
@@ -1640,10 +2098,23 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .Select(effect => effect.Key)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var allyHasRequestedElementalResDown = request.EnemyWeakness == Element.None
+                ? allyExplicitKeys.Contains("elemental_resistance_down")
+                : allyDetectedEffects.Any(effect => IsRequestedElementalResistanceDownEffect(effect, request));
+            var teamHasRequestedElementalResDown = request.EnemyWeakness == Element.None
+                ? teamExplicitKeys.Contains("elemental_resistance_down")
+                : explicitDetectedEffects.Any(effect => IsRequestedElementalResistanceDownEffect(effect, request));
 
             foreach (var key in anchorContext.MissingPriorityKeys)
             {
-                if (!allyExplicitKeys.Contains(key))
+                if (key.Equals("elemental_resistance_down", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!allyHasRequestedElementalResDown)
+                    {
+                        continue;
+                    }
+                }
+                else if (!allyExplicitKeys.Contains(key))
                 {
                     continue;
                 }
@@ -1660,7 +2131,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             if (allyExplicitKeys.Contains("stat_debuff_tier_increase")
-                && HasAnyKey(teamExplicitKeys, "pdef_down", "mdef_down", "elemental_resistance_down", "elemental_damage_received_up"))
+                && (HasAnyKey(teamExplicitKeys, GetRelevantDamageReceivedUpKeys(request).Concat(new[] { "pdef_down", "mdef_down" }).ToArray())
+                    || teamHasRequestedElementalResDown))
             {
                 result.Score += request.PreferredDamageType == DamageType.Magical ? 46d : 42d;
                 result.AmplifierLabels.Add(ToLabel("stat_debuff_tier_increase"));
@@ -1681,7 +2153,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             if (allyExplicitKeys.Contains("enfeeble")
-                && HasAnyKey(teamExplicitKeys, "pdef_down", "mdef_down", "elemental_resistance_down", "elemental_damage_received_up"))
+                && (HasAnyKey(teamExplicitKeys, GetRelevantDamageReceivedUpKeys(request).Concat(new[] { "pdef_down", "mdef_down" }).ToArray())
+                    || teamHasRequestedElementalResDown))
             {
                 result.Score += 34d;
                 result.AmplifierLabels.Add(ToLabel("enfeeble"));
@@ -1721,6 +2194,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "pdef_down" or "mdef_down" => 66d,
                 "phys_damage_bonus" or "phys_weapon_boost" => request.PreferredDamageType == DamageType.Physical ? 46d : 18d,
                 "mag_damage_bonus" or "mag_weapon_boost" => request.PreferredDamageType == DamageType.Magical ? 46d : 18d,
+                "phys_damage_received_up" => request.PreferredDamageType == DamageType.Physical ? 54d : 20d,
+                "mag_damage_received_up" => request.PreferredDamageType == DamageType.Magical ? 54d : 20d,
                 "exploit_weakness" => 38d,
                 "atb_conservation" => 26d,
                 "atb_gain" => 32d,
@@ -1799,7 +2274,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var characterScore = nonPassiveScore + passiveScore;
             if (off != null)
             {
-                characterScore += GetVariantWeaponOrientationBonus(role, main.PassivePoints, off.PassivePoints, request);
+                characterScore += GetVariantWeaponOrientationBonus(
+                    role,
+                    main.PassivePoints,
+                    off.PassivePoints,
+                    main.ProvidedEffectKeys,
+                    off.ProvidedEffectKeys,
+                    request);
             }
 
             var providedKeys = new HashSet<string>(main.ProvidedEffectKeys, StringComparer.OrdinalIgnoreCase);
@@ -1830,13 +2311,32 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     providedKeys.Add(key);
                 }
 
-                characterScore += GetVariantOffHandComplementBonus(baselineProvidedKeys, off.ProvidedEffectKeys, role, request);
+                var offHandComplementBonus = GetVariantOffHandComplementBonus(
+                    baselineProvidedKeys,
+                    off.ProvidedEffectKeys,
+                    GetDetectedEffectsForSlot(main.Slot, request),
+                    GetDetectedEffectsForSlot(off.Slot, request),
+                    role,
+                    request);
+                characterScore += offHandComplementBonus;
             }
+
+            var effectiveSubWeaponRoleInference = InferEffectiveSubWeaponRole(
+                role,
+                main.Slot,
+                off?.Slot,
+                ultimate?.Slot,
+                mainCostume?.Slot,
+                providedKeys,
+                passivePoints,
+                request);
 
             return new CharacterBuildCandidate
             {
                 CharacterName = character,
                 Role = role,
+                EffectiveSubWeaponRole = effectiveSubWeaponRoleInference.Role,
+                EffectiveSubWeaponRoleReason = effectiveSubWeaponRoleInference.Reason,
                 BaseScore = characterScore,
                 NonPassiveScore = nonPassiveScore,
                 ScoreBreakdown = new List<PlayerPowerAnalyzerV2ScoreComponent>
@@ -1916,10 +2416,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var charA = variantsByCharacter[teamCharacters[0]];
             var charB = variantsByCharacter[teamCharacters[1]];
             var charC = variantsByCharacter[teamCharacters[2]];
-            var teamRoles = teamCharacters
-                .Select(CharacterRoleRegistry.GetRoleOrDefault)
-                .ToList();
-            var optimisticSubWeaponGainsByCharacter = BuildOptimisticSubWeaponGainsForTeam(teamCharacters, teamRoles, ownedWeapons, request, referenceTuningProfile, weaponSlotEvaluationCache);
+            var optimisticSubWeaponGainsByCharacter = BuildOptimisticSubWeaponGainsForTeam(teamCharacters, ownedWeapons, request, referenceTuningProfile, weaponSlotEvaluationCache);
             TeamCandidate? bestTeamCandidate = null;
             foreach (var a in charA)
             {
@@ -1978,7 +2475,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private Dictionary<string, List<OptimisticSubWeaponGain>> BuildOptimisticSubWeaponGainsForTeam(
             IReadOnlyList<string> teamCharacters,
-            IReadOnlyCollection<CharacterRole> teamRoles,
             List<OwnedWeaponCandidate> ownedWeapons,
             PlayerPowerAnalyzerV2Request request,
             ReferenceTuningProfile referenceTuningProfile,
@@ -1991,18 +2487,33 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var lookup = new Dictionary<string, List<OptimisticSubWeaponGain>>(StringComparer.OrdinalIgnoreCase);
             foreach (var teamCharacter in teamCharacters)
             {
-                var role = CharacterRoleRegistry.GetRoleOrDefault(teamCharacter);
                 var gains = new List<OptimisticSubWeaponGain>();
                 foreach (var weapon in nonUltimateWeapons)
                 {
-                    var evaluation = GetOrCreateWeaponSlot(weapon, role, request, referenceTuningProfile, "Sub Weapon", 0.5, false, false, weaponSlotEvaluationCache);
-                    var optimisticGain = GetOptimisticSubWeaponGainUpperBound(evaluation.PassivePoints, evaluation.NonPassiveScore, role, teamRoles, request);
-                    gains.Add(new OptimisticSubWeaponGain
+                    var bestGainForCharacter = new OptimisticSubWeaponGain
                     {
-                        WeaponName = evaluation.Name,
-                        Gain = optimisticGain,
-                        EvaluationScore = evaluation.Score
-                    });
+                        WeaponName = weapon.Item.Name,
+                        Gain = double.MinValue,
+                        EvaluationScore = double.MinValue
+                    };
+
+                    foreach (var role in new[] { CharacterRole.DPS, CharacterRole.Support, CharacterRole.Healer, CharacterRole.Tank })
+                    {
+                        var evaluation = GetOrCreateWeaponSlot(weapon, role, request, referenceTuningProfile, "Sub Weapon", 0.5, false, false, weaponSlotEvaluationCache);
+                        var optimisticGain = GetOptimisticSubWeaponGainUpperBound(evaluation.PassivePoints, evaluation.NonPassiveScore, role, teamCharacters.Count, request);
+                        if (optimisticGain > bestGainForCharacter.Gain + 0.001
+                            || (Math.Abs(optimisticGain - bestGainForCharacter.Gain) <= 0.001 && evaluation.Score > bestGainForCharacter.EvaluationScore))
+                        {
+                            bestGainForCharacter = new OptimisticSubWeaponGain
+                            {
+                                WeaponName = evaluation.Name,
+                                Gain = optimisticGain,
+                                EvaluationScore = evaluation.Score
+                            };
+                        }
+                    }
+
+                    gains.Add(bestGainForCharacter);
                 }
 
                 lookup[teamCharacter] = gains
@@ -2057,7 +2568,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             IReadOnlyDictionary<string, int> weaponPassivePoints,
             double nonPassiveScore,
             CharacterRole equippingRole,
-            IReadOnlyCollection<CharacterRole> teamRoles,
+            int teamCharacterCount,
             PlayerPowerAnalyzerV2Request request)
         {
             var gain = nonPassiveScore;
@@ -2070,10 +2581,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (IsTeamWidePassive(kvp.Key))
                 {
-                    var maxRecipientWeight = teamRoles.Count == 0
+                    var maxRecipientWeight = teamCharacterCount <= 0
                         ? 0d
-                        : teamRoles.Max(role => ScoreTeamWidePassiveSkillForRecipient(kvp.Key, kvp.Value, role, request));
-                    gain += maxRecipientWeight * Math.Min(3, teamRoles.Count);
+                        : new[] { CharacterRole.DPS, CharacterRole.Support, CharacterRole.Healer, CharacterRole.Tank }
+                            .Max(role => ScoreTeamWidePassiveSkillForRecipient(kvp.Key, kvp.Value, role, request));
+                    gain += maxRecipientWeight * Math.Min(3, teamCharacterCount);
                     continue;
                 }
 
@@ -2105,11 +2617,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var effectPackage = ScoreEffectPackage(explicitDetectedEffects, baseVariants, request);
             var anchorSupportScore = ScoreAnchorSupportSynergy(baseVariants, explicitDetectedEffects, request);
             var redundantOffHandPenalty = GetFinalTeamRedundantOffHandPenalty(baseVariants, request);
+            var variantAlignmentPenalty = GetFinalTeamVariantAlignmentPenalty(baseVariants, request);
             var contextualVariantBonus = GetVariantContextualTeamBonus(baseVariants, request);
             score += effectPackage.Score;
             score += anchorSupportScore.Score;
             score += ScoreTeamEffects(providedEffectKeys, request) * 0.18;
             score += redundantOffHandPenalty;
+            score -= variantAlignmentPenalty;
             score += contextualVariantBonus;
             score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 90;
             score += request.HardRequiredEffectKeys.Count * 40;
@@ -2172,7 +2686,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 foreach (var weapon in availableSubWeapons)
                 {
-                    var evaluation = GetOrCreateWeaponSlot(weapon, character.Role, request, referenceTuningProfile, "Sub Weapon", 0.5, false, false, weaponSlotEvaluationCache);
+                    var evaluation = GetOrCreateWeaponSlot(weapon, character.EffectiveSubWeaponRole, request, referenceTuningProfile, "Sub Weapon", 0.5, false, false, weaponSlotEvaluationCache);
                     assignments.Add(new SubWeaponAssignment
                     {
                         CharacterName = character.CharacterName,
@@ -2205,7 +2719,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         continue;
                     }
 
-                    var characterRole = characterOutputsByName[assignment.CharacterName].Role;
+                    var characterRole = characterOutputsByName[assignment.CharacterName].EffectiveSubWeaponRole;
                     var gain = anchorRole.HasValue && !string.IsNullOrWhiteSpace(anchorCharacterName)
                         ? GetSubWeaponMarginalGainWithAnchorContext(
                             assignment.Evaluation.PassivePoints,
@@ -2377,6 +2891,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var debugNotes = new List<string>
             {
                 $"Roles: {string.Join(", ", roles)}",
+                $"Effective sub-weapon roles: {string.Join(", ", characterOutputs.OrderBy(character => character.CharacterName, StringComparer.OrdinalIgnoreCase).Select(character => $"{character.CharacterName}={character.EffectiveSubWeaponRole}"))}",
                 string.IsNullOrWhiteSpace(matchedTemplateName) ? "No enabled team template matched (50% penalty applied)." : $"Matched team template: {matchedTemplateName}"
             };
             if (referencePatternBonus > 0)
@@ -3285,6 +3800,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (IsTeamWidePassive(kvp.Key))
                 {
+                    var currentProviderPoints = currentCharacterPassivePoints.TryGetValue(kvp.Key, out var existingProviderPoints) ? existingProviderPoints : 0;
+                    var nextProviderPoints = currentProviderPoints + kvp.Value;
                     var currentPoints = currentTeamWidePassivePoints.TryGetValue(kvp.Key, out var existingTeamWidePoints) ? existingTeamWidePoints : 0;
                     var nextPoints = currentPoints + kvp.Value;
                     var teamWidePassiveMarginalMultiplier = GetSubWeaponTeamWidePassiveMarginalMultiplier(kvp.Key, equippingRole, request);
@@ -3334,6 +3851,23 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var normalized = skillName.ToLowerInvariant();
+            if (IsAnchorPriorityTeamWidePassive(skillName, request))
+            {
+                if (request.PreferredDamageType == DamageType.Physical
+                    && normalized.Contains("boost patk (all allies)", StringComparison.OrdinalIgnoreCase))
+                {
+                    return equippingRole == CharacterRole.DPS ? 0.94 : 1.0;
+                }
+
+                return equippingRole switch
+                {
+                    CharacterRole.Healer => 0.52,
+                    CharacterRole.Support => 0.66,
+                    CharacterRole.Tank => 0.8,
+                    _ => 1.0
+                };
+            }
+
             if (!normalized.Contains("boost pdef (all allies)", StringComparison.OrdinalIgnoreCase)
                 && !normalized.Contains("boost mdef (all allies)", StringComparison.OrdinalIgnoreCase))
             {
@@ -3345,6 +3879,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 CharacterRole.Healer => 0.42,
                 CharacterRole.Support => 0.5,
                 CharacterRole.Tank => 0.78,
+                CharacterRole.DPS => 0.62,
                 _ => 1.0
             };
         }
@@ -3368,6 +3903,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 && normalized.Contains(request.EnemyWeakness.ToString().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase))
             {
                 return 0.32;
+            }
+
+            if (!ShouldFavorOffenseInDefaultSubWeaponAssignment(request))
+            {
+                return 1.0;
+            }
+
+            if (IsElementOffensivePassiveLabel(normalized))
+            {
+                return 0.5;
+            }
+
+            if (IsAnchorPrioritySelfPassive(skillName, request))
+            {
+                return 0.84;
             }
 
             return 1.0;
@@ -4286,6 +4836,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "elemental_damage_up" => 165,
                 "elemental_damage_bonus" => 150,
                 "elemental_weapon_boost" => 150,
+                "phys_damage_received_up" => request.PreferredDamageType == DamageType.Magical ? 55 : 175,
+                "mag_damage_received_up" => request.PreferredDamageType == DamageType.Magical ? 175 : 55,
                 "phys_damage_bonus" or "phys_weapon_boost" => request.PreferredDamageType == DamageType.Magical ? 45 : 145,
                 "mag_damage_bonus" or "mag_weapon_boost" => request.PreferredDamageType == DamageType.Magical ? 145 : 45,
                 "stat_debuff_tier_increase" => role == CharacterRole.DPS ? 120 : 170,
@@ -4465,10 +5017,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 or "elemental_damage_up"
                 or "elemental_damage_bonus"
                 or "elemental_weapon_boost"
+                or "elemental_damage_received_up"
                 or "phys_damage_bonus"
                 or "mag_damage_bonus"
                 or "phys_weapon_boost"
                 or "mag_weapon_boost"
+                or "phys_damage_received_up"
+                or "mag_damage_received_up"
                 or "exploit_weakness";
         }
 
@@ -4654,12 +5209,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            var statPassiveFitMultiplier = GetWeaponStatPassiveFitMultiplier(passivePoints, patk, matk, heal, role, request, isSubWeapon);
+            var statPassiveFitMultiplier = GetWeaponStatPassiveFitMultiplier(passivePoints, providedEffectKeys, patk, matk, heal, role, request, isSubWeapon);
             multiplier *= statPassiveFitMultiplier;
 
             if (!isSubWeapon && role != CharacterRole.DPS)
             {
                 multiplier *= GetNonDpsOffensiveEffectFitMultiplier(providedEffectKeys, request);
+                multiplier *= GetNonDpsOffTargetElementResistDownFitMultiplier(providedEffectKeys, detectedEffects, request);
                 multiplier *= GetNonDpsBroadDefensePracticalityMultiplier(providedEffectKeys, request, weapon.Item.CommandAtb);
             }
 
@@ -4701,10 +5257,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             if (request.PreferredDamageType == DamageType.Physical)
             {
-                return hasMagicalSupportSignal && !hasPhysicalSupportSignal ? 0.28 : 1.0;
+                return hasMagicalSupportSignal && !hasPhysicalSupportSignal ? 0.18 : 1.0;
             }
 
-            return hasPhysicalSupportSignal && !hasMagicalSupportSignal ? 0.28 : 1.0;
+            return hasPhysicalSupportSignal && !hasMagicalSupportSignal ? 0.18 : 1.0;
         }
 
         private static double GetNonDpsBroadDefensePracticalityMultiplier(IReadOnlyCollection<string> providedEffectKeys, PlayerPowerAnalyzerV2Request request, int commandAtb)
@@ -4725,13 +5281,62 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return 0.72;
         }
 
+        private static double GetNonDpsOffTargetElementResistDownFitMultiplier(
+            IReadOnlyCollection<string> providedEffectKeys,
+            IReadOnlyCollection<DetectedActiveEffect> detectedEffects,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            if (request.EnemyWeakness == Element.None
+                || detectedEffects.Count == 0
+                || !providedEffectKeys.Contains("elemental_resistance_down", StringComparer.OrdinalIgnoreCase))
+            {
+                return 1.0;
+            }
+
+            var requestedElement = request.EnemyWeakness.ToString();
+            var matchingElementResDownCount = detectedEffects
+                .Select(GetDetectedElementalResistanceDownTargetElement)
+                .Where(targetElement => !string.IsNullOrWhiteSpace(targetElement)
+                    && targetElement.Equals(requestedElement, StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+            if (matchingElementResDownCount > 0)
+            {
+                return 1.0;
+            }
+
+            var offTargetElementResDownCount = detectedEffects
+                .Select(GetDetectedElementalResistanceDownTargetElement)
+                .Where(targetElement => !string.IsNullOrWhiteSpace(targetElement)
+                    && !targetElement.Equals(requestedElement, StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+            if (offTargetElementResDownCount == 0)
+            {
+                return 1.0;
+            }
+
+            var hasRequestedAxisSupportSignal = request.PreferredDamageType switch
+            {
+                DamageType.Physical => providedEffectKeys.Any(key => key is "patk_up" or "pdef_down" or "phys_damage_bonus" or "phys_weapon_boost" or "phys_damage_received_up" or "elemental_damage_up" or "elemental_damage_bonus" or "elemental_weapon_boost" or "elemental_damage_received_up"),
+                DamageType.Magical => providedEffectKeys.Any(key => key is "matk_up" or "mdef_down" or "mag_damage_bonus" or "mag_weapon_boost" or "mag_damage_received_up" or "elemental_damage_up" or "elemental_damage_bonus" or "elemental_weapon_boost" or "elemental_damage_received_up"),
+                _ => false
+            };
+
+            if (hasRequestedAxisSupportSignal)
+            {
+                return offTargetElementResDownCount > 1 ? 0.76 : 0.88;
+            }
+
+            return offTargetElementResDownCount > 1 ? 0.34 : 0.58;
+        }
+
         private static bool HasRelevantNonDpsOffensiveSignal(IReadOnlyCollection<string> providedEffectKeys, PlayerPowerAnalyzerV2Request request)
         {
             if (providedEffectKeys.Contains("elemental_resistance_down", StringComparer.OrdinalIgnoreCase)
-                || providedEffectKeys.Contains("elemental_damage_up", StringComparer.OrdinalIgnoreCase)
+                || GetRelevantEnhancementKeys(request).Any(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
                 || providedEffectKeys.Contains("elemental_damage_bonus", StringComparer.OrdinalIgnoreCase)
                 || providedEffectKeys.Contains("elemental_weapon_boost", StringComparer.OrdinalIgnoreCase)
-                || providedEffectKeys.Contains("elemental_damage_received_up", StringComparer.OrdinalIgnoreCase)
                 || providedEffectKeys.Contains("exploit_weakness", StringComparer.OrdinalIgnoreCase)
                 || providedEffectKeys.Contains("stat_buff_tier_increase", StringComparer.OrdinalIgnoreCase)
                 || providedEffectKeys.Contains("stat_debuff_tier_increase", StringComparer.OrdinalIgnoreCase)
@@ -4753,6 +5358,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static double GetWeaponStatPassiveFitMultiplier(
             IReadOnlyDictionary<string, int> passivePoints,
+            IReadOnlyCollection<string> providedEffectKeys,
             int patk,
             int matk,
             int heal,
@@ -4765,15 +5371,24 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return 1.0;
             }
 
-            if (role != CharacterRole.DPS && !isSubWeapon)
-            {
-                return 1.0;
-            }
-
             var physicalPassivePoints = GetPassiveSignalPoints(passivePoints, "boost patk", "boost atk", "phys. ability pot");
             var magicalPassivePoints = GetPassiveSignalPoints(passivePoints, "boost matk", "boost atk", "mag. ability pot");
             var healingPassivePoints = GetPassiveSignalPoints(passivePoints, "heal", "cure spells");
             var multiplier = 1.0;
+            var hasExtensionPassive = passivePoints.Keys.Any(skillName => IsBuffDebuffExtensionPassive(skillName));
+            var hasHealerSupportPassiveBundle = passivePoints.Keys.Any(skillName => skillName.Contains("heal", StringComparison.OrdinalIgnoreCase)
+                || skillName.Contains("cure", StringComparison.OrdinalIgnoreCase)
+                || skillName.Contains("esuna", StringComparison.OrdinalIgnoreCase));
+            var hasTeamwideOperationalPassive = passivePoints.Keys.Any(skillName => skillName.Contains("All Allies", StringComparison.OrdinalIgnoreCase)
+                && (skillName.Contains("Interruption", StringComparison.OrdinalIgnoreCase)
+                    || skillName.Contains("ATB", StringComparison.OrdinalIgnoreCase)
+                    || skillName.Contains("Command Gauge", StringComparison.OrdinalIgnoreCase)));
+            var lacksRelevantNonDpsSupportSignal = role != CharacterRole.DPS
+                && !HasRelevantNonDpsOffensiveSignal(providedEffectKeys, request);
+            var hasPureHealingExtensionPassivePackage = hasHealerSupportPassiveBundle
+                && physicalPassivePoints <= 0
+                && magicalPassivePoints <= 0
+                && !hasTeamwideOperationalPassive;
 
             if (request.PreferredDamageType == DamageType.Physical)
             {
@@ -4793,6 +5408,33 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     multiplier *= 0.88;
                 }
+
+                if (isSubWeapon
+                    && role != CharacterRole.DPS
+                    && lacksRelevantNonDpsSupportSignal
+                    && !hasExtensionPassive
+                    && hasHealerSupportPassiveBundle)
+                {
+                    multiplier *= 0.42;
+                }
+
+                if (isSubWeapon
+                    && role != CharacterRole.DPS
+                    && lacksRelevantNonDpsSupportSignal
+                    && hasPureHealingExtensionPassivePackage)
+                {
+                    multiplier *= 0.72;
+                }
+
+                if (lacksRelevantNonDpsSupportSignal && !hasExtensionPassive && healingPassivePoints > physicalPassivePoints + 5)
+                {
+                    multiplier *= isSubWeapon ? 0.56 : 0.82;
+                }
+
+                if (lacksRelevantNonDpsSupportSignal && !hasExtensionPassive && magicalPassivePoints > physicalPassivePoints + 5)
+                {
+                    multiplier *= isSubWeapon ? 0.62 : 0.84;
+                }
             }
             else if (request.PreferredDamageType == DamageType.Magical)
             {
@@ -4811,6 +5453,33 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     && healingPassivePoints > magicalPassivePoints + 5)
                 {
                     multiplier *= 0.88;
+                }
+
+                if (isSubWeapon
+                    && role != CharacterRole.DPS
+                    && lacksRelevantNonDpsSupportSignal
+                    && !hasExtensionPassive
+                    && hasHealerSupportPassiveBundle)
+                {
+                    multiplier *= 0.42;
+                }
+
+                if (isSubWeapon
+                    && role != CharacterRole.DPS
+                    && lacksRelevantNonDpsSupportSignal
+                    && hasPureHealingExtensionPassivePackage)
+                {
+                    multiplier *= 0.72;
+                }
+
+                if (lacksRelevantNonDpsSupportSignal && !hasExtensionPassive && healingPassivePoints > magicalPassivePoints + 5)
+                {
+                    multiplier *= isSubWeapon ? 0.56 : 0.82;
+                }
+
+                if (lacksRelevantNonDpsSupportSignal && !hasExtensionPassive && physicalPassivePoints > magicalPassivePoints + 5)
+                {
+                    multiplier *= isSubWeapon ? 0.62 : 0.84;
                 }
             }
 
@@ -5016,6 +5685,48 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return element.Equals(requestedElement.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? GetDetectedElementalResistanceDownTargetElement(DetectedActiveEffect effect)
+        {
+            if (!effect.Key.Equals("elemental_resistance_down", StringComparison.OrdinalIgnoreCase)
+                || string.IsNullOrWhiteSpace(effect.SourceText))
+            {
+                return null;
+            }
+
+            foreach (var element in Enum.GetValues<Element>())
+            {
+                if (element == Element.None)
+                {
+                    continue;
+                }
+
+                var elementName = element.ToString();
+                if (effect.SourceText.Contains($"{elementName} Resistance Down", StringComparison.OrdinalIgnoreCase)
+                    || effect.SourceText.Contains($"{elementName} Weakness", StringComparison.OrdinalIgnoreCase))
+                {
+                    return elementName;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsRequestedElementalResistanceDownEffect(DetectedActiveEffect effect, PlayerPowerAnalyzerV2Request request)
+        {
+            var targetElement = GetDetectedElementalResistanceDownTargetElement(effect);
+            return request.EnemyWeakness != Element.None
+                && !string.IsNullOrWhiteSpace(targetElement)
+                && targetElement.Equals(request.EnemyWeakness.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsOffAxisElementalResistanceDownEffect(DetectedActiveEffect effect, PlayerPowerAnalyzerV2Request request)
+        {
+            var targetElement = GetDetectedElementalResistanceDownTargetElement(effect);
+            return request.EnemyWeakness != Element.None
+                && !string.IsNullOrWhiteSpace(targetElement)
+                && !targetElement.Equals(request.EnemyWeakness.ToString(), StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsSuppressedByImmunity(string key, IEnumerable<string> bossImmunityKeys)
@@ -5243,6 +5954,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             public string CharacterName { get; set; } = string.Empty;
             public CharacterRole Role { get; set; }
+            public CharacterRole EffectiveSubWeaponRole { get; set; }
+            public string EffectiveSubWeaponRoleReason { get; set; } = string.Empty;
             public double BaseScore { get; set; }
             public double NonPassiveScore { get; set; }
             public PlayerPowerAnalyzerV2ItemSlot MainWeapon { get; set; } = new();
@@ -5271,6 +5984,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     CharacterName = CharacterName,
                     Role = Role,
+                    EffectiveSubWeaponRole = EffectiveSubWeaponRole,
                     CharacterPortraitUrl = ResolveCharacterPortraitUrl(CharacterName),
                     Score = Math.Round(BaseScore, 2),
                     TotalPatk = patk,
@@ -5283,9 +5997,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     SubOutfits = SubOutfits.ToList(),
                     RecommendedMateria = new List<PlayerPowerAnalyzerV2MateriaRecommendation>(),
                     ProvidedEffectLabels = ProvidedEffectKeys.Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
+                    DebugNotes = string.IsNullOrWhiteSpace(EffectiveSubWeaponRoleReason)
+                        ? new List<string>()
+                        : new List<string> { $"Effective sub-weapon role: {EffectiveSubWeaponRole} ({EffectiveSubWeaponRoleReason})" },
                     ScoreBreakdown = CloneScoreBreakdown(ScoreBreakdown)
                 };
             }
+        }
+
+        private sealed class EffectiveSubWeaponRoleInference
+        {
+            public CharacterRole Role { get; set; }
+            public string Reason { get; set; } = string.Empty;
         }
 
         private sealed class SubWeaponAssignment

@@ -647,6 +647,63 @@
         display: block;
     }
 
+    .inventory-survey-summary {
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 0.85rem;
+        background: rgba(248, 250, 252, 0.92);
+        padding: 0.85rem 1rem;
+        color: #475569;
+        font-size: 0.93rem;
+    }
+
+    .inventory-survey-error:empty {
+        display: none;
+    }
+
+    .inventory-survey-loading {
+        display: none;
+        align-items: center;
+        gap: 0.6rem;
+        color: #475569;
+        font-weight: 600;
+    }
+
+    .inventory-survey-loading.active {
+        display: inline-flex;
+    }
+
+    .inventory-survey-empty {
+        padding: 1rem;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .inventory-survey-status {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.28rem 0.7rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .inventory-survey-status-owned {
+        background: rgba(25, 135, 84, 0.12);
+        color: #0f5132;
+    }
+
+    .inventory-survey-status-unowned {
+        background: rgba(220, 53, 69, 0.1);
+        color: #842029;
+    }
+
+    .inventory-survey-results-table th,
+    .inventory-survey-results-table td {
+        vertical-align: middle;
+        font-size: 0.92rem;
+    }
+
     @@media (max-width: 991.98px) {
         .inventory-toolbar-card {
             position: static;
@@ -767,6 +824,7 @@
                         <button type="button" class="btn btn-primary" id="inventoryExportButton"><i class="fas fa-file-export"></i> Export</button>
                         <button type="button" class="btn btn-outline-primary" id="inventoryImportButton"><i class="fas fa-file-import"></i> Import</button>
                         <button type="button" class="btn btn-outline-secondary" id="inventoryPasteImportButton"><i class="fas fa-paste"></i> Paste Import</button>
+                        <button type="button" class="btn btn-outline-success" id="inventorySurveyQuickViewButton"><i class="fas fa-clipboard-list"></i> SOLDIER Survey Quick View</button>
                         <button type="button" class="btn btn-outline-danger" id="inventoryResetButton"><i class="fas fa-trash"></i> Reset</button>
                     </div>
                     <input type="file" class="inventory-file-input" id="inventoryImportFileInput" accept="application/json,.json" />
@@ -1154,6 +1212,75 @@
     </div>
 </div>
 
+<div class="modal fade" id="surveyQuickViewModal" tabindex="-1" aria-labelledby="surveyQuickViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="surveyQuickViewModalLabel">SOLDIER Survey Quick View</h5>
+                    <div class="text-muted small">Pick a configured survey sheet, pull the weapon and costume columns from its CSV header, and compare them against your saved local inventory.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 align-items-end mb-3">
+                    <div class="col-12 col-lg-8">
+                        <label for="surveyQuickViewSheetSelect" class="form-label fw-semibold">Survey Sheet</label>
+                        <select class="form-select" id="surveyQuickViewSheetSelect" @(Model.AvailableSurveySheets.Count == 0 ? "disabled" : null)>
+                            <option value="">-- Select a survey sheet --</option>
+                            @foreach (var sheet in Model.AvailableSurveySheets)
+                            {
+                                <option value="@sheet.Url">@sheet.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <button type="button" class="btn btn-primary w-100" id="surveyQuickViewLoadButton" @(Model.AvailableSurveySheets.Count == 0 ? "disabled" : null)>
+                            <i class="fas fa-magnifying-glass"></i> Get Details
+                        </button>
+                    </div>
+                </div>
+                <div class="inventory-survey-summary mb-3" id="surveyQuickViewSummary">
+                    @if (Model.AvailableSurveySheets.Count == 0)
+                    {
+                        <span>No survey sheets are configured right now.</span>
+                    }
+                    else
+                    {
+                        <span>Select a survey sheet and click <strong>Get Details</strong> to see the weapon and costume columns in survey order.</span>
+                    }
+                </div>
+                <div class="alert alert-danger inventory-survey-error mb-3" id="surveyQuickViewError" role="alert"></div>
+                <div class="inventory-survey-loading mb-3" id="surveyQuickViewLoading">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span>Loading survey details...</span>
+                </div>
+                <div class="table-responsive border rounded" id="surveyQuickViewResultsWrapper">
+                    <table class="table table-sm align-middle mb-0 inventory-survey-results-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Character</th>
+                                <th scope="col">Item</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Inventory</th>
+                            </tr>
+                        </thead>
+                        <tbody id="surveyQuickViewResultsBody">
+                            <tr>
+                                <td colspan="5" class="inventory-survey-empty">No survey details loaded yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script id="inventoryCatalogJson" type="application/json">@Html.Raw(itemsJson)</script>
 <script id="inventoryCharactersJson" type="application/json">@Html.Raw(charactersJson)</script>
 <script id="inventoryLevelsJson" type="application/json">@Html.Raw(levelsJson)</script>
@@ -1175,6 +1302,7 @@
             const inventoryImportButton = document.getElementById('inventoryImportButton');
             const inventoryImportFileInput = document.getElementById('inventoryImportFileInput');
             const inventoryPasteImportButton = document.getElementById('inventoryPasteImportButton');
+            const inventorySurveyQuickViewButton = document.getElementById('inventorySurveyQuickViewButton');
             const inventoryBulkHelpButton = document.getElementById('inventoryBulkHelpButton');
             const inventoryResetButton = document.getElementById('inventoryResetButton');
             const inventorySummaryMeta = document.getElementById('inventorySummaryMeta');
@@ -1217,6 +1345,14 @@
             const inventoryBulkHelpModal = inventoryBulkHelpModalElement ? new bootstrap.Modal(inventoryBulkHelpModalElement) : null;
             const pasteImportModalElement = document.getElementById('pasteImportModal');
             const pasteImportModal = pasteImportModalElement ? new bootstrap.Modal(pasteImportModalElement) : null;
+            const surveyQuickViewModalElement = document.getElementById('surveyQuickViewModal');
+            const surveyQuickViewModal = surveyQuickViewModalElement ? new bootstrap.Modal(surveyQuickViewModalElement) : null;
+            const surveyQuickViewSheetSelect = document.getElementById('surveyQuickViewSheetSelect');
+            const surveyQuickViewLoadButton = document.getElementById('surveyQuickViewLoadButton');
+            const surveyQuickViewSummary = document.getElementById('surveyQuickViewSummary');
+            const surveyQuickViewError = document.getElementById('surveyQuickViewError');
+            const surveyQuickViewLoading = document.getElementById('surveyQuickViewLoading');
+            const surveyQuickViewResultsBody = document.getElementById('surveyQuickViewResultsBody');
             const pasteImportInput = document.getElementById('pasteImportInput');
             const pasteImportMode = document.getElementById('pasteImportMode');
             const parsePasteImportButton = document.getElementById('parsePasteImportButton');
@@ -1253,6 +1389,7 @@
                 { value: 'ob9', label: 'OB9' },
                 { value: 'ob10', label: 'OB10' }
             ];
+            const surveyQuickViewEndpoint = '@Url.Page("/PlayerInventoryManagement", "SurveyQuickView")';
 
             let state = loadState();
             let currentSnapshotItem = null;
@@ -1263,6 +1400,7 @@
             let undoStateSnapshot = null;
             let lastParsedPasteImport = null;
             const itemNameLookup = buildItemNameLookup(allItems);
+            const itemIdLookup = new Map(allItems.map(item => [String(item.id), item]));
 
             function createDefaultState() {
                 return {
@@ -1999,6 +2137,116 @@
             function getWeaponOwnershipLabelFromValue(value) {
                 const match = inventoryStatuses.find(entry => entry.value === normalizeWeaponOwnership(value));
                 return match ? match.label : 'Do Not Own';
+            }
+
+            function setSurveyQuickViewLoading(isLoading) {
+                surveyQuickViewLoading?.classList.toggle('active', isLoading);
+                if (surveyQuickViewLoadButton) {
+                    const hasSelection = !!surveyQuickViewSheetSelect?.value;
+                    surveyQuickViewLoadButton.disabled = isLoading || !hasSelection;
+                }
+            }
+
+            function clearSurveyQuickViewError() {
+                if (!surveyQuickViewError) {
+                    return;
+                }
+
+                surveyQuickViewError.textContent = '';
+            }
+
+            function showSurveyQuickViewError(message) {
+                if (!surveyQuickViewError) {
+                    return;
+                }
+
+                surveyQuickViewError.textContent = message;
+            }
+
+            function getSurveyQuickViewStatus(item) {
+                if (String(item?.equipmentType).toLowerCase() === 'costume') {
+                    const ownsCostume = !!getCostumeRecord(item.id).owned;
+                    return {
+                        label: ownsCostume ? 'Own' : 'Do Not Own',
+                        className: ownsCostume ? 'inventory-survey-status-owned' : 'inventory-survey-status-unowned'
+                    };
+                }
+
+                const ownership = normalizeWeaponOwnership(getWeaponRecord(item.id).ownership);
+                if (ownership === '5-star' || ownership.startsWith('ob')) {
+                    return {
+                        label: getWeaponOwnershipLabelFromValue(ownership),
+                        className: 'inventory-survey-status-owned'
+                    };
+                }
+
+                return {
+                    label: 'Do Not Own',
+                    className: 'inventory-survey-status-unowned'
+                };
+            }
+
+            function renderSurveyQuickViewResults(sheetName, items) {
+                if (!surveyQuickViewResultsBody || !surveyQuickViewSummary) {
+                    return;
+                }
+
+                if (!Array.isArray(items) || items.length === 0) {
+                    surveyQuickViewSummary.innerHTML = `No weapon or costume columns from <strong>${escapeHtml(sheetName || 'the selected sheet')}</strong> matched the catalog.`;
+                    surveyQuickViewResultsBody.innerHTML = '<tr><td colspan="5" class="inventory-survey-empty">No matching survey weapon or costume columns were found.</td></tr>';
+                    return;
+                }
+
+                let ownedCount = 0;
+                surveyQuickViewResultsBody.innerHTML = items.map((entry, index) => {
+                    const localItem = itemIdLookup.get(String(entry.id));
+                    const status = localItem
+                        ? getSurveyQuickViewStatus(localItem)
+                        : { label: 'Do Not Own', className: 'inventory-survey-status-unowned' };
+                    if (status.className === 'inventory-survey-status-owned') {
+                        ownedCount += 1;
+                    }
+
+                    return `<tr>
+                        <td>${(index + 1).toLocaleString()}</td>
+                        <td>${escapeHtml(entry.character || '')}</td>
+                        <td>${escapeHtml(entry.name || '')}</td>
+                        <td>${escapeHtml(entry.equipmentType || '')}</td>
+                        <td><span class="inventory-survey-status ${status.className}">${escapeHtml(status.label)}</span></td>
+                    </tr>`;
+                }).join('');
+
+                surveyQuickViewSummary.innerHTML = `Showing <strong>${items.length.toLocaleString()}</strong> survey items from <strong>${escapeHtml(sheetName || 'the selected sheet')}</strong> in the same order as the sheet header. You currently meet the ownership threshold for <strong>${ownedCount.toLocaleString()}</strong> of them.`;
+            }
+
+            async function loadSurveyQuickViewDetails() {
+                const sheetUrl = surveyQuickViewSheetSelect?.value || '';
+                if (!sheetUrl) {
+                    showSurveyQuickViewError('Please select a survey sheet first.');
+                    return;
+                }
+
+                clearSurveyQuickViewError();
+                setSurveyQuickViewLoading(true);
+
+                try {
+                    const response = await fetch(`${surveyQuickViewEndpoint}&sheetUrl=${encodeURIComponent(sheetUrl)}`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(payload?.error || 'Failed to load survey sheet details.');
+                    }
+
+                    renderSurveyQuickViewResults(payload?.sheetName || '', Array.isArray(payload?.items) ? payload.items : []);
+                } catch (error) {
+                    showSurveyQuickViewError(error instanceof Error ? error.message : 'Failed to load survey sheet details.');
+                } finally {
+                    setSurveyQuickViewLoading(false);
+                }
             }
 
             function formatBulkScopeLabel(scopeValue) {
@@ -3043,8 +3291,23 @@
                 exportState();
             });
 
+            inventorySurveyQuickViewButton?.addEventListener('click', () => {
+                clearSurveyQuickViewError();
+                setSurveyQuickViewLoading(false);
+                surveyQuickViewModal?.show();
+            });
+
             inventoryBulkHelpButton.addEventListener('click', () => {
                 inventoryBulkHelpModal?.show();
+            });
+
+            surveyQuickViewSheetSelect?.addEventListener('change', () => {
+                clearSurveyQuickViewError();
+                setSurveyQuickViewLoading(false);
+            });
+
+            surveyQuickViewLoadButton?.addEventListener('click', () => {
+                loadSurveyQuickViewDetails();
             });
 
             inventoryPasteImportButton.addEventListener('click', () => {
@@ -3233,9 +3496,15 @@
                 clearPasteImportSession(false);
             });
 
+            surveyQuickViewModalElement?.addEventListener('hidden.bs.modal', () => {
+                clearSurveyQuickViewError();
+                setSurveyQuickViewLoading(false);
+            });
+
             populateCharacterOptions();
             syncFiltersToUi();
             renderPasteImportPreview();
+            setSurveyQuickViewLoading(false);
             renderInventory();
         })();
     </script>

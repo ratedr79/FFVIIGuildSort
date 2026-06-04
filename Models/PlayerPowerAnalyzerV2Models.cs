@@ -55,6 +55,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
     {
         public string CharacterName { get; set; } = string.Empty;
         public CharacterRole Role { get; set; }
+        public CharacterRole EffectiveSubWeaponRole { get; set; }
         public string CharacterPortraitUrl { get; set; } = string.Empty;
         public double Score { get; set; }
         public int TotalPatk { get; set; }

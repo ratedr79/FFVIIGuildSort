@@ -131,6 +131,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             TryAddDetectedEffect(effects, blob, "mag_damage_bonus", "Mag. Damage Bonus", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_weapon_boost", "Phys. Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "mag_weapon_boost", "Mag. Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "Single-Tgt. Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "All-Tgt. Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "mag_damage_received_up", "Single-Tgt. Mag. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "mag_damage_received_up", "All-Tgt. Mag. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "mag_damage_received_up", "Mag. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "atb_conservation", "Phys. ATB Conservation Effect", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "atb_conservation", "Mag. ATB Conservation Effect", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "patk_up", "PATK Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
@@ -152,8 +158,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             TryAddDetectedEffect(effects, blob, "torpor", "Torpor", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "gear_c_ability_uses", "Gear C. Ability Uses", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDirectAtbGainEffect(effects, abilityText ?? string.Empty, sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
-            TryAddDetectedEffect(effects, blob, "healing_support", "Heal", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
-            TryAddDetectedEffect(effects, blob, "healing_support", "HP Recovery", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddHealingSupportEffect(effects, blob, sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
 
             return effects
                 .Where(effect => !IsSuppressedByImmunity(effect.Key, bossImmunityKeys))
@@ -251,6 +256,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 TargetScope = ParseTargetScope(snippet, blob),
                 IsAssumedMateria = isAssumedMateria
             });
+        }
+
+        private static void TryAddHealingSupportEffect(
+            List<DetectedActiveEffect> effects,
+            string blob,
+            string sourceType,
+            string sourceName,
+            string? sourceAbilityType,
+            string? sourceElement,
+            bool isAssumedMateria)
+        {
+            TryAddDetectedEffect(effects, blob, "healing_support", "heal is cast", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "healing_support", "Restores", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "healing_support", "HP Recovery", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
         }
 
         private static string ExtractEffectSnippet(string blob, string label)
@@ -421,6 +440,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 "phys_damage_bonus" or "mag_damage_bonus" or "elemental_damage_bonus" => "damage_bonus",
                 "phys_weapon_boost" or "mag_weapon_boost" or "elemental_weapon_boost" => "weapon_boost",
+                "phys_damage_received_up" or "mag_damage_received_up" => "damage_received_up",
                 "patk_up" or "matk_up" => "attack_buff",
                 "atb_conservation" or "atb_gain" => "tempo_utility",
                 "pdef_down" or "mdef_down" => "defense_debuff",
@@ -439,8 +459,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             return key switch
             {
-                "patk_up" or "pdef_down" or "patk_down" or "phys_damage_bonus" or "phys_weapon_boost" => "physical",
-                "matk_up" or "mdef_down" or "matk_down" or "mag_damage_bonus" or "mag_weapon_boost" => "magical",
+                "patk_up" or "pdef_down" or "patk_down" or "phys_damage_bonus" or "phys_weapon_boost" or "phys_damage_received_up" => "physical",
+                "matk_up" or "mdef_down" or "matk_down" or "mag_damage_bonus" or "mag_weapon_boost" or "mag_damage_received_up" => "magical",
                 "elemental_resistance_down" or "elemental_damage_up" or "elemental_damage_received_up" or "elemental_damage_bonus" or "elemental_weapon_boost" => "elemental",
                 _ => "neutral"
             };
@@ -531,7 +551,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 or "mdef_down"
                 or "elemental_resistance_down"
                 or "elemental_damage_up"
-                or "elemental_damage_received_up";
+                or "elemental_damage_received_up"
+                or "phys_damage_received_up"
+                or "mag_damage_received_up";
         }
 
         private static int GetDesiredSetupThresholdTierRank(string key, CharacterRole role)
@@ -539,7 +561,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return key switch
             {
                 "patk_up" or "matk_up" or "pdef_down" or "mdef_down" or "elemental_resistance_down" => 3,
-                "elemental_damage_up" or "elemental_damage_received_up" => role == CharacterRole.DPS ? 2 : 3,
+                "elemental_damage_up" or "elemental_damage_received_up" or "phys_damage_received_up" or "mag_damage_received_up" => role == CharacterRole.DPS ? 2 : 3,
                 _ => 2
             };
         }
@@ -598,6 +620,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             variant.CachedDetectedEffects = effects;
+            return effects;
+        }
+
+        private static IReadOnlyList<DetectedActiveEffect> GetDetectedEffectsForSlot(PlayerPowerAnalyzerV2ItemSlot slot, PlayerPowerAnalyzerV2Request request)
+        {
+            var effects = new List<DetectedActiveEffect>();
+            AddDetectedEffectsFromSlot(effects, slot, request);
             return effects;
         }
 
@@ -1018,6 +1047,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static double GetStructuredTargetingMultiplier(DetectedActiveEffect effect, CharacterRole role, PlayerPowerAnalyzerV2Request request)
         {
             var fallback = GetActiveEffectTargetingMultiplier(effect.Key, role, request, effect.SourceText, effect.SourceAbilityType, effect.SourceElement);
+            if (effect.Key.Equals("elemental_resistance_down", StringComparison.OrdinalIgnoreCase)
+                && IsOffAxisElementalResistanceDownEffect(effect, request))
+            {
+                return fallback * 0.28;
+            }
+
             return effect.TargetScope switch
             {
                 ActiveEffectTargetScope.AllAllies => effect.Key switch
@@ -1053,10 +1088,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     : (request.PreferredDamageType != DamageType.Any
                         && !string.IsNullOrWhiteSpace(effect.SourceAbilityType)
                         && !MatchesRequestedDamageType(effect.SourceAbilityType, request.PreferredDamageType))
-                        || (request.EnemyWeakness != Element.None
-                            && !string.IsNullOrWhiteSpace(effect.SourceElement)
-                            && !effect.SourceElement.Equals("None", StringComparison.OrdinalIgnoreCase)
-                            && !MatchesRequestedElement(effect.SourceElement, request.EnemyWeakness))
+                        || IsOffAxisElementalResistanceDownEffect(effect, request)
                         ? 0.35
                         : effect.FamilyKey == "attack_buff" ? 0.94 : 1.0,
                 ActiveEffectTargetScope.AllEnemies => fallback,
