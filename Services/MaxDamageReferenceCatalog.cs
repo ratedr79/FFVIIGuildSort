@@ -164,7 +164,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private MaxDamageReferenceCharacterSummary SummarizeCharacter(MaxDamageReferenceCharacter character, Element weakness)
         {
             var normalizedCharacterName = NormalizeCharacterName(character.CharacterName);
-            var role = CharacterRoleRegistry.GetRoleOrDefault(normalizedCharacterName);
+            var role = ParseRoleHint(character.RoleHint) ?? CharacterRoleRegistry.GetRoleOrDefault(normalizedCharacterName);
             var materiaRoles = character.Materia
                 .Where(materia => !string.IsNullOrWhiteSpace(materia))
                 .Select(materia => DetectMateriaRole(materia, weakness))
@@ -193,6 +193,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 HasStatStickMateria = hasStatStickMateria,
                 MateriaProfileLabel = materiaProfileLabel
             };
+        }
+
+        private static CharacterRole? ParseRoleHint(string? roleHint)
+        {
+            if (string.IsNullOrWhiteSpace(roleHint))
+            {
+                return null;
+            }
+
+            if (Enum.TryParse<CharacterRole>(roleHint.Trim(), ignoreCase: true, out var parsedRole))
+            {
+                return parsedRole;
+            }
+
+            return null;
         }
 
         private MaxDamageReferenceArchetypeSummary SummarizeArchetype(IGrouping<string, MaxDamageReferenceTeamSummary> group)

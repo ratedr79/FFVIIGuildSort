@@ -7,6 +7,7 @@ This folder contains onboarding, architecture, feature, and maintenance document
 - [Application Architecture](./architecture/application-overview.md)
 - [Configuration Reference](./configuration/configuration-reference.md)
 - [Power Analyzer Deep Dive](./features/power-analyzer.md)
+- [PlayerPowerAnalyzerV2 Max-Damage Handoff](./features/player-power-analyzer-v2-max-damage.md)
 - [Guild Battle Simulation Deep Dive](./features/guild-battle-simulation.md)
 - [Other Pages and Tools](./features/other-pages.md)
 - [Buff and Debuff Reference](./notes/buff-debuff-reference.md)
@@ -19,8 +20,9 @@ This folder contains onboarding, architecture, feature, and maintenance document
 2. `architecture/application-overview.md`
 3. `configuration/configuration-reference.md`
 4. `features/power-analyzer.md`
-5. `features/guild-battle-simulation.md`
-6. `notes/buff-debuff-reference.md`
-7. `notes/special-cases-and-maintenance.md`
-8. `notes/sigil-effect-mapping-inference.md`
+5. `features/player-power-analyzer-v2-max-damage.md`
+6. `features/guild-battle-simulation.md`
+7. `notes/buff-debuff-reference.md`
+8. `notes/special-cases-and-maintenance.md`
+9. `notes/sigil-effect-mapping-inference.md`
 
