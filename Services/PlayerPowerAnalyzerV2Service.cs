@@ -33,6 +33,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
             ["Zack"] = "Zack.jpg"
         };
 
+        // An All-Allies offensive passive feeds the whole offensive core, so per-target % is multiplied by
+        // a proxy for how many offensive allies benefit (refined by real team composition at team scoring).
+        private const double AllAlliesOffensiveBeneficiaryProxy = 2.0;
+
         private static readonly int[] StandardBreakpointPoints = [1, 5, 15, 25, 35, 45, 55];
         private static readonly double[] BoostPatkAndMatkBonuses = [5, 10, 15, 20, 30, 40, 50];
         private static readonly double[] BoostAbilityPotBonuses = [3, 8, 15, 22, 30, 35, 40];
@@ -49,7 +53,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static readonly double[] BoostPdefAndMdefAllAlliesBonuses = [5, 10, 20, 30, 40];
         private static readonly int[] BoostPdefAndMdefAllAlliesBreakpointPoints = [1, 5, 15, 25, 35];
         private static readonly double[] BuffDebuffExtensionBonuses = [1, 2, 3, 4, 5, 6, 7];
+        private static readonly double[] BoostHealBonuses = [5, 15, 30, 45, 60, 70, 80, 90, 95, 100];
+        private static readonly int[] BoostHealBreakpointPoints = [1, 5, 15, 25, 35, 45, 55, 65, 80, 100];
         private static readonly Regex PotencyMarkerRegex = new(@"\[Pot:\s*(?<value>-?\d+(?:\.\d+)?)%?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // Ability amplification uses a distinct marker shape, e.g. "[Damage +40.0% up to 1 time(s)]".
+        private static readonly Regex AbilityAmplificationMarkerRegex = new(@"\[Damage\s*\+(?<value>-?\d+(?:\.\d+)?)%", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex AbilityAmplificationCountRegex = new(@"up to\s*(?<value>\d+)\s*time", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DurationMarkerRegex = new(@"\[Dur:\s*(?<value>-?\d+(?:\.\d+)?)s?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex ExtensionMarkerRegex = new(@"\[Ext:\s*(?<value>-?\d+(?:\.\d+)?)s?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex RangeMarkerRegex = new(@"\[(?:Rng\.?|Range):\s*(?<value>[^\]]+)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -63,6 +72,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             "damage_up",
             "damage_received_up",
             "exploit_weakness",
+            "ability_amplification",
             "torpor"
         };
         private static readonly HashSet<string> MateriaAssumableFamilies = new(StringComparer.OrdinalIgnoreCase)
@@ -2073,7 +2083,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return bonus;
             }
 
-            bonus += (mainTeamPriorityScore - offTeamPriorityScore) * 0.72;
+            // A requested-axis team-wide offensive passive (e.g. Boost ATK (All Allies)) belongs in the
+            // full-value main hand: the orientation signal must be strong enough to decide main/off over
+            // active/fit noise, since actives fire from either slot and only passives are full-vs-half.
+            bonus += (mainTeamPriorityScore - offTeamPriorityScore) * 1.5;
 
             if (mainTeamPriorityScore > 0.001 || offTeamPriorityScore > 0.001)
             {
@@ -2926,6 +2939,168 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
         }
 
+        // Records a single equipped slot's active-buff contribution into the per-family ledger used for
+        // duplicate-buff deduplication. Effects are grouped by family (e.g. PATK Up and the assumed
+        // Bravery buff both land under attack_buff); the family tracks the best single-cast potency tier
+        // reached and the desired ramp target so the marginal value of a second source can be judged.
+        private static void AccumulateActiveFamilyContribution(
+            Dictionary<string, SlotActiveFamilyContribution> activeUtilityByFamily,
+            DetectedActiveEffect effect,
+            double effectScore,
+            CharacterRole role)
+        {
+            if (effectScore <= 0)
+            {
+                return;
+            }
+
+            var familyKey = string.IsNullOrWhiteSpace(effect.FamilyKey) ? effect.Key : effect.FamilyKey;
+            if (!activeUtilityByFamily.TryGetValue(familyKey, out var contribution))
+            {
+                contribution = new SlotActiveFamilyContribution();
+                activeUtilityByFamily[familyKey] = contribution;
+            }
+
+            contribution.Score += effectScore;
+            var tier = effect.PotencyTierRank ?? 0;
+            if (tier > contribution.PotencyTier)
+            {
+                contribution.PotencyTier = tier;
+            }
+
+            if (IsThresholdSensitiveSetupEffect(effect.Key))
+            {
+                var desired = GetDesiredSetupThresholdTierRank(effect.Key, role);
+                if (desired > contribution.DesiredTier)
+                {
+                    contribution.DesiredTier = desired;
+                }
+            }
+        }
+
+        // Sums the active-buff value of a character's battle-active slots (main / off-hand / ultimate /
+        // main outfit) with duplicate buffs collapsed: for each effect family the strongest source is
+        // counted in full and every additional same-family source is counted only at its marginal value.
+        // This stops the optimizer from stacking two weapons that grant the same buff and pushes it
+        // toward buff diversity instead.
+        private static double ComputeDeduplicatedActiveUtility(IReadOnlyList<SlotEvaluation> activeSlots)
+        {
+            return ComputeDeduplicatedActiveUtility(activeSlots, out _);
+        }
+
+        // Also emits the character's net per-family active contribution (primary source in full plus the
+        // marginal value of same-family secondaries), keyed by family. The net breakdown is what team
+        // scoring uses to dedup the same buff across party members.
+        private static double ComputeDeduplicatedActiveUtility(
+            IReadOnlyList<SlotEvaluation> activeSlots,
+            out Dictionary<string, SlotActiveFamilyContribution> netByFamily)
+        {
+            var contributionsByFamily = new Dictionary<string, List<SlotActiveFamilyContribution>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var slot in activeSlots)
+            {
+                foreach (var kvp in slot.ActiveUtilityByFamily)
+                {
+                    if (kvp.Value.Score <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (!contributionsByFamily.TryGetValue(kvp.Key, out var list))
+                    {
+                        list = new List<SlotActiveFamilyContribution>();
+                        contributionsByFamily[kvp.Key] = list;
+                    }
+
+                    list.Add(kvp.Value);
+                }
+            }
+
+            netByFamily = new Dictionary<string, SlotActiveFamilyContribution>(StringComparer.OrdinalIgnoreCase);
+            var total = 0d;
+            foreach (var (family, contributions) in contributionsByFamily)
+            {
+                var ordered = contributions.OrderByDescending(contribution => contribution.Score).ToList();
+                var primary = ordered[0];
+                var familyTotal = primary.Score;
+                var marginalFraction = GetDuplicateBuffMarginalFraction(primary);
+                for (var index = 1; index < ordered.Count; index++)
+                {
+                    familyTotal += ordered[index].Score * marginalFraction;
+                }
+
+                total += familyTotal;
+                netByFamily[family] = new SlotActiveFamilyContribution
+                {
+                    Score = familyTotal,
+                    PotencyTier = primary.PotencyTier,
+                    DesiredTier = primary.DesiredTier
+                };
+            }
+
+            return total;
+        }
+
+        // The team-wide analogue of intra-character duplicate-buff dedup: when two or more party members
+        // provide the same buff family, the strongest provider is kept in full and the rest are worth
+        // only their marginal (refresh/ramp) value, because same-name buffs share a cap in battle. Returns
+        // the amount to subtract from the team score, i.e. the value that double-counting would add.
+        private static double GetTeamWideDuplicateBuffPenalty(IReadOnlyList<CharacterBuildCandidate> baseVariants)
+        {
+            var contributionsByFamily = new Dictionary<string, List<SlotActiveFamilyContribution>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var variant in baseVariants)
+            {
+                foreach (var kvp in variant.ActiveFamilyContributions)
+                {
+                    if (kvp.Value.Score <= 0)
+                    {
+                        continue;
+                    }
+
+                    if (!contributionsByFamily.TryGetValue(kvp.Key, out var list))
+                    {
+                        list = new List<SlotActiveFamilyContribution>();
+                        contributionsByFamily[kvp.Key] = list;
+                    }
+
+                    list.Add(kvp.Value);
+                }
+            }
+
+            var penalty = 0d;
+            foreach (var contributions in contributionsByFamily.Values)
+            {
+                if (contributions.Count < 2)
+                {
+                    continue;
+                }
+
+                var ordered = contributions.OrderByDescending(contribution => contribution.Score).ToList();
+                var marginalFraction = GetDuplicateBuffMarginalFraction(ordered[0]);
+                for (var index = 1; index < ordered.Count; index++)
+                {
+                    penalty += ordered[index].Score * (1.0 - marginalFraction);
+                }
+            }
+
+            return penalty;
+        }
+
+        // The fraction of full value a redundant same-family buff source is worth. A second source of a
+        // buff the primary already drives to its useful tier in one cast only helps refresh/maintain it
+        // (~15%). When the primary falls short of the desired tier, a second source meaningfully speeds
+        // the ramp, so the duplicate is worth proportionally more (capped well below full value).
+        private static double GetDuplicateBuffMarginalFraction(SlotActiveFamilyContribution primary)
+        {
+            const double refreshBaseFraction = 0.15;
+            if (primary.DesiredTier <= 0)
+            {
+                return refreshBaseFraction;
+            }
+
+            var shortfall = Math.Max(0, primary.DesiredTier - primary.PotencyTier);
+            return Math.Clamp(refreshBaseFraction + (shortfall * 0.18), refreshBaseFraction, 0.6);
+        }
+
         private static CharacterBuildCandidate ComposeCharacterVariantCandidate(
             string character,
             CharacterRole role,
@@ -2957,7 +3132,26 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             AddPassivePoints(passivePoints, subOutfitPassivePoints);
-            var nonPassiveScore = main.NonPassiveScore + (off?.NonPassiveScore ?? 0) + (ultimate?.NonPassiveScore ?? 0) + (mainCostume?.NonPassiveScore ?? 0) + subOutfitScore;
+
+            // Active buffs (PATK Up, Haste, etc.) cast by the main, off-hand, ultimate, and main outfit
+            // share a cap in battle: equipping two sources of the same buff family does not double its
+            // value. So the additive (stat/damage/timing) portion of each slot is summed as-is, while
+            // the active-buff portion is deduplicated by family — the strongest source counts in full
+            // and each additional same-family source only counts for its marginal ramp/refresh value.
+            var activeSlots = new List<SlotEvaluation> { main };
+            if (off != null) { activeSlots.Add(off); }
+            if (ultimate != null) { activeSlots.Add(ultimate); }
+            if (mainCostume != null) { activeSlots.Add(mainCostume); }
+
+            var additivePortion = subOutfitScore;
+            foreach (var slot in activeSlots)
+            {
+                var slotActiveTotal = slot.ActiveUtilityByFamily.Values.Sum(contribution => contribution.Score);
+                additivePortion += slot.NonPassiveScore - slotActiveTotal;
+            }
+
+            var dedupedActivePortion = ComputeDeduplicatedActiveUtility(activeSlots, out var activeFamilyContributions);
+            var nonPassiveScore = additivePortion + dedupedActivePortion;
             var passiveScore = ScorePassivePoints(passivePoints, role, request);
             var characterScore = nonPassiveScore + passiveScore;
             if (off != null)
@@ -3044,7 +3238,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 SubOutfitPassivePoints = new Dictionary<string, int>(subOutfitPassivePoints, StringComparer.OrdinalIgnoreCase),
                 ProvidedEffectKeys = providedKeys,
                 UsedItemNames = new HashSet<string>(usedNames, StringComparer.OrdinalIgnoreCase),
-                PassivePoints = passivePoints
+                PassivePoints = passivePoints,
+                ActiveFamilyContributions = activeFamilyContributions
             };
 
             var offensiveRoleInference = EnsureOffensiveRoleInference(candidate, request);
@@ -3314,6 +3509,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var anchorSupportScore = ScoreAnchorSupportSynergy(baseVariants, explicitDetectedEffects, request);
             var redundantOffHandPenalty = GetFinalTeamRedundantOffHandPenalty(baseVariants, request);
             var variantAlignmentPenalty = GetFinalTeamVariantAlignmentPenalty(baseVariants, request);
+            var teamWideDuplicateBuffPenalty = GetTeamWideDuplicateBuffPenalty(baseVariants);
             var contextualVariantBonus = GetVariantContextualTeamBonus(baseVariants, request);
             var offensiveShellScore = ScoreOffensiveShell(baseVariants, request);
             score += effectPackage.Score;
@@ -3321,6 +3517,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             score += ScoreTeamEffects(providedEffectKeys, request) * 0.18;
             score += redundantOffHandPenalty;
             score -= variantAlignmentPenalty;
+            score -= teamWideDuplicateBuffPenalty;
             score += contextualVariantBonus;
             score += offensiveShellScore.Score * 0.65;
             score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 90;
@@ -3523,12 +3720,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var legacyTeamEffectScore = ScoreTeamEffects(providedEffectKeys, request) * 0.18;
             var redundantOffHandPenalty = GetFinalTeamRedundantOffHandPenalty(baseVariants, request);
             var variantAlignmentPenalty = GetFinalTeamVariantAlignmentPenalty(baseVariants, request);
+            var teamWideDuplicateBuffPenalty = GetTeamWideDuplicateBuffPenalty(baseVariants);
             var contextualVariantBonus = GetVariantContextualTeamBonus(baseVariants, request);
             var offensiveShellScore = ScoreOffensiveShell(baseVariants, request);
             var score = characterOutputs.Sum(c => c.Score);
             score += effectPackage.Score + legacyTeamEffectScore + anchorSupportScore.Score;
             score += redundantOffHandPenalty;
             score -= variantAlignmentPenalty;
+            score -= teamWideDuplicateBuffPenalty;
             score += contextualVariantBonus;
             score += offensiveShellScore.Score * 0.75;
             score += matchedPreferred.Count * 90;
@@ -3564,6 +3763,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (variantAlignmentPenalty != 0)
             {
                 teamScoreBreakdown.Add(CreateScoreComponent("loadout", "Variant alignment penalty", -variantAlignmentPenalty));
+            }
+
+            if (teamWideDuplicateBuffPenalty != 0)
+            {
+                teamScoreBreakdown.Add(CreateScoreComponent("loadout", "Duplicate team buff (shared cap)", -teamWideDuplicateBuffPenalty));
             }
 
             if (contextualVariantBonus != 0)
@@ -3964,7 +4168,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var matk = Math.Max(0, (int)Math.Floor(weapon.Snapshot.Matk * slotMultiplier));
             var heal = Math.Max(0, (int)Math.Floor(weapon.Snapshot.Heal * slotMultiplier));
             var statScore = ScoreStats(patk, matk, heal, role, request);
-            var passiveScore = ScorePassivePoints(passivePoints, role, request);
+            var isOffHandSlot = slotName.Equals("Off-hand", StringComparison.OrdinalIgnoreCase);
+            var passiveScore = ScorePassivePoints(passivePoints, role, request, isOffHandSlot);
             var scoreBreakdown = new List<PlayerPowerAnalyzerV2ScoreComponent>
             {
                 CreateScoreComponent("stats", "Base stats", statScore),
@@ -3984,6 +4189,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var rawActiveUtilityScore = 0d;
+            var activeUtilityByFamily = new Dictionary<string, SlotActiveFamilyContribution>(StringComparer.OrdinalIgnoreCase);
             if (includeActiveEffects)
             {
                 var atbAdjustment = 0d;
@@ -3999,6 +4205,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     atbAdjustment += effectScore - rawEffectScore;
                     nonPassiveScore += effectScore;
                     score += effectScore;
+                    AccumulateActiveFamilyContribution(activeUtilityByFamily, effect, effectScore, role);
                     scoreBreakdown.Add(CreateScoreComponent("effects", ToLabel(effect.Key), rawEffectScore));
                 }
 
@@ -4030,6 +4237,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         atbAdjustment += effectScore - rawEffectScore;
                         nonPassiveScore += effectScore;
                         score += effectScore;
+                        AccumulateActiveFamilyContribution(activeUtilityByFamily, effect, effectScore, role);
                         scoreBreakdown.Add(CreateScoreComponent("customization_effects", ToLabel(effect.Key), rawEffectScore));
                     }
                 }
@@ -4054,6 +4262,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var preFitScore = score;
                 nonPassiveScore *= battleFitMultiplier;
                 score *= battleFitMultiplier;
+                foreach (var contribution in activeUtilityByFamily.Values)
+                {
+                    contribution.Score *= battleFitMultiplier;
+                }
+
                 scoreBreakdown.Add(CreateScoreComponent("fit", $"Battle fit multiplier ({battleFitMultiplier:0.##}x)", score - preFitScore));
             }
 
@@ -4095,6 +4308,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 PassivePoints = passivePoints,
                 ProvidedEffectKeys = providedKeys.ToList(),
                 NonPassiveScore = nonPassiveScore,
+                ActiveUtilityByFamily = activeUtilityByFamily,
                 ScoreBreakdown = CloneScoreBreakdown(scoreBreakdown),
                 Score = score
             };
@@ -4110,6 +4324,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 CreateScoreComponent("passives", "Passive score", score)
             };
             var providedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var activeUtilityByFamily = new Dictionary<string, SlotActiveFamilyContribution>(StringComparer.OrdinalIgnoreCase);
             if (includeActiveEffects)
             {
                 var atbAdjustment = 0d;
@@ -4123,6 +4338,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     atbAdjustment += effectScore - rawEffectScore;
                     nonPassiveScore += effectScore;
                     score += effectScore;
+                    AccumulateActiveFamilyContribution(activeUtilityByFamily, effect, effectScore, role);
                     scoreBreakdown.Add(CreateScoreComponent("effects", ToLabel(effect.Key), rawEffectScore));
                 }
 
@@ -4138,6 +4354,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var preFitScore = score;
                 nonPassiveScore *= costumeFitMultiplier;
                 score *= costumeFitMultiplier;
+                foreach (var contribution in activeUtilityByFamily.Values)
+                {
+                    contribution.Score *= costumeFitMultiplier;
+                }
+
                 scoreBreakdown.Add(CreateScoreComponent("fit", $"Battle fit multiplier ({costumeFitMultiplier:0.##}x)", score - preFitScore));
             }
 
@@ -4170,6 +4391,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 PassivePoints = passivePoints,
                 ProvidedEffectKeys = providedKeys.ToList(),
                 NonPassiveScore = nonPassiveScore,
+                ActiveUtilityByFamily = activeUtilityByFamily,
                 ScoreBreakdown = CloneScoreBreakdown(scoreBreakdown),
                 Score = score
             };
@@ -4309,9 +4531,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             };
         }
 
-        private static double ScorePassivePoints(Dictionary<string, int> passivePoints, CharacterRole role, PlayerPowerAnalyzerV2Request request)
+        private static double ScorePassivePoints(Dictionary<string, int> passivePoints, CharacterRole role, PlayerPowerAnalyzerV2Request request, bool isOffHandSlotContext = false)
         {
-            return passivePoints.Sum(kvp => ScorePassiveSkill(kvp.Key, kvp.Value, role, request));
+            return passivePoints.Sum(kvp => ScorePassiveSkill(kvp.Key, kvp.Value, role, request, isOffHandSlotContext: isOffHandSlotContext));
         }
 
         private static double ScoreCharacterPassivePoints(
@@ -4549,8 +4771,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
 
                 var currentCharacterPoints = currentCharacterPassivePoints.TryGetValue(kvp.Key, out var existingCharacterPoints) ? existingCharacterPoints : 0;
-                var passiveDelta = ScorePassiveSkill(kvp.Key, currentCharacterPoints + kvp.Value, equippingRole, request)
-                    - ScorePassiveSkill(kvp.Key, currentCharacterPoints, equippingRole, request);
+                var passiveDelta = ScorePassiveSkill(kvp.Key, currentCharacterPoints + kvp.Value, equippingRole, request, isSubWeaponContext: true)
+                    - ScorePassiveSkill(kvp.Key, currentCharacterPoints, equippingRole, request, isSubWeaponContext: true);
                 var selfPassiveCoherenceMultiplier = GetSubWeaponSelfPassiveCoherenceMultiplier(kvp.Key, equippingRole, hasRequestedElementMainOrOffHand, request);
                 gain += passiveDelta * effectiveBattleFitMultiplier * selfPassiveCoherenceMultiplier;
                 gain += GetSupportMaintenancePassiveMarginalBonus(
@@ -5209,7 +5431,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return 1.0;
         }
 
-        private static double ScorePassiveSkill(string skillName, int points, CharacterRole role, PlayerPowerAnalyzerV2Request request)
+        private static double ScorePassiveSkill(string skillName, int points, CharacterRole role, PlayerPowerAnalyzerV2Request request, bool isSubWeaponContext = false, bool isOffHandSlotContext = false)
         {
             if (points <= 0)
             {
@@ -5220,9 +5442,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 ? bonusValue
                 : points;
 
-            return scaledValue * (IsTeamWidePassive(skillName)
-                ? GetProjectedTeamWidePassiveWeight(skillName, request)
-                : GetPassiveWeight(skillName, role, request));
+            // Value the passive by its real bonus % (scaledValue) converted to effective damage, rather
+            // than the legacy abstract weight. Off-hand/sub halving is already reflected in `points` via
+            // the slot multiplier, so the slot-context flags are no longer needed here.
+            return scaledValue * GetPassiveEffectiveDamageFactor(skillName, role, request);
         }
 
         private static bool TryGetPassiveBonusValue(string skillName, int points, out double bonusValue)
@@ -5269,6 +5492,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (IsBuffDebuffExtensionPassive(normalized))
             {
                 bonusValue = GetBuffDebuffExtensionBreakpointBonus(points);
+                return true;
+            }
+
+            if (normalized.Contains("boost heal", StringComparison.OrdinalIgnoreCase))
+            {
+                bonusValue = ResolveBreakpointBonus(points, BoostHealBreakpointPoints, BoostHealBonuses);
                 return true;
             }
 
@@ -5493,7 +5722,155 @@ namespace FFVIIEverCrisisAnalyzer.Services
             };
         }
 
-        private static double GetPassiveWeight(string skillName, CharacterRole role, PlayerPowerAnalyzerV2Request request)
+        private static bool IsDefensiveOrHealingContextRequested(PlayerPowerAnalyzerV2Request request)
+        {
+            var defensiveKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "pdef_up", "mdef_up", "healing_support" };
+            return request.HardRequiredEffectKeys.Any(k => defensiveKeys.Contains(k))
+                || request.SoftPreferredEffectKeys.Any(k => defensiveKeys.Contains(k));
+        }
+
+        // Sigil/stream/interrupt-phase R-abilities: only active during a battle's sigil phase (if it has one),
+        // so they carry no persistent value in a normal build. Covers Interruption and the sigil-break boosts
+        // (Triangle/Cross/Circle/Square "(Sigil) Boost"). Matches "sigil"/"interrupt" plus the bare shape
+        // boosts (Triangle Boost has no "sigil" in its label). Avoids "Spade Customization" (a weapon unlock).
+        private static bool IsSituationalSigilPhasePassive(string normalized)
+        {
+            return normalized.Contains("interrupt", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("sigil", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("triangle boost", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("circle boost", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("cross boost", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("square boost", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Passive R-abilities that contribute survivability/sustain rather than offense: defenses, elemental
+        // resistances (resistance UP, not the offensive resistance-down debuff), and healing/cleanse spells.
+        private static bool IsDefensiveOrSustainPassiveLabel(string normalized)
+        {
+            if (normalized.Contains("heal", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("cure", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("esuna", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("regen", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("medica", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("raise", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (normalized.Contains("pdef", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("mdef", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return (normalized.Contains("resist", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Contains("resistance", StringComparison.OrdinalIgnoreCase))
+                && !normalized.Contains("down", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // How much a SELF offensive R-ability matters: only to the extent this character itself deals
+        // damage. A DPS gets full value; a Support/Healer/Tank's own stat boost barely moves team damage.
+        private static double GetSelfPassiveBeneficiaryFactor(CharacterRole role)
+        {
+            return role switch
+            {
+                CharacterRole.DPS => 1.0,
+                CharacterRole.Support => 0.25,
+                CharacterRole.Tank => 0.2,
+                CharacterRole.Healer => 0.15,
+                _ => 0.5
+            };
+        }
+
+        // Effective-damage conversion for an R-ability (passive): how much 1 percentage-point of the
+        // passive's real bonus (from TryGetPassiveBonusValue's breakpoint tables) translates into effective
+        // damage for this character/role/build. Replaces the abstract GetPassiveWeight multiplier with a
+        // value grounded in real percentages, so e.g. Boost Ability Pot L5->L6 (+5%) is correctly worth
+        // less than a first MATK (All Allies) source (+~14%). Per-target basis: All-Allies team-size
+        // scaling is layered on separately at team scoring; off-axis / defensive passives go to ~0 in
+        // offensive builds.
+        private static double GetPassiveEffectiveDamageFactor(string skillName, CharacterRole role, PlayerPowerAnalyzerV2Request request)
+        {
+            var normalized = skillName.ToLowerInvariant();
+            var isAllAllies = normalized.Contains("all allies", StringComparison.OrdinalIgnoreCase);
+
+            // Sigil/stream/interrupt-phase R-abilities only matter during a battle's sigil phase, which not
+            // every battle has (and then only for the sigil shape that fight requires). This covers
+            // Interruption (e.g. "Ultimate Magic Interruption (All Allies)") AND the sigil-break boosts
+            // (e.g. "△ Triangle Boost", "✕ Cross Sigil Boost", "◯ Circle Sigil Boost" — the (+N) is extra
+            // sigils destroyed, not a persistent stat). In a normal build they earn no standing value. (A
+            // future "sigil/interrupt phase" request flag could re-enable them; until then they are gated.)
+            if (IsSituationalSigilPhasePassive(normalized))
+            {
+                return 0.05;
+            }
+
+            // Buff/Debuff Extension only helps a character that actually casts extendable buffs/debuffs
+            // (fewer recasts to sustain them). Per-character buff output isn't known here, so use a modest
+            // base; this is refined where buff output is known.
+            if (IsBuffDebuffExtensionPassive(normalized))
+            {
+                return 0.3;
+            }
+
+            // Defensive / sustain passives contribute no offensive damage; near-zero unless defense asked.
+            if (IsDefensiveOrSustainPassiveLabel(normalized))
+            {
+                return IsDefensiveOrHealingContextRequested(request) ? 0.6 : 0.05;
+            }
+
+            var physical = request.PreferredDamageType == DamageType.Physical;
+            var magical = request.PreferredDamageType == DamageType.Magical;
+            var anyType = request.PreferredDamageType == DamageType.Any;
+
+            // Element-offensive potency/ability/arcanum passives: on-axis only when the element matches the
+            // target's weakness (or it is a generic element-pot passive that adapts to whatever you run).
+            if (IsElementOffensivePassiveLabel(normalized) || IsGenericElementPotArcanumAllAlliesPassiveLabel(normalized))
+            {
+                var onElement = IsGenericElementPotArcanumAllAlliesPassiveLabel(normalized)
+                    || (request.EnemyWeakness != Element.None
+                        && normalized.Contains(request.EnemyWeakness.ToString().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase));
+                if (!onElement)
+                {
+                    return 0.05;
+                }
+
+                return isAllAllies ? AllAlliesOffensiveBeneficiaryProxy : GetSelfPassiveBeneficiaryFactor(role);
+            }
+
+            // Stat / ability-potency boosts: only count toward the requested damage type.
+            bool onAxis;
+            if (normalized.Contains("boost matk", StringComparison.OrdinalIgnoreCase) || IsMagAbilityPassiveLabel(normalized))
+            {
+                onAxis = magical || anyType;
+            }
+            else if (normalized.Contains("boost patk", StringComparison.OrdinalIgnoreCase) || IsPhysAbilityPassiveLabel(normalized))
+            {
+                onAxis = physical || anyType;
+            }
+            else if (normalized.Contains("boost atk", StringComparison.OrdinalIgnoreCase)
+                || normalized.Contains("boost ability pot", StringComparison.OrdinalIgnoreCase)
+                || IsGenericAbilityPassiveLabel(normalized))
+            {
+                onAxis = true; // ATK (both types) and generic ability potency help either damage type
+            }
+            else
+            {
+                return 0.2; // unrecognized passive — small neutral contribution
+            }
+
+            if (!onAxis)
+            {
+                return 0.05;
+            }
+
+            // On-axis: per-target effective damage ≈ the raw %. An All-Allies passive feeds every offensive
+            // ally, so it is worth more than a single character's self boost (proxy for the offensive core;
+            // refined by actual team composition at team scoring). A self boost helps only this character.
+            return isAllAllies ? AllAlliesOffensiveBeneficiaryProxy : GetSelfPassiveBeneficiaryFactor(role);
+        }
+
+        private static double GetPassiveWeight(string skillName, CharacterRole role, PlayerPowerAnalyzerV2Request request, bool isSubWeaponContext = false, bool isOffHandSlotContext = false)
         {
             var normalized = skillName.ToLowerInvariant();
             if (normalized.Contains("boost patk (all allies)", StringComparison.OrdinalIgnoreCase)) return request.PreferredDamageType == DamageType.Magical ? 1.6 : 3.0;
@@ -5517,8 +5894,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 && normalized.Contains(request.EnemyWeakness.ToString().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase)) return 2.4;
             if (IsElementAbilityPassiveLabel(normalized) && ContainsElementName(normalized)) return 0.12;
             if (normalized.Contains("boost hp", StringComparison.OrdinalIgnoreCase)) return role == CharacterRole.Tank ? 1.6 : 1.0;
-            if (normalized.Contains("heal", StringComparison.OrdinalIgnoreCase)) return role == CharacterRole.Healer ? 2.0 : 0.9;
-            if (normalized.Contains("pdef", StringComparison.OrdinalIgnoreCase) || normalized.Contains("mdef", StringComparison.OrdinalIgnoreCase)) return role == CharacterRole.DPS ? 0.6 : 1.2;
+            if (normalized.Contains("heal", StringComparison.OrdinalIgnoreCase))
+            {
+                if (role != CharacterRole.Healer) return 0.9;
+                if (IsDefensiveOrHealingContextRequested(request)) return 2.0;
+                return isSubWeaponContext ? 0.35 : (isOffHandSlotContext ? 1.5 : 1.2);
+            }
+            if (normalized.Contains("pdef", StringComparison.OrdinalIgnoreCase) || normalized.Contains("mdef", StringComparison.OrdinalIgnoreCase))
+            {
+                return role == CharacterRole.DPS ? 0.6 : 1.2;
+            }
             return 0.55;
         }
 
@@ -5605,6 +5990,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "mag_damage_received_up" => request.PreferredDamageType == DamageType.Magical ? 175 : 55,
                 "phys_damage_bonus" or "phys_weapon_boost" => request.PreferredDamageType == DamageType.Magical ? 45 : 145,
                 "mag_damage_bonus" or "mag_weapon_boost" => request.PreferredDamageType == DamageType.Magical ? 145 : 45,
+                // Ability amplification — a strong multiplier (~+40%) but count-limited (see the count
+                // discount in ScoreActiveEffectWithReferenceTuning). On-axis only for the requested type.
+                "phys_ability_amplification" => request.PreferredDamageType == DamageType.Magical ? 45 : 150,
+                "mag_ability_amplification" => request.PreferredDamageType == DamageType.Magical ? 150 : 45,
+                "elemental_ability_amplification" => 150,
                 "stat_debuff_tier_increase" => role == CharacterRole.DPS ? 120 : 170,
                 "stat_buff_tier_increase" => role == CharacterRole.DPS ? 145 : 190,
                 "pdef_down" => request.PreferredDamageType == DamageType.Magical ? 108 : 170,
@@ -6154,9 +6544,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var hasHealerSupportPassiveBundle = passivePoints.Keys.Any(skillName => skillName.Contains("heal", StringComparison.OrdinalIgnoreCase)
                 || skillName.Contains("cure", StringComparison.OrdinalIgnoreCase)
                 || skillName.Contains("esuna", StringComparison.OrdinalIgnoreCase));
+            // NOTE: "Interruption" is intentionally NOT treated as a persistent operational passive — it
+            // only applies during a battle's sigil/interrupt phase, so it must not protect a weapon from
+            // downweighting in a normal single-enemy build. ATB / Command Gauge are genuinely persistent.
             var hasTeamwideOperationalPassive = passivePoints.Keys.Any(skillName => skillName.Contains("All Allies", StringComparison.OrdinalIgnoreCase)
-                && (skillName.Contains("Interruption", StringComparison.OrdinalIgnoreCase)
-                    || skillName.Contains("ATB", StringComparison.OrdinalIgnoreCase)
+                && (skillName.Contains("ATB", StringComparison.OrdinalIgnoreCase)
                     || skillName.Contains("Command Gauge", StringComparison.OrdinalIgnoreCase)));
             var lacksRelevantNonDpsSupportSignal = role != CharacterRole.DPS
                 && !HasRelevantNonDpsOffensiveSignal(providedEffectKeys, request);
@@ -6721,8 +7113,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public Dictionary<string, int> PassivePoints { get; set; } = new(StringComparer.OrdinalIgnoreCase);
             public List<string> ProvidedEffectKeys { get; set; } = new();
             public double NonPassiveScore { get; set; }
+
+            // Active-buff utility this slot contributes, broken out by effect family (post battle-fit).
+            // The sum of these scores is the portion of NonPassiveScore that is subject to build-level
+            // duplicate-buff deduplication; the remainder (stats, damage, timing) stays additive.
+            public Dictionary<string, SlotActiveFamilyContribution> ActiveUtilityByFamily { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
             public List<PlayerPowerAnalyzerV2ScoreComponent> ScoreBreakdown { get; set; } = new();
             public double Score { get; set; }
+        }
+
+        // A single weapon/outfit slot's active-buff contribution within one effect family. Used to
+        // deduplicate overlapping buffs across the main/off-hand/ultimate/outfit slots: two equipped
+        // sources of the same buff share a cap in battle, so the second is only worth its marginal
+        // ramp/refresh value, not full value.
+        private sealed class SlotActiveFamilyContribution
+        {
+            public double Score { get; set; }
+            public int PotencyTier { get; set; }
+            public int DesiredTier { get; set; }
         }
 
         private sealed class CharacterBuildCandidate
@@ -6751,6 +7160,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public HashSet<string> ProvidedEffectKeys { get; set; } = new(StringComparer.OrdinalIgnoreCase);
             public HashSet<string> UsedItemNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
             public Dictionary<string, int> PassivePoints { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+            // This character's net active-buff contribution per effect family, after the character's own
+            // (intra-character) duplicate-buff dedup. Used at team scoring to dedup the same buff across
+            // party members: if two characters both provide a family, the weaker source is discounted to
+            // its marginal value team-wide, just as duplicate buffs are within a single character.
+            public Dictionary<string, SlotActiveFamilyContribution> ActiveFamilyContributions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
             public List<PlayerPowerAnalyzerV2ScoreComponent> ScoreBreakdown { get; set; } = new();
             public IReadOnlyList<DetectedActiveEffect>? CachedDetectedEffects { get; set; }
             public double? SelectionScoreOverride { get; set; }

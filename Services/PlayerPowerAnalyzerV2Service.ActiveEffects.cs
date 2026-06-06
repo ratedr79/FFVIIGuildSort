@@ -125,12 +125,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 TryAddDetectedEffect(effects, blob, "elemental_damage_received_up", $"{element} Damage Received Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
                 TryAddDetectedEffect(effects, blob, "elemental_damage_bonus", $"{element} Damage Bonus", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
                 TryAddDetectedEffect(effects, blob, "elemental_weapon_boost", $"{element} Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+                TryAddDetectedEffect(effects, blob, "elemental_ability_amplification", $"Amp. {element} Abilities", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             }
 
             TryAddDetectedEffect(effects, blob, "phys_damage_bonus", "Phys. Damage Bonus", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "mag_damage_bonus", "Mag. Damage Bonus", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_weapon_boost", "Phys. Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "mag_weapon_boost", "Mag. Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "phys_ability_amplification", "Amp. Phys. Abilities", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "mag_ability_amplification", "Amp. Mag. Abilities", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "Single-Tgt. Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "All-Tgt. Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
@@ -197,6 +200,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var snippet = ExtractEffectSnippet(blob, label);
+
+            // A "Removes <status>" clause is a cleanse (strips a debuff off an ally) or a dispel
+            // (strips a buff off an enemy): the source does NOT apply the named status, so it must not
+            // be detected as providing that buff/debuff. Without this guard, e.g. "Removes PATK Down,
+            // MATK Down" is misread as the weapon applying PATK Down + MATK Down to the enemy.
+            var labelIndexInSnippet = snippet.IndexOf(label, StringComparison.OrdinalIgnoreCase);
+            if (labelIndexInSnippet >= 0
+                && snippet[..labelIndexInSnippet].Contains("remove", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             effects.Add(new DetectedActiveEffect
             {
                 Key = key,
@@ -207,7 +222,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 SourceText = string.IsNullOrWhiteSpace(snippet) ? blob : snippet,
                 SourceAbilityType = sourceAbilityType ?? string.Empty,
                 SourceElement = sourceElement ?? string.Empty,
-                PotencyPercent = TryParseMarker(PotencyMarkerRegex, snippet) ?? TryParseMarker(PotencyMarkerRegex, blob),
+                PotencyPercent = TryParseMarker(PotencyMarkerRegex, snippet) ?? TryParseMarker(AbilityAmplificationMarkerRegex, snippet) ?? TryParseMarker(PotencyMarkerRegex, blob) ?? TryParseMarker(AbilityAmplificationMarkerRegex, blob),
+                // For ability amplification, FlatAmount carries the "up to N time(s)" count (uptime is
+                // limited to that many matching attacks); null for everything else.
+                FlatAmount = TryParseMarker(AbilityAmplificationCountRegex, snippet) ?? TryParseMarker(AbilityAmplificationCountRegex, blob),
                 PotencyTierRank = TryParseTierMarker(PotencyTierMarkerRegex, snippet) ?? TryParseTierMarker(PotencyTierMarkerRegex, blob),
                 DurationSeconds = TryParseMarker(DurationMarkerRegex, snippet) ?? TryParseMarker(DurationMarkerRegex, blob),
                 ExtensionSeconds = TryParseMarker(ExtensionMarkerRegex, snippet) ?? TryParseMarker(ExtensionMarkerRegex, blob),
@@ -442,6 +460,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "phys_weapon_boost" or "mag_weapon_boost" or "elemental_weapon_boost" => "weapon_boost",
                 "phys_damage_received_up" or "mag_damage_received_up" => "damage_received_up",
                 "patk_up" or "matk_up" => "attack_buff",
+                // Ability amplification (Amp. Phys./Mag./<element> Abilities) — phys/mag and elemental amp
+                // ADD within one multiplicative term in the real damage formula, so they share a family.
+                "phys_ability_amplification" or "mag_ability_amplification" or "elemental_ability_amplification" => "ability_amplification",
                 "atb_conservation" or "atb_gain" => "tempo_utility",
                 "pdef_down" or "mdef_down" => "defense_debuff",
                 "pdef_up" or "mdef_up" => "defense_buff",
@@ -455,13 +476,37 @@ namespace FFVIIEverCrisisAnalyzer.Services
             };
         }
 
+        // Damage-pyramid layer rarity multiplier. The pyramid's higher layers multiply on top of the
+        // foundation, and foundation buffs/debuffs (attack buff, defense/resist debuff, element damage up)
+        // are the most commonly covered by materia and other weapons — so per source they are more often
+        // redundant. Higher layers (damage multipliers, bonus/boost multipliers, misc) are rarer, so a
+        // single source of them carries more marginal value. This re-tiers per-weapon active value toward
+        // the pyramid without needing full team context. Keyed on the effect family.
+        private static double GetActiveEffectPyramidRarityMultiplier(string familyKey)
+        {
+            return familyKey switch
+            {
+                // Layer 3 — damage multipliers (Exploit Weakness; *Damage Received Up on the enemy).
+                "exploit_weakness" or "damage_received_up" => 1.3,
+                // Layer 6 — rare/special multipliers.
+                "torpor" => 1.35,
+                // Layers 4/5 — bonus and boost multipliers, plus ability amplification (its own (1+X)
+                // term in the damage formula, a strong but count-limited multiplier).
+                "damage_bonus" or "weapon_boost" or "ability_amplification" => 1.25,
+                // Layer 2 — buff/debuff enhancements (Enliven / Enfeeble and the tier amplifiers).
+                "buff_amplifier" or "debuff_amplifier" or "enliven" or "enfeeble" => 1.15,
+                // Layer 1 foundation and everything else — baseline.
+                _ => 1.0
+            };
+        }
+
         private static string GetActiveEffectAxisKey(string key)
         {
             return key switch
             {
-                "patk_up" or "pdef_down" or "patk_down" or "phys_damage_bonus" or "phys_weapon_boost" or "phys_damage_received_up" => "physical",
-                "matk_up" or "mdef_down" or "matk_down" or "mag_damage_bonus" or "mag_weapon_boost" or "mag_damage_received_up" => "magical",
-                "elemental_resistance_down" or "elemental_damage_up" or "elemental_damage_received_up" or "elemental_damage_bonus" or "elemental_weapon_boost" => "elemental",
+                "patk_up" or "pdef_down" or "patk_down" or "phys_damage_bonus" or "phys_weapon_boost" or "phys_damage_received_up" or "phys_ability_amplification" => "physical",
+                "matk_up" or "mdef_down" or "matk_down" or "mag_damage_bonus" or "mag_weapon_boost" or "mag_damage_received_up" or "mag_ability_amplification" => "magical",
+                "elemental_resistance_down" or "elemental_damage_up" or "elemental_damage_received_up" or "elemental_damage_bonus" or "elemental_weapon_boost" or "elemental_ability_amplification" => "elemental",
                 _ => "neutral"
             };
         }
@@ -473,6 +518,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
             score *= GetPotencyFactor(effect);
             score *= GetRampFactor(effect, role);
             score *= GetSustainFactor(effect);
+            // Ability amplification is limited to "up to N time(s)" matching attacks, not a duration — so a
+            // low count covers far fewer hits than a persistent buff. Discount by the parsed count (stored
+            // in FlatAmount): count 1 ≈ 0.47, scaling up to ~full for high counts.
+            if (effect.FamilyKey == "ability_amplification" && effect.FlatAmount.HasValue)
+            {
+                score *= Math.Clamp(0.35 + (effect.FlatAmount.Value * 0.12), 0.35, 1.0);
+            }
+
+            score *= GetActiveEffectPyramidRarityMultiplier(effect.FamilyKey);
             if (effect.IsAssumedMateria && MateriaAssumableFamilies.Contains(effect.FamilyKey))
             {
                 score *= 0.7;

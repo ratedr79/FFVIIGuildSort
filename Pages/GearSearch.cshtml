@@ -49,10 +49,10 @@
             "Low",
             "Mid",
             "High",
-            "Very High",
             "Extra High",
-            "Extra Extra High",
-            "Maximum"
+            "Extreme High",
+            "Extreme High+",
+            "Extreme High++"
         };
 
         return tierNames.Take(Math.Max(count, 0)).ToList();
@@ -65,10 +65,10 @@
             "Low" => "low",
             "Mid" => "mid",
             "High" => "high",
-            "Very High" => "very_high",
             "Extra High" => "extra_high",
-            "Extra Extra High" => "extra_extra_high",
-            "Maximum" => "maximum",
+            "Extreme High" => "very_high",
+            "Extreme High+" => "extra_extra_high",
+            "Extreme High++" => "maximum",
             _ => "low"
         };
 
