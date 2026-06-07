@@ -673,7 +673,28 @@ namespace FFVIIEverCrisisAnalyzer.Services
                                         usedNames,
                                         request);
 
-                                    if (GetVariantSelectionScore(swappedVariant, request) > GetVariantSelectionScore(variant, request))
+                                    // Item 3 Phase 2: when a character holds a substantial attacking weapon
+                                    // (element/axis-gated), the main slot must hold the highest EFFECTIVE-damage
+                                    // weapon — orient PURELY by damage and never let R-ability orientation pull a
+                                    // real attacker out of main. (The loop iterates both orderings of a pair, so
+                                    // without this block the R-ability comparison would flip Winged Chakram 1340%
+                                    // Lightning back out for Bird of Prey 940% Water.) Pure support weapons (both
+                                    // below the threshold) keep the R-ability orientation.
+                                    var swappedMainEffectiveDamage = GetWeaponEffectiveDamagePercent(swappedMain.Slot, request);
+                                    var currentMainEffectiveDamage = GetWeaponEffectiveDamagePercent(main.Slot, request);
+                                    bool shouldSwap;
+                                    if (request.PreferredDamageType != DamageType.Any
+                                        && (swappedMainEffectiveDamage > AttackingWeaponDamageThreshold
+                                            || currentMainEffectiveDamage > AttackingWeaponDamageThreshold))
+                                    {
+                                        shouldSwap = swappedMainEffectiveDamage > currentMainEffectiveDamage + 0.001;
+                                    }
+                                    else
+                                    {
+                                        shouldSwap = GetVariantSelectionScore(swappedVariant, request) > GetVariantSelectionScore(variant, request);
+                                    }
+
+                                    if (shouldSwap)
                                     {
                                         variant = swappedVariant;
                                     }

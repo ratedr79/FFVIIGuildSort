@@ -314,6 +314,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // descending get these shares (carry 60% / secondary 30% / support 10%); extra attackers add 0.
         private static readonly double[] CarryCastShares = { 0.6, 0.3, 0.1 };
 
+        // Effective-damage % above which a weapon is treated as a real attacking weapon (so its holder's
+        // main slot orients by damage, not R-abilities). Pure buff/heal weapons fall below this.
+        private const double AttackingWeaponDamageThreshold = 500d;
+
         // Phase-1b estimated team damage: the team's shared active buff/debuff multiplier applied to the
         // cast-share-weighted sum of attackers' weapon percentages. (Passive ability-potency / stat terms and
         // uptime fidelity are layered on in later increments; this is the offensive core for ranking builds.)
@@ -349,12 +353,46 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return carryWeightedWeapon * multiplier;
         }
 
-        // A character's attacking weapon % (best of main / off-hand / ultimate damage abilities).
-        private static double GetVariantWeaponDamagePercent(CharacterBuildCandidate variant)
+        // Element/axis-gated EFFECTIVE damage % of a weapon for this request. An off-axis weapon (wrong
+        // damage type) or off-element weapon (doesn't hit the enemy's weakness) is heavily discounted — it
+        // gains none of the weakness-exploit / element terms. E.g. Bird of Prey 940% Water in a Lightning
+        // fight is effectively ~470, far below Winged Chakram 1340% Lightning. Non-elemental weapons keep
+        // most of their value (no weakness bonus, but not resisted either).
+        private static double GetWeaponEffectiveDamagePercent(PlayerPowerAnalyzerV2ItemSlot weapon, PlayerPowerAnalyzerV2Request request)
         {
-            var main = variant.MainWeapon?.DamagePercent ?? 0d;
-            var off = variant.OffHandWeapon?.DamagePercent ?? 0d;
-            var ultimate = variant.UltimateWeapon?.DamagePercent ?? 0d;
+            if (weapon == null || weapon.DamagePercent <= 0)
+            {
+                return 0d;
+            }
+
+            var axisFactor = 1.0;
+            if (request.PreferredDamageType != DamageType.Any && !MatchesRequestedDamageType(weapon.AbilityType, request.PreferredDamageType))
+            {
+                axisFactor = 0.3;
+            }
+
+            var elementFactor = 1.0;
+            if (request.EnemyWeakness != Element.None)
+            {
+                if (string.IsNullOrWhiteSpace(weapon.Element) || weapon.Element.Equals("None", StringComparison.OrdinalIgnoreCase))
+                {
+                    elementFactor = 0.85; // non-elemental: no weakness bonus, but not resisted
+                }
+                else if (!MatchesRequestedElement(weapon.Element, request.EnemyWeakness))
+                {
+                    elementFactor = 0.5; // off-element: no weakness, may be resisted
+                }
+            }
+
+            return weapon.DamagePercent * axisFactor * elementFactor;
+        }
+
+        // A character's attacking weapon's effective % (best of main / off-hand / ultimate, element/axis-gated).
+        private static double GetVariantWeaponDamagePercent(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            var main = variant.MainWeapon != null ? GetWeaponEffectiveDamagePercent(variant.MainWeapon, request) : 0d;
+            var off = variant.OffHandWeapon != null ? GetWeaponEffectiveDamagePercent(variant.OffHandWeapon, request) : 0d;
+            var ultimate = variant.UltimateWeapon != null ? GetWeaponEffectiveDamagePercent(variant.UltimateWeapon, request) : 0d;
             return Math.Max(main, Math.Max(off, ultimate));
         }
 
@@ -370,10 +408,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return 0d;
             }
 
-            var weaponPercents = baseVariants.Select(GetVariantWeaponDamagePercent).ToList();
+            var weaponPercents = baseVariants.Select(variant => GetVariantWeaponDamagePercent(variant, request)).ToList();
             var teamEffects = baseVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
 
-            var carry = baseVariants.OrderByDescending(GetVariantWeaponDamagePercent).First();
+            var carry = baseVariants.OrderByDescending(variant => GetVariantWeaponDamagePercent(variant, request)).First();
             var carryEffectivePassives = new Dictionary<string, int>(carry.PassivePoints, StringComparer.OrdinalIgnoreCase);
             foreach (var variant in baseVariants)
             {
