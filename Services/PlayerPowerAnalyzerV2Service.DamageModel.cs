@@ -504,6 +504,32 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return Math.Max(main, Math.Max(off, ultimate));
         }
 
+        // True if this attacker can actually hit the enemy's weakness — i.e. any of its main / off-hand / ultimate
+        // weapons deals the weakness element. Only then do weakness/element-dependent effects apply to its damage.
+        // A wholly off-element/non-elemental attacker (e.g. Cloud on Fusion Sword in a Lightning fight) gains
+        // nothing from them. (Materia can technically deal ~300% on-element, but no real build relies on that.)
+        private static bool AttackerCanHitWeakness(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
+        {
+            if (request.EnemyWeakness == Element.None)
+            {
+                return true;
+            }
+
+            return (variant.MainWeapon != null && MatchesRequestedElement(variant.MainWeapon.Element, request.EnemyWeakness))
+                || (variant.OffHandWeapon != null && MatchesRequestedElement(variant.OffHandWeapon.Element, request.EnemyWeakness))
+                || (variant.UltimateWeapon != null && MatchesRequestedElement(variant.UltimateWeapon.Element, request.EnemyWeakness));
+        }
+
+        // Effects whose value requires the attacker to deal the enemy's weakness element: Exploit Weakness (a
+        // weakness-hit multiplier) and every "elemental" axis family (Elemental Resistance Down / Damage Up / …).
+        // They contribute nothing to an attacker that can't hit the weakness, so they are stripped from ITS
+        // per-attacker multiplier (the weapon-% element discount is the separate BASE penalty and stays).
+        private static bool IsElementDependentEffect(DetectedActiveEffect effect)
+        {
+            return string.Equals(effect.Key, "exploit_weakness", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(effect.AxisKey, "elemental", StringComparison.OrdinalIgnoreCase);
+        }
+
         // Integration overload: estimate a team's damage from its candidate variants, with SCOPE-AWARE per-
         // attacker buff application (the Self-confinement fix). Attackers are ranked by weapon % → cast shares
         // (carry 0.6 / 0.3 / 0.1). Each attacker's damage = weapon% × share × multiplier(SHARED effects +
@@ -636,9 +662,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             // Per-attacker damage = weapon% × cast-share × scope-confined multiplier. Reuse one shared multiplier
-            // for attackers that have no Self/Other-Allies effects (the common case → no extra cost).
+            // for attackers that have no Self/Other-Allies effects (the common case → no extra cost). Off-element
+            // attackers (can't hit the weakness) get a SEPARATE shared multiplier with the element-dependent
+            // effects (Exploit Weakness, elemental buffs/debuffs) stripped — they gain nothing from them.
             var anyOtherAllies = otherAlliesByRank.Any(list => list.Count > 0);
-            double? sharedMultiplierCache = null;
+            double? sharedOnElementCache = null;
+            double? sharedOffElementCache = null;
             var totalDamage = 0.0;
             for (var i = 0; i < ranked.Count; i++)
             {
@@ -648,10 +677,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
+                var canHitWeakness = AttackerCanHitWeakness(ranked[i].Variant, request);
+
                 double multiplier;
                 if (ownByRank[i].Count == 0 && !anyOtherAllies)
                 {
-                    multiplier = sharedMultiplierCache ??= EstimateDamageMultiplier(shared, passiveTerms, damageType, fullUptimeFamilies, MaintainerUptime);
+                    if (canHitWeakness)
+                    {
+                        multiplier = sharedOnElementCache ??= EstimateDamageMultiplier(shared, passiveTerms, damageType, fullUptimeFamilies, MaintainerUptime);
+                    }
+                    else
+                    {
+                        multiplier = sharedOffElementCache ??= EstimateDamageMultiplier(
+                            shared.Where(effect => !IsElementDependentEffect(effect)).ToList(),
+                            passiveTerms, damageType, fullUptimeFamilies, MaintainerUptime);
+                    }
                 }
                 else
                 {
@@ -663,6 +703,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         {
                             effectsForAttacker.AddRange(otherAlliesByRank[j]);
                         }
+                    }
+
+                    // Off-element attacker: strip the weakness/elemental effects it can't use from ITS multiplier.
+                    if (!canHitWeakness)
+                    {
+                        effectsForAttacker = effectsForAttacker.Where(effect => !IsElementDependentEffect(effect)).ToList();
                     }
 
                     multiplier = EstimateDamageMultiplier(effectsForAttacker, passiveTerms, damageType, fullUptimeFamilies, MaintainerUptime);
