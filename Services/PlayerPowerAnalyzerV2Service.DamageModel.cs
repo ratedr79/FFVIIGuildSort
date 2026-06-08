@@ -395,23 +395,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 && range.Contains("All", StringComparison.OrdinalIgnoreCase)
                 && range.Contains("Enem", StringComparison.OrdinalIgnoreCase);
 
-        private static bool IsDamageReceivedUpFamily(DetectedActiveEffect effect)
-        {
-            var family = string.IsNullOrWhiteSpace(effect.FamilyKey) ? effect.Key : effect.FamilyKey;
-            return string.Equals(family, "damage_received_up", StringComparison.OrdinalIgnoreCase);
-        }
-
-        // Estimated team damage: the team's shared active buff/debuff multiplier (uptime-scaled) plus passive
-        // ability-potency / stat terms, applied to the cast-share-weighted sum of attackers' weapon %s.
-        private static double EstimateTeamDamage(
-            IReadOnlyList<double> attackerWeaponPercents,
-            IEnumerable<DetectedActiveEffect> teamEffects,
+        // The active+passive damage MULTIPLIER for ONE effect set (no weapon weighting): family state → uptime →
+        // defense-debuff denominator → merge passive terms → product. Reused PER-ATTACKER by the scope-aware
+        // confinement (each attacker's own Self/Single-Ally buffs multiply only their OWN share).
+        private static double EstimateDamageMultiplier(
+            IEnumerable<DetectedActiveEffect> effects,
             IReadOnlyDictionary<string, double> passiveTerms,
             DamageType damageType,
             ISet<string> fullUptimeFamilies,
             double maintainerUptime)
         {
-            var state = BuildActiveFamilyState(teamEffects, damageType);
+            var state = BuildActiveFamilyState(effects, damageType);
 
             // Uptime applies to ACTIVE families only; passives are flat and merged at full value afterward.
             state = ApplyUptimeBuckets(state, fullUptimeFamilies, maintainerUptime);
@@ -438,7 +432,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            var multiplier = EstimateDamageMultiplierProduct(state);
+            return EstimateDamageMultiplierProduct(state);
+        }
+
+        // Estimated team damage (UNIFORM-multiplier form — used by the unit tests and the "Any"/no-variant path):
+        // ONE multiplier applied to the cast-share-weighted sum of attackers' weapon %s. The SCOPE-AWARE per-
+        // attacker form (which confines Self/Single-Ally buffs to their target) is in the baseVariants overload.
+        private static double EstimateTeamDamage(
+            IReadOnlyList<double> attackerWeaponPercents,
+            IEnumerable<DetectedActiveEffect> teamEffects,
+            IReadOnlyDictionary<string, double> passiveTerms,
+            DamageType damageType,
+            ISet<string> fullUptimeFamilies,
+            double maintainerUptime)
+        {
+            var multiplier = EstimateDamageMultiplier(teamEffects, passiveTerms, damageType, fullUptimeFamilies, maintainerUptime);
 
             var ordered = attackerWeaponPercents.OrderByDescending(percent => percent).ToList();
             var carryWeightedWeapon = 0.0;
@@ -496,36 +504,73 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return Math.Max(main, Math.Max(off, ultimate));
         }
 
-        // Integration overload: estimate a team's damage straight from its candidate variants. Extracts each
-        // attacker's weapon %, pools the team's detected active effects, and builds the carry's passive terms
-        // = the carry's own R-abilities + every other member's team-wide (All-Allies) R-abilities (which
-        // stack onto the carry). The carry is the highest-weapon-% character. (Uptime fidelity is layered in
-        // next; this is the ranking signal that Phase 2 swaps into the offensive score.)
-        private static double EstimateTeamDamage(IReadOnlyList<CharacterBuildCandidate> baseVariants, PlayerPowerAnalyzerV2Request request)
+        // Integration overload: estimate a team's damage from its candidate variants, with SCOPE-AWARE per-
+        // attacker buff application (the Self-confinement fix). Attackers are ranked by weapon % → cast shares
+        // (carry 0.6 / 0.3 / 0.1). Each attacker's damage = weapon% × share × multiplier(SHARED effects +
+        // their OWN Self buffs + Single-Ally buffs they were chosen for + teammates' Other-Allies buffs), so a
+        // Self/Single-Ally buff multiplies only its real target instead of inflating the whole team.
+        private static double EstimateTeamDamage(IReadOnlyList<CharacterBuildCandidate> baseVariants, PlayerPowerAnalyzerV2Request request, bool scopeAware = true)
         {
             if (baseVariants.Count == 0)
             {
                 return 0d;
             }
 
-            var weaponPercents = baseVariants.Select(variant => GetVariantWeaponDamagePercent(variant, request)).ToList();
-            var carry = baseVariants.OrderByDescending(variant => GetVariantWeaponDamagePercent(variant, request)).First();
-            var teamEffects = baseVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
+            var damageType = request.PreferredDamageType;
+            var ranked = baseVariants
+                .Select(variant => (Variant: variant, Weapon: GetVariantWeaponDamagePercent(variant, request)))
+                .OrderByDescending(x => x.Weapon)
+                .ToList();
+            var carry = ranked[0].Variant;
 
-            // 2.6 range-matched Damage-Received-Up: a SINGLE-enemy "Damage Received Up" debuff only multiplies a
-            // single-target attacker's hits; an ALL-enemies one applies to any attacker. The carry drives the
-            // dominant cast share, so if the carry swings an all-enemies weapon, drop single-enemy dmg-rcvd-up
-            // (it would not apply to the carry's attacks); all-enemies dmg-rcvd-up always applies. (Carry-range
-            // approximation — fixes the over-credit of mismatched dmg-rcvd-up; full per-attacker matching later.)
+            // Partition each attacker's ACTIVE effects by TargetScope: Self → owner only; Single Ally → the carry
+            // (player picks the best target for damage); Other Allies → teammates; everything else (All-Allies
+            // buffs + enemy debuffs + Unknown) → SHARED/team-wide.
+            var shared = new List<DetectedActiveEffect>();
+            var ownByRank = new List<List<DetectedActiveEffect>>();
+            var otherAlliesByRank = new List<List<DetectedActiveEffect>>();
+            var singleAlly = new List<DetectedActiveEffect>();
+            var allEffects = new List<DetectedActiveEffect>();
+            for (var i = 0; i < ranked.Count; i++)
+            {
+                var own = new List<DetectedActiveEffect>();
+                var other = new List<DetectedActiveEffect>();
+                foreach (var effect in GetDetectedEffectsForVariant(ranked[i].Variant, request))
+                {
+                    allEffects.Add(effect);
+                    switch (effect.TargetScope)
+                    {
+                        case ActiveEffectTargetScope.Self: own.Add(effect); break;
+                        case ActiveEffectTargetScope.SingleAlly: singleAlly.Add(effect); break;
+                        case ActiveEffectTargetScope.OtherAllies: other.Add(effect); break;
+                        default: shared.Add(effect); break;
+                    }
+                }
+
+                ownByRank.Add(own);
+                otherAlliesByRank.Add(other);
+            }
+
+            // Single-Ally buffs land on the carry (rank 0) — the optimal damage target.
+            if (singleAlly.Count > 0 && ownByRank.Count > 0)
+            {
+                ownByRank[0].AddRange(singleAlly);
+            }
+
+            // 2.6 attack-type-matched Damage-Received-Up (carry-range approximation): a "Single-Tgt. Dmg. Rcvd. Up"
+            // debuff only raises damage from SINGLE-TARGET attacks, so if the carry swings an all-enemies (AOE)
+            // weapon its hits don't benefit — drop it. ("All-Tgt."/bare dmg-rcvd-up apply to every attack → kept.)
             if (IsAllEnemiesRange(carry.MainWeapon?.Range))
             {
-                teamEffects = teamEffects
-                    .Where(effect => !(IsDamageReceivedUpFamily(effect) && effect.TargetScope == ActiveEffectTargetScope.SingleEnemy))
+                shared = shared
+                    .Where(effect => !effect.AppliesOnlyToSingleTargetAttacks)
                     .ToList();
             }
 
+            // Passives (separate flat layer, applied to all attackers — unchanged): carry's own R-abilities +
+            // every member's team-wide (All-Allies) R-abilities.
             var carryEffectivePassives = new Dictionary<string, int>(carry.PassivePoints, StringComparer.OrdinalIgnoreCase);
-            foreach (var variant in baseVariants)
+            foreach (var (variant, _) in ranked)
             {
                 if (ReferenceEquals(variant, carry))
                 {
@@ -545,20 +590,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var passiveTerms = BuildPassiveFamilyTerms(carryEffectivePassives, request.PreferredDamageType, request.EnemyWeakness);
 
-            // Uptime: families carried on an attacker's always-cast MAIN weapon are auto-maintained (full
-            // uptime); the rest fall to the maintainer bucket. (Off-hand/sub actives fire less reliably than
-            // the main attacking weapon, so only main weapons count as always-cast here.)
+            // Uptime: families on an always-cast MAIN weapon are auto-maintained (full uptime); the rest fall to
+            // the maintainer bucket. (Only main weapons count as always-cast.)
             var alwaysCastWeaponNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var variant in baseVariants)
+            foreach (var (variant, weapon) in ranked)
             {
-                if (variant.MainWeapon != null && GetVariantWeaponDamagePercent(variant, request) > AttackingWeaponDamageThreshold)
+                if (variant.MainWeapon != null && weapon > AttackingWeaponDamageThreshold)
                 {
                     alwaysCastWeaponNames.Add(variant.MainWeapon.Name);
                 }
             }
 
             var fullUptimeFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var effect in teamEffects)
+            foreach (var effect in allEffects)
             {
                 if (!string.IsNullOrEmpty(effect.SourceName) && alwaysCastWeaponNames.Contains(effect.SourceName))
                 {
@@ -566,7 +610,68 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            return EstimateTeamDamage(weaponPercents, teamEffects, passiveTerms, request.PreferredDamageType, fullUptimeFamilies, MaintainerUptime);
+            // Cheap-gate / precise-final split: the high-volume skeleton GATE passes scopeAware=false and uses
+            // ONE uniform multiplier (pools all effects, incl. Self team-wide — same as before the confinement
+            // fix). It only OVER-credits self-buffs, never under-ranks, so it can't exclude a team the precise
+            // (final) scorer would want. Bounds the per-attacker cost to the final candidates.
+            if (!scopeAware)
+            {
+                var uniformEffects = (IReadOnlyList<DetectedActiveEffect>)allEffects;
+                if (IsAllEnemiesRange(carry.MainWeapon?.Range))
+                {
+                    uniformEffects = allEffects
+                        .Where(effect => !effect.AppliesOnlyToSingleTargetAttacks)
+                        .ToList();
+                }
+
+                var uniformMultiplier = EstimateDamageMultiplier(uniformEffects, passiveTerms, damageType, fullUptimeFamilies, MaintainerUptime);
+                var weighted = 0.0;
+                for (var i = 0; i < ranked.Count; i++)
+                {
+                    var s = i < CarryCastShares.Length ? CarryCastShares[i] : 0.0;
+                    weighted += ranked[i].Weapon * s;
+                }
+
+                return weighted * uniformMultiplier;
+            }
+
+            // Per-attacker damage = weapon% × cast-share × scope-confined multiplier. Reuse one shared multiplier
+            // for attackers that have no Self/Other-Allies effects (the common case → no extra cost).
+            var anyOtherAllies = otherAlliesByRank.Any(list => list.Count > 0);
+            double? sharedMultiplierCache = null;
+            var totalDamage = 0.0;
+            for (var i = 0; i < ranked.Count; i++)
+            {
+                var share = i < CarryCastShares.Length ? CarryCastShares[i] : 0.0;
+                if (share <= 0 || ranked[i].Weapon <= 0)
+                {
+                    continue;
+                }
+
+                double multiplier;
+                if (ownByRank[i].Count == 0 && !anyOtherAllies)
+                {
+                    multiplier = sharedMultiplierCache ??= EstimateDamageMultiplier(shared, passiveTerms, damageType, fullUptimeFamilies, MaintainerUptime);
+                }
+                else
+                {
+                    var effectsForAttacker = new List<DetectedActiveEffect>(shared);
+                    effectsForAttacker.AddRange(ownByRank[i]);
+                    for (var j = 0; j < otherAlliesByRank.Count; j++)
+                    {
+                        if (j != i)
+                        {
+                            effectsForAttacker.AddRange(otherAlliesByRank[j]);
+                        }
+                    }
+
+                    multiplier = EstimateDamageMultiplier(effectsForAttacker, passiveTerms, damageType, fullUptimeFamilies, MaintainerUptime);
+                }
+
+                totalDamage += ranked[i].Weapon * share * multiplier;
+            }
+
+            return totalDamage;
         }
 
         // NOTE: a Phase 2.2 / target-#3 per-character support-valuation proxy (GetVariantTeamBuffContribution +

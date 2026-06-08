@@ -63,6 +63,10 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<string> ProvidedEffectLabels { get; set; } = new();
         public List<string> AddsVsBest { get; set; } = new();
         public List<string> DropsVsBest { get; set; } = new();
+
+        // This option's own analysis/debug notes (so the UI can show them when the user views this team, the
+        // same way result.DebugNotes are shown for the recommended team).
+        public List<string> DebugNotes { get; set; } = new();
     }
 
     public sealed class PlayerPowerAnalyzerV2CharacterBuild

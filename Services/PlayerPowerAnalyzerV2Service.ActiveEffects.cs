@@ -35,6 +35,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public int? MaxPotencyTierRank { get; set; }
             public ActiveEffectTargetScope TargetScope { get; set; }
             public bool IsAssumedMateria { get; set; }
+
+            // True only for a "Single-Tgt. Dmg. Rcvd. Up" debuff: it raises the damage the enemy takes from
+            // SINGLE-TARGET attacks only, so it must NOT be credited to an attacker swinging an all-enemies (AOE)
+            // weapon. ("All-Tgt." and bare "Dmg. Rcvd. Up" apply to every attack → false.) Used by the 2.6 filter.
+            public bool AppliesOnlyToSingleTargetAttacks { get; set; }
         }
 
         private sealed class EffectFamilyLedgerEntry
@@ -134,10 +139,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
             TryAddDetectedEffect(effects, blob, "mag_weapon_boost", "Mag. Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_ability_amplification", "Amp. Phys. Abilities", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "mag_ability_amplification", "Amp. Mag. Abilities", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
-            TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "Single-Tgt. Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "Single-Tgt. Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria, appliesOnlyToSingleTargetAttacks: true);
             TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "All-Tgt. Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "phys_damage_received_up", "Phys. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
-            TryAddDetectedEffect(effects, blob, "mag_damage_received_up", "Single-Tgt. Mag. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+            TryAddDetectedEffect(effects, blob, "mag_damage_received_up", "Single-Tgt. Mag. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria, appliesOnlyToSingleTargetAttacks: true);
             TryAddDetectedEffect(effects, blob, "mag_damage_received_up", "All-Tgt. Mag. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "mag_damage_received_up", "Mag. Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
             TryAddDetectedEffect(effects, blob, "atb_conservation", "Phys. ATB Conservation Effect", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
@@ -192,7 +197,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             string sourceName,
             string? sourceAbilityType,
             string? sourceElement,
-            bool isAssumedMateria)
+            bool isAssumedMateria,
+            bool appliesOnlyToSingleTargetAttacks = false)
         {
             if (!blob.Contains(label, StringComparison.OrdinalIgnoreCase))
             {
@@ -231,7 +237,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 ExtensionSeconds = TryParseMarker(ExtensionMarkerRegex, snippet) ?? TryParseMarker(ExtensionMarkerRegex, blob),
                 MaxPotencyTierRank = TryParseTierMarker(MaxPotencyTierMarkerRegex, snippet) ?? TryParseTierMarker(MaxPotencyTierMarkerRegex, blob),
                 TargetScope = ParseTargetScope(snippet, blob),
-                IsAssumedMateria = isAssumedMateria
+                IsAssumedMateria = isAssumedMateria,
+                AppliesOnlyToSingleTargetAttacks = appliesOnlyToSingleTargetAttacks
             });
         }
 

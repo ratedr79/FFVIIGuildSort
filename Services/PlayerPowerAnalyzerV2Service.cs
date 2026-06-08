@@ -365,7 +365,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         CharacterBuilds = t.Characters,
                         ProvidedEffectLabels = altEffectKeys.Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
                         AddsVsBest = altEffectKeys.Except(bestEffectKeys).Where(key => IsDamageRelevantEffectKey(key, request.PreferredDamageType)).Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
-                        DropsVsBest = bestEffectKeys.Except(altEffectKeys).Where(key => IsDamageRelevantEffectKey(key, request.PreferredDamageType)).Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList()
+                        DropsVsBest = bestEffectKeys.Except(altEffectKeys).Where(key => IsDamageRelevantEffectKey(key, request.PreferredDamageType)).Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
+                        DebugNotes = t.DebugNotes.ToList()
                     };
                 })
                 .ToList();
@@ -1047,7 +1048,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 // offensive-shell + synergy proxies). Meaningful now that seeds carry their ultimate (target #1).
                 // Keep only the structural refinements — user requirement coverage + template-role gating — at the
                 // same weights, mirroring FinalizeTeamCandidate so the skeleton GATE and the final ranking agree.
-                score = EstimateTeamDamage(seedVariants, request);
+                score = EstimateTeamDamage(seedVariants, request, scopeAware: false); // skeleton GATE: uniform multiplier for speed
                 score += PreferredCoverageBonus(providedEffectKeys, request);
                 score += request.HardRequiredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 70d;
                 score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 45d;
@@ -3621,6 +3622,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 + request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 90
                 + request.HardRequiredEffectKeys.Count * 40;
 
+            // Pruning ceiling: must stay PRECISE (scopeAware:true) — a uniform/over-credited ceiling is too loose
+            // and stops pruning, flooding the search with full evaluations. (Confirmed: uniform here = ~7min.)
             var score = (request.PreferredDamageType != DamageType.Any
                 ? EstimateTeamDamage(baseVariants, request)
                 : offensiveBackbone) + refinementTerms;
@@ -4257,7 +4260,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .Take(5)
                 .Select(kvp => $"{FormatPassiveDisplayLabel(kvp.Key)} +{kvp.Value} pts")
                 .ToList();
-            var selectedCustomization = SelectBestCustomization(weapon, role, request, referenceTuningProfile, slotName, slotMultiplier, includeActiveEffects);
+            var selectedCustomization = SelectBestCustomization(weapon, role, request, referenceTuningProfile, slotName, slotMultiplier, includeActiveEffects, includeDamage);
             if (selectedCustomization.PassiveSkillName != null && selectedCustomization.PassiveSkillPoints > 0)
             {
                 var appliedPoints = Math.Max(0, (int)Math.Floor(selectedCustomization.PassiveSkillPoints * slotMultiplier));
@@ -4271,6 +4274,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         .Select(kvp => $"{FormatPassiveDisplayLabel(kvp.Key)} +{kvp.Value} pts")
                         .ToList();
                 }
+            }
+
+            // Heart customization: a pure damage-% boost (e.g. 1340% → 1680%). Apply it to this slot's effective
+            // damage (the damage model reads slot.DamagePercent) and scale the legacy damage score by the same
+            // factor. Spade/Diamond descriptions don't parse as Heart, so they leave this at base.
+            var effectiveDamagePercent = weapon.Snapshot.DamagePercent;
+            var heartDamageBoostFactor = 1.0;
+            if (weapon.Snapshot.DamagePercent > 0
+                && TryParseHeartDamagePercent(selectedCustomization.Description, weapon.Snapshot.DamagePercent, out var heartDamagePercent))
+            {
+                effectiveDamagePercent = heartDamagePercent;
+                heartDamageBoostFactor = heartDamagePercent / weapon.Snapshot.DamagePercent;
             }
 
             var patk = Math.Max(0, (int)Math.Floor(weapon.Snapshot.Patk * slotMultiplier));
@@ -4291,7 +4306,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var damageScore = 0d;
             if (includeDamage)
             {
-                damageScore = ScoreDamageWithReferenceTuning(weapon, role, request, referenceTuningProfile);
+                damageScore = ScoreDamageWithReferenceTuning(weapon, role, request, referenceTuningProfile) * heartDamageBoostFactor;
                 nonPassiveScore += damageScore;
                 score += damageScore;
                 scoreBreakdown.Add(CreateScoreComponent("damage", "Active damage", damageScore));
@@ -4408,7 +4423,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     Patk = patk,
                     Matk = matk,
                     Heal = heal,
-                    DamagePercent = includeDamage ? weapon.Snapshot.DamagePercent : 0,
+                    DamagePercent = includeDamage ? effectiveDamagePercent : 0,
                     Score = Math.Round(score, 2),
                     SelectedCustomization = string.IsNullOrWhiteSpace(selectedCustomization.Description) ? null : selectedCustomization.Description,
                     PassiveSummaries = passiveSummaries.Distinct(StringComparer.OrdinalIgnoreCase).Take(6).ToList(),
@@ -6808,7 +6823,46 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 && baseVariants.Any(variant => variant.Role == CharacterRole.DPS);
         }
 
-        private SelectedCustomization SelectBestCustomization(OwnedWeaponCandidate weapon, CharacterRole role, PlayerPowerAnalyzerV2Request request, ReferenceTuningProfile referenceTuningProfile, string slotName, double slotMultiplier, bool includeActiveEffects)
+        // A "Heart" customization is a pure damage-potency upgrade — e.g. "Damage Potency +340% (new 1680%)".
+        // It carries no detectable buff/debuff, so it must be parsed numerically; "(new X%)" is the resulting
+        // ability %, with the "+X%" delta as a fallback. Spade/Diamond descriptions never match these.
+        private static readonly System.Text.RegularExpressions.Regex HeartNewDamagePercentRegex =
+            new(@"\(new\s+(\d+(?:\.\d+)?)\s*%\)", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex HeartDeltaDamagePercentRegex =
+            new(@"Damage Potency\s*\+\s*(\d+(?:\.\d+)?)\s*%", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        // True if the customization description is a Heart damage-potency upgrade; outputs the resulting ability %.
+        private static bool TryParseHeartDamagePercent(string? description, double baseDamagePercent, out double newDamagePercent)
+        {
+            newDamagePercent = 0d;
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                return false;
+            }
+
+            var absolute = HeartNewDamagePercentRegex.Match(description);
+            if (absolute.Success
+                && double.TryParse(absolute.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var newValue)
+                && newValue > 0)
+            {
+                newDamagePercent = newValue;
+                return true;
+            }
+
+            var delta = HeartDeltaDamagePercentRegex.Match(description);
+            if (delta.Success
+                && baseDamagePercent > 0
+                && double.TryParse(delta.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var deltaValue)
+                && deltaValue > 0)
+            {
+                newDamagePercent = baseDamagePercent + deltaValue;
+                return true;
+            }
+
+            return false;
+        }
+
+        private SelectedCustomization SelectBestCustomization(OwnedWeaponCandidate weapon, CharacterRole role, PlayerPowerAnalyzerV2Request request, ReferenceTuningProfile referenceTuningProfile, string slotName, double slotMultiplier, bool includeActiveEffects, bool includeDamage)
         {
             var best = new SelectedCustomization();
             var baseEffects = includeActiveEffects
@@ -6848,7 +6902,23 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
                 }
 
-                var score = passiveScore + effectScore;
+                // Heart customizations carry no detectable effect/passive — score their damage-% boost so they
+                // can actually compete (otherwise they always score 0 and are never chosen). The per-character
+                // magnitude (weapon damage score × boost fraction) naturally favors Heart on high-damage carries
+                // and lets a team-wide Spade buff win on low-damage supports (full team-context selection later).
+                // Only score the Heart damage boost when this slot's damage is actually counted (main weapons).
+                // For sub-weapons (damage not counted) the boost is worthless, so it must NOT steal the pick from
+                // a Diamond passive — that regressed the sub-weapon marginal-gain ranking.
+                var damageScore = 0d;
+                if (includeDamage
+                    && weapon.Snapshot.DamagePercent > 0
+                    && TryParseHeartDamagePercent(customization.Description, weapon.Snapshot.DamagePercent, out var heartNewPercent))
+                {
+                    var baseDamageScore = ScoreDamageWithReferenceTuning(weapon, role, request, referenceTuningProfile);
+                    damageScore = baseDamageScore * ((heartNewPercent - weapon.Snapshot.DamagePercent) / weapon.Snapshot.DamagePercent);
+                }
+
+                var score = passiveScore + effectScore + damageScore;
                 if (score <= best.Score)
                 {
                     continue;

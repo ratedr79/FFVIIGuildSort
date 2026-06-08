@@ -6,9 +6,56 @@
 }
 
 @functions {
-    private static string BuildQuickCopyText(PlayerPowerAnalyzerV2Result result)
+    // The recommended team plus each alternate, flattened into a uniform list so the page can render a chooser
+    // and one toggle-able build-out panel per team (the recommended team is first / default-selected).
+    private sealed class ChooserTeam
     {
-        return string.Join(Environment.NewLine + Environment.NewLine, result.Characters.Select(BuildQuickCopyCharacterLine));
+        public string Label { get; init; } = string.Empty;
+        public double Score { get; init; }
+        public List<PlayerPowerAnalyzerV2CharacterBuild> Builds { get; init; } = new();
+        public bool IsRecommended { get; init; }
+        public List<string> Adds { get; init; } = new();
+        public List<string> Drops { get; init; } = new();
+        public string QuickCopyText { get; init; } = string.Empty;
+        public List<string> DebugNotes { get; init; } = new();
+    }
+
+    private static List<ChooserTeam> BuildChooserTeams(PlayerPowerAnalyzerV2Result result)
+    {
+        var teams = new List<ChooserTeam>
+        {
+            new ChooserTeam
+            {
+                Label = string.Join(" / ", result.TeamCharacters),
+                Score = result.Score,
+                Builds = result.Characters,
+                IsRecommended = true,
+                QuickCopyText = BuildQuickCopyText(result.Characters),
+                DebugNotes = result.DebugNotes
+            }
+        };
+
+        foreach (var alt in result.AlternateTeams)
+        {
+            teams.Add(new ChooserTeam
+            {
+                Label = string.Join(" / ", alt.Characters),
+                Score = alt.Score,
+                Builds = alt.CharacterBuilds,
+                IsRecommended = false,
+                Adds = alt.AddsVsBest,
+                Drops = alt.DropsVsBest,
+                QuickCopyText = BuildQuickCopyText(alt.CharacterBuilds),
+                DebugNotes = alt.DebugNotes
+            });
+        }
+
+        return teams;
+    }
+
+    private static string BuildQuickCopyText(List<PlayerPowerAnalyzerV2CharacterBuild> builds)
+    {
+        return string.Join(Environment.NewLine + Environment.NewLine, builds.Select(BuildQuickCopyCharacterLine));
     }
 
     private static string BuildQuickCopyCharacterLine(PlayerPowerAnalyzerV2CharacterBuild character)
@@ -308,9 +355,50 @@
             </div>
         </div>
 
-        <div class="row g-4 mt-1">
-            @foreach (var character in Model.AnalysisResult.Characters)
-            {
+        var chooserTeams = BuildChooserTeams(Model.AnalysisResult);
+
+        if (chooserTeams.Count > 1)
+        {
+            <div class="card shadow-sm border-0 mt-3">
+                <div class="card-body p-3">
+                    <div class="small text-uppercase text-muted fw-semibold mb-2">Choose a team to view its full build-out</div>
+                    <div class="d-flex flex-wrap gap-2" id="playerPowerAnalyzerV2TeamChooser">
+                        @for (var ti = 0; ti < chooserTeams.Count; ti++)
+                        {
+                            var ct = chooserTeams[ti];
+                            <button type="button" class="btn @(ti == 0 ? "btn-primary" : "btn-outline-secondary") btn-sm team-chooser-btn" data-team-index="@ti">
+                                <span class="fw-semibold">@(ct.IsRecommended ? "★ Recommended" : "Alternate")</span>
+                                <span class="ms-1">@ct.Label</span>
+                                <span class="badge bg-light text-dark ms-1">@ct.Score.ToString("N0")</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        for (var teamIndex = 0; teamIndex < chooserTeams.Count; teamIndex++)
+        {
+            var chosenTeam = chooserTeams[teamIndex];
+            <div class="row g-4 mt-1 team-buildout" data-team-index="@teamIndex" style="@(teamIndex == 0 ? string.Empty : "display:none;")">
+                @if (!chosenTeam.IsRecommended && (chosenTeam.Adds.Count > 0 || chosenTeam.Drops.Count > 0))
+                {
+                    <div class="col-12">
+                        <div class="alert alert-secondary mb-0">
+                            <div class="fw-semibold mb-1">Tradeoff vs recommended team</div>
+                            @if (chosenTeam.Adds.Count > 0)
+                            {
+                                <div class="small"><strong>Adds:</strong> @string.Join(", ", chosenTeam.Adds)</div>
+                            }
+                            @if (chosenTeam.Drops.Count > 0)
+                            {
+                                <div class="small"><strong>Drops:</strong> @string.Join(", ", chosenTeam.Drops)</div>
+                            }
+                        </div>
+                    </div>
+                }
+                @foreach (var character in chosenTeam.Builds)
+                {
                 <div class="col-12">
                     <div class="card shadow-sm border-0">
                         <div class="card-body p-4">
@@ -447,8 +535,9 @@
                         </div>
                     </div>
                 </div>
-            }
-        </div>
+                }
+            </div>
+        }
 
         <div class="row g-4 mt-1">
             <div class="col-xl-4 col-lg-6">
@@ -458,43 +547,38 @@
                             <h3 class="h5 fw-bold mb-0">Quick Copy</h3>
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="playerPowerAnalyzerV2QuickCopyButton">Copy</button>
                         </div>
-                        <div class="small text-muted mb-2">Simple text version of the recommended team for quick paste and follow-up analysis.</div>
-                        <textarea class="form-control power-v2-quick-copy-text" id="playerPowerAnalyzerV2QuickCopyText" readonly>@BuildQuickCopyText(Model.AnalysisResult)</textarea>
+                        <div class="small text-muted mb-2">Simple text version of the selected team for quick paste and follow-up analysis.</div>
+                        <textarea class="form-control power-v2-quick-copy-text" id="playerPowerAnalyzerV2QuickCopyText" readonly>@chooserTeams[0].QuickCopyText</textarea>
                         <div class="small text-muted mt-2" id="playerPowerAnalyzerV2QuickCopyStatus"></div>
+                        @* Hidden per-team copies of the quick-copy text; the chooser JS swaps the visible textarea above. *@
+                        @for (var qi = 0; qi < chooserTeams.Count; qi++)
+                        {
+                            <textarea class="d-none team-quickcopy-source" data-team-index="@qi">@chooserTeams[qi].QuickCopyText</textarea>
+                        }
                     </div>
                 </div>
             </div>
-            @if (Model.AnalysisResult.AlternateTeams.Count > 0)
-            {
-                <div class="col-xl-4 col-lg-6">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body p-4">
-                            <h3 class="h5 fw-bold mb-3">Other Teams</h3>
-                            <div class="d-grid gap-2">
-                                @foreach (var team in Model.AnalysisResult.AlternateTeams)
-                                {
-                                    <div class="border rounded-3 p-3">
-                                        <div class="fw-semibold">@string.Join(" / ", team.Characters)</div>
-                                        <div class="small text-muted">Score @team.Score.ToString("N2")</div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-            @if (Model.AnalysisResult.DebugNotes.Count > 0)
+            @* "Other Teams" summary card removed — the team chooser above now lists every team (name + score)
+               and lets the user view each one's full build-out, with the Adds/Drops tradeoff shown inline. *@
+            @if (chooserTeams.Any(t => t.DebugNotes.Count > 0))
             {
                 <div class="col-xl-4 col-lg-6">
                         <div class="card shadow-sm border-0 h-100">
                             <div class="card-body p-4">
                                 <h3 class="h5 fw-bold mb-3">Debug Notes</h3>
-                                <div class="small text-muted d-grid gap-2">
-                                    @foreach (var note in Model.AnalysisResult.DebugNotes)
-                                    {
-                                        <div>@note</div>
-                                    }
-                                </div>
+                                @for (var di = 0; di < chooserTeams.Count; di++)
+                                {
+                                    <div class="small text-muted d-grid gap-2 team-debugnotes" data-team-index="@di" style="@(di == 0 ? string.Empty : "display:none;")">
+                                        @if (chooserTeams[di].DebugNotes.Count == 0)
+                                        {
+                                            <div class="fst-italic">No debug notes for this team.</div>
+                                        }
+                                        @foreach (var note in chooserTeams[di].DebugNotes)
+                                        {
+                                            <div>@note</div>
+                                        }
+                                    </div>
+                                }
                             </div>
                         </div>
                 </div>
@@ -515,6 +599,36 @@
                 </div>
             </div>
         </div>
+
+        <script>
+            (function () {
+                var buttons = Array.prototype.slice.call(document.querySelectorAll('.team-chooser-btn'));
+                var panels = Array.prototype.slice.call(document.querySelectorAll('.team-buildout'));
+                var debugBlocks = Array.prototype.slice.call(document.querySelectorAll('.team-debugnotes'));
+                var quickCopyText = document.getElementById('playerPowerAnalyzerV2QuickCopyText');
+                buttons.forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var idx = btn.getAttribute('data-team-index');
+                        panels.forEach(function (panel) {
+                            panel.style.display = panel.getAttribute('data-team-index') === idx ? '' : 'none';
+                        });
+                        debugBlocks.forEach(function (block) {
+                            block.style.display = block.getAttribute('data-team-index') === idx ? '' : 'none';
+                        });
+                        // Swap the Quick Copy text to the selected team's loadout (the Copy button keeps working on it).
+                        var source = document.querySelector('.team-quickcopy-source[data-team-index="' + idx + '"]');
+                        if (quickCopyText && source) {
+                            quickCopyText.value = source.value;
+                        }
+                        buttons.forEach(function (other) {
+                            var isActive = other === btn;
+                            other.classList.toggle('btn-primary', isActive);
+                            other.classList.toggle('btn-outline-secondary', !isActive);
+                        });
+                    });
+                });
+            })();
+        </script>
     }
 </div>
 
