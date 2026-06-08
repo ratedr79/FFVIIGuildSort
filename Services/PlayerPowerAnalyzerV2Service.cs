@@ -295,7 +295,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             Parallel.For(0, charactersWithMainWeapon.Count, CreateCpuBoundParallelOptions(), index =>
             {
                 var character = charactersWithMainWeapon[index];
-                var seedVariants = BuildCharacterSeedVariants(character, ownedWeaponsByCharacter, request, referenceTuningProfile, adaptiveSearchProfile, weaponSlotEvaluationCache);
+                var seedVariants = BuildCharacterSeedVariants(character, ownedWeaponsByCharacter, ultimateWeaponsByCharacter, ownedCostumesByCharacter, request, referenceTuningProfile, adaptiveSearchProfile, weaponSlotEvaluationCache, costumeSlotEvaluationCache);
                 seedEntries[index] = new KeyValuePair<string, List<CharacterBuildCandidate>>(character, seedVariants);
             });
             var seedVariantsByCharacter = seedEntries.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
@@ -349,15 +349,24 @@ namespace FFVIIEverCrisisAnalyzer.Services
             result.SuppressedEffectNotes = best.SuppressedEffectNotes.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             result.DebugNotes = best.DebugNotes.ToList();
             result.ScoreBreakdown = CloneScoreBreakdown(best.ScoreBreakdown);
+            var bestEffectKeys = new HashSet<string>(best.ProvidedEffectKeys, StringComparer.OrdinalIgnoreCase);
             result.AlternateTeams = OrderTeamCandidatesForSelection(orderedTeamCandidates
                 .Where(t => !string.Equals(t.TeamKey, best.TeamKey, StringComparison.OrdinalIgnoreCase))
                 .GroupBy(t => t.TeamKey, StringComparer.OrdinalIgnoreCase)
                 .Select(g => OrderTeamCandidatesForSelection(g).First()))
                 .Take(5)
-                .Select(t => new PlayerPowerAnalyzerV2AlternateTeam
+                .Select(t =>
                 {
-                    Characters = t.Characters.Select(c => c.CharacterName).ToList(),
-                    Score = Math.Round(t.Score, 2)
+                    var altEffectKeys = new HashSet<string>(t.ProvidedEffectKeys, StringComparer.OrdinalIgnoreCase);
+                    return new PlayerPowerAnalyzerV2AlternateTeam
+                    {
+                        Characters = t.Characters.Select(c => c.CharacterName).ToList(),
+                        Score = Math.Round(t.Score, 2),
+                        CharacterBuilds = t.Characters,
+                        ProvidedEffectLabels = altEffectKeys.Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
+                        AddsVsBest = altEffectKeys.Except(bestEffectKeys).Where(key => IsDamageRelevantEffectKey(key, request.PreferredDamageType)).Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
+                        DropsVsBest = bestEffectKeys.Except(altEffectKeys).Where(key => IsDamageRelevantEffectKey(key, request.PreferredDamageType)).Select(ToLabel).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList()
+                    };
                 })
                 .ToList();
             return result;
@@ -715,10 +724,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private List<CharacterBuildCandidate> BuildCharacterSeedVariants(
             string character,
             IReadOnlyDictionary<string, List<OwnedWeaponCandidate>> ownedWeaponsByCharacter,
+            IReadOnlyDictionary<string, List<OwnedWeaponCandidate>> ultimateWeaponsByCharacter,
+            IReadOnlyDictionary<string, List<OwnedCostumeCandidate>> ownedCostumesByCharacter,
             PlayerPowerAnalyzerV2Request request,
             ReferenceTuningProfile referenceTuningProfile,
             AdaptiveSearchProfile adaptiveSearchProfile,
-            ConcurrentDictionary<string, SlotEvaluation> weaponSlotEvaluationCache)
+            ConcurrentDictionary<string, SlotEvaluation> weaponSlotEvaluationCache,
+            ConcurrentDictionary<string, SlotEvaluation> costumeSlotEvaluationCache)
         {
             var role = CharacterRoleRegistry.GetRoleOrDefault(character);
             var mainWeapons = ownedWeaponsByCharacter.TryGetValue(character, out var characterWeapons)
@@ -728,6 +740,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 return new List<CharacterBuildCandidate>();
             }
+
+            var ultimates = ultimateWeaponsByCharacter.TryGetValue(character, out var characterUltimates)
+                ? characterUltimates
+                : new List<OwnedWeaponCandidate>();
+            ownedCostumesByCharacter.TryGetValue(character, out var costumes);
 
             var subOutfits = new List<PlayerPowerAnalyzerV2ItemSlot>();
             var subOutfitPassivePoints = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -744,19 +761,57 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     && ShouldPreserveContextualSupportSeedMain(main, role, request))
                 .Take(2));
 
+            // Candidate-gen rework target #1 — ULTIMATE-AWARE SEEDS. Previously seeds were main-weapon-only
+            // (null off/ultimate/outfit), so the gating stage (shortlist/anchor/skeleton) judged a character on
+            // a fraction of their kit and was BLIND to the ultimate — whose base stats + R-ability passives
+            // ALWAYS apply, and whose presence is what lets the team scorer see amplifiers (Abraxas). Compose
+            // each main-weapon seed with the character's BEST off-hand + ultimate + outfit so the seed reflects
+            // real potential. Only the MAIN is carried into the downstream expansion (which re-explores all
+            // off/ult/outfit combos on surviving seeds), so this sharpens GATING accuracy without locking builds.
+            SlotEvaluation? BestUltimateSlot()
+                => ultimates
+                    .Select(w => GetOrCreateWeaponSlot(w, role, request, referenceTuningProfile, "Ultimate", 1.0, true, true, weaponSlotEvaluationCache))
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault();
+            SlotEvaluation? BestOutfitSlot()
+                => (costumes ?? new List<OwnedCostumeCandidate>())
+                    .Select(c => GetOrCreateCostumeSlot(c, role, request, referenceTuningProfile, "Main Outfit", 1.0, true, costumeSlotEvaluationCache))
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .FirstOrDefault();
+
+            var bestUltimate = BestUltimateSlot();
+            var bestOutfit = BestOutfitSlot();
+
             var seedVariants = retainedMainWeapons
-                .Select(main => ComposeCharacterVariantCandidate(
-                    character,
-                    role,
-                    main,
-                    null,
-                    null,
-                    null,
-                    subOutfits,
-                    subOutfitPassivePoints,
-                    0d,
-                    new HashSet<string>(StringComparer.OrdinalIgnoreCase) { main.Name },
-                    request))
+                .Select(main =>
+                {
+                    var bestOff = mainWeapons
+                        .Where(w => !w.Item.Name.Equals(main.Name, StringComparison.OrdinalIgnoreCase))
+                        .Select(w => GetOrCreateWeaponSlot(w, role, request, referenceTuningProfile, "Off-hand", 0.5, true, true, weaponSlotEvaluationCache))
+                        .OrderByDescending(x => x.Score)
+                        .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                        .FirstOrDefault();
+
+                    var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { main.Name };
+                    if (bestOff != null) usedNames.Add(bestOff.Name);
+                    if (bestUltimate != null) usedNames.Add(bestUltimate.Name);
+                    if (bestOutfit != null) usedNames.Add(bestOutfit.Name);
+
+                    return ComposeCharacterVariantCandidate(
+                        character,
+                        role,
+                        main,
+                        bestOff,
+                        bestUltimate,
+                        bestOutfit,
+                        subOutfits,
+                        subOutfitPassivePoints,
+                        0d,
+                        usedNames,
+                        request);
+                })
                 .ToList();
 
             return OrderCharacterVariantsForSelection(seedVariants, request).ToList();
@@ -983,22 +1038,41 @@ namespace FFVIIEverCrisisAnalyzer.Services
             IReadOnlyDictionary<string, string> normalizedEnabledTemplateNames)
         {
             var providedEffectKeys = GetProvidedEffectKeys(seedVariants);
-            var explicitDetectedEffects = seedVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
-            var effectPackage = ScoreEffectPackage(explicitDetectedEffects, seedVariants, request);
-            var anchorSupportScore = ScoreAnchorSupportSynergy(seedVariants, explicitDetectedEffects, request);
-            var contextualVariantBonus = GetVariantContextualTeamBonus(seedVariants, request);
-            var offensiveShellScore = ScoreOffensiveShell(seedVariants, request);
-            var score = seedVariants.Sum(variant => GetVariantSelectionScore(variant, request));
-            score += effectPackage.Score;
-            score += anchorSupportScore.Score;
-            score += contextualVariantBonus;
-            score += offensiveShellScore.Score * 0.45;
-            score += ScoreTeamEffects(providedEffectKeys, request) * 0.12;
-            score += PreferredCoverageBonus(providedEffectKeys, request);
-            score += ScorePyramidCoverage(providedEffectKeys, request);
-            score += request.HardRequiredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 70d;
-            score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 45d;
-            score += ScoreReferencePatternSynergyBonus(seedVariants, providedEffectKeys, request, referenceTuningProfile) * 0.4;
+
+            double score;
+            if (request.PreferredDamageType != DamageType.Any)
+            {
+                // Target #2: rank skeletons by the REAL multiplicative team-damage model instead of the legacy
+                // parallel hand-tuned estimator (Σ GetVariantSelectionScore + effect-package + pyramid-coverage +
+                // offensive-shell + synergy proxies). Meaningful now that seeds carry their ultimate (target #1).
+                // Keep only the structural refinements — user requirement coverage + template-role gating — at the
+                // same weights, mirroring FinalizeTeamCandidate so the skeleton GATE and the final ranking agree.
+                score = EstimateTeamDamage(seedVariants, request);
+                score += PreferredCoverageBonus(providedEffectKeys, request);
+                score += request.HardRequiredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 70d;
+                score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 45d;
+            }
+            else
+            {
+                // No damage axis ("Any"): the multiplicative model has nothing to gate on, so keep the legacy
+                // heuristic backbone for this case.
+                var explicitDetectedEffects = seedVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
+                var effectPackage = ScoreEffectPackage(explicitDetectedEffects, seedVariants, request);
+                var anchorSupportScore = ScoreAnchorSupportSynergy(seedVariants, explicitDetectedEffects, request);
+                var contextualVariantBonus = GetVariantContextualTeamBonus(seedVariants, request);
+                var offensiveShellScore = ScoreOffensiveShell(seedVariants, request);
+                score = seedVariants.Sum(variant => GetVariantSelectionScore(variant, request));
+                score += effectPackage.Score;
+                score += anchorSupportScore.Score;
+                score += contextualVariantBonus;
+                score += offensiveShellScore.Score * 0.45;
+                score += ScoreTeamEffects(providedEffectKeys, request) * 0.12;
+                score += PreferredCoverageBonus(providedEffectKeys, request);
+                score += ScorePyramidCoverage(providedEffectKeys, request);
+                score += request.HardRequiredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 70d;
+                score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 45d;
+                score += ScoreReferencePatternSynergyBonus(seedVariants, providedEffectKeys, request, referenceTuningProfile) * 0.4;
+            }
 
             var roles = seedVariants
                 .Select(variant => variant.Role.ToString())
@@ -3519,10 +3593,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 variant => variant.CharacterName,
                 variant => new Dictionary<string, int>(variant.PassivePoints, StringComparer.OrdinalIgnoreCase),
                 StringComparer.OrdinalIgnoreCase);
-            var score = 0d;
+            var offensiveBackbone = 0d;
             foreach (var variant in baseVariants)
             {
-                score += variant.NonPassiveScore + ScoreCharacterPassivePoints(passivePointsByCharacter[variant.CharacterName], passivePointsByCharacter.Values, variant.Role, request);
+                offensiveBackbone += variant.NonPassiveScore + ScoreCharacterPassivePoints(passivePointsByCharacter[variant.CharacterName], passivePointsByCharacter.Values, variant.Role, request);
             }
 
             var explicitDetectedEffects = baseVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
@@ -3533,17 +3607,23 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var teamWideDuplicateBuffPenalty = GetTeamWideDuplicateBuffPenalty(baseVariants);
             var contextualVariantBonus = GetVariantContextualTeamBonus(baseVariants, request);
             var offensiveShellScore = ScoreOffensiveShell(baseVariants, request);
-            score += effectPackage.Score;
-            score += anchorSupportScore.Score;
-            score += ScoreTeamEffects(providedEffectKeys, request) * 0.18;
-            score += redundantOffHandPenalty;
-            score -= variantAlignmentPenalty;
-            score -= teamWideDuplicateBuffPenalty;
-            score += contextualVariantBonus;
-            score += offensiveShellScore.Score * 0.65;
-            score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 90;
-            score += request.HardRequiredEffectKeys.Count * 40;
-            score += ScoreReferencePatternSynergyBonus(baseVariants, providedEffectKeys, request, referenceTuningProfile);
+
+            // Mirror FinalizeTeamCandidate so the pruning ceiling stays on the same scale.
+            offensiveBackbone += effectPackage.Score
+                + anchorSupportScore.Score
+                + ScoreTeamEffects(providedEffectKeys, request) * 0.18
+                + offensiveShellScore.Score * 0.65
+                + ScoreReferencePatternSynergyBonus(baseVariants, providedEffectKeys, request, referenceTuningProfile);
+            var refinementTerms = redundantOffHandPenalty
+                - variantAlignmentPenalty
+                - teamWideDuplicateBuffPenalty
+                + contextualVariantBonus
+                + request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 90
+                + request.HardRequiredEffectKeys.Count * 40;
+
+            var score = (request.PreferredDamageType != DamageType.Any
+                ? EstimateTeamDamage(baseVariants, request)
+                : offensiveBackbone) + refinementTerms;
 
             var roles = baseVariants
                 .Select(variant => variant.Role.ToString())
@@ -3744,17 +3824,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var teamWideDuplicateBuffPenalty = GetTeamWideDuplicateBuffPenalty(baseVariants);
             var contextualVariantBonus = GetVariantContextualTeamBonus(baseVariants, request);
             var offensiveShellScore = ScoreOffensiveShell(baseVariants, request);
-            var score = characterOutputs.Sum(c => c.Score);
-            score += effectPackage.Score + legacyTeamEffectScore + anchorSupportScore.Score;
-            score += redundantOffHandPenalty;
-            score -= variantAlignmentPenalty;
-            score -= teamWideDuplicateBuffPenalty;
-            score += contextualVariantBonus;
-            score += offensiveShellScore.Score * 0.75;
-            score += matchedPreferred.Count * 90;
-            score += request.HardRequiredEffectKeys.Count * 40;
             var referencePatternBonus = ScoreReferencePatternSynergyBonus(baseVariants, providedEffectKeys, request, referenceTuningProfile);
-            score += referencePatternBonus;
+
+            // Item 3: offensive builds rank by estimated team damage (the real multiplicative model); the
+            // legacy offensive backbone is replaced. Refinement terms (dedup penalty, requirement bonuses,
+            // alignment penalties) stay at full weight as tie-breakers.
+            var offensiveBackbone = characterOutputs.Sum(c => c.Score)
+                + effectPackage.Score + legacyTeamEffectScore + anchorSupportScore.Score
+                + offensiveShellScore.Score * 0.75
+                + referencePatternBonus;
+            var refinementTerms = redundantOffHandPenalty
+                - variantAlignmentPenalty
+                - teamWideDuplicateBuffPenalty
+                + contextualVariantBonus
+                + matchedPreferred.Count * 90
+                + request.HardRequiredEffectKeys.Count * 40;
+
+            var score = (request.PreferredDamageType != DamageType.Any
+                ? EstimateTeamDamage(baseVariants, request)
+                : offensiveBackbone) + refinementTerms;
 
             var roles = characterOutputs.Select(c => c.Role.ToString()).OrderBy(r => r, StringComparer.OrdinalIgnoreCase).ToList();
             var teamRoleKey = NormalizeTemplateName(string.Join("/", roles));
@@ -4308,6 +4396,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     PreviewImageUrl = weapon.Item.PreviewImageUrl,
                     Element = weapon.Item.Element,
                     AbilityType = weapon.Item.AbilityType,
+                    Range = weapon.Item.Range,
                     AbilityText = weapon.Snapshot.AbilityText,
                     CommandAtb = weapon.Item.CommandAtb,
                     InitialChargeTimeSec = weapon.Item.InitialChargeTimeSec,

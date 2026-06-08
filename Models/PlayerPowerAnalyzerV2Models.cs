@@ -14,6 +14,10 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public Element EnemyWeakness { get; set; } = Element.None;
         public DamageType PreferredDamageType { get; set; } = DamageType.Any;
         public EnemyTargetScenario TargetScenario { get; set; } = EnemyTargetScenario.Unknown;
+        // 2.7 — per-fight enemy off-element effectiveness. An off-element weapon (doesn't hit the enemy's
+        // weakness) loses the weakness-exploit and may be RESISTED by a variable amount that depends on the
+        // fight. This factor multiplies such a weapon's effective damage; moderate default 0.5 when unknown.
+        public double OffElementDamageFactor { get; set; } = 0.5;
         public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Adaptive;
         public List<string> EnabledTeamTemplates { get; set; } = new();
         public List<string> BossImmunityKeys { get; set; } = new();
@@ -49,6 +53,16 @@ namespace FFVIIEverCrisisAnalyzer.Models
     {
         public List<string> Characters { get; set; } = new();
         public double Score { get; set; }
+
+        // Full loadouts for this alternate option (so the UI can show its gear, not just the roster).
+        public List<PlayerPowerAnalyzerV2CharacterBuild> CharacterBuilds { get; set; } = new();
+
+        // This option's offensive coverage, and the tradeoff vs the recommended team: AddsVsBest are effects
+        // this option provides that the best team does not; DropsVsBest are effects the best team has that
+        // this option lacks. Together they are the data-driven "why pick this instead" rationale.
+        public List<string> ProvidedEffectLabels { get; set; } = new();
+        public List<string> AddsVsBest { get; set; } = new();
+        public List<string> DropsVsBest { get; set; } = new();
     }
 
     public sealed class PlayerPowerAnalyzerV2CharacterBuild
@@ -94,6 +108,9 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string PreviewImageUrl { get; set; } = string.Empty;
         public string Element { get; set; } = string.Empty;
         public string AbilityType { get; set; } = string.Empty;
+        // Attack range of the weapon's ability ("Single Enemy" / "All Enemies" / etc.). Used by the damage
+        // model (2.6) to range-match enemy Damage-Received-Up debuffs to each attacker.
+        public string Range { get; set; } = string.Empty;
         public string AbilityText { get; set; } = string.Empty;
         public int CommandAtb { get; set; }
         public int InitialChargeTimeSec { get; set; }

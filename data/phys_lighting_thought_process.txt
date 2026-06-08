@@ -63,3 +63,41 @@ Question: "Amplifier valuation: confirm an amplifier with nothing to amplify sho
 
 If the "amplifier" is referring to Abraxas effect such as Applied Stats Debuff Tier Increased or the opposite Applied Stats Buff Tier Increased, then yes. For Applied Stats Debuff Tier Increased, if there are no current debuffs on the enemy, then it will have no effect. For Applied Stats Buff Tier Increased, if there are no current buffs on the allies, then it will also have no effect.
 
+FOLLOW UP: Cid was being selected by the analyzer
+
+I think I touched a bit on this in my build walk through. Cid is intruiging. Let's break it down a bit.
+
+Cid is probably bringing Antler Pike for lightning Damage bonus +30%. He can also bring Dragoon Lance -- despite it being magic based -- to bring exploit weakness all allies (with a customization) as well lighting resistance down mid -> high. With his ultimate weapon Venus Gospel, he can bring phys weapon boost +30%. His ultimate weapon is not availabel at the start of the battle, but I believe the initial charge is 20s, which is probaby acceptable considering we'd need to cast antler pike and dragoon lance twice to get all of buffs and debuffs anyways. What's locking from Cid is a PATK up, which we did label one of our foundational buffs. But with Cloud's Ragnarok starting the battle with this buff for all allies, Cid can bring a Bravery Materia to extend that buff. It is entirely possible, even it it takes perfect gameplay, to mot likely keep all buffs active with this setup. A plyer would need to play close attention to the patk buffs and prioritize them when possible to keep them up all battle. The longer the battle, the harder it will be to maintain. If the buff falls off, then at most you can boost patk low on a single ally per cast.
+
+So what's the real breakdown. Let's ignore the time limites for a second look at the individual buffs. We wnd up with:
+
+Lightning Damage Bonus +30%
+Exploit Weakness +30%
+Lightning Resist Down High -40%
+Phys. Weapon Boost +30%
+PATK Up Low +10% (Let's assume the buff falls off at some point, but it's possibly high +30%)
+
+With Enliven from Cloud, PATK low technically becomes high so that could be +30%, and if they maintain PATK high, that +50%. So there could be a 30% swing here.
+
+Let's look at what Aerith brought. Based on the previous write-up, Aerith ends up with:
+
+Exploit Weakness +30%
+Lightning Resist Down High -40% (with a second Abraxas cast later in battle, this can become extra high or -55%)
+Phys. Damage Boost +30%
+PATK Up High +30%
+
+With Enliven from Cloud, PATK high technically becomes two levels higher so +50%.
+
+Let's pretend the lighting resist down raminas consistent, but we'll keep the possible +15% Aerith can bring later in battle.
+
+So...simple math, Cid brings +30% +30% +30% +30% (or possibly +50%), each a unique buff for +120%. Not to mention that fact that Cid will do additional damage by casting Antler Pike.
+
+Aerith brings +30% +30% +50% for 110%. If we give her credit for the extra 15% for the second Abraxas cast, then it's 125% but that comes later in battle.
+
+Abraxas will also increase the level of the pdef down provided by Yuffie from high (-35%) to extra high (-45%) for a extra 10%.
+
+Does the extra damage Cid can do offset the slightly higher buff/debuff percentages offered by Aerith? It's possible, unless the player ends up using Cid to cast bravery in order to keep the patk buff high, in which they wouldn't cast Antler Pike as often. But it's interesting experiment. Abraxas also applies haste when cast, allowing the party to move quicker, but on the counterpoint, Cid brings +3 atb on Venus Gospel.
+
+My gut says it's probably easier to pilot Yuffie/Cloud/Aerith to keep all the buffs/debuffs active, but Cid is an intruiguing choice and one that would probably require testing and might even come down to the person playing.
+
+Does my mental math make sense? Is there anything I possibly missed? I'm not sure what the next steps would be, if there are any.

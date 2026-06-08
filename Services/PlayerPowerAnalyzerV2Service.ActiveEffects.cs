@@ -1114,7 +1114,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     "patk_up" => request.PreferredDamageType == DamageType.Magical ? 1.0 : 1.45,
                     "matk_up" => request.PreferredDamageType == DamageType.Magical ? 1.45 : 1.0,
                     "pdef_up" or "mdef_up" => role == CharacterRole.DPS ? 1.0 : 1.2,
-                    "atb_conservation" => role == CharacterRole.DPS ? 1.14 : 1.24,
+                    // ATB Conservation is a "free rider" (usually not worth much, esp. short-duration ones); keep it
+                    // ~neutral (never penalized — a weapon like Heirloom Brush is carried for its OTHER effect), not
+                    // over-rewarded. See memory battle-flow-atb-and-conditional-effects.
+                    "atb_conservation" => 1.05,
                     "atb_gain" => role == CharacterRole.DPS ? 1.18 : 1.28,
                     "healing_support" => role == CharacterRole.Healer ? 1.18 : 1.08,
                     "exploit_weakness" => 1.24,
@@ -1124,7 +1127,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     "patk_up" => request.PreferredDamageType == DamageType.Magical ? 0.95 : 1.22,
                     "matk_up" => request.PreferredDamageType == DamageType.Magical ? 1.22 : 0.95,
-                    "atb_conservation" => 1.12,
+                    "atb_conservation" => 1.02,
                     "atb_gain" => 1.14,
                     _ => 1.05
                 },
@@ -1132,7 +1135,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 {
                     "patk_up" => request.PreferredDamageType == DamageType.Magical ? 0.85 : 1.08,
                     "matk_up" => request.PreferredDamageType == DamageType.Magical ? 1.08 : 0.85,
-                    "atb_conservation" => 1.04,
+                    "atb_conservation" => 1.0,
                     "atb_gain" => 1.08,
                     _ => 0.96
                 },

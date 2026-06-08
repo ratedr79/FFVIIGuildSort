@@ -124,6 +124,41 @@ namespace FFVIIEverCrisisAnalyzer.Services
             "damage_received_up", "torpor"
         };
 
+        // True if an effect KEY contributes to DAMAGE on the requested axis. Used to filter the multi-team
+        // "adds/drops vs best" rationale down to differences that actually matter for the requested damage type
+        // — drops pure defensive/sustain effects (heal, PDEF/MDEF Up) and off-axis buffs (MATK Up in a physical
+        // fight) so the explanation reads as real damage trade-offs, not noise. With DamageType.Any, axis is not
+        // filtered (no requested axis).
+        private static bool IsDamageRelevantEffectKey(string key, DamageType damageType)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                return false;
+            }
+
+            if (!DamageContributingFamilies.Contains(GetActiveEffectFamilyKey(key)))
+            {
+                return false;
+            }
+
+            var axis = GetActiveEffectAxisKey(key);
+            if (damageType == DamageType.Physical && string.Equals(axis, "magical", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (damageType == DamageType.Magical && string.Equals(axis, "physical", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        // Off-axis buffs (MATK Up in a physical fight) add no on-axis damage but give a universal weapon a
+        // small flexibility edge over a single-axis one (user decision). 10% of the buff's on-axis value.
+        private const double OffAxisBuffFlexibilityFactor = 0.1;
+
         private static bool HasBuffAmplifier(IEnumerable<DetectedActiveEffect> effects)
             => effects.Any(e => e.Key is "enliven" or "stat_buff_tier_increase");
 
@@ -142,6 +177,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var materialized = effects as IReadOnlyList<DetectedActiveEffect> ?? effects.ToList();
             var additiveByFamily = new Dictionary<string, Dictionary<string, double>>(System.StringComparer.OrdinalIgnoreCase);
             var amplifiableBestTiers = new Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
+            var offAxisByKey = new Dictionary<string, double>(System.StringComparer.OrdinalIgnoreCase);
 
             foreach (var effect in materialized)
             {
@@ -151,14 +187,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                // On-axis filter: a magical buff does nothing for a physical build and vice versa.
-                if (damageType == DamageType.Physical && effect.AxisKey == "magical")
+                // On-axis filter: a magical buff does nothing on the requested axis for a physical build and
+                // vice versa, BUT it carries a small flexibility value (a universal PATK+MATK weapon edges out
+                // a single-axis one). Off-axis effects accumulate into one small `off_axis_flexibility` term.
+                if ((damageType == DamageType.Physical && effect.AxisKey == "magical")
+                    || (damageType == DamageType.Magical && effect.AxisKey == "physical"))
                 {
-                    continue;
-                }
+                    var offPct = GetActiveEffectRealPercent(effect);
+                    if (offPct > 0 && (!offAxisByKey.TryGetValue(effect.Key, out var existingOff) || offPct > existingOff))
+                    {
+                        offAxisByKey[effect.Key] = offPct;
+                    }
 
-                if (damageType == DamageType.Magical && effect.AxisKey == "physical")
-                {
                     continue;
                 }
 
@@ -201,6 +241,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             foreach (var pair in amplified)
             {
                 state[pair.Key] = pair.Value;
+            }
+
+            // Small flexibility term: off-axis buffs give a universal weapon a slight edge over a single-axis one.
+            var offAxisFlexibility = offAxisByKey.Values.Sum() * OffAxisBuffFlexibilityFactor;
+            if (offAxisFlexibility > 0)
+            {
+                state["off_axis_flexibility"] = offAxisFlexibility;
             }
 
             return state;
@@ -318,16 +365,67 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // main slot orients by damage, not R-abilities). Pure buff/heal weapons fall below this.
         private const double AttackingWeaponDamageThreshold = 500d;
 
-        // Phase-1b estimated team damage: the team's shared active buff/debuff multiplier applied to the
-        // cast-share-weighted sum of attackers' weapon percentages. (Passive ability-potency / stat terms and
-        // uptime fidelity are layered on in later increments; this is the offensive core for ranking builds.)
+        // [D2] Simple bucketed uptime: an active buff/debuff on an attacker's always-cast MAIN weapon is
+        // auto-maintained every turn (full uptime); everything else is assumed maintainer-covered at this
+        // fraction. (Start-only / non-reapplied fidelity is a later refinement.) Passives are flat (no uptime).
+        private const double MaintainerUptime = 0.85;
+
+        // Scale each ACTIVE family's % by its uptime: 1.0 if the family is carried on an always-cast main
+        // weapon (auto-maintained), else maintainerUptime. With maintainerUptime = 1.0 this is a no-op.
+        private static Dictionary<string, double> ApplyUptimeBuckets(
+            IReadOnlyDictionary<string, double> activeFamilyState,
+            ISet<string> fullUptimeFamilies,
+            double maintainerUptime)
+        {
+            var result = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in activeFamilyState)
+            {
+                var uptime = fullUptimeFamilies != null && fullUptimeFamilies.Contains(pair.Key) ? 1.0 : maintainerUptime;
+                result[pair.Key] = pair.Value * uptime;
+            }
+
+            return result;
+        }
+
+        // True if a weapon's ability range hits all enemies (AOE), e.g. "All Enemies". An empty/unknown range
+        // is treated as single-target (the common default) — we only DROP a single-enemy debuff for a known AOE
+        // carry, so unknown ranges never lose coverage.
+        private static bool IsAllEnemiesRange(string? range)
+            => !string.IsNullOrWhiteSpace(range)
+                && range.Contains("All", StringComparison.OrdinalIgnoreCase)
+                && range.Contains("Enem", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsDamageReceivedUpFamily(DetectedActiveEffect effect)
+        {
+            var family = string.IsNullOrWhiteSpace(effect.FamilyKey) ? effect.Key : effect.FamilyKey;
+            return string.Equals(family, "damage_received_up", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Estimated team damage: the team's shared active buff/debuff multiplier (uptime-scaled) plus passive
+        // ability-potency / stat terms, applied to the cast-share-weighted sum of attackers' weapon %s.
         private static double EstimateTeamDamage(
             IReadOnlyList<double> attackerWeaponPercents,
             IEnumerable<DetectedActiveEffect> teamEffects,
             IReadOnlyDictionary<string, double> passiveTerms,
-            DamageType damageType)
+            DamageType damageType,
+            ISet<string> fullUptimeFamilies,
+            double maintainerUptime)
         {
             var state = BuildActiveFamilyState(teamEffects, damageType);
+
+            // Uptime applies to ACTIVE families only; passives are flat and merged at full value afterward.
+            state = ApplyUptimeBuckets(state, fullUptimeFamilies, maintainerUptime);
+
+            // PDEF/MDEF Down reduce the enemy-defence DENOMINATOR (the formula's /EnemyDEF), so their true
+            // damage effect is 1/(1-d), not 1+d — e.g. 35% → ×1.54, not ×1.35. Convert the defence-debuff term
+            // to its equivalent additive value so the generic ∏(1+x) product matches the real formula. Without
+            // this the model understates debuff coverage and lets a higher-raw-weapon team out-rank a broader
+            // (debuff-heavy) one (the Kaiser/Cait-Trumpet coverage-breadth benchmarks).
+            if (state.TryGetValue("defense_debuff", out var defenseDown) && defenseDown > 0 && defenseDown < 1)
+            {
+                state["defense_debuff"] = defenseDown / (1 - defenseDown);
+            }
+
             if (passiveTerms != null)
             {
                 foreach (var pair in passiveTerms)
@@ -380,7 +478,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
                 else if (!MatchesRequestedElement(weapon.Element, request.EnemyWeakness))
                 {
-                    elementFactor = 0.5; // off-element: no weakness, may be resisted
+                    // 2.7 — off-element: no weakness-exploit, and resisted by a per-fight amount. Use the
+                    // request's enemy off-element factor (moderate 0.5 default when unknown), not a hard constant.
+                    elementFactor = request.OffElementDamageFactor > 0 ? request.OffElementDamageFactor : 0.5;
                 }
             }
 
@@ -409,9 +509,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var weaponPercents = baseVariants.Select(variant => GetVariantWeaponDamagePercent(variant, request)).ToList();
+            var carry = baseVariants.OrderByDescending(variant => GetVariantWeaponDamagePercent(variant, request)).First();
             var teamEffects = baseVariants.SelectMany(variant => GetDetectedEffectsForVariant(variant, request)).ToList();
 
-            var carry = baseVariants.OrderByDescending(variant => GetVariantWeaponDamagePercent(variant, request)).First();
+            // 2.6 range-matched Damage-Received-Up: a SINGLE-enemy "Damage Received Up" debuff only multiplies a
+            // single-target attacker's hits; an ALL-enemies one applies to any attacker. The carry drives the
+            // dominant cast share, so if the carry swings an all-enemies weapon, drop single-enemy dmg-rcvd-up
+            // (it would not apply to the carry's attacks); all-enemies dmg-rcvd-up always applies. (Carry-range
+            // approximation — fixes the over-credit of mismatched dmg-rcvd-up; full per-attacker matching later.)
+            if (IsAllEnemiesRange(carry.MainWeapon?.Range))
+            {
+                teamEffects = teamEffects
+                    .Where(effect => !(IsDamageReceivedUpFamily(effect) && effect.TargetScope == ActiveEffectTargetScope.SingleEnemy))
+                    .ToList();
+            }
+
             var carryEffectivePassives = new Dictionary<string, int>(carry.PassivePoints, StringComparer.OrdinalIgnoreCase);
             foreach (var variant in baseVariants)
             {
@@ -432,7 +544,38 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var passiveTerms = BuildPassiveFamilyTerms(carryEffectivePassives, request.PreferredDamageType, request.EnemyWeakness);
-            return EstimateTeamDamage(weaponPercents, teamEffects, passiveTerms, request.PreferredDamageType);
+
+            // Uptime: families carried on an attacker's always-cast MAIN weapon are auto-maintained (full
+            // uptime); the rest fall to the maintainer bucket. (Off-hand/sub actives fire less reliably than
+            // the main attacking weapon, so only main weapons count as always-cast here.)
+            var alwaysCastWeaponNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var variant in baseVariants)
+            {
+                if (variant.MainWeapon != null && GetVariantWeaponDamagePercent(variant, request) > AttackingWeaponDamageThreshold)
+                {
+                    alwaysCastWeaponNames.Add(variant.MainWeapon.Name);
+                }
+            }
+
+            var fullUptimeFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var effect in teamEffects)
+            {
+                if (!string.IsNullOrEmpty(effect.SourceName) && alwaysCastWeaponNames.Contains(effect.SourceName))
+                {
+                    fullUptimeFamilies.Add(string.IsNullOrWhiteSpace(effect.FamilyKey) ? effect.Key : effect.FamilyKey);
+                }
+            }
+
+            return EstimateTeamDamage(weaponPercents, teamEffects, passiveTerms, request.PreferredDamageType, fullUptimeFamilies, MaintainerUptime);
         }
+
+        // NOTE: a Phase 2.2 / target-#3 per-character support-valuation proxy (GetVariantTeamBuffContribution +
+        // IsTeamWideOffensiveEffect + ReferenceCarryWeaponPercent) was tried twice and reverted both times. It
+        // tried to value a support's team-wide buffs against a reference carry so a per-character score wouldn't
+        // undervalue pure supports. It does NOT fix the support-exclusion, because the problem is structural: a
+        // PER-CHARACTER score (any form) cannot rank a pure support (buffs only) vs an attacker-support (damage +
+        // buffs) — that is a 3-character TEAM decision — and multiple GATES (shortlist, support pool, skeleton
+        // cut) cut on the per-character score. The correct fix is gate de-pollution + letting the team-context
+        // EstimateTeamDamage decide; see docs/item3-damage-model-design.md "Candidate-generation rework".
     }
 }
