@@ -581,12 +581,45 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
                 .Take(adaptiveSearchProfile.UltimateOptionsPerCharacter)
                 .ToList();
-            var costumeOptions = (costumes ?? new List<OwnedCostumeCandidate>())
+            var costumeSlots = (costumes ?? new List<OwnedCostumeCandidate>())
                 .Select(c => GetOrCreateCostumeSlot(c, role, request, referenceTuningProfile, "Main Outfit", 1.0, true, costumeSlotEvaluationCache))
-                .OrderByDescending(x => x.Score)
-                .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
-                .Take(adaptiveSearchProfile.MainOutfitOptionsPerCharacter)
                 .ToList();
+            List<SlotEvaluation> costumeOptions;
+            if (teamContextSeeds != null && teamContextSeeds.Count > 0
+                && request.PreferredDamageType != DamageType.Any
+                && mainOptions.Count > 0
+                && costumeSlots.Count > adaptiveSearchProfile.MainOutfitOptionsPerCharacter)
+            {
+                // Model-drive the MAIN costume gate: rank by REAL team-damage contribution (a probe of this character
+                // wearing the costume + best main/ultimate, alongside the teammate seeds) rather than the per-costume
+                // slot-score heuristic — so a team-superior costume (e.g. a stacking partner) can't be Take(N)-dropped
+                // before the damage model ever sees it. Slot score is the tiebreak (it captures ability/utility the
+                // damage model doesn't). Cheap scopeAware:false gate; MAIN gate ONLY (the sub gate stays heuristic —
+                // model-driving it would multiply into the combination loop). Only engaged with team context (the
+                // expansion path) + an offensive request + more costumes than we'd keep.
+                var probeMain = mainOptions[0];
+                var probeUltimate = ultimateOptions.FirstOrDefault();
+                costumeOptions = costumeSlots
+                    .Select(slot => (slot, teamDamage: EstimateTeamDamage(
+                        BuildTeamContextForRanking(BuildCostumeProbeVariant(character, role, probeMain, probeUltimate, slot, request), teamContextSeeds),
+                        request,
+                        scopeAware: false)))
+                    .ToList()
+                    .OrderByDescending(x => x.teamDamage)
+                    .ThenByDescending(x => x.slot.Score)
+                    .ThenBy(x => x.slot.Name, StringComparer.OrdinalIgnoreCase)
+                    .Take(adaptiveSearchProfile.MainOutfitOptionsPerCharacter)
+                    .Select(x => x.slot)
+                    .ToList();
+            }
+            else
+            {
+                costumeOptions = costumeSlots
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .Take(adaptiveSearchProfile.MainOutfitOptionsPerCharacter)
+                    .ToList();
+            }
 
             var variants = new List<CharacterBuildCandidate>();
             foreach (var main in mainOptions)
@@ -755,6 +788,37 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var team = new List<CharacterBuildCandidate>(teammates.Count + 1) { variant };
             team.AddRange(teammates);
             return team;
+        }
+
+        // Minimal variant for the model-driven MAIN costume gate: this character wearing `costume` on top of its best
+        // main weapon + ultimate (no off-hand / sub-outfits). Just enough for EstimateTeamDamage to value the
+        // costume's passive contribution (incl. stacking) in team context, to rank which costumes survive the gate.
+        private static CharacterBuildCandidate BuildCostumeProbeVariant(
+            string character,
+            CharacterRole role,
+            SlotEvaluation main,
+            SlotEvaluation? ultimate,
+            SlotEvaluation costume,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { main.Name, costume.Name };
+            if (ultimate != null)
+            {
+                usedNames.Add(ultimate.Name);
+            }
+
+            return ComposeCharacterVariantCandidate(
+                character,
+                role,
+                main,
+                off: null,
+                ultimate,
+                costume,
+                new List<PlayerPowerAnalyzerV2ItemSlot>(),
+                new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+                0d,
+                usedNames,
+                request);
         }
 
         private List<CharacterBuildCandidate> BuildCharacterSeedVariants(
