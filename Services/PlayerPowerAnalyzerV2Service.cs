@@ -538,7 +538,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             ConcurrentDictionary<string, SlotEvaluation> weaponSlotEvaluationCache,
             ConcurrentDictionary<string, SlotEvaluation> costumeSlotEvaluationCache,
             string? requiredMainWeaponName = null,
-            bool allowMainWeaponSwap = true)
+            bool allowMainWeaponSwap = true,
+            IReadOnlyList<CharacterBuildCandidate>? teamContextSeeds = null)
         {
             var role = CharacterRoleRegistry.GetRoleOrDefault(character);
             var mainWeapons = ownedWeaponsByCharacter.TryGetValue(character, out var characterWeapons)
@@ -717,9 +718,38 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
+            // Stage-1 de-pollution: when the actual skeleton teammates are known (per-skeleton expansion), RETAIN
+            // each member's variants by the REAL team damage they produce with those teammates (EstimateTeamDamage)
+            // instead of the per-character selection score. This lets a team-context build survive retention even
+            // when it scores poorly for the character in isolation — e.g. a support's All-Allies buff weapon/outfit
+            // (worthless to the support, valuable to the carry) or an on-element main. Uniform multiplier for speed
+            // (cheap-gate); the precise per-attacker model still drives the final team score. Per-character score
+            // is the tiebreaker. Falls back to the legacy per-character ranking when there's no team context (seed
+            // building) or no damage axis ("Any").
+            if (teamContextSeeds != null && teamContextSeeds.Count > 0 && request.PreferredDamageType != DamageType.Any)
+            {
+                return variants
+                    .OrderByDescending(variant => EstimateTeamDamage(BuildTeamContextForRanking(variant, teamContextSeeds), request, scopeAware: false))
+                    .ThenByDescending(variant => GetVariantSelectionScore(variant, request))
+                    .ThenBy(variant => variant.MainWeapon?.Name ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+                    .Take(adaptiveSearchProfile.RetainedVariantsPerCharacter)
+                    .ToList();
+            }
+
             return OrderCharacterVariantsForSelection(variants, request)
                 .Take(adaptiveSearchProfile.RetainedVariantsPerCharacter)
                 .ToList();
+        }
+
+        // The team formed by one candidate variant plus the (seed) builds of its skeleton teammates — used to rank
+        // a member's variants by their actual team-damage contribution rather than in isolation.
+        private static IReadOnlyList<CharacterBuildCandidate> BuildTeamContextForRanking(
+            CharacterBuildCandidate variant,
+            IReadOnlyList<CharacterBuildCandidate> teammates)
+        {
+            var team = new List<CharacterBuildCandidate>(teammates.Count + 1) { variant };
+            team.AddRange(teammates);
+            return team;
         }
 
         private List<CharacterBuildCandidate> BuildCharacterSeedVariants(
@@ -905,6 +935,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 var expansionFailed = false;
                 foreach (var seed in skeleton.SeedVariants)
                 {
+                    // Stage-1 de-pollution: the other two skeleton members are this member's real team context, so
+                    // its variants are retained by team damage (in BuildCharacterVariants) rather than in isolation.
+                    var teammateSeeds = skeleton.SeedVariants.Where(other => !ReferenceEquals(other, seed)).ToList();
                     var variants = BuildCharacterVariants(
                         seed.CharacterName,
                         ownedWeaponsByCharacter,
@@ -916,7 +949,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         weaponSlotEvaluationCache,
                         costumeSlotEvaluationCache,
                         seed.MainWeapon.Name,
-                        true);
+                        true,
+                        teammateSeeds);
                     if (variants.Count == 0)
                     {
                         expansionFailed = true;
@@ -1048,7 +1082,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 // offensive-shell + synergy proxies). Meaningful now that seeds carry their ultimate (target #1).
                 // Keep only the structural refinements — user requirement coverage + template-role gating — at the
                 // same weights, mirroring FinalizeTeamCandidate so the skeleton GATE and the final ranking agree.
-                score = EstimateTeamDamage(seedVariants, request, scopeAware: false); // skeleton GATE: uniform multiplier for speed
+                // Skeleton GATE: PRECISE (scope + element-aware) — the uniform multiplier over-credited off-element
+                // self-buffs (e.g. Cloud's Fusion Sword self Exploit Weakness in a Lightning fight), so an
+                // off-element seed could win a skeleton it shouldn't. Precise here keeps the seed selection honest.
+                // Measured FASTER overall than the uniform gate (tighter rankings → less downstream work): Adaptive
+                // ~2.8s, Exhaustive ~22s (was ~29s). The tight pruning ceiling (ComputeTeamScoreWithoutSubWeapons)
+                // is already precise; this aligns the gate with it.
+                score = EstimateTeamDamage(seedVariants, request, scopeAware: true);
                 score += PreferredCoverageBonus(providedEffectKeys, request);
                 score += request.HardRequiredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 70d;
                 score += request.SoftPreferredEffectKeys.Count(key => providedEffectKeys.Contains(key, StringComparer.OrdinalIgnoreCase)) * 45d;
