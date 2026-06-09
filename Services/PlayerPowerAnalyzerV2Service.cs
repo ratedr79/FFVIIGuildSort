@@ -621,13 +621,48 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     .ToList();
             }
 
+            // Team-aware OFF-HAND gate (mirrors the costume gate): rank off-hand options by REAL team-damage
+            // contribution instead of the per-character slot score, so a team-better off-hand (e.g. one that AVOIDS
+            // duplicating a buff a teammate already provides — the team model already deducts the wasted copy via
+            // GetTeamWideDuplicateBuffPenalty) isn't dropped by the Take(N). An off-hand's team value is ~main-
+            // independent, so probe each weapon ONCE (cached by name, with a reference main that isn't itself),
+            // keeping the cost OUT of the per-main combination loop. Only engaged with team context (expansion path),
+            // an offensive request, and more weapons than we'd keep.
+            Dictionary<string, double>? offHandTeamDamageByName = null;
+            if (teamContextSeeds != null && teamContextSeeds.Count > 0
+                && request.PreferredDamageType != DamageType.Any
+                && mainOptions.Count > 0
+                && mainWeapons.Count > 1 + adaptiveSearchProfile.OffHandWeaponOptionsPerCharacter)
+            {
+                var probeUltimate = ultimateOptions.FirstOrDefault();
+                var probeCostume = costumeOptions.FirstOrDefault();
+                offHandTeamDamageByName = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                foreach (var w in mainWeapons)
+                {
+                    if (offHandTeamDamageByName.ContainsKey(w.Item.Name))
+                    {
+                        continue;
+                    }
+
+                    var referenceMain = mainOptions.FirstOrDefault(m => !m.Name.Equals(w.Item.Name, StringComparison.OrdinalIgnoreCase)) ?? mainOptions[0];
+                    var offSlot = GetOrCreateWeaponSlot(w, role, request, referenceTuningProfile, "Off-hand", 0.5, true, true, weaponSlotEvaluationCache);
+                    var probe = BuildOffHandProbeVariant(character, role, referenceMain, probeUltimate, offSlot, probeCostume, request);
+                    offHandTeamDamageByName[w.Item.Name] = EstimateTeamDamage(BuildTeamContextForRanking(probe, teamContextSeeds), request, scopeAware: false);
+                }
+            }
+
             var variants = new List<CharacterBuildCandidate>();
             foreach (var main in mainOptions)
             {
-                var offOptions = mainWeapons
+                var offHandSlots = mainWeapons
                     .Where(w => !w.Item.Name.Equals(main.Name, StringComparison.OrdinalIgnoreCase))
-                    .Select(w => GetOrCreateWeaponSlot(w, role, request, referenceTuningProfile, "Off-hand", 0.5, true, true, weaponSlotEvaluationCache))
-                    .OrderByDescending(x => x.Score)
+                    .Select(w => GetOrCreateWeaponSlot(w, role, request, referenceTuningProfile, "Off-hand", 0.5, true, true, weaponSlotEvaluationCache));
+                var offOptions = (offHandTeamDamageByName != null
+                        ? offHandSlots
+                            .OrderByDescending(x => offHandTeamDamageByName.TryGetValue(x.Name, out var td) ? td : double.MinValue)
+                            .ThenByDescending(x => x.Score)
+                        : offHandSlots
+                            .OrderByDescending(x => x.Score))
                     .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
                     .Take(adaptiveSearchProfile.OffHandWeaponOptionsPerCharacter)
                     .Cast<SlotEvaluation?>()
@@ -812,6 +847,44 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 role,
                 main,
                 off: null,
+                ultimate,
+                costume,
+                new List<PlayerPowerAnalyzerV2ItemSlot>(),
+                new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+                0d,
+                usedNames,
+                request);
+        }
+
+        // Minimal variant for the model-driven OFF-HAND gate: this character wearing `offHand` on top of a reference
+        // main + best ultimate + best costume (no sub-outfits). Enough for EstimateTeamDamage to value the off-hand's
+        // team contribution — including the team-wide duplicate-buff penalty against the teammate seeds — so the gate
+        // can rank which off-hands survive by real team value instead of the per-character slot score.
+        private static CharacterBuildCandidate BuildOffHandProbeVariant(
+            string character,
+            CharacterRole role,
+            SlotEvaluation main,
+            SlotEvaluation? ultimate,
+            SlotEvaluation offHand,
+            SlotEvaluation? costume,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { main.Name, offHand.Name };
+            if (ultimate != null)
+            {
+                usedNames.Add(ultimate.Name);
+            }
+
+            if (costume != null)
+            {
+                usedNames.Add(costume.Name);
+            }
+
+            return ComposeCharacterVariantCandidate(
+                character,
+                role,
+                main,
+                offHand,
                 ultimate,
                 costume,
                 new List<PlayerPowerAnalyzerV2ItemSlot>(),
