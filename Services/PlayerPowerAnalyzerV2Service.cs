@@ -3257,22 +3257,32 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             var passivePoints = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             AddPassivePoints(passivePoints, main.PassivePoints);
+            // Parallel per-R-ability view (real SkillName identity from the MAIN slots; the sub-outfit bundle is
+            // already pooled by label, so derive its identity from the label). The damage model uses this to STACK
+            // different-named R-abilities granting the same buff (e.g. a main-costume omni + a different sub-costume
+            // omni) instead of pooling them by label.
+            var passiveContributions = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+            MergePassiveContributions(passiveContributions, main.PassiveContributions);
             if (off != null)
             {
                 AddPassivePoints(passivePoints, off.PassivePoints);
+                MergePassiveContributions(passiveContributions, off.PassiveContributions);
             }
 
             if (ultimate != null)
             {
                 AddPassivePoints(passivePoints, ultimate.PassivePoints);
+                MergePassiveContributions(passiveContributions, ultimate.PassiveContributions);
             }
 
             if (mainCostume != null)
             {
                 AddPassivePoints(passivePoints, mainCostume.PassivePoints);
+                MergePassiveContributions(passiveContributions, mainCostume.PassiveContributions);
             }
 
             AddPassivePoints(passivePoints, subOutfitPassivePoints);
+            MergePassiveContributions(passiveContributions, DeriveContributionsFromPoints(subOutfitPassivePoints));
 
             // Active buffs (PATK Up, Haste, etc.) cast by the main, off-hand, ultimate, and main outfit
             // share a cap in battle: equipping two sources of the same buff family does not double its
@@ -3380,6 +3390,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 ProvidedEffectKeys = providedKeys,
                 UsedItemNames = new HashSet<string>(usedNames, StringComparer.OrdinalIgnoreCase),
                 PassivePoints = passivePoints,
+                PassiveContributions = passiveContributions,
                 ActiveFamilyContributions = activeFamilyContributions
             };
 
@@ -4298,7 +4309,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private SlotEvaluation CreateWeaponSlot(OwnedWeaponCandidate weapon, CharacterRole role, PlayerPowerAnalyzerV2Request request, ReferenceTuningProfile referenceTuningProfile, string slotName, double slotMultiplier, bool includeActiveEffects, bool includeDamage)
         {
-            var passivePoints = BuildPassivePointMap(weapon.Snapshot.RAbilities, slotMultiplier);
+            var passiveContributions = BuildPassiveContributionMap(weapon.Snapshot.RAbilities, slotMultiplier);
+            var passivePoints = FlattenPassiveContributions(passiveContributions);
             var passiveSummaries = passivePoints
                 .Where(kvp => kvp.Value > 0)
                 .OrderByDescending(kvp => kvp.Value)
@@ -4476,6 +4488,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     ScoreBreakdown = CloneScoreBreakdown(scoreBreakdown)
                 },
                 PassivePoints = passivePoints,
+                PassiveContributions = passiveContributions,
                 ProvidedEffectKeys = providedKeys.ToList(),
                 NonPassiveScore = nonPassiveScore,
                 ActiveUtilityByFamily = activeUtilityByFamily,
@@ -4486,7 +4499,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private SlotEvaluation CreateCostumeSlot(OwnedCostumeCandidate costume, CharacterRole role, PlayerPowerAnalyzerV2Request request, ReferenceTuningProfile referenceTuningProfile, string slotName, double slotMultiplier, bool includeActiveEffects)
         {
-            var passivePoints = BuildPassivePointMap(costume.Item.MaxPassiveSkills, slotMultiplier, preferResolvedEffectLabels: true);
+            var passiveContributions = BuildPassiveContributionMap(costume.Item.MaxPassiveSkills, slotMultiplier, preferResolvedEffectLabels: true);
+            var passivePoints = FlattenPassiveContributions(passiveContributions);
             var nonPassiveScore = 0d;
             var score = ScorePassivePoints(passivePoints, role, request);
             var scoreBreakdown = new List<PlayerPowerAnalyzerV2ScoreComponent>
@@ -4559,6 +4573,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     ScoreBreakdown = CloneScoreBreakdown(scoreBreakdown)
                 },
                 PassivePoints = passivePoints,
+                PassiveContributions = passiveContributions,
                 ProvidedEffectKeys = providedKeys.ToList(),
                 NonPassiveScore = nonPassiveScore,
                 ActiveUtilityByFamily = activeUtilityByFamily,
@@ -4569,7 +4584,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static Dictionary<string, int> BuildPassivePointMap(IEnumerable<PassiveSkillTotal> passives, double slotMultiplier, bool preferResolvedEffectLabels = false)
         {
-            var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            // The label-keyed {scoringLabel -> points} view (pooled) used by the ~100 label-based consumers.
+            // Derived from the per-R-ability contribution map so the two views are guaranteed consistent.
+            return FlattenPassiveContributions(BuildPassiveContributionMap(passives, slotMultiplier, preferResolvedEffectLabels));
+        }
+
+        // Per-R-ability view: scoringLabel -> (SkillName -> points). Same-NAMED R-abilities pool (summed points);
+        // DIFFERENT-named R-abilities that resolve to the SAME buff label stay separate, so the damage model can
+        // resolve each at its own breakpoint and STACK them (e.g. Kisaragi Family Blessing + Savior Goggles both
+        // grant "Fire Ice...Ability Dmg" but are distinct R-abilities → 30% + 15% = 45%, not pooled to one lookup).
+        private static Dictionary<string, Dictionary<string, int>> BuildPassiveContributionMap(IEnumerable<PassiveSkillTotal> passives, double slotMultiplier, bool preferResolvedEffectLabels = false)
+        {
+            var map = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
             foreach (var passive in passives)
             {
                 if (string.IsNullOrWhiteSpace(passive.SkillName))
@@ -4583,11 +4609,87 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                AddPassivePointValues(map, passive.SkillName, appliedPoints, passive.Effects, preferResolvedEffectLabels);
+                foreach (var scoringLabel in GetPassiveScoringLabels(passive.SkillName, passive.Effects, preferResolvedEffectLabels))
+                {
+                    if (string.IsNullOrWhiteSpace(scoringLabel))
+                    {
+                        continue;
+                    }
+
+                    if (!map.TryGetValue(scoringLabel, out var bySkill))
+                    {
+                        bySkill = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        map[scoringLabel] = bySkill;
+                    }
+
+                    bySkill[passive.SkillName] = bySkill.TryGetValue(passive.SkillName, out var existing)
+                        ? existing + appliedPoints
+                        : appliedPoints;
+                }
             }
 
             return map;
         }
+
+        private static Dictionary<string, int> FlattenPassiveContributions(IReadOnlyDictionary<string, Dictionary<string, int>> contributions)
+        {
+            var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in contributions)
+            {
+                var sum = 0;
+                foreach (var points in pair.Value.Values)
+                {
+                    sum += points;
+                }
+
+                if (sum > 0)
+                {
+                    map[pair.Key] = sum;
+                }
+            }
+
+            return map;
+        }
+
+        private static void MergePassiveContributions(Dictionary<string, Dictionary<string, int>> destination, IReadOnlyDictionary<string, Dictionary<string, int>> source)
+        {
+            foreach (var pair in source)
+            {
+                if (!destination.TryGetValue(pair.Key, out var bySkill))
+                {
+                    bySkill = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    destination[pair.Key] = bySkill;
+                }
+
+                foreach (var skill in pair.Value)
+                {
+                    bySkill[skill.Key] = bySkill.TryGetValue(skill.Key, out var existing) ? existing + skill.Value : skill.Value;
+                }
+            }
+        }
+
+        // Fallback for already-pooled {label -> points} sources (sub-outfit bundle, or test-built candidates that
+        // only set PassivePoints): treat the label as its own R-ability identity. This reproduces the OLD pooled
+        // behavior for those, while real MAIN slots carry true per-R-ability identity — enough to stack a main-slot
+        // R-ability with a different-named sub-slot one (the common case).
+        private static Dictionary<string, Dictionary<string, int>> DeriveContributionsFromPoints(IReadOnlyDictionary<string, int> points)
+        {
+            var map = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in points)
+            {
+                if (pair.Value > 0)
+                {
+                    map[pair.Key] = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { [pair.Key] = pair.Value };
+                }
+            }
+
+            return map;
+        }
+
+        private static IReadOnlyDictionary<string, Dictionary<string, int>> ResolveContributions(CharacterBuildCandidate candidate)
+            => candidate.PassiveContributions.Count > 0
+                ? candidate.PassiveContributions
+                : DeriveContributionsFromPoints(candidate.PassivePoints);
 
         private static void AddPassivePointValues(
             Dictionary<string, int> destination,
@@ -7356,6 +7458,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public PlayerPowerAnalyzerV2ItemSlot Slot { get; set; } = new();
             public double BattleFitMultiplier { get; set; } = 1.0;
             public Dictionary<string, int> PassivePoints { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+            // Per-R-ability view (scoringLabel -> SkillName -> points); an exact flatten of this is PassivePoints.
+            public Dictionary<string, Dictionary<string, int>> PassiveContributions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
             public List<string> ProvidedEffectKeys { get; set; } = new();
             public double NonPassiveScore { get; set; }
 
@@ -7405,6 +7509,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public HashSet<string> ProvidedEffectKeys { get; set; } = new(StringComparer.OrdinalIgnoreCase);
             public HashSet<string> UsedItemNames { get; set; } = new(StringComparer.OrdinalIgnoreCase);
             public Dictionary<string, int> PassivePoints { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+            // Per-R-ability view (scoringLabel -> SkillName -> points). The damage model resolves each R-ability
+            // separately and stacks, so different-named R-abilities granting the same buff add instead of pooling.
+            public Dictionary<string, Dictionary<string, int>> PassiveContributions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
             // This character's net active-buff contribution per effect family, after the character's own
             // (intra-character) duplicate-buff dedup. Used at team scoring to dedup the same buff across

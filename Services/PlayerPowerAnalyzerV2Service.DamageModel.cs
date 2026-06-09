@@ -357,6 +357,27 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return terms;
         }
 
+        // Like BuildPassiveFamilyTerms, but resolves EACH R-ability (scoringLabel -> SkillName -> points) separately
+        // and sums the resulting %s. Different-named R-abilities granting the same buff label therefore STACK (each
+        // at its own breakpoint), while same-named ones were already pooled into one (SkillName -> points) entry.
+        private static Dictionary<string, double> BuildPassiveFamilyTermsFromContributions(
+            IReadOnlyDictionary<string, Dictionary<string, int>> contributions, DamageType damageType, Element enemyWeakness)
+        {
+            var terms = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (var labelEntry in contributions)
+            {
+                foreach (var skillEntry in labelEntry.Value)
+                {
+                    if (TryGetPassiveDamageTerm(labelEntry.Key, skillEntry.Value, damageType, enemyWeakness, out var term, out var pct))
+                    {
+                        terms[term] = terms.TryGetValue(term, out var existing) ? existing + pct : pct;
+                    }
+                }
+            }
+
+            return terms;
+        }
+
         // [D1] Cast-share weighting: a real fight funnels casts to the carry. Attackers sorted by weapon %
         // descending get these shares (carry 60% / secondary 30% / support 10%); extra attackers add 0.
         private static readonly double[] CarryCastShares = { 0.6, 0.3, 0.1 };
@@ -600,7 +621,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // team-wide passives to a % at THAT provider's OWN breakpoint and SUM the %s; never sum the POINTS
             // across providers (one breakpoint on the pooled total badly under-credits spreading a buff across
             // bodies, since the breakpoint curve flattens hard — 45pt→25% but 92pt still caps at 28%).
-            var passiveTerms = BuildPassiveFamilyTerms(carry.PassivePoints, request.PreferredDamageType, request.EnemyWeakness);
+            var passiveTerms = BuildPassiveFamilyTermsFromContributions(ResolveContributions(carry), request.PreferredDamageType, request.EnemyWeakness);
             foreach (var (variant, _) in ranked)
             {
                 if (ReferenceEquals(variant, carry))
@@ -608,15 +629,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                var teamWidePassivePoints = variant.PassivePoints
-                    .Where(passive => IsTeamWidePassive(passive.Key))
-                    .ToDictionary(passive => passive.Key, passive => passive.Value, StringComparer.OrdinalIgnoreCase);
-                if (teamWidePassivePoints.Count == 0)
+                var teamWideContributions = ResolveContributions(variant)
+                    .Where(pair => IsTeamWidePassive(pair.Key))
+                    .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+                if (teamWideContributions.Count == 0)
                 {
                     continue;
                 }
 
-                foreach (var providerTerm in BuildPassiveFamilyTerms(teamWidePassivePoints, request.PreferredDamageType, request.EnemyWeakness))
+                foreach (var providerTerm in BuildPassiveFamilyTermsFromContributions(teamWideContributions, request.PreferredDamageType, request.EnemyWeakness))
                 {
                     passiveTerms[providerTerm.Key] = passiveTerms.TryGetValue(providerTerm.Key, out var existing)
                         ? existing + providerTerm.Value
