@@ -47,6 +47,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static readonly int[] ElementAbilityAllAlliesBreakpointPoints = [1, 5, 15];
         private static readonly double[] ElementPotArcanumAllAlliesBonuses = [5, 10, 15, 30];
         private static readonly int[] ElementPotArcanumAllAlliesBreakpointPoints = [1, 5, 15, 45];
+        // Omni (all-6-element) Ability Dmg costume R-abilities (e.g. Kisaragi Family Blessing, Savior Goggles):
+        // 2 levels — Lv.1 (1pt) +15%, Lv.2 (10pt) +30%. SELF buffs; different-named ones stack (handled in the
+        // damage model). The generic ElementPot table under-credited these (10pt -> 15% instead of 30%).
+        private static readonly double[] OmniElementAbilityDmgBonuses = [15, 30];
+        private static readonly int[] OmniElementAbilityDmgBreakpointPoints = [1, 10];
         private static readonly double[] BoostPatkAndMatkAllAlliesBonuses = [5, 10, 14, 18, 22, 25, 28];
         private static readonly double[] BoostAtkAllAlliesBonuses = [3, 5, 7, 9, 11, 13, 14];
         private static readonly double[] BoostAtkBonuses = [3, 5, 7, 10, 15, 20, 25];
@@ -5622,6 +5627,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var normalized = skillName.Trim();
+            if (IsOmniElementAbilityDmgLabel(normalized))
+            {
+                bonusValue = ResolveBreakpointBonus(points, OmniElementAbilityDmgBreakpointPoints, OmniElementAbilityDmgBonuses);
+                return true;
+            }
+
             if (normalized.Contains("Boost PATK (All Allies)", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("Boost MATK (All Allies)", StringComparison.OrdinalIgnoreCase))
             {
@@ -5780,6 +5791,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     || normalized.Contains("ability pot", StringComparison.OrdinalIgnoreCase)
                     || normalized.Contains("mastery", StringComparison.OrdinalIgnoreCase)
                     || normalized.Contains("pot.", StringComparison.OrdinalIgnoreCase));
+        }
+
+        // The all-6-element "Fire Ice Lightning Earth Water Wind Ability Dmg" omni costume passive
+        // (Kisaragi Family Blessing / Savior Goggles family). Always on-element (covers every element).
+        private static bool IsOmniElementAbilityDmgLabel(string normalized)
+        {
+            return (normalized.Contains("ability dmg", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Contains("ability damage", StringComparison.OrdinalIgnoreCase))
+                && normalized.Contains("fire", StringComparison.OrdinalIgnoreCase)
+                && normalized.Contains("ice", StringComparison.OrdinalIgnoreCase)
+                && normalized.Contains("lightning", StringComparison.OrdinalIgnoreCase)
+                && normalized.Contains("earth", StringComparison.OrdinalIgnoreCase)
+                && normalized.Contains("water", StringComparison.OrdinalIgnoreCase)
+                && normalized.Contains("wind", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsPhysAbilityPassiveLabel(string normalized)
