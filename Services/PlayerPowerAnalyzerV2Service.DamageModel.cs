@@ -593,9 +593,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     .ToList();
             }
 
-            // Passives (separate flat layer, applied to all attackers — unchanged): carry's own R-abilities +
-            // every member's team-wide (All-Allies) R-abilities.
-            var carryEffectivePassives = new Dictionary<string, int>(carry.PassivePoints, StringComparer.OrdinalIgnoreCase);
+            // Passives (separate flat layer, applied to all attackers): the carry's own R-abilities PLUS every
+            // OTHER member's team-wide (All-Allies) R-abilities. CRITICAL: same-name All-Allies R-abilities from
+            // DIFFERENT providers STACK as separate buffs (Cloud at 46pt PATK-All-Allies = +25% AND Cid at 46pt =
+            // +25% → +50% to the team) — they do NOT pool to a single breakpoint. So resolve EACH provider's
+            // team-wide passives to a % at THAT provider's OWN breakpoint and SUM the %s; never sum the POINTS
+            // across providers (one breakpoint on the pooled total badly under-credits spreading a buff across
+            // bodies, since the breakpoint curve flattens hard — 45pt→25% but 92pt still caps at 28%).
+            var passiveTerms = BuildPassiveFamilyTerms(carry.PassivePoints, request.PreferredDamageType, request.EnemyWeakness);
             foreach (var (variant, _) in ranked)
             {
                 if (ReferenceEquals(variant, carry))
@@ -603,18 +608,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                foreach (var passive in variant.PassivePoints)
+                var teamWidePassivePoints = variant.PassivePoints
+                    .Where(passive => IsTeamWidePassive(passive.Key))
+                    .ToDictionary(passive => passive.Key, passive => passive.Value, StringComparer.OrdinalIgnoreCase);
+                if (teamWidePassivePoints.Count == 0)
                 {
-                    if (IsTeamWidePassive(passive.Key))
-                    {
-                        carryEffectivePassives[passive.Key] = carryEffectivePassives.TryGetValue(passive.Key, out var existing)
-                            ? existing + passive.Value
-                            : passive.Value;
-                    }
+                    continue;
+                }
+
+                foreach (var providerTerm in BuildPassiveFamilyTerms(teamWidePassivePoints, request.PreferredDamageType, request.EnemyWeakness))
+                {
+                    passiveTerms[providerTerm.Key] = passiveTerms.TryGetValue(providerTerm.Key, out var existing)
+                        ? existing + providerTerm.Value
+                        : providerTerm.Value;
                 }
             }
-
-            var passiveTerms = BuildPassiveFamilyTerms(carryEffectivePassives, request.PreferredDamageType, request.EnemyWeakness);
 
             // Uptime: families on an always-cast MAIN weapon are auto-maintained (full uptime); the rest fall to
             // the maintainer bucket. (Only main weapons count as always-cast.)

@@ -2,6 +2,17 @@
   "schemaVersion": 1,
   "battles": [
     {
+      "id": "2026-06",
+      "month": "June",
+      "year": 2026,
+      "element": "Wind",
+      "abilityType": "Physical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
+    {
       "id": "2026-05",
       "month": "May",
       "year": 2026,
