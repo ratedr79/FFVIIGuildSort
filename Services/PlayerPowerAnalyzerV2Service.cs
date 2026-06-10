@@ -238,9 +238,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 availableCharacters.Add(item.Character);
             }
 
-            var searchModeFilter = ApplySearchModeWeaponFiltering(ownedWeapons, request);
-            ownedWeapons = searchModeFilter.Weapons;
-
             result.AvailableCharacterCount = availableCharacters.Count;
             result.UnsetLevelWeaponCount = unsetLevelCount;
             if (unsetLevelCount > 0)
@@ -378,19 +375,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             };
         }
 
-        private SearchModeFilterResult ApplySearchModeWeaponFiltering(List<OwnedWeaponCandidate> ownedWeapons, PlayerPowerAnalyzerV2Request request)
-        {
-            // No weapon pruning: the full owned armory is always considered. The former Adaptive mode dropped
-            // Event/Grindable weapons for established accounts (those with >= 6 standard weapons on a character) as a
-            // noise/runtime measure; that lossy, threshold-based prune was removed. Runtime no longer needs it (the
-            // per-character Take caps make owned-weapon count a non-driver), and it risked dropping a genuinely
-            // team-valuable weapon from any account that merely crossed the arbitrary threshold.
-            return new SearchModeFilterResult
-            {
-                Weapons = ownedWeapons
-            };
-        }
-
         private List<CharacterBuildCandidate> BuildCharacterVariants(
             string character,
             IReadOnlyDictionary<string, List<OwnedWeaponCandidate>> ownedWeaponsByCharacter,
@@ -453,16 +437,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 // wearing the costume + best main/ultimate, alongside the teammate seeds) rather than the per-costume
                 // slot-score heuristic — so a team-superior costume (e.g. a stacking partner) can't be Take(N)-dropped
                 // before the damage model ever sees it. Slot score is the tiebreak (it captures ability/utility the
-                // damage model doesn't). Cheap scopeAware:false gate; MAIN gate ONLY (the sub gate stays heuristic —
-                // model-driving it would multiply into the combination loop). Only engaged with team context (the
-                // expansion path) + an offensive request + more costumes than we'd keep.
+                // damage model doesn't). Uses scopeAware:true so a [Self]-scoped costume buff is confined to its own
+                // holder (a self-buff costume on a support must NOT be credited team-wide — the same scope correctness
+                // the off-hand gate needs). MAIN gate ONLY (the sub gate stays heuristic — model-driving it would
+                // multiply into the combination loop). Only engaged with team context (the expansion path) + an
+                // offensive request + more costumes than we'd keep.
                 var probeMain = mainOptions[0];
                 var probeUltimate = ultimateOptions.FirstOrDefault();
                 costumeOptions = costumeSlots
                     .Select(slot => (slot, teamDamage: EstimateTeamDamage(
                         BuildTeamContextForRanking(BuildCostumeProbeVariant(character, role, probeMain, probeUltimate, slot, request), teamContextSeeds),
                         request,
-                        scopeAware: false)))
+                        scopeAware: true)))
                     .ToList()
                     .OrderByDescending(x => x.teamDamage)
                     .ThenByDescending(x => x.slot.Score)
@@ -7246,11 +7232,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public double Score { get; set; }
         }
 
-        private sealed class SearchModeFilterResult
-        {
-            public List<OwnedWeaponCandidate> Weapons { get; set; } = new();
-            public int TrimmedWeaponCount { get; set; }
-        }
 
         private sealed class AdaptiveSearchProfile
         {
