@@ -643,14 +643,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // each member's variants by the REAL team damage they produce with those teammates (EstimateTeamDamage)
             // instead of the per-character selection score. This lets a team-context build survive retention even
             // when it scores poorly for the character in isolation — e.g. a support's All-Allies buff weapon/outfit
-            // (worthless to the support, valuable to the carry) or an on-element main. Uniform multiplier for speed
-            // (cheap-gate); the precise per-attacker model still drives the final team score. Per-character score
-            // is the tiebreaker. Falls back to the legacy per-character ranking when there's no team context (seed
-            // building) or no damage axis ("Any").
+            // (worthless to the support, valuable to the carry) or an on-element main. Uses scopeAware:true so a
+            // [Self]-scoped buff is confined to its own holder — critical HERE, because the whole point is to retain
+            // ALL-ALLIES support builds, and the cheap uniform (scopeAware:false) path would over-credit self-buffs
+            // team-wide and thereby retain the wrong (self-serving) variants. Per-character score is the tiebreaker.
+            // Falls back to the legacy per-character ranking when there's no team context (seed building) or no
+            // damage axis ("Any").
             if (teamContextSeeds != null && teamContextSeeds.Count > 0 && request.PreferredDamageType != DamageType.Any)
             {
                 return variants
-                    .OrderByDescending(variant => EstimateTeamDamage(BuildTeamContextForRanking(variant, teamContextSeeds), request, scopeAware: false))
+                    .OrderByDescending(variant => EstimateTeamDamage(BuildTeamContextForRanking(variant, teamContextSeeds), request, scopeAware: true))
                     .ThenByDescending(variant => GetVariantSelectionScore(variant, request))
                     .ThenBy(variant => variant.MainWeapon?.Name ?? string.Empty, StringComparer.OrdinalIgnoreCase)
                     .Take(adaptiveSearchProfile.RetainedVariantsPerCharacter)
@@ -2948,6 +2950,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             contribution.Score += effectScore;
+            if (effect.TargetScope is ActiveEffectTargetScope.AllAllies or ActiveEffectTargetScope.OtherAllies)
+            {
+                contribution.IsTeamWide = true;
+            }
+
             var tier = effect.PotencyTierRank ?? 0;
             if (tier > contribution.PotencyTier)
             {
@@ -3037,7 +3044,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 foreach (var kvp in variant.ActiveFamilyContributions)
                 {
-                    if (kvp.Value.Score <= 0)
+                    // Only TEAM-REACHING contributions can be team-wide duplicates of each other. A [Self]/[Single
+                    // Ally] buff hits a different target than another party member's buff, so pooling it here would
+                    // wrongly penalize e.g. a support's self phys-damage-bonus against the carry's All-Allies one.
+                    // (Per-character same-family dedup already happened in ComputeDeduplicatedActiveUtility.)
+                    if (kvp.Value.Score <= 0 || !kvp.Value.IsTeamWide)
                     {
                         continue;
                     }
@@ -7298,6 +7309,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public double Score { get; set; }
             public int PotencyTier { get; set; }
             public int DesiredTier { get; set; }
+
+            // True when at least one source of this family contribution reaches the whole team
+            // ([Rng.: All Allies] / Other Allies). Only team-reaching contributions can be team-wide
+            // duplicates of each other; a [Self]/[Single Ally] buff hits a different target set, so it
+            // must NOT be counted as a duplicate of another party member's buff.
+            public bool IsTeamWide { get; set; }
         }
 
         private sealed class CharacterBuildCandidate
