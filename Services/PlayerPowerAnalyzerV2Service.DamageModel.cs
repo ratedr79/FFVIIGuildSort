@@ -78,16 +78,23 @@ namespace FFVIIEverCrisisAnalyzer.Services
             ["elemental_resistance_debuff"] = ElementalResistDebuffTierPercents,
         };
 
-        private const int AmplifierTierBump = 2;
+        // Amplifier tier-bump MAGNITUDES — each amplifier moves a family a DIFFERENT number of rows up its
+        // table, so a flat constant over-credits the weaker ones. Buff side: Enliven = +2 tiers, Applied/Stats
+        // Buff Tier Increased = +1. Debuff side: both Enfeeble and Applied/Stats Debuff Tier Increased = +1.
+        // When several amplifiers of the same side are present we take the BEST (max) bump, not the sum.
+        private const int EnlivenBuffBump = 2;
+        private const int StatBuffTierIncreaseBump = 1;
+        private const int EnfeebleDebuffBump = 1;
+        private const int StatDebuffTierIncreaseBump = 1;
 
         // Given each amplifiable family's best BASE tier present on the team, return its effective % after
-        // amplifiers. A family is bumped +2 tiers (capped at its table max) only when the matching amplifier
-        // is on the team AND the family actually has a base tier — amplifiers are worth 0 with nothing to
-        // amplify (Applied Stats Debuff Tier Increased does nothing with no enemy debuffs, etc.).
+        // amplifiers. A family is bumped by the BEST matching amplifier's magnitude (capped at its table max)
+        // only when that amplifier is on the team AND the family actually has a base tier — amplifiers are worth
+        // 0 with nothing to amplify (Applied Stats Debuff Tier Increased does nothing with no enemy debuffs).
         private static Dictionary<string, double> ResolveAmplifiedFamilyPercents(
             IReadOnlyDictionary<string, int> familyBestTiers,
-            bool hasBuffAmplifier,
-            bool hasDebuffAmplifier)
+            int buffAmplifierBump,
+            int debuffAmplifierBump)
         {
             var result = new Dictionary<string, double>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var pair in familyBestTiers)
@@ -101,8 +108,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var isAllyBuff = family.Equals("attack_buff", System.StringComparison.OrdinalIgnoreCase)
                     || family.Equals("damage_up", System.StringComparison.OrdinalIgnoreCase);
-                var amplify = isAllyBuff ? hasBuffAmplifier : hasDebuffAmplifier;
-                var tier = amplify ? baseTier + AmplifierTierBump : baseTier;
+                var bump = isAllyBuff ? buffAmplifierBump : debuffAmplifierBump;
+                var tier = baseTier + bump;
                 if (tier > table.Length - 1)
                 {
                     tier = table.Length - 1;
@@ -159,11 +166,34 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // small flexibility edge over a single-axis one (user decision). 10% of the buff's on-axis value.
         private const double OffAxisBuffFlexibilityFactor = 0.1;
 
-        private static bool HasBuffAmplifier(IEnumerable<DetectedActiveEffect> effects)
-            => effects.Any(e => e.Key is "enliven" or "stat_buff_tier_increase");
+        // The BEST (max) buff-amplifier tier-bump present (0 if none). Enliven (+2) beats Applied Stats Buff
+        // Tier Increased (+1), so a team with Enliven lifts its ally buffs further than one with only the +1
+        // amplifier — fixing the old flat-+2 bug that gave both the same lift.
+        private static int GetBuffAmplifierBump(IEnumerable<DetectedActiveEffect> effects)
+        {
+            var bump = 0;
+            foreach (var e in effects)
+            {
+                if (e.Key == "enliven") { bump = Math.Max(bump, EnlivenBuffBump); }
+                else if (e.Key == "stat_buff_tier_increase") { bump = Math.Max(bump, StatBuffTierIncreaseBump); }
+            }
 
-        private static bool HasDebuffAmplifier(IEnumerable<DetectedActiveEffect> effects)
-            => effects.Any(e => e.Key is "enfeeble" or "stat_debuff_tier_increase");
+            return bump;
+        }
+
+        // The BEST (max) debuff-amplifier tier-bump present (0 if none). Enfeeble and Applied Stats Debuff Tier
+        // Increased are both +1 on the debuff side.
+        private static int GetDebuffAmplifierBump(IEnumerable<DetectedActiveEffect> effects)
+        {
+            var bump = 0;
+            foreach (var e in effects)
+            {
+                if (e.Key == "enfeeble") { bump = Math.Max(bump, EnfeebleDebuffBump); }
+                else if (e.Key == "stat_debuff_tier_increase") { bump = Math.Max(bump, StatDebuffTierIncreaseBump); }
+            }
+
+            return bump;
+        }
 
         // Aggregate a pool of detected active effects into the damage formula's family→% terms.
         // Within a family, different effect KEYS add but duplicates of the SAME key share a cap (we take the
@@ -237,7 +267,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 state[pair.Key] = pair.Value.Values.Sum(); // different keys in a family add
             }
 
-            var amplified = ResolveAmplifiedFamilyPercents(amplifiableBestTiers, HasBuffAmplifier(materialized), HasDebuffAmplifier(materialized));
+            var amplified = ResolveAmplifiedFamilyPercents(amplifiableBestTiers, GetBuffAmplifierBump(materialized), GetDebuffAmplifierBump(materialized));
             foreach (var pair in amplified)
             {
                 state[pair.Key] = pair.Value;
@@ -656,12 +686,27 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
+            // [carry-only off-hand uptime] The 0.85 maintainer reduction models the opportunity cost of casting
+            // an OFF-HAND ability INSTEAD of attacking — real only for the CARRY (rank 0), who should attack every
+            // turn. A support/healer/tank spends its ATB identically whether the ability sits in its main or off
+            // hand, so its OFF-HAND effects are cast every turn → FULL uptime, same as a main weapon. (The off
+            // hand's only real support penalty — halved passive R-abilities — is modeled separately and untouched.)
+            // So: a family is full-uptime if it comes from an always-cast main weapon, OR from a NON-CARRY
+            // character's off-hand. The carry's own off-hand effects keep the ×0.85 reduction.
             var fullUptimeFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var effect in allEffects)
+            for (var i = 0; i < ranked.Count; i++)
             {
-                if (!string.IsNullOrEmpty(effect.SourceName) && alwaysCastWeaponNames.Contains(effect.SourceName))
+                var isCarry = i == 0;
+                foreach (var effect in GetDetectedEffectsForVariant(ranked[i].Variant, request))
                 {
-                    fullUptimeFamilies.Add(string.IsNullOrWhiteSpace(effect.FamilyKey) ? effect.Key : effect.FamilyKey);
+                    var fromAlwaysCastMain = !string.IsNullOrEmpty(effect.SourceName)
+                        && alwaysCastWeaponNames.Contains(effect.SourceName);
+                    var fromSupportOffHand = !isCarry
+                        && effect.SourceType.Equals("Off-hand", StringComparison.OrdinalIgnoreCase);
+                    if (fromAlwaysCastMain || fromSupportOffHand)
+                    {
+                        fullUptimeFamilies.Add(string.IsNullOrWhiteSpace(effect.FamilyKey) ? effect.Key : effect.FamilyKey);
+                    }
                 }
             }
 
