@@ -7154,6 +7154,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             var normalized = (ownership ?? string.Empty).Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(normalized) || normalized == "do-not-own") return null;
+            // Ultimate weapons have no overboost ladder; "own" means owned at the fixed 6-star tier.
+            // GetWeaponSnapshot forces upgradeCount = 0 for ultimates regardless, so 0 is correct.
+            if (normalized == "own") return 0;
             if (normalized is "3-star" or "4-star" or "5-star") return 0;
             if (normalized.StartsWith("ob", StringComparison.OrdinalIgnoreCase) && int.TryParse(normalized[2..], out var overboost) && overboost >= 0 && overboost <= 10) return overboost;
             return null;

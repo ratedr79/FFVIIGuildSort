@@ -801,7 +801,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     skillEffects,
                     skillStatusConditionEffects,
                     skillBuffDebuffs,
-                    skillStatusChangeEffects);
+                    skillStatusChangeEffects,
+                    skillBuffDebuffEnhances);
 
                 if (string.IsNullOrWhiteSpace(abilityDetails.Text))
                 {
@@ -924,7 +925,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     skillEffects,
                     skillStatusConditionEffects,
                     skillBuffDebuffs,
-                    skillStatusChangeEffects);
+                    skillStatusChangeEffects,
+                    skillBuffDebuffEnhances);
 
                 var allEffectTags = effectTags
                     .Concat(customizationEffectTags)
@@ -1159,7 +1161,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         skillEffects,
                         skillStatusConditionEffects,
                         skillBuffDebuffs,
-                        skillStatusChangeEffects);
+                        skillStatusChangeEffects,
+                        skillBuffDebuffEnhances);
                     effectTags = costumeTags;
                 }
 
@@ -2027,7 +2030,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             Dictionary<long, SkillEffectRaw> skillEffects,
             Dictionary<long, SkillStatusConditionEffectRaw> statusConditionEffects,
             Dictionary<long, SkillBuffDebuffRaw> buffDebuffs,
-            Dictionary<long, SkillStatusChangeEffectRaw> statusChangeEffects)
+            Dictionary<long, SkillStatusChangeEffectRaw> statusChangeEffects,
+            Dictionary<long, SkillBuffDebuffEnhanceRaw> buffDebuffEnhances)
         {
             var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -2064,6 +2068,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     case 16:
                         tags.Add("ATB+");
                         break;
+                    case 31:
+                        if (buffDebuffEnhances.TryGetValue(effect.SkillEffectDetailId, out var enhance))
+                        {
+                            switch (enhance.BuffDebuffEnhanceType)
+                            {
+                                case 1:
+                                    tags.Add("Applied Stats Buff Tier Increased");
+                                    break;
+                                case 2:
+                                    tags.Add("Applied Stats Debuff Tier Increased");
+                                    break;
+                            }
+                        }
+                        break;
                     case 36:
                         tags.Add("Overspeed Gauge");
                         break;
@@ -2089,7 +2107,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             Dictionary<long, SkillEffectRaw> skillEffects,
             Dictionary<long, SkillStatusConditionEffectRaw> skillStatusConditionEffects,
             Dictionary<long, SkillBuffDebuffRaw> skillBuffDebuffs,
-            Dictionary<long, SkillStatusChangeEffectRaw> skillStatusChangeEffects)
+            Dictionary<long, SkillStatusChangeEffectRaw> skillStatusChangeEffects,
+            Dictionary<long, SkillBuffDebuffEnhanceRaw> skillBuffDebuffEnhances)
         {
             var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -2175,7 +2194,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         skillEffects,
                         skillStatusConditionEffects,
                         skillBuffDebuffs,
-                        skillStatusChangeEffects);
+                        skillStatusChangeEffects,
+                        skillBuffDebuffEnhances);
 
                     foreach (var tag in extracted)
                     {

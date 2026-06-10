@@ -927,6 +927,17 @@
                                     <button type="button" class="btn btn-outline-primary" id="applyBulkCostumeOwnershipButton">Apply</button>
                                 </div>
                             </div>
+                            <div class="col-12 col-lg-4">
+                                <label for="bulkUltimateOwnershipSelect" class="form-label fw-semibold">Ultimate ownership</label>
+                                <div class="input-group">
+                                    <select class="form-select" id="bulkUltimateOwnershipSelect">
+                                        <option value="">Choose ownership...</option>
+                                        <option value="own">Own</option>
+                                        <option value="do-not-own">Do Not Own</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" id="applyBulkUltimateOwnershipButton">Apply</button>
+                                </div>
+                            </div>
                             <div class="col-12 col-lg-8">
                                 <div class="d-flex flex-wrap gap-2">
                                     <button type="button" class="btn btn-outline-secondary" id="clearBulkWeaponLevelButton">Clear Weapon Levels</button>
@@ -1320,6 +1331,8 @@
             const clearBulkWeaponLevelButton = document.getElementById('clearBulkWeaponLevelButton');
             const bulkCostumeOwnershipSelect = document.getElementById('bulkCostumeOwnershipSelect');
             const applyBulkCostumeOwnershipButton = document.getElementById('applyBulkCostumeOwnershipButton');
+            const bulkUltimateOwnershipSelect = document.getElementById('bulkUltimateOwnershipSelect');
+            const applyBulkUltimateOwnershipButton = document.getElementById('applyBulkUltimateOwnershipButton');
             const resetBulkScopeButton = document.getElementById('resetBulkScopeButton');
             const inventoryPaginationBar = document.getElementById('inventoryPaginationBar');
             const inventoryPageSizeSelect = document.getElementById('inventoryPageSizeSelect');
@@ -1331,6 +1344,9 @@
             const inventorySuccessMessage = document.getElementById('inventorySuccessMessage');
             const inventoryErrorMessage = document.getElementById('inventoryErrorMessage');
             const allItems = JSON.parse(document.getElementById('inventoryCatalogJson').textContent || '[]');
+            const ultimateItemIds = new Set(allItems
+                .filter(entry => String(entry?.equipmentType ?? '').toLowerCase() === 'ultimate')
+                .map(entry => String(entry.id)));
             const availableCharacters = JSON.parse(document.getElementById('inventoryCharactersJson').textContent || '[]');
             const allowedInventoryLevels = JSON.parse(document.getElementById('inventoryLevelsJson').textContent || '[]');
             const defaultSnapshotLevel = @Model.DefaultWeaponLevel;
@@ -1419,6 +1435,10 @@
 
             function normalizeWeaponOwnership(value) {
                 const normalized = String(value || '').trim().toLowerCase();
+                // 'own' is the ultimate-weapon ownership value (ultimates have no overboost ladder).
+                if (normalized === 'own') {
+                    return 'own';
+                }
                 return inventoryStatuses.some(entry => entry.value === normalized) ? normalized : 'do-not-own';
             }
 
@@ -1471,9 +1491,21 @@
 
                 if (nextState.weapons && typeof nextState.weapons === 'object') {
                     Object.entries(nextState.weapons).forEach(([itemId, value]) => {
+                        const level = normalizeWeaponLevel(value?.level);
+                        if (ultimateItemIds.has(String(itemId))) {
+                            // Migration: ultimates have no overboost ladder. Any previously owned
+                            // ultimate (obN / N-star / 'own') collapses to a single owned state,
+                            // preserving its level. Unowned ultimates are dropped entirely.
+                            const rawOwnership = String(value?.ownership || '').trim().toLowerCase();
+                            if (rawOwnership && rawOwnership !== 'do-not-own') {
+                                normalized.weapons[itemId] = { ownership: 'own', level };
+                            }
+                            return;
+                        }
+
                         normalized.weapons[itemId] = {
                             ownership: normalizeWeaponOwnership(value?.ownership),
-                            level: normalizeWeaponLevel(value?.level)
+                            level
                         };
                     });
                 }
@@ -1613,6 +1645,10 @@
                 }
 
                 const record = getWeaponRecord(item.id);
+                if (isUltimateItem(item)) {
+                    return record.ownership === 'do-not-own' ? 'Do Not Own' : 'Own';
+                }
+
                 const match = inventoryStatuses.find(entry => entry.value === record.ownership);
                 return match ? match.label : 'Do Not Own';
             }
@@ -1667,6 +1703,10 @@
                 return String(item?.equipmentType ?? '').toLowerCase() === 'costume';
             }
 
+            function isUltimateItem(item) {
+                return String(item?.equipmentType ?? '').toLowerCase() === 'ultimate';
+            }
+
             function cloneInventoryEntries(entries) {
                 return JSON.parse(JSON.stringify(entries || {}));
             }
@@ -1715,8 +1755,12 @@
 
             function getBulkScopeBreakdown(scopeValue) {
                 const items = getItemsForScope(scopeValue);
+                // weaponCount tracks only standard (overboost-ladder) weapons; ultimates are
+                // tracked separately because the bulk ownership control does not apply to them.
+                // ownedWeaponCount / weaponLevelCount include owned ultimates because they have levels.
                 let weaponCount = 0;
                 let costumeCount = 0;
+                let ultimateCount = 0;
                 let ownedWeaponCount = 0;
                 let weaponLevelCount = 0;
 
@@ -1726,7 +1770,12 @@
                         return;
                     }
 
-                    weaponCount += 1;
+                    if (isUltimateItem(item)) {
+                        ultimateCount += 1;
+                    } else {
+                        weaponCount += 1;
+                    }
+
                     const record = getWeaponRecord(item.id);
                     if (record.ownership !== 'do-not-own') {
                         ownedWeaponCount += 1;
@@ -1741,6 +1790,7 @@
                     totalCount: items.length,
                     weaponCount,
                     costumeCount,
+                    ultimateCount,
                     ownedWeaponCount,
                     weaponLevelCount
                 };
@@ -1760,7 +1810,7 @@
                     : '';
 
                 inventorySelectionCountBadge.textContent = `${selectedCount.toLocaleString()} selected`;
-                inventoryBulkScopeSummary.textContent = `${scopeLabel}: ${breakdown.totalCount.toLocaleString()} items in scope · ${breakdown.weaponCount.toLocaleString()} weapons · ${breakdown.costumeCount.toLocaleString()} costumes · ${breakdown.ownedWeaponCount.toLocaleString()} owned weapons${selectionHint}`;
+                inventoryBulkScopeSummary.textContent = `${scopeLabel}: ${breakdown.totalCount.toLocaleString()} items in scope · ${breakdown.weaponCount.toLocaleString()} weapons · ${breakdown.ultimateCount.toLocaleString()} ultimates · ${breakdown.costumeCount.toLocaleString()} costumes · ${breakdown.ownedWeaponCount.toLocaleString()} owned weapons${selectionHint}`;
                 inventorySelectCurrentPageButton.disabled = getCurrentPageItems().length === 0;
                 inventoryClearSelectionButton.disabled = selectedCount === 0;
                 inventoryUndoBulkUpdateButton.disabled = !undoStateSnapshot;
@@ -1768,6 +1818,7 @@
                 applyBulkWeaponLevelButton.disabled = breakdown.ownedWeaponCount === 0 || !bulkWeaponLevelSelect.value;
                 clearBulkWeaponLevelButton.disabled = breakdown.weaponLevelCount === 0;
                 applyBulkCostumeOwnershipButton.disabled = breakdown.costumeCount === 0 || !bulkCostumeOwnershipSelect.value;
+                applyBulkUltimateOwnershipButton.disabled = breakdown.ultimateCount === 0 || !bulkUltimateOwnershipSelect.value;
                 resetBulkScopeButton.disabled = breakdown.totalCount === 0;
             }
 
@@ -1918,6 +1969,7 @@
 
             function renderInventoryCard(item) {
                 const isCostume = String(item.equipmentType).toLowerCase() === 'costume';
+                const isUltimate = isUltimateItem(item);
                 const owned = isOwned(item);
                 const isSelected = selectedItemIds.has(String(item.id));
                 const statusLabel = buildOwnershipLabel(item);
@@ -1925,6 +1977,13 @@
                 const costumeRecord = getCostumeRecord(item.id);
                 const levelValue = weaponRecord.level;
                 const levelDisabled = weaponRecord.ownership === 'do-not-own';
+                const ownershipLabel = isCostume ? 'Costume Ownership' : isUltimate ? 'Ultimate Ownership' : 'Weapon Ownership';
+                // Ultimates use a costume-style own / do-not-own toggle (no overboost), but keep the level select.
+                const ownershipOptions = isCostume
+                    ? buildCostumeOptions(costumeRecord.owned ? 'own' : 'do-not-own')
+                    : isUltimate
+                        ? buildCostumeOptions(weaponRecord.ownership === 'do-not-own' ? 'do-not-own' : 'own')
+                        : buildWeaponOptions(weaponRecord.ownership);
                 const pills = [
                     `<span class="inventory-pill inventory-pill-type">${escapeHtml(item.equipmentType)}</span>`,
                     item.element ? `<span class="inventory-pill">${escapeHtml(item.element)}</span>` : '',
@@ -1955,9 +2014,9 @@
                         <div class="inventory-ability">${escapeHtml(item.abilityText || 'No ability description available.')}</div>
                         <div class="inventory-control-grid">
                             <div class="inventory-control-block ${isCostume ? 'inventory-control-block-full' : ''}">
-                                <label class="inventory-control-label" for="ownership-${escapeHtml(item.id)}">${isCostume ? 'Costume Ownership' : 'Weapon Ownership'}</label>
+                                <label class="inventory-control-label" for="ownership-${escapeHtml(item.id)}">${ownershipLabel}</label>
                                 <select class="form-select inventory-ownership-select" id="ownership-${escapeHtml(item.id)}" data-item-id="${escapeHtml(item.id)}" data-item-type="${escapeHtml(item.equipmentType)}">
-                                    ${isCostume ? buildCostumeOptions(costumeRecord.owned ? 'own' : 'do-not-own') : buildWeaponOptions(weaponRecord.ownership)}
+                                    ${ownershipOptions}
                                 </select>
                             </div>
                             ${isCostume ? '' : `<div class="inventory-control-block">
@@ -2082,6 +2141,22 @@
                 refreshInventoryMeta();
             }
 
+            function setUltimateOwnership(itemId, ownsItem) {
+                if (ownsItem) {
+                    const current = getWeaponRecord(itemId);
+                    state.weapons[itemId] = {
+                        ownership: 'own',
+                        level: current.level
+                    };
+                } else {
+                    delete state.weapons[itemId];
+                }
+                clearUndoSnapshot();
+                saveState();
+                rerenderInventoryCard(itemId);
+                refreshInventoryMeta();
+            }
+
             function setWeaponLevel(itemId, level) {
                 const normalizedLevel = normalizeWeaponLevel(level);
                 const current = getWeaponRecord(itemId);
@@ -2173,6 +2248,14 @@
                 }
 
                 const ownership = normalizeWeaponOwnership(getWeaponRecord(item.id).ownership);
+                if (isUltimateItem(item)) {
+                    const ownsUltimate = ownership !== 'do-not-own';
+                    return {
+                        label: ownsUltimate ? 'Own' : 'Do Not Own',
+                        className: ownsUltimate ? 'inventory-survey-status-owned' : 'inventory-survey-status-unowned'
+                    };
+                }
+
                 if (ownership === '5-star' || ownership.startsWith('ob')) {
                     return {
                         label: getWeaponOwnershipLabelFromValue(ownership),
@@ -2292,7 +2375,9 @@
                 let changedCount = 0;
 
                 breakdown.items.forEach(item => {
-                    if (isCostumeItem(item)) {
+                    // Ultimates have no overboost ladder, so the bulk weapon-ownership control
+                    // (which applies obN / N-star values) does not apply to them.
+                    if (isCostumeItem(item) || isUltimateItem(item)) {
                         return;
                     }
 
@@ -2486,6 +2571,66 @@
                 undoStateSnapshot = undoSnapshot;
                 renderInventory();
                 showSuccess(`Updated ${changedCount.toLocaleString()} costumes to ${markOwned ? 'Own' : 'Do Not Own'}.`);
+            }
+
+            function applyBulkUltimateOwnershipUpdate() {
+                hideMessages();
+                const scopeValue = inventoryBulkScope.value || 'filtered';
+                const targetOwnership = bulkUltimateOwnershipSelect.value;
+                const breakdown = getBulkScopeBreakdown(scopeValue);
+                if (!targetOwnership) {
+                    showError('Choose an ultimate ownership value before applying a bulk update.');
+                    return;
+                }
+
+                if (breakdown.ultimateCount === 0) {
+                    showError(`No ultimate weapons are available in ${formatBulkScopeLabel(scopeValue)}.`);
+                    return;
+                }
+
+                const markOwned = targetOwnership === 'own';
+                const confirmMessage = markOwned
+                    ? `Mark ${breakdown.ultimateCount.toLocaleString()} ultimate weapons in ${formatBulkScopeLabel(scopeValue)} as owned?`
+                    : `Reset ${breakdown.ultimateCount.toLocaleString()} ultimate weapons in ${formatBulkScopeLabel(scopeValue)} to Do Not Own? This also clears stored levels.`;
+                if (!confirmBulkAction(breakdown.ultimateCount, confirmMessage, !markOwned)) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: `ultimate ownership (${markOwned ? 'Own' : 'Do Not Own'})`,
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+                let changedCount = 0;
+
+                breakdown.items.forEach(item => {
+                    if (!isUltimateItem(item)) {
+                        return;
+                    }
+
+                    const current = getWeaponRecord(item.id);
+                    const currentlyOwned = current.ownership === 'own';
+                    if (currentlyOwned === markOwned) {
+                        return;
+                    }
+
+                    if (markOwned) {
+                        state.weapons[item.id] = { ownership: 'own', level: current.level };
+                    } else {
+                        delete state.weapons[item.id];
+                    }
+                    changedCount += 1;
+                });
+
+                if (changedCount === 0) {
+                    showError(`Ultimate weapons in ${formatBulkScopeLabel(scopeValue)} already use ${markOwned ? 'Own' : 'Do Not Own'}.`);
+                    return;
+                }
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                showSuccess(`Updated ${changedCount.toLocaleString()} ultimate weapons to ${markOwned ? 'Own' : 'Do Not Own'}.`);
             }
 
             function resetBulkScope() {
@@ -2745,6 +2890,19 @@
                     }
 
                     return { supplied: true, value: null, label: trimmed, error: 'Invalid costume ownership token.' };
+                }
+
+                if (isUltimateItem(item)) {
+                    // Ultimates have no overboost ladder: own / do-not-own only (levels handled separately).
+                    if (['own', 'owned', 'yes', 'true', '1', 'ob0', '5star'].includes(normalized) || /^ob([1-9]|10)$/.test(normalized)) {
+                        return { supplied: true, value: 'own', label: 'Own', error: '' };
+                    }
+
+                    if (['donotown', 'notown', 'unowned', 'no', 'false', '0'].includes(normalized)) {
+                        return { supplied: true, value: 'do-not-own', label: 'Do Not Own', error: '' };
+                    }
+
+                    return { supplied: true, value: null, label: trimmed, error: 'Invalid ultimate ownership token.' };
                 }
 
                 if (['donotown', 'notown', 'unowned', 'no', 'false', '0'].includes(normalized)) {
@@ -3210,6 +3368,11 @@
                 snapshotElement.textContent = item.element || 'N/A';
                 snapshotAbilityType.textContent = item.abilityType || 'N/A';
                 snapshotOverboost.value = getSnapshotOverboostValue(weaponRecord.ownership);
+                // Ultimate weapons have no overboost; hide the OB control in the View Levels explorer.
+                const snapshotOverboostCol = document.getElementById('snapshotOverboostCol');
+                if (snapshotOverboostCol) {
+                    snapshotOverboostCol.classList.toggle('d-none', isUltimateItem(item));
+                }
                 const startingLevel = weaponRecord.level || defaultSnapshotLevel;
                 snapshotLevel.value = String(startingLevel);
                 snapshotLevelRange.value = String(startingLevel);
@@ -3359,6 +3522,10 @@
                 updateBulkActionUi();
             });
 
+            bulkUltimateOwnershipSelect.addEventListener('change', () => {
+                updateBulkActionUi();
+            });
+
             inventorySelectCurrentPageButton.addEventListener('click', () => {
                 hideMessages();
                 selectCurrentPageItems();
@@ -3388,6 +3555,10 @@
 
             applyBulkCostumeOwnershipButton.addEventListener('click', () => {
                 applyBulkCostumeOwnershipUpdate();
+            });
+
+            applyBulkUltimateOwnershipButton.addEventListener('click', () => {
+                applyBulkUltimateOwnershipUpdate();
             });
 
             resetBulkScopeButton.addEventListener('click', () => {
@@ -3434,8 +3605,11 @@
                         return;
                     }
                     hideMessages();
-                    if (String(itemType).toLowerCase() === 'costume') {
+                    const normalizedItemType = String(itemType).toLowerCase();
+                    if (normalizedItemType === 'costume') {
                         setCostumeOwnership(itemId, ownershipSelect.value === 'own');
+                    } else if (normalizedItemType === 'ultimate') {
+                        setUltimateOwnership(itemId, ownershipSelect.value === 'own');
                     } else {
                         setWeaponOwnership(itemId, ownershipSelect.value);
                     }
