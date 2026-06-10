@@ -967,12 +967,22 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     .ThenByDescending(candidate => GetVariantSelectionScore(candidate, request))
                     .ThenBy(BuildCharacterVariantEquipmentKey, StringComparer.OrdinalIgnoreCase)
                     .ToList();
+                // Dedupe the support pool to ONE (best) variant per character before the Take, so a single
+                // high-variant-count character (e.g. Cloud with many strong builds) can't flood the top-N and lock
+                // other strong support CHARACTERS (e.g. Cid) out of skeleton enumeration entirely. Skeletons are
+                // character combinations; each support's variants are explored later in expansion, so keeping only the
+                // best variant per character here loses nothing and makes the Take count DISTINCT characters — which
+                // also keeps the cut robust (a fixed numeric Take on variants slips whenever variant counts change).
                 var supportCandidates = rankedSupportCandidates
+                    .GroupBy(candidate => candidate.CharacterName, StringComparer.OrdinalIgnoreCase)
+                    .Select(group => group.First())
                     .Take(supportCandidateLimit)
                     .ToList();
                 supportCandidates.AddRange(rankedSupportCandidates
-                    .Where(candidate => !supportCandidates.Contains(candidate)
+                    .Where(candidate => supportCandidates.All(existing => !existing.CharacterName.Equals(candidate.CharacterName, StringComparison.OrdinalIgnoreCase))
                         && ShouldPreserveContextualSupportSeedVariant(candidate, request))
+                    .GroupBy(candidate => candidate.CharacterName, StringComparer.OrdinalIgnoreCase)
+                    .Select(group => group.First())
                     .Take(2));
                 for (var i = 0; i < supportCandidates.Count; i++)
                 {
