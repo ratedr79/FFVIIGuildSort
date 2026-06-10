@@ -622,12 +622,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             // Team-aware OFF-HAND gate (mirrors the costume gate): rank off-hand options by REAL team-damage
-            // contribution instead of the per-character slot score, so a team-better off-hand (e.g. one that AVOIDS
-            // duplicating a buff a teammate already provides — the team model already deducts the wasted copy via
-            // GetTeamWideDuplicateBuffPenalty) isn't dropped by the Take(N). An off-hand's team value is ~main-
-            // independent, so probe each weapon ONCE (cached by name, with a reference main that isn't itself),
-            // keeping the cost OUT of the per-main combination loop. Only engaged with team context (expansion path),
-            // an offensive request, and more weapons than we'd keep.
+            // contribution instead of the per-character slot score, so a team-better off-hand isn't dropped by the
+            // Take(N). MUST use scopeAware:true: the cheap uniform (scopeAware:false) path pools every buff —
+            // including [Rng.: Self] ones — into one team-wide multiplier applied to ALL attackers, which OVER-credits
+            // a self-buff on a support (e.g. a self phys-damage-bonus off-hand on a support would falsely look like it
+            // boosts the carry). scopeAware:true confines a [Self] buff to its own holder, so the gate values an
+            // off-hand by what it actually does for the team. An off-hand's team value is ~main-independent, so probe
+            // each weapon ONCE (cached by name, with a reference main that isn't itself), keeping the cost OUT of the
+            // per-main combination loop. Only engaged with team context (expansion path), an offensive request, and
+            // more weapons than we'd keep.
             Dictionary<string, double>? offHandTeamDamageByName = null;
             if (teamContextSeeds != null && teamContextSeeds.Count > 0
                 && request.PreferredDamageType != DamageType.Any
@@ -647,7 +650,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     var referenceMain = mainOptions.FirstOrDefault(m => !m.Name.Equals(w.Item.Name, StringComparison.OrdinalIgnoreCase)) ?? mainOptions[0];
                     var offSlot = GetOrCreateWeaponSlot(w, role, request, referenceTuningProfile, "Off-hand", 0.5, true, true, weaponSlotEvaluationCache);
                     var probe = BuildOffHandProbeVariant(character, role, referenceMain, probeUltimate, offSlot, probeCostume, request);
-                    offHandTeamDamageByName[w.Item.Name] = EstimateTeamDamage(BuildTeamContextForRanking(probe, teamContextSeeds), request, scopeAware: false);
+                    offHandTeamDamageByName[w.Item.Name] = EstimateTeamDamage(BuildTeamContextForRanking(probe, teamContextSeeds), request, scopeAware: true);
                 }
             }
 
