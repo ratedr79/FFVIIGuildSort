@@ -29,9 +29,6 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public EnemyTargetScenario TargetScenario { get; set; } = EnemyTargetScenario.Unknown;
 
         [BindProperty]
-        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Adaptive;
-
-        [BindProperty]
         public Dictionary<string, bool> EnabledTeamTemplates { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
         [BindProperty]
@@ -64,7 +61,6 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
                 TargetScenario = TargetScenario,
-                SearchMode = SearchMode,
                 EnabledTeamTemplates = EnabledTeamTemplates.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList(),
                 BossImmunityKeys = BossImmunityKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 HardRequiredEffectKeys = HardRequiredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),

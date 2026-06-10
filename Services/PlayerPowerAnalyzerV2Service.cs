@@ -86,15 +86,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             "defense_debuff",
             "elemental_resistance_debuff"
         };
-        private const int AdaptiveSearchMinimumStandardWeaponsPerCharacter = 6;
-        private const int AdaptiveSearchRetainedLowPriorityWeaponsPerCharacter = 1;
-        private const int DefaultMainWeaponOptionsPerCharacter = 4;
-        private const int DefaultOffHandWeaponOptionsPerCharacter = 3;
-        private const int DefaultUltimateOptionsPerCharacter = 2;
-        private const int DefaultMainOutfitOptionsPerCharacter = 3;
-        private const int DefaultSubOutfitOptionsPerCharacter = 2;
-        private const int DefaultRetainedVariantsPerCharacter = 6;
-        private const int DefaultSkeletonExpansionLimit = 24;
         private const int ExhaustiveMainWeaponOptionsPerCharacter = 6;
         private const int ExhaustiveOffHandWeaponOptionsPerCharacter = 4;
         private const int ExhaustiveUltimateOptionsPerCharacter = 3;
@@ -102,16 +93,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private const int ExhaustiveSubOutfitOptionsPerCharacter = 2;
         private const int ExhaustiveRetainedVariantsPerCharacter = 8;
         private const int ExhaustiveSkeletonExpansionLimit = 40;
-        private const int AdaptiveWideRosterThreshold = 9;
-        private const int AdaptiveVeryWideRosterThreshold = 12;
-        private const int AdaptiveWideRosterCharacterShortlistLimit = 10;
-        private const int AdaptiveVeryWideRosterCharacterShortlistLimit = 8;
-        private const int AdaptiveWideRosterSkeletonExpansionLimit = 18;
-        private const int AdaptiveVeryWideRosterSkeletonExpansionLimit = 12;
-        private const int AdaptiveShortlistMinimumDpsCount = 2;
-        private const int AdaptiveShortlistMinimumHealerCount = 1;
-        private const int AdaptiveShortlistMinimumSupportCount = 1;
-        private const int AdaptiveShortlistMinimumTankCount = 1;
 
         private enum OffensiveRoleProfile
         {
@@ -259,10 +240,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var searchModeFilter = ApplySearchModeWeaponFiltering(ownedWeapons, request);
             ownedWeapons = searchModeFilter.Weapons;
-            if (searchModeFilter.TrimmedWeaponCount > 0)
-            {
-                result.Warnings.Add($"Adaptive search trimmed {searchModeFilter.TrimmedWeaponCount} Event/Grindable weapon{(searchModeFilter.TrimmedWeaponCount == 1 ? string.Empty : "s")} across {searchModeFilter.AffectedCharacterCount} character{(searchModeFilter.AffectedCharacterCount == 1 ? string.Empty : "s")}. Switch Search Mode to Exhaustive to include every owned weapon.");
-            }
 
             result.AvailableCharacterCount = availableCharacters.Count;
             result.UnsetLevelWeaponCount = unsetLevelCount;
@@ -291,10 +268,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var adaptiveSearchProfile = BuildAdaptiveSearchProfile(charactersWithMainWeapon.Count, request);
-            if (adaptiveSearchProfile.IsVariantBreadthReduced)
-            {
-                result.Warnings.Add($"Adaptive search narrowed wide-roster variant generation to reduce combinations (main/off-hand/ultimate/outfit/sub-outfit = {adaptiveSearchProfile.MainWeaponOptionsPerCharacter}/{adaptiveSearchProfile.OffHandWeaponOptionsPerCharacter}/{adaptiveSearchProfile.UltimateOptionsPerCharacter}/{adaptiveSearchProfile.MainOutfitOptionsPerCharacter}/{adaptiveSearchProfile.SubOutfitOptionsPerCharacter}; retained variants per character = {adaptiveSearchProfile.RetainedVariantsPerCharacter}). Switch Search Mode to Exhaustive to restore full breadth.");
-            }
 
             var seedEntries = new KeyValuePair<string, List<CharacterBuildCandidate>>[charactersWithMainWeapon.Count];
             Parallel.For(0, charactersWithMainWeapon.Count, CreateCpuBoundParallelOptions(), index =>
@@ -308,13 +281,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             foreach (var entry in seedVariantsByCharacter.Where(e => e.Value.Count == 0))
             {
                 result.DebugNotes.Add($"{entry.Key}: no valid main-weapon seed variants were generated.");
-            }
-
-            var characterShortlistResult = ApplyAdaptiveCharacterShortlist(seedVariantsByCharacter, request, adaptiveSearchProfile);
-            seedVariantsByCharacter = characterShortlistResult.VariantsByCharacter;
-            if (characterShortlistResult.WasShortlisted)
-            {
-                result.Warnings.Add($"Adaptive search shortlisted {characterShortlistResult.RetainedCharacterCount} of {characterShortlistResult.OriginalCharacterCount} characters for skeleton generation on this wide roster while preserving role and requested-effect anchors. Switch Search Mode to Exhaustive to consider every owned character.");
             }
 
             var teamCandidates = BuildTeamCandidatesFromSkeletons(
@@ -414,122 +380,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private SearchModeFilterResult ApplySearchModeWeaponFiltering(List<OwnedWeaponCandidate> ownedWeapons, PlayerPowerAnalyzerV2Request request)
         {
-            if (request.SearchMode == PlayerPowerAnalyzerV2SearchMode.Exhaustive || ownedWeapons.Count == 0)
-            {
-                return new SearchModeFilterResult
-                {
-                    Weapons = ownedWeapons
-                };
-            }
-
-            var filtered = new List<OwnedWeaponCandidate>();
-            var trimmedWeaponCount = 0;
-            var affectedCharacterCount = 0;
-            foreach (var group in ownedWeapons.GroupBy(weapon => weapon.Character, StringComparer.OrdinalIgnoreCase).OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
-            {
-                var weaponsForCharacter = group.ToList();
-                var ultimateWeapons = weaponsForCharacter.Where(weapon => weapon.IsUltimate).ToList();
-                var regularWeapons = weaponsForCharacter.Where(weapon => !weapon.IsUltimate).ToList();
-                var filteredRegularWeapons = ApplyAdaptiveCharacterWeaponPruning(regularWeapons, request);
-                var trimmedForCharacter = regularWeapons.Count - filteredRegularWeapons.Count;
-                if (trimmedForCharacter > 0)
-                {
-                    trimmedWeaponCount += trimmedForCharacter;
-                    affectedCharacterCount++;
-                }
-
-                filtered.AddRange(filteredRegularWeapons);
-                filtered.AddRange(ultimateWeapons);
-            }
-
+            // No weapon pruning: the full owned armory is always considered. The former Adaptive mode dropped
+            // Event/Grindable weapons for established accounts (those with >= 6 standard weapons on a character) as a
+            // noise/runtime measure; that lossy, threshold-based prune was removed. Runtime no longer needs it (the
+            // per-character Take caps make owned-weapon count a non-driver), and it risked dropping a genuinely
+            // team-valuable weapon from any account that merely crossed the arbitrary threshold.
             return new SearchModeFilterResult
             {
-                Weapons = filtered,
-                TrimmedWeaponCount = trimmedWeaponCount,
-                AffectedCharacterCount = affectedCharacterCount
+                Weapons = ownedWeapons
             };
-        }
-
-        private List<OwnedWeaponCandidate> ApplyAdaptiveCharacterWeaponPruning(List<OwnedWeaponCandidate> weapons, PlayerPowerAnalyzerV2Request request)
-        {
-            if (weapons.Count == 0)
-            {
-                return weapons;
-            }
-
-            var standardWeapons = weapons
-                .Where(weapon => !IsAdaptiveLowPriorityWeaponType(weapon.Item.EquipmentType))
-                .ToList();
-            var lowPriorityWeapons = weapons
-                .Where(weapon => IsAdaptiveLowPriorityWeaponType(weapon.Item.EquipmentType))
-                .ToList();
-            if (lowPriorityWeapons.Count == 0 || standardWeapons.Count < AdaptiveSearchMinimumStandardWeaponsPerCharacter)
-            {
-                return weapons;
-            }
-
-            var importantKeys = request.HardRequiredEffectKeys
-                .Concat(request.SoftPreferredEffectKeys)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var keepIds = new HashSet<string>(standardWeapons.Select(weapon => weapon.Item.Id), StringComparer.OrdinalIgnoreCase);
-            foreach (var weapon in lowPriorityWeapons.Where(weapon => LowPriorityWeaponMatchesRequestedEffect(weapon, importantKeys, request)))
-            {
-                keepIds.Add(weapon.Item.Id);
-            }
-
-            var keptLowPriorityCount = lowPriorityWeapons.Count(weapon => keepIds.Contains(weapon.Item.Id));
-            foreach (var weapon in OrderAdaptiveLowPriorityWeapons(lowPriorityWeapons))
-            {
-                if (keptLowPriorityCount >= AdaptiveSearchRetainedLowPriorityWeaponsPerCharacter)
-                {
-                    break;
-                }
-
-                if (keepIds.Add(weapon.Item.Id))
-                {
-                    keptLowPriorityCount++;
-                }
-            }
-
-            return weapons
-                .Where(weapon => keepIds.Contains(weapon.Item.Id))
-                .ToList();
-        }
-
-        private bool LowPriorityWeaponMatchesRequestedEffect(OwnedWeaponCandidate weapon, IReadOnlySet<string> importantKeys, PlayerPowerAnalyzerV2Request request)
-        {
-            if (importantKeys.Count == 0)
-            {
-                return false;
-            }
-
-            var effects = DetectActiveEffects(
-                weapon.Item.EffectTags,
-                weapon.Snapshot.AbilityText,
-                request,
-                request.BossImmunityKeys,
-                "Main Weapon",
-                weapon.Item.Name,
-                weapon.Item.AbilityType,
-                weapon.Item.Element);
-            return effects.Any(effect => importantKeys.Contains(effect.Key));
-        }
-
-        private static bool IsAdaptiveLowPriorityWeaponType(string equipmentType)
-        {
-            return string.Equals(equipmentType, "Event", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(equipmentType, "Grindable", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static IOrderedEnumerable<OwnedWeaponCandidate> OrderAdaptiveLowPriorityWeapons(IEnumerable<OwnedWeaponCandidate> weapons)
-        {
-            return weapons
-                .OrderByDescending(weapon => weapon.OverboostLevel)
-                .ThenByDescending(weapon => weapon.Level)
-                .ThenByDescending(weapon => weapon.Snapshot.Patk + weapon.Snapshot.Matk + weapon.Snapshot.Heal)
-                .ThenByDescending(weapon => weapon.Snapshot.DamagePercent)
-                .ThenBy(weapon => weapon.Item.Name, StringComparer.OrdinalIgnoreCase);
         }
 
         private List<CharacterBuildCandidate> BuildCharacterVariants(
@@ -995,62 +854,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static AdaptiveSearchProfile BuildAdaptiveSearchProfile(int rosterSize, PlayerPowerAnalyzerV2Request request)
         {
-            var hasExplicitCoverageRequests = request.HardRequiredEffectKeys.Count > 0 || request.SoftPreferredEffectKeys.Count > 0;
-            var profile = new AdaptiveSearchProfile
+            // Single search profile (the former "Exhaustive" settings): one capped, full-armory pass for every
+            // request. The lossy Adaptive roster-size pruning was removed — worst-case runtime is bounded by the
+            // fixed per-character Take caps and the 16-character game roster (~27s on a fully maxed account), so a
+            // second, lossy mode is no longer needed and only produced divergent (worse) builds.
+            return new AdaptiveSearchProfile
             {
-                MainWeaponOptionsPerCharacter = DefaultMainWeaponOptionsPerCharacter,
-                OffHandWeaponOptionsPerCharacter = DefaultOffHandWeaponOptionsPerCharacter,
-                UltimateOptionsPerCharacter = DefaultUltimateOptionsPerCharacter,
-                MainOutfitOptionsPerCharacter = DefaultMainOutfitOptionsPerCharacter,
-                SubOutfitOptionsPerCharacter = DefaultSubOutfitOptionsPerCharacter,
-                RetainedVariantsPerCharacter = DefaultRetainedVariantsPerCharacter,
-                SkeletonExpansionLimit = DefaultSkeletonExpansionLimit,
+                MainWeaponOptionsPerCharacter = ExhaustiveMainWeaponOptionsPerCharacter,
+                OffHandWeaponOptionsPerCharacter = ExhaustiveOffHandWeaponOptionsPerCharacter,
+                UltimateOptionsPerCharacter = ExhaustiveUltimateOptionsPerCharacter,
+                MainOutfitOptionsPerCharacter = ExhaustiveMainOutfitOptionsPerCharacter,
+                SubOutfitOptionsPerCharacter = ExhaustiveSubOutfitOptionsPerCharacter,
+                RetainedVariantsPerCharacter = ExhaustiveRetainedVariantsPerCharacter,
+                SkeletonExpansionLimit = ExhaustiveSkeletonExpansionLimit,
                 CharacterShortlistLimit = int.MaxValue
             };
-
-            if (request.SearchMode == PlayerPowerAnalyzerV2SearchMode.Exhaustive)
-            {
-                profile.MainWeaponOptionsPerCharacter = ExhaustiveMainWeaponOptionsPerCharacter;
-                profile.OffHandWeaponOptionsPerCharacter = ExhaustiveOffHandWeaponOptionsPerCharacter;
-                profile.UltimateOptionsPerCharacter = ExhaustiveUltimateOptionsPerCharacter;
-                profile.MainOutfitOptionsPerCharacter = ExhaustiveMainOutfitOptionsPerCharacter;
-                profile.SubOutfitOptionsPerCharacter = ExhaustiveSubOutfitOptionsPerCharacter;
-                profile.RetainedVariantsPerCharacter = ExhaustiveRetainedVariantsPerCharacter;
-                profile.SkeletonExpansionLimit = ExhaustiveSkeletonExpansionLimit;
-                return profile;
-            }
-
-            if (rosterSize >= AdaptiveVeryWideRosterThreshold)
-            {
-                profile.MainWeaponOptionsPerCharacter = 3;
-                profile.OffHandWeaponOptionsPerCharacter = 2;
-                profile.UltimateOptionsPerCharacter = hasExplicitCoverageRequests ? 2 : 1;
-                profile.MainOutfitOptionsPerCharacter = 2;
-                profile.SubOutfitOptionsPerCharacter = DefaultSubOutfitOptionsPerCharacter;
-                profile.RetainedVariantsPerCharacter = hasExplicitCoverageRequests ? 4 : 3;
-                profile.SkeletonExpansionLimit = AdaptiveVeryWideRosterSkeletonExpansionLimit;
-                profile.CharacterShortlistLimit = hasExplicitCoverageRequests ? 9 : AdaptiveVeryWideRosterCharacterShortlistLimit;
-                return profile;
-            }
-
-            if (rosterSize >= AdaptiveWideRosterThreshold)
-            {
-                profile.MainWeaponOptionsPerCharacter = 3;
-                profile.OffHandWeaponOptionsPerCharacter = 2;
-                profile.UltimateOptionsPerCharacter = 1;
-                profile.MainOutfitOptionsPerCharacter = 2;
-                profile.SubOutfitOptionsPerCharacter = DefaultSubOutfitOptionsPerCharacter;
-                profile.RetainedVariantsPerCharacter = hasExplicitCoverageRequests ? 5 : 4;
-                profile.SkeletonExpansionLimit = AdaptiveWideRosterSkeletonExpansionLimit;
-                profile.CharacterShortlistLimit = hasExplicitCoverageRequests ? 11 : AdaptiveWideRosterCharacterShortlistLimit;
-            }
-
-            return profile;
-        }
-
-        private Dictionary<string, List<CharacterBuildCandidate>> ToVariantDictionary(IReadOnlyDictionary<string, List<CharacterBuildCandidate>> variantsByCharacter)
-        {
-            return variantsByCharacter.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
         }
 
         private List<TeamCandidate> BuildTeamCandidatesFromSkeletons(
@@ -1337,105 +1155,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return score;
-        }
-
-        private AdaptiveCharacterShortlistResult ApplyAdaptiveCharacterShortlist(
-            IReadOnlyDictionary<string, List<CharacterBuildCandidate>> variantsByCharacter,
-            PlayerPowerAnalyzerV2Request request,
-            AdaptiveSearchProfile adaptiveSearchProfile)
-        {
-            var populatedCandidates = variantsByCharacter
-                .Where(entry => entry.Value.Count > 0)
-                .Select(entry => new AdaptiveCharacterCandidate
-                {
-                    CharacterName = entry.Key,
-                    Role = entry.Value[0].Role,
-                    BestVariantSelectionScore = GetVariantSelectionScore(entry.Value[0], request),
-                    ProvidedEffectKeys = new HashSet<string>(entry.Value.SelectMany(variant => variant.ProvidedEffectKeys), StringComparer.OrdinalIgnoreCase)
-                })
-                .OrderByDescending(candidate => candidate.BestVariantSelectionScore)
-                .ThenBy(candidate => candidate.CharacterName, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (adaptiveSearchProfile.CharacterShortlistLimit == int.MaxValue
-                || populatedCandidates.Count <= Math.Max(3, adaptiveSearchProfile.CharacterShortlistLimit))
-            {
-                return new AdaptiveCharacterShortlistResult
-                {
-                    VariantsByCharacter = ToVariantDictionary(variantsByCharacter),
-                    OriginalCharacterCount = populatedCandidates.Count,
-                    RetainedCharacterCount = populatedCandidates.Count
-                };
-            }
-
-            var selectedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var orderedSelectedNames = new List<string>();
-
-            void AddCandidate(AdaptiveCharacterCandidate? candidate)
-            {
-                if (candidate == null || !selectedNames.Add(candidate.CharacterName))
-                {
-                    return;
-                }
-
-                orderedSelectedNames.Add(candidate.CharacterName);
-            }
-
-            foreach (var candidate in populatedCandidates.Where(candidate => candidate.Role == CharacterRole.DPS).Take(AdaptiveShortlistMinimumDpsCount))
-            {
-                AddCandidate(candidate);
-            }
-
-            foreach (var candidate in populatedCandidates.Where(candidate => candidate.Role == CharacterRole.Healer).Take(AdaptiveShortlistMinimumHealerCount))
-            {
-                AddCandidate(candidate);
-            }
-
-            foreach (var candidate in populatedCandidates.Where(candidate => candidate.Role == CharacterRole.Support).Take(AdaptiveShortlistMinimumSupportCount))
-            {
-                AddCandidate(candidate);
-            }
-
-            foreach (var candidate in populatedCandidates.Where(candidate => candidate.Role == CharacterRole.Tank).Take(AdaptiveShortlistMinimumTankCount))
-            {
-                AddCandidate(candidate);
-            }
-
-            foreach (var effectKey in request.HardRequiredEffectKeys.Concat(request.SoftPreferredEffectKeys).Distinct(StringComparer.OrdinalIgnoreCase))
-            {
-                AddCandidate(populatedCandidates.FirstOrDefault(candidate => candidate.ProvidedEffectKeys.Contains(effectKey)));
-            }
-
-            foreach (var candidate in populatedCandidates)
-            {
-                if (orderedSelectedNames.Count >= adaptiveSearchProfile.CharacterShortlistLimit)
-                {
-                    break;
-                }
-
-                AddCandidate(candidate);
-            }
-
-            foreach (var candidate in populatedCandidates)
-            {
-                if (orderedSelectedNames.Count >= 3)
-                {
-                    break;
-                }
-
-                AddCandidate(candidate);
-            }
-
-            var shortlistedVariants = orderedSelectedNames
-                .ToDictionary(characterName => characterName, characterName => variantsByCharacter[characterName], StringComparer.OrdinalIgnoreCase);
-
-            return new AdaptiveCharacterShortlistResult
-            {
-                VariantsByCharacter = shortlistedVariants,
-                OriginalCharacterCount = populatedCandidates.Count,
-                RetainedCharacterCount = shortlistedVariants.Count,
-                WasShortlisted = shortlistedVariants.Count < populatedCandidates.Count
-            };
         }
 
         private static double GetVariantSelectionScore(CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request)
@@ -7531,7 +7250,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             public List<OwnedWeaponCandidate> Weapons { get; set; } = new();
             public int TrimmedWeaponCount { get; set; }
-            public int AffectedCharacterCount { get; set; }
         }
 
         private sealed class AdaptiveSearchProfile
@@ -7544,28 +7262,6 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public int RetainedVariantsPerCharacter { get; set; }
             public int SkeletonExpansionLimit { get; set; }
             public int CharacterShortlistLimit { get; set; }
-            public bool IsVariantBreadthReduced => MainWeaponOptionsPerCharacter < DefaultMainWeaponOptionsPerCharacter
-                || OffHandWeaponOptionsPerCharacter < DefaultOffHandWeaponOptionsPerCharacter
-                || UltimateOptionsPerCharacter < DefaultUltimateOptionsPerCharacter
-                || MainOutfitOptionsPerCharacter < DefaultMainOutfitOptionsPerCharacter
-                || SubOutfitOptionsPerCharacter < DefaultSubOutfitOptionsPerCharacter
-                || RetainedVariantsPerCharacter < DefaultRetainedVariantsPerCharacter;
-        }
-
-        private sealed class AdaptiveCharacterShortlistResult
-        {
-            public Dictionary<string, List<CharacterBuildCandidate>> VariantsByCharacter { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-            public int OriginalCharacterCount { get; set; }
-            public int RetainedCharacterCount { get; set; }
-            public bool WasShortlisted { get; set; }
-        }
-
-        private sealed class AdaptiveCharacterCandidate
-        {
-            public string CharacterName { get; set; } = string.Empty;
-            public CharacterRole Role { get; set; }
-            public double BestVariantSelectionScore { get; set; }
-            public HashSet<string> ProvidedEffectKeys { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         }
 
         private sealed class AnchorScoringContext

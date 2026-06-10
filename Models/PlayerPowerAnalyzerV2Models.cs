@@ -3,12 +3,6 @@ using System.Collections.Generic;
 
 namespace FFVIIEverCrisisAnalyzer.Models
 {
-    public enum PlayerPowerAnalyzerV2SearchMode
-    {
-        Adaptive = 0,
-        Exhaustive = 1
-    }
-
     public sealed class PlayerPowerAnalyzerV2Request
     {
         public Element EnemyWeakness { get; set; } = Element.None;
@@ -18,7 +12,6 @@ namespace FFVIIEverCrisisAnalyzer.Models
         // weakness) loses the weakness-exploit and may be RESISTED by a variable amount that depends on the
         // fight. This factor multiplies such a weapon's effective damage; moderate default 0.5 when unknown.
         public double OffElementDamageFactor { get; set; } = 0.5;
-        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Adaptive;
         public List<string> EnabledTeamTemplates { get; set; } = new();
         public List<string> BossImmunityKeys { get; set; } = new();
         public List<string> HardRequiredEffectKeys { get; set; } = new();
