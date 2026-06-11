@@ -4631,7 +4631,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return false;
             }
 
-            var normalized = skillName.ToLowerInvariant();
+            var normalized = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             return normalized.Contains("boost patk", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("boost matk", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("boost atk", StringComparison.OrdinalIgnoreCase)
@@ -5220,7 +5220,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return false;
             }
 
-            var normalized = skillName.ToLowerInvariant();
+            var normalized = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             if (request.PreferredDamageType == DamageType.Magical)
             {
                 return normalized.Contains("boost matk (all allies)", StringComparison.OrdinalIgnoreCase)
@@ -5281,7 +5281,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static double GetAnchorTeamWidePassivePriorityMultiplier(string skillName, PlayerPowerAnalyzerV2Request request)
         {
-            var normalized = skillName.ToLowerInvariant();
+            var normalized = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             var beneficiaryMultiplier = GetProjectedTeamWideBeneficiaryMultiplier(normalized, request);
             if (request.EnemyWeakness != Element.None
                 && IsElementAbilityAllAlliesPassiveLabel(normalized)
@@ -5428,9 +5428,24 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 && skillName.Contains("All Allies", StringComparison.OrdinalIgnoreCase);
         }
 
+        // "Attack Boost (All Allies)" (e.g. Cloud's Ragnarok ultimate) is the synonym in-game label for
+        // "Boost ATK (All Allies)" ("PATK & MATK increased when battle begins [Rng.: All Allies]"). It was
+        // previously UNMAPPED and contributed 0. Normalize the alias to the canonical "Boost ATK (All Allies)"
+        // label so every passive match site (mapping, projection, recipient/beneficiary weighting) resolves
+        // it identically. Centralized here so all callers stay consistent.
+        private static string NormalizePassiveSkillAlias(string skillName)
+        {
+            if (string.IsNullOrWhiteSpace(skillName))
+            {
+                return skillName;
+            }
+
+            return skillName.Replace("Attack Boost (All Allies)", "Boost ATK (All Allies)", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static double GetTeamWidePassiveRecipientWeight(string skillName, CharacterRole recipientRole, PlayerPowerAnalyzerV2Request request)
         {
-            var normalized = skillName.ToLowerInvariant();
+            var normalized = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             if (normalized.Contains("boost patk (all allies)", StringComparison.OrdinalIgnoreCase))
             {
                 return request.PreferredDamageType == DamageType.Magical
@@ -5517,7 +5532,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static double GetProjectedTeamWidePassiveWeight(string skillName, PlayerPowerAnalyzerV2Request request)
         {
-            var normalized = skillName.ToLowerInvariant();
+            var normalized = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             var baseWeight = GetProjectedTeamWideBaseWeight(normalized, request);
             return baseWeight * GetProjectedTeamWideBeneficiaryMultiplier(normalized, request);
         }
@@ -5594,7 +5609,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return false;
             }
 
-            var normalized = skillName.Trim();
+            var normalized = NormalizePassiveSkillAlias(skillName.Trim());
             if (IsOmniElementAbilityDmgLabel(normalized))
             {
                 bonusValue = ResolveBreakpointBonus(points, OmniElementAbilityDmgBreakpointPoints, OmniElementAbilityDmgBonuses);
@@ -5949,7 +5964,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // offensive builds.
         private static double GetPassiveEffectiveDamageFactor(string skillName, CharacterRole role, PlayerPowerAnalyzerV2Request request)
         {
-            var normalized = skillName.ToLowerInvariant();
+            var normalized = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             var isAllAllies = normalized.Contains("all allies", StringComparison.OrdinalIgnoreCase);
 
             // Sigil/stream/interrupt-phase R-abilities only matter during a battle's sigil phase, which not
@@ -6030,7 +6045,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static double GetPassiveWeight(string skillName, CharacterRole role, PlayerPowerAnalyzerV2Request request, bool isSubWeaponContext = false, bool isOffHandSlotContext = false)
         {
-            var normalized = skillName.ToLowerInvariant();
+            var normalized = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             if (normalized.Contains("boost patk (all allies)", StringComparison.OrdinalIgnoreCase)) return request.PreferredDamageType == DamageType.Magical ? 1.6 : 3.0;
             if (normalized.Contains("boost matk (all allies)", StringComparison.OrdinalIgnoreCase)) return request.PreferredDamageType == DamageType.Magical ? 3.0 : 1.6;
             if (normalized.Contains("boost atk (all allies)", StringComparison.OrdinalIgnoreCase)) return 2.5;

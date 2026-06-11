@@ -25,7 +25,26 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // weakness, amplification, damage-received-up, …) carries an explicit % in the ability text.
         private static double GetActiveEffectRealPercent(DetectedActiveEffect effect)
         {
-            return ResolveActiveRealPercent(effect.Key, effect.PotencyTierRank ?? 0, effect.PotencyPercent);
+            // FIX #1 — sustained/ramping families build to and HOLD their [Max Pot] tier over a real fight, so
+            // the sustained VALUE is the Max-Pot ceiling, not the low [Pot] floor. Use the effective tier =
+            // Max([Pot], [Max Pot]) for the threshold-sensitive (ramping) families; one-shot effects have
+            // MaxPot==Pot so Max() is a no-op for them. (Previously the value was scored at the low [Pot] tier
+            // AND ramp-penalized — a double under-credit; the penalty side is softened in GetRampFactor.)
+            return ResolveActiveRealPercent(effect.Key, GetEffectiveSustainedTierRank(effect), effect.PotencyPercent);
+        }
+
+        // The tier a ramping/maintained effect actually contributes at: its [Max Pot] ceiling once sustained.
+        // Only lifted for the threshold-sensitive (ramping/maintained) families; everything else uses [Pot]
+        // (where MaxPot is absent or equals Pot, so this is identical to the old behavior).
+        private static int GetEffectiveSustainedTierRank(DetectedActiveEffect effect)
+        {
+            var baseTier = effect.PotencyTierRank ?? 0;
+            if (IsThresholdSensitiveSetupEffect(effect.Key) && effect.MaxPotencyTierRank.HasValue)
+            {
+                return System.Math.Max(baseTier, effect.MaxPotencyTierRank.Value);
+            }
+
+            return baseTier;
         }
 
         // Split out from GetActiveEffectRealPercent so it can be exercised with primitive args in tests.
@@ -78,23 +97,47 @@ namespace FFVIIEverCrisisAnalyzer.Services
             ["elemental_resistance_debuff"] = ElementalResistDebuffTierPercents,
         };
 
-        // Amplifier tier-bump MAGNITUDES — each amplifier moves a family a DIFFERENT number of rows up its
-        // table, so a flat constant over-credits the weaker ones. Buff side: Enliven = +2 tiers, Applied/Stats
-        // Buff Tier Increased = +1. Debuff side: both Enfeeble and Applied/Stats Debuff Tier Increased = +1.
-        // When several amplifiers of the same side are present we take the BEST (max) bump, not the sum.
-        private const int EnlivenBuffBump = 2;
-        private const int StatBuffTierIncreaseBump = 1;
-        private const int EnfeebleDebuffBump = 1;
-        private const int StatDebuffTierIncreaseBump = 1;
+        // Amplifier tier-bump MAGNITUDES. TWO DISTINCT amplifier mechanisms exist per side and they STACK (sum),
+        // order-independent — they are NOT alternatives, so we never take a max across them. The two TYPES are:
+        //   • a tier-MODIFIER ("Applied Stats Buff/Debuff Tier Increased") — magnitude +1, but capped at its OWN
+        //     [Max Tier] (parsed onto its DetectedActiveEffect.MaxPotencyTierRank): a +1 modifier can only lift a
+        //     family UP TO that ceiling; if the family's base tier already >= the cap it contributes 0.
+        //   • a STATUS (Enliven on buffs = +2, Enfeeble on debuffs = +1) — uncapped by its own [Max Tier]; only
+        //     the family's own % table caps it.
+        // Buff side: stat_buff_tier_increase (modifier, +1) + Enliven (status, +2).
+        // Debuff side: stat_debuff_tier_increase (modifier, +1) + Enfeeble (status, +1).
+        private const int EnlivenBuffBump = 2;          // status, buff side
+        private const int StatBuffTierIncreaseBump = 1; // tier-modifier, buff side
+        private const int EnfeebleDebuffBump = 1;        // status, debuff side
+        private const int StatDebuffTierIncreaseBump = 1;// tier-modifier, debuff side
 
-        // Given each amplifiable family's best BASE tier present on the team, return its effective % after
-        // amplifiers. A family is bumped by the BEST matching amplifier's magnitude (capped at its table max)
-        // only when that amplifier is on the team AND the family actually has a base tier — amplifiers are worth
-        // 0 with nothing to amplify (Applied Stats Debuff Tier Increased does nothing with no enemy debuffs).
+        // The resolved amplifier set for ONE side (buff or debuff): a tier-MODIFIER (bump + its own Max-Tier cap)
+        // plus a STATUS (uncapped bump). Computed once from the team's effects, then applied PER FAMILY (because
+        // the modifier's cap interacts with each family's own base tier).
+        private readonly struct AmplifierProfile
+        {
+            public AmplifierProfile(int modifierBump, int? modifierMaxTier, int statusBump)
+            {
+                ModifierBump = modifierBump;
+                ModifierMaxTier = modifierMaxTier;
+                StatusBump = statusBump;
+            }
+
+            public int ModifierBump { get; }         // tier-modifier magnitude (e.g. +1), capped at ModifierMaxTier
+            public int? ModifierMaxTier { get; }     // the modifier's own [Max Tier]; null = no extra cap (table only)
+            public int StatusBump { get; }           // status magnitude (e.g. Enliven +2 / Enfeeble +1), table-capped only
+        }
+
+        // Given each amplifiable family's best BASE (sustained) tier present on the team, return its effective %
+        // after amplifiers. Per family with base tier T:
+        //   modifierContribution = max(0, min(modifierBump, modifierMaxTier - T))   // capped at modifier's own Max Tier
+        //   effectiveTier        = clamp(T + modifierContribution + statusBump, 0, table.Length-1) // status table-capped only
+        // The two amplifier types SUM. Amplifiers are worth 0 with nothing to amplify (a family with no base tier
+        // is skipped — e.g. a debuff modifier does nothing with no enemy debuff present).
         private static Dictionary<string, double> ResolveAmplifiedFamilyPercents(
             IReadOnlyDictionary<string, int> familyBestTiers,
-            int buffAmplifierBump,
-            int debuffAmplifierBump)
+            AmplifierProfile buffAmplifiers,
+            AmplifierProfile debuffAmplifiers)
         {
             var result = new Dictionary<string, double>(System.StringComparer.OrdinalIgnoreCase);
             foreach (var pair in familyBestTiers)
@@ -108,8 +151,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var isAllyBuff = family.Equals("attack_buff", System.StringComparison.OrdinalIgnoreCase)
                     || family.Equals("damage_up", System.StringComparison.OrdinalIgnoreCase);
-                var bump = isAllyBuff ? buffAmplifierBump : debuffAmplifierBump;
-                var tier = baseTier + bump;
+                var amplifiers = isAllyBuff ? buffAmplifiers : debuffAmplifiers;
+
+                // Tier-modifier (Brush): lifts only up to its OWN Max Tier; 0 if the family is already at/above it.
+                var modifierCap = amplifiers.ModifierMaxTier ?? (table.Length - 1);
+                var modifierContribution = System.Math.Max(0, System.Math.Min(amplifiers.ModifierBump, modifierCap - baseTier));
+
+                // Status (Enliven/Enfeeble): full bump, capped only by the family % table.
+                var tier = baseTier + modifierContribution + amplifiers.StatusBump;
                 if (tier > table.Length - 1)
                 {
                     tier = table.Length - 1;
@@ -166,33 +215,55 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // small flexibility edge over a single-axis one (user decision). 10% of the buff's on-axis value.
         private const double OffAxisBuffFlexibilityFactor = 0.1;
 
-        // The BEST (max) buff-amplifier tier-bump present (0 if none). Enliven (+2) beats Applied Stats Buff
-        // Tier Increased (+1), so a team with Enliven lifts its ally buffs further than one with only the +1
-        // amplifier — fixing the old flat-+2 bug that gave both the same lift.
-        private static int GetBuffAmplifierBump(IEnumerable<DetectedActiveEffect> effects)
+        // Resolve the BUFF-side amplifier profile: the tier-MODIFIER (stat_buff_tier_increase, +1, capped at its
+        // own [Max Tier]) and the STATUS (Enliven, +2, uncapped). The two SUM (applied per family in
+        // ResolveAmplifiedFamilyPercents). Dedup WITHIN a type — best magnitude per key, most-generous Max-Tier
+        // across providers of the modifier (so two Brushes don't double-stack the +1, but the higher cap wins).
+        private static AmplifierProfile GetBuffAmplifierProfile(IEnumerable<DetectedActiveEffect> effects)
+            => GetAmplifierProfile(effects, "enliven", EnlivenBuffBump, "stat_buff_tier_increase", StatBuffTierIncreaseBump);
+
+        // Resolve the DEBUFF-side amplifier profile: tier-MODIFIER (stat_debuff_tier_increase, +1, own-[Max Tier]
+        // capped) and STATUS (Enfeeble, +1, uncapped). Same SUM-across-types / dedup-within-type rules.
+        private static AmplifierProfile GetDebuffAmplifierProfile(IEnumerable<DetectedActiveEffect> effects)
+            => GetAmplifierProfile(effects, "enfeeble", EnfeebleDebuffBump, "stat_debuff_tier_increase", StatDebuffTierIncreaseBump);
+
+        private static AmplifierProfile GetAmplifierProfile(
+            IEnumerable<DetectedActiveEffect> effects,
+            string statusKey,
+            int statusBump,
+            string modifierKey,
+            int modifierBump)
         {
-            var bump = 0;
+            var statusPresent = false;
+            var modifierPresent = false;
+            int? modifierMaxTier = null; // most-generous [Max Tier] across modifier providers; null = no extra cap
             foreach (var e in effects)
             {
-                if (e.Key == "enliven") { bump = Math.Max(bump, EnlivenBuffBump); }
-                else if (e.Key == "stat_buff_tier_increase") { bump = Math.Max(bump, StatBuffTierIncreaseBump); }
+                if (e.Key == statusKey)
+                {
+                    statusPresent = true;
+                }
+                else if (e.Key == modifierKey)
+                {
+                    modifierPresent = true;
+                    // Take the most generous (highest) cap; a missing [Max Tier] means table-only cap (no extra cap).
+                    if (!e.MaxPotencyTierRank.HasValue)
+                    {
+                        modifierMaxTier = int.MaxValue;
+                    }
+                    else if (modifierMaxTier != int.MaxValue)
+                    {
+                        modifierMaxTier = modifierMaxTier.HasValue
+                            ? Math.Max(modifierMaxTier.Value, e.MaxPotencyTierRank.Value)
+                            : e.MaxPotencyTierRank.Value;
+                    }
+                }
             }
 
-            return bump;
-        }
-
-        // The BEST (max) debuff-amplifier tier-bump present (0 if none). Enfeeble and Applied Stats Debuff Tier
-        // Increased are both +1 on the debuff side.
-        private static int GetDebuffAmplifierBump(IEnumerable<DetectedActiveEffect> effects)
-        {
-            var bump = 0;
-            foreach (var e in effects)
-            {
-                if (e.Key == "enfeeble") { bump = Math.Max(bump, EnfeebleDebuffBump); }
-                else if (e.Key == "stat_debuff_tier_increase") { bump = Math.Max(bump, StatDebuffTierIncreaseBump); }
-            }
-
-            return bump;
+            return new AmplifierProfile(
+                modifierPresent ? modifierBump : 0,
+                modifierMaxTier == int.MaxValue ? (int?)null : modifierMaxTier,
+                statusPresent ? statusBump : 0);
         }
 
         // Aggregate a pool of detected active effects into the damage formula's family→% terms.
@@ -234,7 +305,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (AmplifiableFamilyTables.ContainsKey(family))
                 {
-                    var tier = effect.PotencyTierRank ?? 0;
+                    // FIX #1 — base tier for amplification is the sustained (Max-Pot) tier, so a ramping buff/debuff
+                    // is amplified from the tier it actually holds, not its low first-cast [Pot] floor.
+                    var tier = GetEffectiveSustainedTierRank(effect);
                     if (tier > 0 && (!amplifiableBestTiers.TryGetValue(family, out var existingTier) || tier > existingTier))
                     {
                         amplifiableBestTiers[family] = tier;
@@ -267,7 +340,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 state[pair.Key] = pair.Value.Values.Sum(); // different keys in a family add
             }
 
-            var amplified = ResolveAmplifiedFamilyPercents(amplifiableBestTiers, GetBuffAmplifierBump(materialized), GetDebuffAmplifierBump(materialized));
+            var amplified = ResolveAmplifiedFamilyPercents(amplifiableBestTiers, GetBuffAmplifierProfile(materialized), GetDebuffAmplifierProfile(materialized));
             foreach (var pair in amplified)
             {
                 state[pair.Key] = pair.Value;
@@ -314,7 +387,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return false;
             }
 
-            var n = skillName.ToLowerInvariant();
+            var n = NormalizePassiveSkillAlias(skillName).ToLowerInvariant();
             var pct = bonusPercent / 100.0;
 
             // Generic element-pot arcanum (All Allies) adapts to whatever element you run — always on.

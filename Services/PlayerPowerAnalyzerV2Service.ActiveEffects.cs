@@ -561,7 +561,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     return 1.0;
                 }
 
-                return effect.PotencyTierRank switch
+                // FIX #1 — a ramping/maintained effect is scored at the tier it SUSTAINS to ([Max Pot]), not its
+                // low first-cast [Pot] floor. GetEffectiveSustainedTierRank lifts threshold-sensitive families to
+                // their Max-Pot ceiling; one-shot effects (no Max Pot, or Max Pot == Pot) are unaffected.
+                return GetEffectiveSustainedTierRank(effect) switch
                 {
                     1 => 0.84,
                     2 => 0.96,
@@ -589,19 +592,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return 1.0;
             }
 
+            // FIX #1 — the effect's VALUE is now scored at its sustained [Max Pot] tier (GetPotencyFactor /
+            // GetEffectiveSustainedTierRank). Penalizing it per-extra-cast on top of that low [Pot] floor would
+            // double-count (the old behavior compensated for scoring at the LOW tier). So we no longer apply the
+            // steep per-cast ramp penalty. We keep only a MODEST, fixed first-window discount when the effect must
+            // actually ramp ([Pot] below its [Max Pot] ceiling) — it isn't at full value on turn one — which also
+            // preserves the "immediate High beats ramping Mid->High" ordering. A non-ramping effect (Pot == MaxPot,
+            // or no Max Pot) gets no discount.
             var currentTierRank = Math.Max(1, effect.PotencyTierRank.Value);
             var maxTierRank = Math.Max(currentTierRank, effect.MaxPotencyTierRank ?? currentTierRank);
-            var desiredTierRank = Math.Min(GetDesiredSetupThresholdTierRank(effect.Key, role), maxTierRank);
-            var extraCastsRequired = Math.Max(0, desiredTierRank - currentTierRank);
-            if (extraCastsRequired == 0)
+            if (maxTierRank <= currentTierRank)
             {
                 return 1.0;
             }
 
-            var penaltyPerExtraCast = effect.TargetScope is ActiveEffectTargetScope.AllAllies or ActiveEffectTargetScope.AllEnemies
-                ? 0.18
-                : 0.14;
-            return Math.Clamp(1.0 - (extraCastsRequired * penaltyPerExtraCast), 0.58, 1.0);
+            // Small first-window discount regardless of how many tiers it ramps (it converges to Max Pot quickly):
+            // slightly larger for team-wide effects (more bodies to ramp on the first few casts).
+            return effect.TargetScope is ActiveEffectTargetScope.AllAllies or ActiveEffectTargetScope.AllEnemies
+                ? 0.96
+                : 0.97;
         }
 
         private static bool IsThresholdSensitiveSetupEffect(string key)
