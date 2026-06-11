@@ -67,6 +67,61 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static readonly Regex DurationMarkerRegex = new(@"\[Dur:\s*(?<value>-?\d+(?:\.\d+)?)s?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex ExtensionMarkerRegex = new(@"\[Ext:\s*(?<value>-?\d+(?:\.\d+)?)s?\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex RangeMarkerRegex = new(@"\[(?:Rng\.?|Range):\s*(?<value>[^\]]+)\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // COSTUME literal-% support (Option A). Costume (outfit) R-abilities cap at low points (10-15pt) where the
+        // weapon-calibrated breakpoint tables under-shoot the declared %. The CORRECT literal % is already rendered
+        // in PassiveSkillEffectDetail.Description (e.g. "Lightning Ability Dmg. +30%"). For costume R-abilities only
+        // (the preferResolvedEffectLabels:true path) we parse that literal % and carry it as a sentinel marker
+        // appended to the scoring label, then USE it as the magnitude instead of the table lookup. Weapon R-abilities
+        // never carry the marker and stay on the table path, untouched. The marker is invisible to the existing
+        // .Contains(...) family/element/scope classification because it appends rare bracket glyphs at the very end.
+        // The % stored in the marker is ALREADY slot-multiplier scaled (main 1.0 -> full, sub 0.5 -> half).
+        private static readonly Regex CostumeLiteralPercentRegex = new(@"[+\-](?<value>\d+(?:\.\d+)?)%", RegexOptions.Compiled);
+        private static readonly Regex CostumeLiteralMarkerRegex = new(@"⟪LP:(?<value>-?\d+(?:\.\d+)?)⟫$", RegexOptions.Compiled);
+
+        // Parse the FIRST [+-]\d+% token from a rendered effect Description (some labels duplicate/concatenate the
+        // same % across sub-effects — take the first). Returns null when the effect is not %-shaped (e.g. a
+        // Max-Pot-Tier "+1" passive), in which case the caller falls back to the breakpoint table.
+        private static double? ParseCostumeLiteralPercent(string? description)
+        {
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                return null;
+            }
+
+            var match = CostumeLiteralPercentRegex.Match(description);
+            return match.Success
+                && double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+                ? value
+                : (double?)null;
+        }
+
+        // Append the (slot-scaled) literal % to a scoring label so it survives every string-keyed merge/flatten path
+        // (main MergePassiveContributions, sub AddPassivePoints/DeriveContributionsFromPoints) without a parallel map.
+        private static string AppendCostumeLiteralMarker(string label, double scaledPercent)
+            => $"{label}⟪LP:{scaledPercent.ToString("0.####", CultureInfo.InvariantCulture)}⟫";
+
+        // Split a (possibly) marked label into its base text and the carried literal %. No marker -> (label, null).
+        private static (string BaseLabel, double? LiteralPercent) SplitCostumeLiteralMarker(string label)
+        {
+            if (string.IsNullOrEmpty(label))
+            {
+                return (label, null);
+            }
+
+            var match = CostumeLiteralMarkerRegex.Match(label);
+            if (!match.Success
+                || !double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+            {
+                return (label, null);
+            }
+
+            return (label[..match.Index], value);
+        }
+
+        // Strip the literal-% marker for display / equality contexts that must not see it.
+        private static string StripCostumeLiteralMarker(string label) => SplitCostumeLiteralMarker(label).BaseLabel;
+
         private static readonly HashSet<string> StageOneOffensiveFamilies = new(StringComparer.OrdinalIgnoreCase)
         {
             "attack_buff",
@@ -4475,12 +4530,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                foreach (var scoringLabel in GetPassiveScoringLabels(passive.SkillName, passive.Effects, preferResolvedEffectLabels))
+                foreach (var (baseLabel, literalPercent) in GetPassiveScoringLabelsWithLiteral(passive.SkillName, passive.Effects, preferResolvedEffectLabels))
                 {
-                    if (string.IsNullOrWhiteSpace(scoringLabel))
+                    if (string.IsNullOrWhiteSpace(baseLabel))
                     {
                         continue;
                     }
+
+                    // Costume path with a literal %: bake the SLOT-SCALED % into the label so the half-value for sub
+                    // outfits (slotMultiplier 0.5) rides through every downstream string-keyed merge exactly the same
+                    // way the old table-based value (scored at halved points) did. Main outfit (1.0) keeps the full %.
+                    var scoringLabel = literalPercent.HasValue
+                        ? AppendCostumeLiteralMarker(baseLabel, literalPercent.Value * slotMultiplier)
+                        : baseLabel;
 
                     if (!map.TryGetValue(scoringLabel, out var bySkill))
                     {
@@ -4583,30 +4645,55 @@ namespace FFVIIEverCrisisAnalyzer.Services
         }
 
         private static IReadOnlyList<string> GetPassiveScoringLabels(string skillName, IEnumerable<PassiveSkillEffectDetail>? passiveEffects, bool preferResolvedEffectLabels)
+            => GetPassiveScoringLabelsWithLiteral(skillName, passiveEffects, preferResolvedEffectLabels)
+                .Select(pair => pair.Label)
+                .ToList();
+
+        // Same resolution as GetPassiveScoringLabels, but for the COSTUME path (preferResolvedEffectLabels:true) it
+        // also carries each label's literal % parsed from the matching effect's rendered Description. LiteralPercent
+        // is null for the weapon path and for non-%-shaped effects, so those keep using the breakpoint table.
+        private static IReadOnlyList<(string Label, double? LiteralPercent)> GetPassiveScoringLabelsWithLiteral(
+            string skillName, IEnumerable<PassiveSkillEffectDetail>? passiveEffects, bool preferResolvedEffectLabels)
         {
             var compositeLabels = SplitCompositePassiveSkillName(skillName);
             if (compositeLabels.Count > 1)
             {
-                return compositeLabels;
+                // Composite "A & B" names are not costume-resolved effects; no literal % to attach.
+                return compositeLabels.Select(label => (label, (double?)null)).ToList();
             }
 
-            var resolvedLabels = passiveEffects?
-                .Select(effect => effect.Label)
-                .Where(label => !string.IsNullOrWhiteSpace(label))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+            var effects = passiveEffects?
+                .Where(effect => !string.IsNullOrWhiteSpace(effect.Label))
                 .ToList()
-                ?? new List<string>();
+                ?? new List<PassiveSkillEffectDetail>();
 
-            if (!preferResolvedEffectLabels
-                || resolvedLabels.Count == 0
-                || IsPassiveSkillNameDirectlyScorable(skillName))
+            if (!preferResolvedEffectLabels || effects.Count == 0)
             {
-                return new[] { skillName };
+                // Weapon path (or no effects): label is the R-ability name, scored via the breakpoint table.
+                return new[] { (skillName, (double?)null) };
             }
 
-            return resolvedLabels.Count > 0
-                ? resolvedLabels
-                : new[] { skillName };
+            // For the directly-scorable costume case (e.g. a costume literally named "Boost PATK"), keep the
+            // skillName as the label so the existing family/recipient logic resolves it, but still honor the
+            // literal % from its single rendered effect when present.
+            if (IsPassiveSkillNameDirectlyScorable(skillName))
+            {
+                return new[] { (skillName, ParseCostumeLiteralPercent(effects[0].Description)) };
+            }
+
+            // Resolved-effect costume path: one scoring entry per DISTINCT effect label, each carrying its own
+            // literal %. Distinct on the base label so duplicate sub-effects collapse (first wins).
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var result = new List<(string, double?)>();
+            foreach (var effect in effects)
+            {
+                if (seen.Add(effect.Label))
+                {
+                    result.Add((effect.Label, ParseCostumeLiteralPercent(effect.Description)));
+                }
+            }
+
+            return result.Count > 0 ? result : new[] { (skillName, (double?)null) };
         }
 
         private static List<string> SplitCompositePassiveSkillName(string skillName)
@@ -5408,6 +5495,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return skillName;
             }
 
+            // Never surface the internal costume literal-% marker in user-facing passive summaries.
+            skillName = StripCostumeLiteralMarker(skillName);
             var normalized = skillName.ToLowerInvariant();
             if (normalized.Contains("reprieve", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("fatal damage", StringComparison.OrdinalIgnoreCase)
@@ -5425,7 +5514,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static bool IsTeamWidePassive(string skillName)
         {
             return !string.IsNullOrWhiteSpace(skillName)
-                && skillName.Contains("All Allies", StringComparison.OrdinalIgnoreCase);
+                && (skillName.Contains("All Allies", StringComparison.OrdinalIgnoreCase)
+                    // Rendered All-Allies stat-boost labels use a possessive ("All Allies' ...") that still contains
+                    // "All Allies"; this also catches the canonical alias once normalized.
+                    || NormalizePassiveSkillAlias(skillName).Contains("All Allies", StringComparison.OrdinalIgnoreCase));
         }
 
         // "Attack Boost (All Allies)" (e.g. Cloud's Ragnarok ultimate) is the synonym in-game label for
@@ -5440,7 +5532,50 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return skillName;
             }
 
-            return skillName.Replace("Attack Boost (All Allies)", "Boost ATK (All Allies)", StringComparison.OrdinalIgnoreCase);
+            // Strip the costume literal-% marker so all family/element/scope classification sees the clean base label.
+            // (The magnitude is read from the marker separately in TryGetPassiveBonusValue / TryGetPassiveDamageTerm.)
+            var baseLabel = StripCostumeLiteralMarker(skillName);
+
+            // "All Allies' Phys./Mag. Attack +N%" is the rendered costume label for a team-wide ATK/MATK stat boost,
+            // but it never matched the "Boost PATK/MATK (All Allies)" keyed branches → it was UNMAPPED (valued 0).
+            // Normalize it to the canonical team-wide stat-boost label so it is BOTH mapped and valued (its literal %
+            // still flows via the marker). Possessive apostrophe is the curly U+2019 in the rendered text.
+            baseLabel = NormalizeAllAlliesStatBoostAlias(baseLabel);
+
+            return baseLabel.Replace("Attack Boost (All Allies)", "Boost ATK (All Allies)", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Maps rendered "All Allies' <Phys.|Mag.|> Attack" stat-boost labels onto the canonical
+        // "Boost PATK/MATK/ATK (All Allies)" keys used by the classification and recipient-weighting branches.
+        private static string NormalizeAllAlliesStatBoostAlias(string label)
+        {
+            if (string.IsNullOrWhiteSpace(label)
+                || !label.Contains("All Allies", StringComparison.OrdinalIgnoreCase)
+                || !(label.Contains("Attack", StringComparison.OrdinalIgnoreCase)
+                    || label.Contains("Magic Attack", StringComparison.OrdinalIgnoreCase)))
+            {
+                return label;
+            }
+
+            // Do not touch ability-dmg / potency labels — only pure ATK/MATK stat boosts.
+            if (label.Contains("Ability", StringComparison.OrdinalIgnoreCase)
+                || label.Contains("Pot", StringComparison.OrdinalIgnoreCase)
+                || label.Contains("Defense", StringComparison.OrdinalIgnoreCase))
+            {
+                return label;
+            }
+
+            if (label.Contains("Phys", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Boost PATK (All Allies)";
+            }
+
+            if (label.Contains("Mag", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Boost MATK (All Allies)";
+            }
+
+            return "Boost ATK (All Allies)";
         }
 
         private static double GetTeamWidePassiveRecipientWeight(string skillName, CharacterRole recipientRole, PlayerPowerAnalyzerV2Request request)
@@ -5607,6 +5742,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
             if (points <= 0 || string.IsNullOrWhiteSpace(skillName))
             {
                 return false;
+            }
+
+            // COSTUME literal-% path: when a (slot-scaled) literal % rides on the label, USE it as the magnitude
+            // directly instead of the weapon-calibrated breakpoint table (which under-shoots low-point costume caps).
+            // The marker is already strip ped by NormalizePassiveSkillAlias for the family/element classification, so
+            // we read it here before that. Weapon labels never carry the marker and fall through to the table below.
+            var (_, literalPercent) = SplitCostumeLiteralMarker(skillName.Trim());
+            if (literalPercent.HasValue)
+            {
+                bonusValue = literalPercent.Value;
+                return true;
             }
 
             var normalized = NormalizePassiveSkillAlias(skillName.Trim());
