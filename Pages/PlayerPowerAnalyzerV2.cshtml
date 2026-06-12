@@ -157,6 +157,14 @@
                         <label asp-for="TargetScenario" class="form-label fw-semibold">Target Scenario</label>
                         <select asp-for="TargetScenario" class="form-select" asp-items="Html.GetEnumSelectList<EnemyTargetScenario>()"></select>
                     </div>
+                    <div class="col-md-3">
+                        <label asp-for="SearchMode" class="form-label fw-semibold">Search Mode</label>
+                        <select asp-for="SearchMode" class="form-select" asp-items="Html.GetEnumSelectList<PlayerPowerAnalyzerV2SearchMode>()"></select>
+                        <div class="small text-muted mt-1">
+                            <div><span class="fw-semibold">Full (recommended):</span> Thoroughly searches your full armory for the most accurate recommendation. Slower.</div>
+                            <div><span class="fw-semibold">Fast:</span> Quicker results by skipping candidates that are clearly behind the leader. May occasionally differ from Full when teams are very close in power.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -784,10 +792,12 @@
                 const enemyWeakness = document.getElementById('EnemyWeakness');
                 const preferredDamageType = document.getElementById('PreferredDamageType');
                 const targetScenario = document.getElementById('TargetScenario');
+                const searchMode = document.getElementById('SearchMode');
                 return {
                     enemyWeakness: enemyWeakness ? enemyWeakness.value : 'None',
                     preferredDamageType: preferredDamageType ? preferredDamageType.value : 'Any',
                     targetScenario: targetScenario ? targetScenario.value : 'Unknown',
+                    searchMode: searchMode ? searchMode.value : 'Full',
                     enabledTeamTemplates: getEnabledTeamTemplates(),
                     bossImmunityKeys: getCheckedValues('BossImmunityKeys'),
                     hardRequiredEffectKeys: getCheckedValues('HardRequiredEffectKeys'),
@@ -871,6 +881,7 @@
                 setSelectValue('EnemyWeakness', request.enemyWeakness);
                 setSelectValue('PreferredDamageType', request.preferredDamageType);
                 setSelectValue('TargetScenario', request.targetScenario);
+                setSelectValue('SearchMode', request.searchMode);
                 setEnabledTeamTemplates(request.enabledTeamTemplates);
                 setCheckboxGroup('BossImmunityKeys', request.bossImmunityKeys);
                 setCheckboxGroup('HardRequiredEffectKeys', request.hardRequiredEffectKeys);

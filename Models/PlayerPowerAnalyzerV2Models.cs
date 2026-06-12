@@ -3,10 +3,34 @@ using System.Collections.Generic;
 
 namespace FFVIIEverCrisisAnalyzer.Models
 {
+    // Strategy for choosing each character's sub-weapons. Backbone (default) = the legacy heuristic
+    // selection scored with the offensive backbone system (ScorePassiveSkill etc.). DamageModelMarginal =
+    // pick each sub by its true marginal contribution to EstimateTeamDamage (the multiplicative model).
+    // Either way, the selected subs' passive R-abilities are credited at HALF value into the typed team
+    // damage headline (Part-1 shared crediting) — the flag only changes WHICH subs are selected.
+    public enum PlayerPowerAnalyzerV2SubWeaponSelectionStrategy
+    {
+        Backbone,
+        DamageModelMarginal
+    }
+
+    // Search depth. Full (default) keeps the exact, byte-identical search behavior: a candidate is only pruned when
+    // its optimistic ceiling cannot beat the current leader. Fast prunes more aggressively (any candidate whose
+    // ceiling is within a small epsilon of the leader is skipped), trading a small chance of a near-tie miss for a
+    // meaningfully shorter run. The Part-1 tighter ceiling is a valid upper bound in BOTH modes.
+    public enum PlayerPowerAnalyzerV2SearchMode
+    {
+        Full,
+        Fast
+    }
+
     public sealed class PlayerPowerAnalyzerV2Request
     {
         public Element EnemyWeakness { get; set; } = Element.None;
         public DamageType PreferredDamageType { get; set; } = DamageType.Any;
+        public PlayerPowerAnalyzerV2SubWeaponSelectionStrategy SubWeaponSelectionStrategy { get; set; }
+            = PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.Backbone;
+        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Full;
         public EnemyTargetScenario TargetScenario { get; set; } = EnemyTargetScenario.Unknown;
         // 2.7 — per-fight enemy off-element effectiveness. An off-element weapon (doesn't hit the enemy's
         // weakness) loses the weakness-exploit and may be RESISTED by a variable amount that depends on the

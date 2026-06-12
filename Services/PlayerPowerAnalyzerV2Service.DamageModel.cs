@@ -289,15 +289,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
 
                 // On-axis filter: a magical buff does nothing on the requested axis for a physical build and
-                // vice versa, BUT it carries a small flexibility value (a universal PATK+MATK weapon edges out
-                // a single-axis one). Off-axis effects accumulate into one small `off_axis_flexibility` term.
+                // vice versa, BUT it can carry a small flexibility value. Off-axis effects accumulate into one
+                // small `off_axis_flexibility` term.
                 if ((damageType == DamageType.Physical && effect.AxisKey == "magical")
                     || (damageType == DamageType.Magical && effect.AxisKey == "physical"))
                 {
-                    var offPct = GetActiveEffectRealPercent(effect);
-                    if (offPct > 0 && (!offAxisByKey.TryGetValue(effect.Key, out var existingOff) || offPct > existingOff))
+                    // Gate the flexibility credit to the ATTACKER's OWN off-axis capability (a Self-scoped buff —
+                    // the universal-weapon case: a PATK+MATK attacker can pivot the swing onto the other axis, so
+                    // its off-axis power has slight value). A team-wide / ally / enemy-scoped off-axis SUPPORT buff
+                    // (e.g. Lightning's Rod's "Mag. Damage Bonus [All Allies]" in a fixed Physical fight) cannot
+                    // pivot the fight's axis — it stays off-axis for every attacker — so it earns NO flexibility
+                    // crumb. Without this gate that crumb (+OffAxisBuffFlexibilityFactor × its value) wrongly tips
+                    // weapon selection toward off-axis support weapons over on-axis attack weapons.
+                    if (effect.TargetScope == ActiveEffectTargetScope.Self)
                     {
-                        offAxisByKey[effect.Key] = offPct;
+                        var offPct = GetActiveEffectRealPercent(effect);
+                        if (offPct > 0 && (!offAxisByKey.TryGetValue(effect.Key, out var existingOff) || offPct > existingOff))
+                        {
+                            offAxisByKey[effect.Key] = offPct;
+                        }
                     }
 
                     continue;

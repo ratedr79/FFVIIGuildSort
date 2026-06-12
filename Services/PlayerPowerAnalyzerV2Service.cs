@@ -37,6 +37,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // a proxy for how many offensive allies benefit (refined by real team composition at team scoring).
         private const double AllAlliesOffensiveBeneficiaryProxy = 2.0;
 
+        // FAST search-mode prune slack (named, tunable). In FAST mode the prune gate also skips any candidate whose
+        // optimistic ceiling is within this fraction of the current leader's score — clearly-behind candidates are
+        // dropped without a full finalize. FULL mode ignores this entirely (exact behavior, byte-identical). The
+        // spike showed ~42s at epsilon=0.15 with zero accuracy delta on the repro (the same BEST roster/score),
+        // and the curve floors around ~40s, so 0.15 is the chosen default trade.
+        private const double FastSearchEpsilon = 0.15;
+
         private static readonly int[] StandardBreakpointPoints = [1, 5, 15, 25, 35, 45, 55];
         private static readonly double[] BoostPatkAndMatkBonuses = [5, 10, 15, 20, 30, 40, 50];
         private static readonly double[] BoostAbilityPotBonuses = [3, 8, 15, 22, 30, 35, 40];
@@ -3414,7 +3421,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
                                 request,
                                 referenceTuningProfile,
                                 normalizedEnabledTemplateNames);
-                            if (optimisticScoreCeiling <= bestTeamCandidate.Score + 0.001)
+                            // FULL (default): prune only when the ceiling cannot beat the leader at all — exact,
+                            // byte-identical behavior (guarded by ReproSignatureRegressionTests). FAST: also prune
+                            // candidates whose ceiling is within FastSearchEpsilon of the leader (clearly behind),
+                            // which is where most of the FULL->FAST time savings come from.
+                            var pruneThreshold = request.SearchMode == PlayerPowerAnalyzerV2SearchMode.Fast
+                                ? bestTeamCandidate.Score * (1 + FastSearchEpsilon) + 0.001
+                                : bestTeamCandidate.Score + 0.001;
+                            if (optimisticScoreCeiling <= pruneThreshold)
                             {
                                 continue;
                             }
@@ -3472,7 +3486,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             {
                                 WeaponName = evaluation.Name,
                                 Gain = optimisticGain,
-                                EvaluationScore = evaluation.Score
+                                EvaluationScore = evaluation.Score,
+                                // Capture this role variant's half-value passive contributions so the typed ceiling
+                                // can credit them through the same EstimateTeamDamage path as the final (Fix 2).
+                                PassiveContributions = CloneContributions(evaluation.PassiveContributions)
                             };
                         }
                     }
@@ -3499,6 +3516,29 @@ namespace FFVIIEverCrisisAnalyzer.Services
             IReadOnlyDictionary<string, string> normalizedEnabledTemplateNames)
         {
             var usedItemNames = new HashSet<string>(baseVariants.SelectMany(variant => variant.UsedItemNames), StringComparer.OrdinalIgnoreCase);
+
+            // Fix 2: the prior ceiling = ComputeTeamScoreWithoutSubWeapons (EstimateTeamDamage(baseVariants),
+            // damage-model scale, for typed fights) PLUS the optimistic sub-gain (Backbone ADDITIVE scale). Those
+            // two terms are in DIFFERENT scales, so the ceiling could fall BELOW the credited final
+            // (EstimateTeamDamage(creditedVariants)) and wrongly PRUNE a team that crediting would select.
+            //
+            // For a typed (non-"Any") fight we now build the ceiling on the SAME scale and SAME crediting path as
+            // the final: credit an OPTIMISTIC (best-case, per-character top-3-per-credited-family) sub passive set
+            // onto the base variants and run EstimateTeamDamage on those. Because EstimateTeamDamage is monotonic in passive
+            // contributions (buffs are non-negative) and the optimistic set upper-bounds whatever subs the final
+            // greedy actually selects, this damage term is >= the credited final's damage term — so the ceiling is
+            // a true (still optimistic) upper bound, not a different-scale approximation.
+            if (request.PreferredDamageType != DamageType.Any)
+            {
+                var optimisticSubContributions = BuildOptimisticCreditedSubContributions(
+                    baseVariants, optimisticSubWeaponGainsByCharacter, usedItemNames, request);
+                return ComputeTeamScoreWithoutSubWeapons(
+                    baseVariants, providedEffectKeys, request, referenceTuningProfile, normalizedEnabledTemplateNames,
+                    optimisticSubContributions);
+            }
+
+            // "Any" fight: no damage axis, so the headline is the additive Backbone. Keep the original additive
+            // optimistic-gain bound (same scale as the Backbone final).
             var scoreWithoutSubWeapons = ComputeTeamScoreWithoutSubWeapons(baseVariants, providedEffectKeys, request, referenceTuningProfile, normalizedEnabledTemplateNames);
             var optimisticSubWeaponGain = 0d;
             foreach (var variant in baseVariants)
@@ -3526,6 +3566,120 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return scoreWithoutSubWeapons + optimisticSubWeaponGain;
+        }
+
+        // Fix 2 (tightened, Part 1): build an UPPER-BOUND credited sub passive set per character. The final greedy
+        // equips up to 3 DISTINCT subs per character, ranked by a DIFFERENT metric (damage-model marginal) than the
+        // optimistic Backbone gain — so any single fixed "top-3 by optimistic gain" subset is NOT guaranteed to
+        // dominate whatever 3 the greedy actually picks. The ONLY sub contributions that reach the credited typed
+        // damage term are the two MONOTONE team-wide families the damage model reads: passive_ability_potency and
+        // passive_stat_boost (BuildVariantsWithSubPassivesCredited filters to [All Allies] team-wide passives, and
+        // EstimateTeamDamage sums each family's % additively before the multiplicative model applies it). Each sub's
+        // contribution to a given family's pooled % is a fixed NON-NEGATIVE scalar (the sum of its team-wide passive
+        // %s classified into that family). For a family, the sum of the 3 LARGEST per-sub scalars is therefore >=
+        // the sum of ANY actual 3-sub subset's scalars. So crediting, PER CHARACTER, the UNION of
+        //   {top-3 subs by ability-potency %} ∪ {top-3 subs by stat-boost %}   (<= 6 distinct subs)
+        // yields a per-family credited % that is >= the final's actual 3-sub credited % in BOTH families at once.
+        // Because EstimateTeamDamage is monotonic in each family's term, ceiling-damage >= credited-final damage
+        // still holds — a provable upper bound, now far tighter than crediting the union of ALL subs (the prior
+        // behavior, which over-credited and pruned far less). Global weapon uniqueness across characters is
+        // intentionally NOT enforced here (double-counting a shared sub only makes the bound more generous — still
+        // an upper bound), matching the additive path's per-character treatment.
+        private static Dictionary<string, Dictionary<string, Dictionary<string, int>>> BuildOptimisticCreditedSubContributions(
+            IReadOnlyList<CharacterBuildCandidate> baseVariants,
+            IReadOnlyDictionary<string, List<OptimisticSubWeaponGain>> optimisticSubWeaponGainsByCharacter,
+            HashSet<string> usedItemNames,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            var perCharacter = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var variant in baseVariants)
+            {
+                if (!optimisticSubWeaponGainsByCharacter.TryGetValue(variant.CharacterName, out var gains))
+                {
+                    continue;
+                }
+
+                // Per available sub, score its TEAM-WIDE contribution to each of the two credited families. Only
+                // [All Allies] passives reach the credited damage term, so a sub with no team-wide ability-potency
+                // or stat-boost passive scores 0 in both and can never enter either top-3.
+                var scored = new List<(OptimisticSubWeaponGain Gain, double AbilityPotency, double StatBoost)>();
+                foreach (var gain in gains)
+                {
+                    if (usedItemNames.Contains(gain.WeaponName))
+                    {
+                        continue;
+                    }
+
+                    var abilityPotency = 0d;
+                    var statBoost = 0d;
+                    foreach (var labelEntry in gain.PassiveContributions)
+                    {
+                        if (!IsTeamWidePassive(labelEntry.Key))
+                        {
+                            continue;
+                        }
+
+                        foreach (var skillEntry in labelEntry.Value)
+                        {
+                            if (TryGetPassiveDamageTerm(labelEntry.Key, skillEntry.Value, request.PreferredDamageType, request.EnemyWeakness, out var term, out var pct))
+                            {
+                                if (string.Equals(term, AbilityPotencyTerm, StringComparison.Ordinal))
+                                {
+                                    abilityPotency += pct;
+                                }
+                                else if (string.Equals(term, StatBoostTerm, StringComparison.Ordinal))
+                                {
+                                    statBoost += pct;
+                                }
+                            }
+                        }
+                    }
+
+                    if (abilityPotency > 0 || statBoost > 0)
+                    {
+                        scored.Add((gain, abilityPotency, statBoost));
+                    }
+                }
+
+                if (scored.Count == 0)
+                {
+                    continue;
+                }
+
+                // Union of {top-3 by ability-potency} ∪ {top-3 by stat-boost} — a cheap top-k selection over the
+                // (already small) per-character sub list. Dedup by weapon name so a sub appearing in both top-3 sets
+                // is credited once (its full contribution is still credited; double-crediting is unnecessary).
+                var selectedWeapons = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var selectedGains = new List<OptimisticSubWeaponGain>();
+                foreach (var entry in scored.OrderByDescending(e => e.AbilityPotency).Take(3))
+                {
+                    if (selectedWeapons.Add(entry.Gain.WeaponName))
+                    {
+                        selectedGains.Add(entry.Gain);
+                    }
+                }
+
+                foreach (var entry in scored.OrderByDescending(e => e.StatBoost).Take(3))
+                {
+                    if (selectedWeapons.Add(entry.Gain.WeaponName))
+                    {
+                        selectedGains.Add(entry.Gain);
+                    }
+                }
+
+                var merged = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var gain in selectedGains)
+                {
+                    MergePassiveContributions(merged, gain.PassiveContributions);
+                }
+
+                if (merged.Count > 0)
+                {
+                    perCharacter[variant.CharacterName] = merged;
+                }
+            }
+
+            return perCharacter;
         }
 
         private static double GetOptimisticSubWeaponGainUpperBound(
@@ -3565,7 +3719,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             HashSet<string> providedEffectKeys,
             PlayerPowerAnalyzerV2Request request,
             ReferenceTuningProfile referenceTuningProfile,
-            IReadOnlyDictionary<string, string> normalizedEnabledTemplateNames)
+            IReadOnlyDictionary<string, string> normalizedEnabledTemplateNames,
+            // Fix 2: when supplied (typed pruning ceiling), the EstimateTeamDamage term is computed over variants
+            // with these OPTIMISTIC sub passive contributions credited — the same crediting path the final uses —
+            // so the ceiling upper-bounds the credited final on the same scale. null/empty = base variants (the
+            // original uncredited damage term, used by the "Any"-fight additive ceiling path).
+            IReadOnlyDictionary<string, Dictionary<string, Dictionary<string, int>>>? optimisticSubContributions = null)
         {
             var passivePointsByCharacter = baseVariants.ToDictionary(
                 variant => variant.CharacterName,
@@ -3601,8 +3760,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             // Pruning ceiling: must stay PRECISE (scopeAware:true) — a uniform/over-credited ceiling is too loose
             // and stops pruning, flooding the search with full evaluations. (Confirmed: uniform here = ~7min.)
+            // Fix 2: for the typed ceiling, credit the OPTIMISTIC sub passives through the same crediting path as
+            // the final so the damage term is an upper bound on EstimateTeamDamage(creditedVariants).
+            var damageVariants = (optimisticSubContributions != null && optimisticSubContributions.Count > 0)
+                ? BuildVariantsWithSubPassivesCredited(baseVariants, optimisticSubContributions)
+                : baseVariants;
             var score = (request.PreferredDamageType != DamageType.Any
-                ? EstimateTeamDamage(baseVariants, request)
+                ? EstimateTeamDamage(damageVariants, request)
                 : offensiveBackbone) + refinementTerms;
 
             var roles = baseVariants
@@ -3633,6 +3797,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return OrderTeamCandidatesForSelection(new[] { candidate, incumbent }).First() == candidate;
         }
 
+        // Shared empty set for assignments that carry no team-wide passive (avoids per-assignment allocation).
+        private static readonly HashSet<string> EmptyTeamWideKeySet = new(StringComparer.OrdinalIgnoreCase);
+
         private TeamCandidate? FinalizeTeamCandidate(
             IReadOnlyList<CharacterBuildCandidate> baseVariants,
             List<OwnedWeaponCandidate> ownedWeapons,
@@ -3648,6 +3815,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var hasRequestedElementMainOrOffHandByCharacter = baseVariants.ToDictionary(v => v.CharacterName, v => HasRequestedElementMainOrOffHand(v, request), StringComparer.OrdinalIgnoreCase);
             var passivePointsByCharacter = baseVariants.ToDictionary(v => v.CharacterName, v => new Dictionary<string, int>(v.PassivePoints, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
             var subWeaponNonPassiveScoreByCharacter = baseVariants.ToDictionary(v => v.CharacterName, _ => 0d, StringComparer.OrdinalIgnoreCase);
+            // Part 1 (shared crediting): the per-R-ability passive contributions of each character's SELECTED
+            // sub-weapons, already at HALF value (CreateWeaponSlot built them with slotMultiplier 0.5). These are
+            // merged into a per-character augmented copy of the variant's PassiveContributions so the selected subs'
+            // passive R-abilities count in the typed EstimateTeamDamage headline (today they contribute zero).
+            var selectedSubPassiveContributionsByCharacter = baseVariants.ToDictionary(
+                v => v.CharacterName,
+                _ => new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase);
             var availableSubWeapons = ownedWeapons
                 .Where(w => !w.IsUltimate && !usedItemNames.Contains(w.Item.Name))
                 .OrderBy(w => w.Item.Name, StringComparer.OrdinalIgnoreCase)
@@ -3677,14 +3852,63 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var anchorRole = anchorCharacterName == null
                 ? (CharacterRole?)null
                 : baseVariants.FirstOrDefault(variant => variant.CharacterName.Equals(anchorCharacterName, StringComparison.OrdinalIgnoreCase))?.Role;
+            // Part 3 (B): the DamageModelMarginal strategy scores each candidate sub by its true marginal lift to
+            // EstimateTeamDamage. Only meaningful for a typed (non-Any) fight, where that model is the headline; for
+            // "Any" there is no damage axis so we fall back to the Backbone gain. Cache the current team's damage once
+            // per round (over the already-credited variants) and only re-evaluate the per-candidate delta.
+            var useDamageModelMarginal =
+                request.SubWeaponSelectionStrategy == PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.DamageModelMarginal
+                && request.PreferredDamageType != DamageType.Any;
+
+            // PERF: cross-round memoization of the per-assignment marginal gain. The Backbone (non-DamageModelMarginal)
+            // gain functions GetSubWeaponMarginalGain[WithAnchorContext] are PURE functions of their args. Across greedy
+            // rounds, the ONLY inputs that can change are:
+            //   (i) passivePointsByCharacter[C] for the character C that was just assigned a sub, and
+            //   (ii) currentTeamWidePassivePoints — but the gain functions read it ONLY at the team-wide keys that
+            //        appear in THAT assignment's own weaponPassivePoints (the team-wide branch loops weaponPassivePoints
+            //        and indexes currentTeamWidePassivePoints[key]). So a team-wide pick of key K only changes the gain
+            //        of assignments whose Evaluation.PassivePoints also contains K as a team-wide passive.
+            // So we recompute round 1 in full, then each later round recompute ONLY (a) character C's assignments, plus
+            // (b) any assignment carrying a team-wide key that the just-picked sub added points to. All other cached
+            // gains are reused verbatim (the tie-break still reads live Evaluation fields; only the gain VALUE is
+            // cached). The DamageModelMarginal path is NOT memoized (its gain depends on the whole team's credited
+            // damage each round). Precompute each assignment's set of team-wide keys (with positive points) once.
+            var cachedGains = new double[assignments.Count];
+            var gainValid = new bool[assignments.Count];
+            var assignmentTeamWideKeys = new HashSet<string>[assignments.Count];
+            for (var i = 0; i < assignments.Count; i++)
+            {
+                HashSet<string>? keys = null;
+                foreach (var kvp in assignments[i].Evaluation.PassivePoints)
+                {
+                    if (kvp.Value > 0 && IsTeamWidePassive(kvp.Key))
+                    {
+                        (keys ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase)).Add(kvp.Key);
+                    }
+                }
+
+                assignmentTeamWideKeys[i] = keys ?? EmptyTeamWideKeySet;
+            }
             while (true)
             {
                 var currentTeamWidePassivePoints = AggregateTeamWidePassivePoints(passivePointsByCharacter.Values);
                 SubWeaponAssignment? bestAssignment = null;
                 var bestGain = double.MinValue;
 
-                foreach (var assignment in assignments)
+                double roundBaseTeamDamage = 0d;
+                if (useDamageModelMarginal)
                 {
+                    roundBaseTeamDamage = EstimateTeamDamage(
+                        BuildVariantsWithSubPassivesCredited(baseVariants, selectedSubPassiveContributionsByCharacter),
+                        request);
+                }
+
+#if DEBUG
+                var debugCachedAssertChecked = false;
+#endif
+                for (var assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
+                {
+                    var assignment = assignments[assignmentIndex];
                     if (assignedCounts[assignment.CharacterName] >= 3)
                     {
                         continue;
@@ -3696,7 +3920,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     }
 
                     var characterRole = characterOutputsByName[assignment.CharacterName].EffectiveSubWeaponRole;
-                    var gain = anchorRole.HasValue && !string.IsNullOrWhiteSpace(anchorCharacterName)
+
+                    double ComputeGain() => useDamageModelMarginal
+                        ? GetSubWeaponDamageModelMarginalGain(
+                            baseVariants,
+                            selectedSubPassiveContributionsByCharacter,
+                            assignment.CharacterName,
+                            assignment.Evaluation.PassiveContributions,
+                            roundBaseTeamDamage,
+                            request)
+                        : anchorRole.HasValue && !string.IsNullOrWhiteSpace(anchorCharacterName)
                         ? GetSubWeaponMarginalGainWithAnchorContext(
                             assignment.Evaluation.PassivePoints,
                             assignment.Evaluation.NonPassiveScore,
@@ -3722,6 +3955,38 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             providedEffectKeysByCharacter[assignment.CharacterName],
                             hasRequestedElementMainOrOffHandByCharacter[assignment.CharacterName],
                             request);
+
+                    double gain;
+                    // The DamageModelMarginal gain is round-dependent (whole-team credited damage), so it is never
+                    // cached across rounds; always recompute it.
+                    if (useDamageModelMarginal || !gainValid[assignmentIndex])
+                    {
+                        gain = ComputeGain();
+                        if (!useDamageModelMarginal)
+                        {
+                            cachedGains[assignmentIndex] = gain;
+                            gainValid[assignmentIndex] = true;
+                        }
+                    }
+                    else
+                    {
+                        gain = cachedGains[assignmentIndex];
+#if DEBUG
+                        // Correctness guard: for one sampled REUSED cached assignment per round, prove the cached gain
+                        // EXACTLY (bitwise) equals a fresh recompute. If this ever trips, the invalidation is wrong.
+                        if (!debugCachedAssertChecked)
+                        {
+                            debugCachedAssertChecked = true;
+                            var freshGain = ComputeGain();
+                            if (!gain.Equals(freshGain))
+                            {
+                                throw new InvalidOperationException(
+                                    $"Sub-weapon gain memoization invalidation is INEXACT: cached={gain:R} fresh={freshGain:R} " +
+                                    $"for character '{assignment.CharacterName}' sub '{assignment.Evaluation.Name}'.");
+                            }
+                        }
+#endif
+                    }
 
                     if (gain > bestGain + 0.001
                         || (Math.Abs(gain - bestGain) <= 0.001
@@ -3756,6 +4021,49 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 assignedCounts[bestAssignment.CharacterName]++;
                 subWeaponNonPassiveScoreByCharacter[bestAssignment.CharacterName] += bestAssignment.Evaluation.NonPassiveScore;
                 AddPassivePoints(passivePointsByCharacter[bestAssignment.CharacterName], bestAssignment.Evaluation.PassivePoints);
+                // Part 1: accumulate this selected sub's (already-half) per-R-ability passive contributions so they
+                // can be merged into the augmented variant scored by the typed EstimateTeamDamage headline below.
+                MergePassiveContributions(
+                    selectedSubPassiveContributionsByCharacter[bestAssignment.CharacterName],
+                    bestAssignment.Evaluation.PassiveContributions);
+
+                // PERF: invalidate exactly the cached gains that the pick just changed (see the memoization note above).
+                // The just-picked sub added points to passivePointsByCharacter[C], so character C's cached gains are
+                // stale. It also raised currentTeamWidePassivePoints at each team-wide key K it carries (value > 0);
+                // that ONLY changes the gain of assignments whose own Evaluation.PassivePoints contains K as a team-wide
+                // passive. So we invalidate character C's assignments plus any assignment sharing a changed team-wide
+                // key. The changed-key test mirrors AggregateTeamWidePassivePoints (IsTeamWidePassive && value > 0).
+                HashSet<string>? pickedTeamWideKeys = null;
+                foreach (var kvp in bestAssignment.Evaluation.PassivePoints)
+                {
+                    if (kvp.Value > 0 && IsTeamWidePassive(kvp.Key))
+                    {
+                        (pickedTeamWideKeys ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase)).Add(kvp.Key);
+                    }
+                }
+
+                for (var invalidateIndex = 0; invalidateIndex < assignments.Count; invalidateIndex++)
+                {
+                    if (!gainValid[invalidateIndex])
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(assignments[invalidateIndex].CharacterName, bestAssignment.CharacterName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        gainValid[invalidateIndex] = false;
+                        continue;
+                    }
+
+                    if (pickedTeamWideKeys != null)
+                    {
+                        var assignmentKeys = assignmentTeamWideKeys[invalidateIndex];
+                        if (assignmentKeys.Count > 0 && assignmentKeys.Overlaps(pickedTeamWideKeys))
+                        {
+                            gainValid[invalidateIndex] = false;
+                        }
+                    }
+                }
             }
 
             foreach (var character in characterOutputs)
@@ -3820,8 +4128,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 + matchedPreferred.Count * 90
                 + request.HardRequiredEffectKeys.Count * 40;
 
+            // Part 1: score the typed headline over the AUGMENTED variants (each character's selected sub-weapon
+            // passive R-abilities merged in at half value) so the chosen sub-weapons actually count in the team
+            // damage. The "Any" backbone branch keeps using each character's accumulated passive score (which already
+            // includes the subs via passivePointsByCharacter), so it is unaffected.
+            var creditedVariants = BuildVariantsWithSubPassivesCredited(baseVariants, selectedSubPassiveContributionsByCharacter);
             var score = (request.PreferredDamageType != DamageType.Any
-                ? EstimateTeamDamage(baseVariants, request)
+                ? EstimateTeamDamage(creditedVariants, request)
                 : offensiveBackbone) + refinementTerms;
 
             var roles = characterOutputs.Select(c => c.Role.ToString()).OrderBy(r => r, StringComparer.OrdinalIgnoreCase).ToList();
@@ -4579,6 +4892,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return map;
         }
 
+        private static Dictionary<string, Dictionary<string, int>> CloneContributions(IReadOnlyDictionary<string, Dictionary<string, int>> source)
+        {
+            var clone = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+            MergePassiveContributions(clone, source);
+            return clone;
+        }
+
         private static void MergePassiveContributions(Dictionary<string, Dictionary<string, int>> destination, IReadOnlyDictionary<string, Dictionary<string, int>> source)
         {
             foreach (var pair in source)
@@ -4618,6 +4938,133 @@ namespace FFVIIEverCrisisAnalyzer.Services
             => candidate.PassiveContributions.Count > 0
                 ? candidate.PassiveContributions
                 : DeriveContributionsFromPoints(candidate.PassivePoints);
+
+        // Part 1 (shared crediting): return a SHALLOW copy of each base variant whose PassiveContributions is the
+        // variant's own contributions PLUS the supplied per-character sub-weapon passive contributions (already at
+        // HALF value — built with slotMultiplier 0.5, exactly like off-hand passives). Everything else (weapon, active
+        // effects via GetDetectedEffectsForVariant) is shared by reference, so subs add ONLY passives, never actives.
+        // Merging by SkillName means a sub's "Boost ATK (All Allies)" pools at the character's own breakpoint (its
+        // marginal lift over what the character already has) and EstimateTeamDamage still sums per-provider team-wide
+        // %s — so the existing team-wide dedup is respected. If a character has no selected subs, its own variant is
+        // returned unchanged (byte-identical scoring to before crediting for sub-less teams).
+        private static IReadOnlyList<CharacterBuildCandidate> BuildVariantsWithSubPassivesCredited(
+            IReadOnlyList<CharacterBuildCandidate> baseVariants,
+            IReadOnlyDictionary<string, Dictionary<string, Dictionary<string, int>>> selectedSubPassiveContributionsByCharacter)
+        {
+            var result = new List<CharacterBuildCandidate>(baseVariants.Count);
+            foreach (var variant in baseVariants)
+            {
+                if (!selectedSubPassiveContributionsByCharacter.TryGetValue(variant.CharacterName, out var subContributions)
+                    || subContributions.Count == 0)
+                {
+                    result.Add(variant);
+                    continue;
+                }
+
+                // SCOPE-AWARE crediting (slot-invariance / no scope leak): the team-damage model pools a member's
+                // passive R-abilities team-wide via `passiveTerms` (the carry's whole map + every other member's
+                // TEAM-WIDE families). A weapon's [Self]/owner-scope passive (e.g. "Boost Phys. Ability Pot.")
+                // therefore only legitimately reaches the team through that path when its OWNER is the carry — and
+                // an OFF-HAND self passive on a non-carry contributes 0 (it is filtered by IsTeamWidePassive in the
+                // pooling). Sub-weapons can be parked on ANY character (cross-character), so merging a sub's [Self]
+                // passive into the equipper's PassiveContributions LEAKED it team-wide whenever that equipper was
+                // the carry — letting "park a strong self-passive weapon as a sub on the carry" beat "use it as an
+                // off-hand on its real (non-carry) owner". Mirror the off-hand's team-term treatment: credit ONLY
+                // the sub's TEAM-WIDE ([All Allies]) passives into the pooled map (so a genuine "Boost ATK (All
+                // Allies)" sub still counts team-wide at half — the legitimate Part-1 win). [Self] sub passives are
+                // not pooled team-wide (the model has no per-attacker own-share passive channel; an off-hand self
+                // passive on a non-carry is likewise worth 0 to the team term), so off-hand and sub now contribute
+                // IDENTICALLY for the same weapon: [Self] → 0 to the team term in both, [All Allies] → team-wide in
+                // both.
+                var teamWideSubContributions = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var pair in subContributions)
+                {
+                    if (IsTeamWidePassive(pair.Key))
+                    {
+                        teamWideSubContributions[pair.Key] = pair.Value;
+                    }
+                }
+
+                if (teamWideSubContributions.Count == 0)
+                {
+                    result.Add(variant);
+                    continue;
+                }
+
+                var augmentedContributions = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+                MergePassiveContributions(augmentedContributions, ResolveContributions(variant));
+                MergePassiveContributions(augmentedContributions, teamWideSubContributions);
+
+                result.Add(new CharacterBuildCandidate
+                {
+                    CharacterName = variant.CharacterName,
+                    Role = variant.Role,
+                    EffectiveSubWeaponRole = variant.EffectiveSubWeaponRole,
+                    EffectiveSubWeaponRoleReason = variant.EffectiveSubWeaponRoleReason,
+                    OffensiveRole = variant.OffensiveRole,
+                    OffensiveRoleReason = variant.OffensiveRoleReason,
+                    EstimatedDirectOffenseScore = variant.EstimatedDirectOffenseScore,
+                    EstimatedOffensiveSupportScore = variant.EstimatedOffensiveSupportScore,
+                    EstimatedLowActualUsePenalty = variant.EstimatedLowActualUsePenalty,
+                    BaseScore = variant.BaseScore,
+                    NonPassiveScore = variant.NonPassiveScore,
+                    MainWeapon = variant.MainWeapon,
+                    MainPassivePoints = variant.MainPassivePoints,
+                    OffHandWeapon = variant.OffHandWeapon,
+                    OffPassivePoints = variant.OffPassivePoints,
+                    UltimateWeapon = variant.UltimateWeapon,
+                    UltimatePassivePoints = variant.UltimatePassivePoints,
+                    MainOutfit = variant.MainOutfit,
+                    MainOutfitPassivePoints = variant.MainOutfitPassivePoints,
+                    SubOutfits = variant.SubOutfits,
+                    SubOutfitPassivePoints = variant.SubOutfitPassivePoints,
+                    ProvidedEffectKeys = variant.ProvidedEffectKeys,
+                    UsedItemNames = variant.UsedItemNames,
+                    PassivePoints = variant.PassivePoints,
+                    PassiveContributions = augmentedContributions,
+                    ActiveFamilyContributions = variant.ActiveFamilyContributions,
+                    ScoreBreakdown = variant.ScoreBreakdown,
+                    CachedDetectedEffects = variant.CachedDetectedEffects,
+                    SelectionScoreOverride = variant.SelectionScoreOverride
+                });
+            }
+
+            return result;
+        }
+
+        // Part 3 (B): marginal contribution of adding one candidate sub-weapon (its passive R-abilities, half value)
+        // to the current team's EstimateTeamDamage. roundBaseTeamDamage is the team damage with the already-selected
+        // subs credited (cached once per greedy round); we only re-score the team with this ONE extra candidate sub
+        // merged into its owner, then return the delta. Non-negative-clamped so a sub that adds nothing (e.g. a buff
+        // already at cap) never out-ranks doing nothing oddly via float noise — but it can still legitimately be 0.
+        private static double GetSubWeaponDamageModelMarginalGain(
+            IReadOnlyList<CharacterBuildCandidate> baseVariants,
+            IReadOnlyDictionary<string, Dictionary<string, Dictionary<string, int>>> selectedSubPassiveContributionsByCharacter,
+            string characterName,
+            IReadOnlyDictionary<string, Dictionary<string, int>> candidateSubContributions,
+            double roundBaseTeamDamage,
+            PlayerPowerAnalyzerV2Request request)
+        {
+            // Build a one-off contributions map = already-selected subs + this candidate's contributions on its owner.
+            var trial = new Dictionary<string, Dictionary<string, Dictionary<string, int>>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in selectedSubPassiveContributionsByCharacter)
+            {
+                var perChar = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+                MergePassiveContributions(perChar, pair.Value);
+                trial[pair.Key] = perChar;
+            }
+
+            if (!trial.TryGetValue(characterName, out var ownerContributions))
+            {
+                ownerContributions = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+                trial[characterName] = ownerContributions;
+            }
+
+            MergePassiveContributions(ownerContributions, candidateSubContributions);
+
+            var trialDamage = EstimateTeamDamage(BuildVariantsWithSubPassivesCredited(baseVariants, trial), request);
+            return Math.Max(0d, trialDamage - roundBaseTeamDamage);
+        }
 
         private static void AddPassivePointValues(
             Dictionary<string, int> destination,
@@ -7452,6 +7899,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public string WeaponName { get; set; } = string.Empty;
             public double Gain { get; set; }
             public double EvaluationScore { get; set; }
+
+            // Fix 2: the per-R-ability passive contributions (scoringLabel -> SkillName -> points) of the role
+            // variant that produced this optimistic gain. Used to build an upper-bound CREDITED variant set for
+            // the typed pruning ceiling — crediting these (half-value) sub passives through the SAME
+            // BuildVariantsWithSubPassivesCredited + EstimateTeamDamage path as the final, so the ceiling is a
+            // true upper bound on the credited final in the SAME damage-model scale (not a different-scale add).
+            public Dictionary<string, Dictionary<string, int>> PassiveContributions { get; set; } =
+                new(StringComparer.OrdinalIgnoreCase);
         }
 
         private sealed class SlotEvaluation

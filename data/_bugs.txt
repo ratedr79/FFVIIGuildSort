@@ -1,0 +1,10 @@
+On the Enemy Stats page, some enemies are searchable and will show up in the typeahead, but will have no results when searching. For example, "Particle".
+
+--
+
+On the gear search page, can we add a quick filter option for Ultimate Weapons.
+
+--
+
+On the Guild Survey Panner page, it seems to be missing relevant weapons and costumes related to the element and ability type suggestions. For example, when choosing Wind and Phsyical, Tifa's Seventh High School Uniform will not show despite the r ability Class President's Earring providing both "Attack Stance Cmd. Gauge Max.: Phys. Ability Dmg. +20%" and "Wind Ability Dmg. +30%". We should probably also make sure it is properly checking the weapon effects as well and make sure the [element] Resist r abilities are not consider offensive buffs.
+
