@@ -158,115 +158,137 @@
                         <select asp-for="TargetScenario" class="form-select" asp-items="Html.GetEnumSelectList<EnemyTargetScenario>()"></select>
                     </div>
                     <div class="col-md-3">
-                        <label asp-for="SearchMode" class="form-label fw-semibold">Search Mode</label>
-                        <select asp-for="SearchMode" class="form-select" asp-items="Html.GetEnumSelectList<PlayerPowerAnalyzerV2SearchMode>()"></select>
-                        <div class="small text-muted mt-1">
-                            <div><span class="fw-semibold">Full (recommended):</span> Thoroughly searches your full armory for the most accurate recommendation. Slower.</div>
-                            <div><span class="fw-semibold">Fast:</span> Quicker results by skipping candidates that are clearly behind the leader. May occasionally differ from Full when teams are very close in power.</div>
+                        <span class="form-label fw-semibold d-block">Search Mode</span>
+                        @* Segmented control: label-wrapped radios styled as DamageCalc mode chips. Binds to SearchMode
+                           (posts enum value Fast/Full); Fast is checked by default to match the model default. *@
+                        <div class="btn-group w-100" role="radiogroup" aria-label="Search Mode" id="SearchModeGroup">
+                            <input asp-for="SearchMode" type="radio" class="btn-check" id="SearchMode_Fast" value="Fast" autocomplete="off" />
+                            <label class="btn btn-outline-primary dc-chip-mode dc-mode-label" for="SearchMode_Fast">Fast · ~15s</label>
+                            <input asp-for="SearchMode" type="radio" class="btn-check" id="SearchMode_Full" value="Full" autocomplete="off" />
+                            <label class="btn btn-outline-primary dc-chip-mode dc-mode-label" for="SearchMode_Full">Full · ~60s</label>
+                        </div>
+                        <div class="form-check mt-2 d-flex align-items-center flex-wrap gap-2">
+                            <span class="d-inline-flex align-items-center">
+                                <input asp-for="ProSubWeaponOptimization" class="form-check-input mt-0 me-2" type="checkbox" id="ProSubWeaponOptimization" aria-describedby="ProSubWeaponOptimizationHint" />
+                                <label class="form-check-label" for="ProSubWeaponOptimization">Pro: deeper sub-weapon optimization</label>
+                            </span>
+                            <span id="ProSubWeaponOptimizationHint" class="badge dc-chip dc-chip-mode">Available in Full mode</span>
+                        </div>
+                        <div class="dc-section-hint mt-2">
+                            <div><span class="fw-semibold">Full (recommended):</span> Searches your full armory for the most accurate recommendation. Slower.</div>
+                            <div><span class="fw-semibold">Fast:</span> Quick results for rough ideas — searches a reduced set of your strongest options and skips clearly-behind candidates. May differ from Full.</div>
+                            <div><span class="fw-semibold">Pro (Full only):</span> picks sub-weapons by their exact damage contribution for the most refined build. Most accurate, slowest.</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row g-4">
-            <div class="col-lg-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold mb-3">Team Templates</h2>
-                        <div class="d-grid gap-2">
-                            @foreach (var template in Model.AvailableTeamTemplates)
-                            {
-                                <label class="form-check border rounded-3 px-3 py-2 mb-0">
-                                    <input class="form-check-input me-2" type="checkbox" name="EnabledTeamTemplates[@template.Name]" value="true" @(Model.EnabledTeamTemplates.TryGetValue(template.Name, out var isEnabled) && isEnabled ? "checked" : null) />
-                                    <input type="hidden" name="EnabledTeamTemplates[@template.Name]" value="false" />
-                                    <span class="form-check-label">@template.Name</span>
-                                </label>
-                            }
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h2 class="h5 fw-bold mb-3">Team Templates</h2>
+                <div class="row g-2">
+                    @foreach (var template in Model.AvailableTeamTemplates)
+                    {
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                <input class="form-check-input me-2" type="checkbox" name="EnabledTeamTemplates[@template.Name]" value="true" @(Model.EnabledTeamTemplates.TryGetValue(template.Name, out var isEnabled) && isEnabled ? "checked" : null) />
+                                <input type="hidden" name="EnabledTeamTemplates[@template.Name]" value="false" />
+                                <span class="form-check-label">@template.Name</span>
+                            </label>
                         </div>
-                    </div>
+                    }
                 </div>
             </div>
-            <div class="col-lg-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold mb-3">Boss Immunities</h2>
-                        @foreach (var group in Model.BossImmunityOptionsByGroup)
-                        {
-                            <div class="mb-3">
-                                <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
-                                <div class="d-grid gap-2">
-                                    @foreach (var option in group.Value)
+        </div>
+
+        @* Advanced filters: collapsed-by-default accordion reusing DamageCalc's dc-accordion pattern.
+           All effect/immunity inputs stay inside the <form> with unchanged asp-for/name attributes — the
+           accordion only hides them visually so they still bind/post. *@
+        <div class="accordion dc-accordion" id="playerPowerAnalyzerV2AdvancedAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="advancedFiltersHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFiltersCollapse" aria-expanded="false" aria-controls="advancedFiltersCollapse">
+                        Advanced filters
+                    </button>
+                </h2>
+                <div id="advancedFiltersCollapse" class="accordion-collapse collapse" aria-labelledby="advancedFiltersHeading" data-bs-parent="#playerPowerAnalyzerV2AdvancedAccordion">
+                    <div class="accordion-body">
+                        <p class="dc-section-hint">Optional constraints. Boss immunities and required/preferred effects narrow which builds are valid or boosted; leave collapsed for a quick analysis.</p>
+                        <div class="row g-4">
+                            <div class="col-lg-12">
+                                <h3 class="h6 fw-bold mb-2">Boss Immunities</h3>
+                                <div class="row g-3">
+                                    @foreach (var group in Model.BossImmunityOptionsByGroup)
                                     {
-                                        <label class="form-check border rounded-3 px-3 py-2 mb-0">
-                                            <input class="form-check-input me-2" type="checkbox" name="BossImmunityKeys" value="@option.Key" @(Model.BossImmunityKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
-                                            <span class="form-check-label">@option.Label</span>
-                                        </label>
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
+                                            <div class="d-grid gap-2">
+                                                @foreach (var option in group.Value)
+                                                {
+                                                    <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                                        <input class="form-check-input me-2" type="checkbox" name="BossImmunityKeys" value="@option.Key" @(Model.BossImmunityKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
+                                                        <span class="form-check-label">@option.Label</span>
+                                                    </label>
+                                                }
+                                            </div>
+                                        </div>
                                     }
                                 </div>
                             </div>
-                        }
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold mb-3">Analysis Notes</h2>
-                        <div class="small text-muted d-grid gap-2">
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <h3 class="h6 fw-bold mb-2">Hard-Required Effects</h3>
+                                @foreach (var group in Model.EffectOptionsByGroup)
+                                {
+                                    <div class="mb-3">
+                                        <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
+                                        <div class="d-grid gap-2">
+                                            @foreach (var option in group.Value)
+                                            {
+                                                <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                                    <input class="form-check-input me-2" type="checkbox" name="HardRequiredEffectKeys" value="@option.Key" @(Model.HardRequiredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
+                                                    <span class="form-check-label">@option.Label</span>
+                                                </label>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-lg-6">
+                                <h3 class="h6 fw-bold mb-2">Preferred Effects</h3>
+                                @foreach (var group in Model.EffectOptionsByGroup)
+                                {
+                                    <div class="mb-3">
+                                        <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
+                                        <div class="d-grid gap-2">
+                                            @foreach (var option in group.Value)
+                                            {
+                                                <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                                    <input class="form-check-input me-2" type="checkbox" name="SoftPreferredEffectKeys" value="@option.Key" @(Model.SoftPreferredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
+                                                    <span class="form-check-label">@option.Label</span>
+                                                </label>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h3 class="h6 fw-bold mb-2">Analysis Notes</h3>
+                        <div class="dc-section-hint">
                             <div>Main weapon, off-hand, ultimate, and main outfit effects are scored as active team utility.</div>
                             <div>Off-hand contributes half-value stats and passive points, rounded down immediately, but still uses its ability for utility scoring.</div>
                             <div>Sub-weapons and sub-outfits only contribute half-value stats and passive points, rounded down immediately.</div>
                             <div>Sub weapons are shared across the full team and cannot be duplicated once equipped.</div>
                             <div>Hard-required effects invalidate a build. Preferred effects boost score without invalidating.</div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold mb-3">Hard-Required Effects</h2>
-                        @foreach (var group in Model.EffectOptionsByGroup)
-                        {
-                            <div class="mb-3">
-                                <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
-                                <div class="d-grid gap-2">
-                                    @foreach (var option in group.Value)
-                                    {
-                                        <label class="form-check border rounded-3 px-3 py-2 mb-0">
-                                            <input class="form-check-input me-2" type="checkbox" name="HardRequiredEffectKeys" value="@option.Key" @(Model.HardRequiredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
-                                            <span class="form-check-label">@option.Label</span>
-                                        </label>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                        <h2 class="h5 fw-bold mb-3">Preferred Effects</h2>
-                        @foreach (var group in Model.EffectOptionsByGroup)
-                        {
-                            <div class="mb-3">
-                                <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
-                                <div class="d-grid gap-2">
-                                    @foreach (var option in group.Value)
-                                    {
-                                        <label class="form-check border rounded-3 px-3 py-2 mb-0">
-                                            <input class="form-check-input me-2" type="checkbox" name="SoftPreferredEffectKeys" value="@option.Key" @(Model.SoftPreferredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
-                                            <span class="form-check-label">@option.Label</span>
-                                        </label>
-                                    }
-                                </div>
-                            </div>
-                        }
                     </div>
                 </div>
             </div>
@@ -792,12 +814,14 @@
                 const enemyWeakness = document.getElementById('EnemyWeakness');
                 const preferredDamageType = document.getElementById('PreferredDamageType');
                 const targetScenario = document.getElementById('TargetScenario');
-                const searchMode = document.getElementById('SearchMode');
+                const checkedSearchMode = document.querySelector('input[name="SearchMode"][type="radio"]:checked');
+                const proSubWeapon = document.getElementById('ProSubWeaponOptimization');
                 return {
                     enemyWeakness: enemyWeakness ? enemyWeakness.value : 'None',
                     preferredDamageType: preferredDamageType ? preferredDamageType.value : 'Any',
                     targetScenario: targetScenario ? targetScenario.value : 'Unknown',
-                    searchMode: searchMode ? searchMode.value : 'Full',
+                    searchMode: checkedSearchMode ? checkedSearchMode.value : 'Fast', // default Fast (matches UI default)
+                    proSubWeaponOptimization: proSubWeapon ? proSubWeapon.checked : false,
                     enabledTeamTemplates: getEnabledTeamTemplates(),
                     bossImmunityKeys: getCheckedValues('BossImmunityKeys'),
                     hardRequiredEffectKeys: getCheckedValues('HardRequiredEffectKeys'),
@@ -846,6 +870,21 @@
                 }
             }
 
+            function setRadioGroupValue(name, value, fallback) {
+                const target = (typeof value === 'string' && value.length > 0) ? value : fallback;
+                const radios = Array.prototype.slice.call(document.querySelectorAll(`input[name="${name}"][type="radio"]`));
+                let matched = false;
+                radios.forEach(function (radio) {
+                    const isMatch = radio.value === target;
+                    radio.checked = isMatch;
+                    matched = matched || isMatch;
+                });
+                // Older snapshots may carry an unexpected value; fall back to the default radio so the control is never empty.
+                if (!matched && fallback) {
+                    radios.forEach(function (radio) { radio.checked = radio.value === fallback; });
+                }
+            }
+
             function setCheckboxGroup(name, selectedValues) {
                 const selected = new Set(Array.isArray(selectedValues) ? selectedValues : []);
                 document.querySelectorAll(`input[name="${name}"][type="checkbox"]`).forEach(function (checkbox) {
@@ -881,7 +920,13 @@
                 setSelectValue('EnemyWeakness', request.enemyWeakness);
                 setSelectValue('PreferredDamageType', request.preferredDamageType);
                 setSelectValue('TargetScenario', request.targetScenario);
-                setSelectValue('SearchMode', request.searchMode);
+                // Older snapshots without searchMode default to Fast (matches the model default).
+                setRadioGroupValue('SearchMode', request.searchMode, 'Fast');
+                const proSubWeaponImport = document.getElementById('ProSubWeaponOptimization');
+                if (proSubWeaponImport) {
+                    proSubWeaponImport.checked = !!request.proSubWeaponOptimization;
+                }
+                syncProSubWeaponGating();
                 setEnabledTeamTemplates(request.enabledTeamTemplates);
                 setCheckboxGroup('BossImmunityKeys', request.bossImmunityKeys);
                 setCheckboxGroup('HardRequiredEffectKeys', request.hardRequiredEffectKeys);
@@ -959,6 +1004,43 @@
             }
 
             hydrateInventoryState();
+
+            // Pro (deeper sub-weapon optimization) is FULL-only. When Search Mode = Fast, disable AND uncheck the
+            // Pro checkbox so it can never apply in Fast (keeping Fast as fast as possible). Re-enabled in Full.
+            // Search Mode is now a radio-based segmented control: read the checked radio's value.
+            const searchModeRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="SearchMode"][type="radio"]'));
+            const proSubWeaponCheckbox = document.getElementById('ProSubWeaponOptimization');
+            const proSubWeaponHint = document.getElementById('ProSubWeaponOptimizationHint');
+            function getSelectedSearchMode() {
+                const checked = searchModeRadios.find(function (radio) { return radio.checked; });
+                return checked ? checked.value : 'Fast';
+            }
+            function syncProSubWeaponGating() {
+                if (!proSubWeaponCheckbox) {
+                    return;
+                }
+                const isFast = getSelectedSearchMode() === 'Fast';
+                if (isFast) {
+                    proSubWeaponCheckbox.checked = false;
+                    proSubWeaponCheckbox.disabled = true;
+                    // WCAG: expose the disabled reason to assistive tech and show the inline hint.
+                    proSubWeaponCheckbox.setAttribute('aria-disabled', 'true');
+                    if (proSubWeaponHint) {
+                        proSubWeaponHint.classList.remove('d-none');
+                    }
+                }
+                else {
+                    proSubWeaponCheckbox.disabled = false;
+                    proSubWeaponCheckbox.setAttribute('aria-disabled', 'false');
+                    if (proSubWeaponHint) {
+                        proSubWeaponHint.classList.add('d-none');
+                    }
+                }
+            }
+            searchModeRadios.forEach(function (radio) {
+                radio.addEventListener('change', syncProSubWeaponGating);
+            });
+            syncProSubWeaponGating();
 
             if (exportButton) {
                 exportButton.addEventListener('click', exportStateToFile);

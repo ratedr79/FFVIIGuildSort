@@ -156,6 +156,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private const int ExhaustiveRetainedVariantsPerCharacter = 8;
         private const int ExhaustiveSkeletonExpansionLimit = 40;
 
+        // FAST-mode breadth reduction (Part-B). These are TIGHTER per-slot/per-character caps applied ONLY when
+        // SearchMode==Fast. The reduction is purely RANK-BASED: every cap below is applied as a .Take(n) over a
+        // list that is already ordered best-first (by Score / EstimateTeamDamage). So the strongest options per
+        // slot/character — including any Event/Grindable/Limited weapons the user owns — always survive; Fast just
+        // explores fewer of the lower-ranked tail. There is NO category filter that drops Limited weapons (the old
+        // lossy Adaptive mode did that and was removed). FULL keeps the Exhaustive caps and stays byte-identical.
+        private const int FastMainWeaponOptionsPerCharacter = 5;
+        private const int FastOffHandWeaponOptionsPerCharacter = 4;
+        private const int FastUltimateOptionsPerCharacter = 3;
+        private const int FastMainOutfitOptionsPerCharacter = 3;
+        private const int FastSubOutfitOptionsPerCharacter = 2;
+        private const int FastRetainedVariantsPerCharacter = 6;
+        private const int FastSkeletonExpansionLimit = 30;
+
         private enum OffensiveRoleProfile
         {
             Carry,
@@ -228,6 +242,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         public PlayerPowerAnalyzerV2Result Analyze(string localInventoryStateJson, PlayerPowerAnalyzerV2Request request)
         {
+            // DEFENSE-IN-DEPTH (Part-A): the "Pro" DamageModelMarginal sub-weapon strategy is ~3x slower and is a
+            // Full-only feature. Fast mode must stay as fast as possible, so force Backbone whenever SearchMode==Fast
+            // regardless of what the request asked for — a crafted request can never slow Fast down via the Pro flag.
+            if (request.SearchMode == PlayerPowerAnalyzerV2SearchMode.Fast
+                && request.SubWeaponSelectionStrategy != PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.Backbone)
+            {
+                request.SubWeaponSelectionStrategy = PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.Backbone;
+            }
+
             var result = new PlayerPowerAnalyzerV2Result();
             var inventoryState = ParseInventoryState(localInventoryStateJson, result);
             if (inventoryState == null)
@@ -904,10 +927,31 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
         private static AdaptiveSearchProfile BuildAdaptiveSearchProfile(int rosterSize, PlayerPowerAnalyzerV2Request request)
         {
-            // Single search profile (the former "Exhaustive" settings): one capped, full-armory pass for every
-            // request. The lossy Adaptive roster-size pruning was removed — worst-case runtime is bounded by the
-            // fixed per-character Take caps and the 16-character game roster (~27s on a fully maxed account), so a
-            // second, lossy mode is no longer needed and only produced divergent (worse) builds.
+            // FULL (default): the former "Exhaustive" settings — one capped, full-armory pass that stays
+            // byte-identical (guarded by ReproSignatureRegressionTests). The lossy Adaptive roster-size pruning was
+            // removed — worst-case runtime is bounded by the fixed per-character Take caps and the 16-character game
+            // roster, so a second, lossy mode is no longer needed and only produced divergent (worse) builds.
+            //
+            // FAST (Part-B): a TIGHTER profile applied ONLY in Fast mode. Every reduced cap is still a rank-based
+            // .Take(n) over a best-first-ordered list (by Score / EstimateTeamDamage), so the strongest options —
+            // including Event/Grindable/Limited weapons — survive; Fast only skips more of the lower-ranked tail.
+            // This cuts the candidate BREADTH (and thus the number of gate evaluations / credited-ceiling builds),
+            // which is where the FULL->FAST wall-clock savings come from on top of the FastSearchEpsilon prune.
+            if (request.SearchMode == PlayerPowerAnalyzerV2SearchMode.Fast)
+            {
+                return new AdaptiveSearchProfile
+                {
+                    MainWeaponOptionsPerCharacter = FastMainWeaponOptionsPerCharacter,
+                    OffHandWeaponOptionsPerCharacter = FastOffHandWeaponOptionsPerCharacter,
+                    UltimateOptionsPerCharacter = FastUltimateOptionsPerCharacter,
+                    MainOutfitOptionsPerCharacter = FastMainOutfitOptionsPerCharacter,
+                    SubOutfitOptionsPerCharacter = FastSubOutfitOptionsPerCharacter,
+                    RetainedVariantsPerCharacter = FastRetainedVariantsPerCharacter,
+                    SkeletonExpansionLimit = FastSkeletonExpansionLimit,
+                    CharacterShortlistLimit = int.MaxValue
+                };
+            }
+
             return new AdaptiveSearchProfile
             {
                 MainWeaponOptionsPerCharacter = ExhaustiveMainWeaponOptionsPerCharacter,

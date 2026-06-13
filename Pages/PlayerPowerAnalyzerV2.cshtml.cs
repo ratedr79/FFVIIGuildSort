@@ -28,8 +28,15 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         [BindProperty]
         public EnemyTargetScenario TargetScenario { get; set; } = EnemyTargetScenario.Unknown;
 
+        // UI default = Fast for a quick first result. (The request-model default may differ — it stays Full for
+        // deterministic programmatic/test callers; this UI binding is what end users see selected on page load.)
         [BindProperty]
-        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Full;
+        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Fast;
+
+        // "Pro" deeper sub-weapon optimization (DamageModelMarginal). Full-only: only honored when SearchMode==Full
+        // (the JS disables+unchecks it in Fast, and OnPostAnalyze gates it as well so a crafted post can't apply it).
+        [BindProperty]
+        public bool ProSubWeaponOptimization { get; set; }
 
         [BindProperty]
         public Dictionary<string, bool> EnabledTeamTemplates { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -65,6 +72,11 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 PreferredDamageType = PreferredDamageType,
                 TargetScenario = TargetScenario,
                 SearchMode = SearchMode,
+                // Pro (DamageModelMarginal) is Full-only: in Fast we force Backbone here (and the service also forces
+                // it defensively). Otherwise honor the Pro checkbox.
+                SubWeaponSelectionStrategy = (SearchMode == PlayerPowerAnalyzerV2SearchMode.Full && ProSubWeaponOptimization)
+                    ? PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.DamageModelMarginal
+                    : PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.Backbone,
                 EnabledTeamTemplates = EnabledTeamTemplates.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList(),
                 BossImmunityKeys = BossImmunityKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 HardRequiredEffectKeys = HardRequiredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),

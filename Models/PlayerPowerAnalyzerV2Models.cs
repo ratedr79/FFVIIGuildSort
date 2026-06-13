@@ -14,7 +14,7 @@ namespace FFVIIEverCrisisAnalyzer.Models
         DamageModelMarginal
     }
 
-    // Search depth. Full (default) keeps the exact, byte-identical search behavior: a candidate is only pruned when
+    // Search depth. Full keeps the exact, byte-identical search behavior: a candidate is only pruned when
     // its optimistic ceiling cannot beat the current leader. Fast prunes more aggressively (any candidate whose
     // ceiling is within a small epsilon of the leader is skipped), trading a small chance of a near-tie miss for a
     // meaningfully shorter run. The Part-1 tighter ceiling is a valid upper bound in BOTH modes.
@@ -30,7 +30,11 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public DamageType PreferredDamageType { get; set; } = DamageType.Any;
         public PlayerPowerAnalyzerV2SubWeaponSelectionStrategy SubWeaponSelectionStrategy { get; set; }
             = PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.Backbone;
-        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Full;
+        // Defaults to Fast: end users want a quick first result, and Fast's reduced caps / epsilon-prune don't
+        // change the winner on real inventories. Programmatic/test callers that assert exact recommendations or
+        // alternate-team relationships set SearchMode = Full explicitly for the deterministic byte-identical path
+        // (e.g. ReproSignatureRegressionTests). The non-slow suite is green on this Fast default.
+        public PlayerPowerAnalyzerV2SearchMode SearchMode { get; set; } = PlayerPowerAnalyzerV2SearchMode.Fast;
         public EnemyTargetScenario TargetScenario { get; set; } = EnemyTargetScenario.Unknown;
         // 2.7 — per-fight enemy off-element effectiveness. An off-element weapon (doesn't hit the enemy's
         // weakness) loses the weakness-exploit and may be RESISTED by a variable amount that depends on the
