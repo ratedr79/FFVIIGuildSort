@@ -132,21 +132,51 @@ public sealed class GuildSurveyPlannerService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         var searchTexts = GetSearchTexts(outfit);
+        // Per-effect fragments (each passive/customization effect label & description, names, tags,
+        // and individual ability-text lines) so offensive vs. defensive can be told apart precisely.
+        var effectFragments = GetEffectFragments(outfit);
+        // Per-passive fragment groups (each passive/customization's name + its own effects), so an
+        // arcanum's themed name can be linked to the element its OWN effect grants.
+        var passiveGroups = GetPassiveFragmentGroups(outfit);
         var reasons = new List<string>();
         var highlights = new List<string>();
         double score = 0;
 
-        var hasElementArcanum = searchTexts.Any(text => ContainsText(text, selectedElement) && ContainsText(text, "Arcanum"));
+        // A single-element arcanum is recognized PER-PASSIVE: a passive/customization whose name
+        // contains "Arcanum" (excluding the omni "Elem. Pot. Arcanum", handled by hasOmniElemental)
+        // AND whose OWN effects grant the selected element offensively. Single-element arcanums are
+        // costume-only in the data (Ultimates carry only the omni/non-element arcanums), so this is
+        // scoped to the outfit path.
+        var onElementArcanumGroups = passiveGroups
+            .Where(group => IsOnElementArcanumGroup(group, selectedElement))
+            .ToList();
+        var hasElementArcanum = onElementArcanumGroups.Count > 0;
+        // The arcanum's own element-ability-damage / potency effects are credited ONCE at the +360
+        // arcanum tier, so exclude those fragments from the +220 ability-damage / potency checks below
+        // to avoid double-counting the same underlying effect.
+        var arcanumFragments = new HashSet<string>(
+            onElementArcanumGroups.SelectMany(group => group.Fragments),
+            StringComparer.OrdinalIgnoreCase);
         var hasElementMastery = searchTexts.Any(text => ContainsText(text, selectedElement) && ContainsText(text, "Mastery"));
-        var hasElementPotency = searchTexts.Any(text => ContainsText(text, selectedElement) && (ContainsText(text, "Pot.") || ContainsText(text, "Damage Bonus") || ContainsText(text, "Damage Up") || ContainsText(text, "Weapon Boost")));
+        // Offensive element potency: match per-fragment so we don't combine an offensive label with an
+        // unrelated "[Pot: ...]" tag elsewhere, and so defensive "<Element> Resistance Up" is excluded.
+        // Fragments already credited as an arcanum are skipped (no double-count).
+        var hasElementPotency = effectFragments.Any(fragment =>
+            !arcanumFragments.Contains(fragment) && IsOffensiveElementFragment(fragment, selectedElement));
+        // Offensive "<Element> Ability Dmg." / "<Element> Ability Damage" buff (e.g. "Wind Ability
+        // Dmg. +30%", "Ice Ability Damage +45%"). Fragments already credited as an arcanum are skipped.
+        var hasElementAbilityDamage = effectFragments.Any(fragment =>
+            !arcanumFragments.Contains(fragment) && IsElementAbilityDamageFragment(fragment, selectedElement));
         var hasOmniElemental = searchTexts.Any(text => ContainsText(text, "Boost Elem. Pot. Arcanum") || ContainsText(text, "Elem. Pot. Arcanum") || ContainsText(text, "Elem. Pot."));
         var isPhysicalBattle = selectedAbilityType.Equals("Physical", StringComparison.OrdinalIgnoreCase);
         var hasRelevantAttackAll = isPhysicalBattle
             ? searchTexts.Any(text => ContainsText(text, "Boost ATK (All Allies)") || ContainsText(text, "Boost PATK (All Allies)") || (ContainsText(text, "PATK") && ContainsText(text, "All")))
             : searchTexts.Any(text => ContainsText(text, "Boost ATK (All Allies)") || ContainsText(text, "Boost MATK (All Allies)") || (ContainsText(text, "MATK") && ContainsText(text, "All")));
+        // Ability-type damage signal: "Boost Phys./Mag. Ability Pot." passive AND the
+        // "Phys./Mag. Ability Dmg." buff label both count.
         var hasRelevantAbilityPotency = isPhysicalBattle
-            ? searchTexts.Any(text => ContainsText(text, "Boost Ability Pot.") || ContainsText(text, "Boost Phys. Ability Pot."))
-            : searchTexts.Any(text => ContainsText(text, "Boost Ability Pot.") || ContainsText(text, "Boost Mag. Ability Pot."));
+            ? effectFragments.Any(text => ContainsText(text, "Boost Ability Pot.") || ContainsText(text, "Boost Phys. Ability Pot.") || ContainsText(text, "Phys. Ability Dmg"))
+            : effectFragments.Any(text => ContainsText(text, "Boost Ability Pot.") || ContainsText(text, "Boost Mag. Ability Pot.") || ContainsText(text, "Mag. Ability Dmg"));
 
         if (hasElementArcanum)
         {
@@ -167,6 +197,13 @@ public sealed class GuildSurveyPlannerService
             score += 220;
             reasons.Add($"{selectedElement} elemental potency support");
             highlights.Add($"{selectedElement} Potency");
+        }
+
+        if (hasElementAbilityDamage)
+        {
+            score += 220;
+            reasons.Add($"{selectedElement} ability damage buff");
+            highlights.Add($"{selectedElement} Ability Dmg.");
         }
 
         if (hasOmniElemental)
@@ -291,6 +328,8 @@ public sealed class GuildSurveyPlannerService
         var battleAtbConservationTag = isPhysicalBattle ? "Phys. ATB Conservation Effect" : "Mag. ATB Conservation Effect";
         var hasSelfOnlySupportEffect = IsSelfOnlySupportEffect(weapon);
         var searchTexts = GetSearchTexts(weapon);
+        var effectFragments = GetEffectFragments(weapon);
+        var battleAbilityDamageTag = isPhysicalBattle ? "Phys. Ability Dmg" : "Mag. Ability Dmg";
         var reasons = new List<string>();
         var highlights = new List<string>();
         double score = 0;
@@ -330,6 +369,15 @@ public sealed class GuildSurveyPlannerService
             highlights.Add($"Amp. {selectedElement}");
         }
 
+        // Offensive "<Element> Ability Dmg." buff on a weapon R-ability. The +Damage Up/Bonus/Weapon
+        // Boost element labels are already handled above, so only the ability-damage gap is added here.
+        if (effectFragments.Any(fragment => IsElementAbilityDamageFragment(fragment, selectedElement)))
+        {
+            score += hasSelfOnlySupportEffect ? 180 : 215;
+            reasons.Add(hasSelfOnlySupportEffect ? $"self-only {selectedElement} ability damage" : $"{selectedElement} ability damage support");
+            highlights.Add($"{selectedElement} Ability Dmg.");
+        }
+
         if (HasEffectTag(weapon, battleBuffTag))
         {
             score += hasSelfOnlySupportEffect ? 120 : 165;
@@ -349,6 +397,15 @@ public sealed class GuildSurveyPlannerService
             score += 155;
             reasons.Add($"{selectedAbilityType.ToLowerInvariant()} damage bonus support");
             highlights.Add(battleDamageBonusTag);
+        }
+
+        // "Phys./Mag. Ability Dmg." buff on a weapon R-ability (the ability-type analogue of the
+        // element ability-damage buff). Matches per-fragment.
+        if (effectFragments.Any(fragment => ContainsText(fragment, battleAbilityDamageTag)))
+        {
+            score += 155;
+            reasons.Add($"{selectedAbilityType.ToLowerInvariant()} ability damage support");
+            highlights.Add(isPhysicalBattle ? "Phys. Ability Dmg." : "Mag. Ability Dmg.");
         }
 
         if (HasAnyText(searchTexts, battleWeaponBoostTag))
@@ -470,6 +527,173 @@ public sealed class GuildSurveyPlannerService
             .Where(text => !string.IsNullOrWhiteSpace(text))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    // Individual effect fragments (one per passive/customization effect, name, tag, and ability-text
+    // line) so that offensive vs. defensive signals can be judged on a single effect rather than on a
+    // joined blob that may contain both an offensive label and an unrelated defensive one.
+    private static List<string> GetEffectFragments(WeaponSearchItem item)
+    {
+        var fragments = new List<string>();
+
+        foreach (var passive in item.MaxPassiveSkills)
+        {
+            if (!string.IsNullOrWhiteSpace(passive.SkillName))
+            {
+                fragments.Add(passive.SkillName);
+            }
+
+            foreach (var effect in passive.Effects)
+            {
+                if (!string.IsNullOrWhiteSpace(effect.Label)) fragments.Add(effect.Label);
+                if (!string.IsNullOrWhiteSpace(effect.Description)) fragments.Add(effect.Description);
+            }
+        }
+
+        foreach (var customization in item.Customizations)
+        {
+            if (!string.IsNullOrWhiteSpace(customization.PassiveSkillName))
+            {
+                fragments.Add(customization.PassiveSkillName!);
+            }
+
+            foreach (var effect in customization.PassiveEffects)
+            {
+                if (!string.IsNullOrWhiteSpace(effect.Label)) fragments.Add(effect.Label);
+                if (!string.IsNullOrWhiteSpace(effect.Description)) fragments.Add(effect.Description);
+            }
+        }
+
+        foreach (var tag in item.EffectTags)
+        {
+            if (!string.IsNullOrWhiteSpace(tag)) fragments.Add(tag);
+        }
+
+        // Ability text can hold several effects; split into lines so a single line is evaluated alone.
+        foreach (var source in new[] { item.AbilityText, item.MaxAbilityDescription })
+        {
+            if (string.IsNullOrWhiteSpace(source)) continue;
+            foreach (var line in source.Split('\n'))
+            {
+                if (!string.IsNullOrWhiteSpace(line)) fragments.Add(line.Trim());
+            }
+        }
+
+        return fragments
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    // A single passive/customization paired with its OWN effect fragments (name + each effect label
+    // and description). Keeping the name with its effects lets an arcanum's themed name (e.g.
+    // "Flameblade Arcanum") be linked to the element its effect actually grants (Fire Ability Dmg.).
+    private sealed class PassiveFragmentGroup
+    {
+        public required string Name { get; init; }
+        public required List<string> Fragments { get; init; }
+    }
+
+    private static List<PassiveFragmentGroup> GetPassiveFragmentGroups(WeaponSearchItem item)
+    {
+        var groups = new List<PassiveFragmentGroup>();
+
+        foreach (var passive in item.MaxPassiveSkills)
+        {
+            if (string.IsNullOrWhiteSpace(passive.SkillName))
+            {
+                continue;
+            }
+
+            var fragments = new List<string>();
+            foreach (var effect in passive.Effects)
+            {
+                if (!string.IsNullOrWhiteSpace(effect.Label)) fragments.Add(effect.Label);
+                if (!string.IsNullOrWhiteSpace(effect.Description)) fragments.Add(effect.Description);
+            }
+
+            groups.Add(new PassiveFragmentGroup { Name = passive.SkillName, Fragments = fragments });
+        }
+
+        foreach (var customization in item.Customizations)
+        {
+            if (string.IsNullOrWhiteSpace(customization.PassiveSkillName))
+            {
+                continue;
+            }
+
+            var fragments = new List<string>();
+            foreach (var effect in customization.PassiveEffects)
+            {
+                if (!string.IsNullOrWhiteSpace(effect.Label)) fragments.Add(effect.Label);
+                if (!string.IsNullOrWhiteSpace(effect.Description)) fragments.Add(effect.Description);
+            }
+
+            groups.Add(new PassiveFragmentGroup { Name = customization.PassiveSkillName!, Fragments = fragments });
+        }
+
+        return groups;
+    }
+
+    // True when a passive group is an ON-ELEMENT single-element arcanum for the selected element: its
+    // name contains "Arcanum" (but is NOT the omni "Elem. Pot. Arcanum", which hasOmniElemental
+    // already credits) AND one of its OWN effects grants the selected element offensively (element
+    // ability-damage or offensive element potency). Single-element arcanums in the data grant
+    // "<Element> Ability Dmg." / "<Element> Ability Damage" (e.g. "Flameblade Arcanum" => "Fire
+    // Ability Dmg. +35%", "Frostblade Arcanum" => "Ice Ability Damage +45%").
+    private static bool IsOnElementArcanumGroup(PassiveFragmentGroup group, string selectedElement)
+    {
+        if (!ContainsText(group.Name, "Arcanum"))
+        {
+            return false;
+        }
+
+        // The omni arcanum is scored by hasOmniElemental, not as a single-element arcanum.
+        if (ContainsText(group.Name, "Elem. Pot. Arcanum"))
+        {
+            return false;
+        }
+
+        return group.Fragments.Any(fragment =>
+            IsElementAbilityDamageFragment(fragment, selectedElement)
+            || IsOffensiveElementFragment(fragment, selectedElement));
+    }
+
+    // Offensive "<Element> Ability Dmg." / "<Element> Ability Damage" buff for the selected element.
+    // The label is abbreviated ("Dmg.") in most data but spelled out ("Damage") for a few entries
+    // (e.g. "Ice Ability Damage +45%"), so both forms are matched.
+    private static bool IsElementAbilityDamageFragment(string fragment, string selectedElement)
+    {
+        return ContainsText(fragment, $"{selectedElement} Ability Dmg")
+            || ContainsText(fragment, $"{selectedElement} Ability Damage");
+    }
+
+    // True when a single effect fragment is an OFFENSIVE element-potency signal for the selected
+    // element. Offensive: "<Element> Damage Up/Bonus", "<Element> Weapon Boost", "Boost <Element>
+    // Pot." / "<Element> Pot.". ("<Element> Ability Dmg." is scored separately as its own signal so
+    // it is not double-counted.) Explicitly excludes defensive "<Element> Resistance" /
+    // "<Element> Resist." UNLESS it is the enemy-side "<Element> Resistance Down" debuff.
+    private static bool IsOffensiveElementFragment(string fragment, string selectedElement)
+    {
+        if (!ContainsText(fragment, selectedElement))
+        {
+            return false;
+        }
+
+        // Defensive resistance (Up) must never count as offensive; the enemy-debuff "Resist. Down"
+        // form is handled as a separate utility check, not here.
+        var isResistance = ContainsText(fragment, $"{selectedElement} Resistance") || ContainsText(fragment, $"{selectedElement} Resist.");
+        var isResistanceDown = ContainsText(fragment, $"{selectedElement} Resistance Down") || ContainsText(fragment, $"{selectedElement} Resist. Down");
+        if (isResistance && !isResistanceDown)
+        {
+            return false;
+        }
+
+        return ContainsText(fragment, $"{selectedElement} Damage Up")
+            || ContainsText(fragment, $"{selectedElement} Damage Bonus")
+            || ContainsText(fragment, $"{selectedElement} Weapon Boost")
+            || ContainsText(fragment, $"Boost {selectedElement} Pot.")
+            || ContainsText(fragment, $"{selectedElement} Pot.");
     }
 
     private static bool HasEffectTag(WeaponSearchItem item, string tag)

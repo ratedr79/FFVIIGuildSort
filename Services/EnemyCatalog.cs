@@ -179,7 +179,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var normalizedBattleMode = NormalizeBattleMode(battleMode);
 
+            // Only suggest enemies/stages that SearchEnemies can actually return — mirror its skip
+            // conditions so the type-ahead never offers a dead-end. SearchEnemies skips an enemy with no
+            // levels (none from BattleEnemy AND none from the level-parameter-group fallback in
+            // LoadEnemyData) and, in solo/co-op mode, an enemy with no stages for that mode.
             return _enemies.Values
+                .Where(record => _levelsByEnemyId.TryGetValue(record.Id, out var levels) && levels.Count > 0)
+                .Where(record => string.Equals(normalizedBattleMode, BattleModeAll, StringComparison.OrdinalIgnoreCase)
+                    || GetStageNamesForMode(record, normalizedBattleMode).Count > 0)
                 .SelectMany(record => new[] { record.Name }.Concat(GetStageNamesForMode(record, normalizedBattleMode)))
                 .Where(value => !string.IsNullOrWhiteSpace(value))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -441,6 +448,26 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     .Distinct()
                     .OrderBy(l => l)
                     .ToList();
+            }
+
+            // Some enemies (e.g. "Particle", id 2067010) are not assigned to any battle, so they have no
+            // BattleEnemy rows — yet their stats ARE defined in their level-parameter group (Particle's
+            // group 12067010 has a single Level-90 record). Fall back to that group's levels so these
+            // enemies remain searchable and their stats can be computed, instead of being skipped.
+            foreach (var record in _enemies.Values)
+            {
+                if (_levelsByEnemyId.TryGetValue(record.Id, out var existing) && existing.Count > 0)
+                {
+                    continue;
+                }
+
+                if (_levelParamsByGroup.TryGetValue(record.LevelParameterGroupId, out var paramLevels) && paramLevels.Count > 0)
+                {
+                    _levelsByEnemyId[record.Id] = paramLevels.Select(p => p.Level)
+                        .Distinct()
+                        .OrderBy(l => l)
+                        .ToList();
+                }
             }
 
         }

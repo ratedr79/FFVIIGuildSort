@@ -2231,6 +2231,12 @@
                     {
                         <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-equipment="@quickEquipment">@quickEquipment</button>
                     }
+                    @if (equipmentTypeOptions.Any(t => string.Equals(t, "Ultimate", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-equipment="Ultimate">
+                            <span>Ultimate</span>
+                        </button>
+                    }
                     @foreach (var quickFilter in elementalQuickFilters)
                     {
                         <button type="button"
