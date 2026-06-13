@@ -116,6 +116,22 @@
             _ => string.Join(", ", values.Take(values.Count - 1)) + ", and " + values[^1]
         };
     }
+
+    // Maps a slot's full SlotName (e.g. "Main Weapon", "Off-hand", "Ultimate", "Main Outfit") to a short,
+    // scannable chip label + a power-v2-slot-chip-* color variant. Used to replace "SlotName:" text prefixes.
+    private static (string Label, string CssClass) SlotChip(string? slotName)
+    {
+        return (slotName ?? string.Empty) switch
+        {
+            "Main Weapon" => ("Main", "power-v2-slot-chip-main"),
+            "Off-hand" => ("Off", "power-v2-slot-chip-off"),
+            "Ultimate" => ("UW", "power-v2-slot-chip-uw"),
+            "Main Outfit" => ("Costume", "power-v2-slot-chip-costume"),
+            "Sub Weapon" => ("Sub", "power-v2-slot-chip-sub"),
+            "Sub Outfit" => ("Sub", "power-v2-slot-chip-sub"),
+            _ => (string.IsNullOrWhiteSpace(slotName) ? "Slot" : slotName!, "power-v2-slot-chip-sub")
+        };
+    }
 }
 
 <div class="container-xxl py-4 power-v2-page">
@@ -129,6 +145,13 @@
             <button type="button" class="btn btn-outline-dark" id="playerPowerAnalyzerV2ImportButton">Load Repro File</button>
             <a class="btn btn-outline-secondary" href="/PlayerInventoryManagement">Open Inventory</a>
             <a class="btn btn-outline-primary" href="/PlayerPowerAnalyzer">Legacy Analyzer</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-4" role="note">
+        <span class="badge flex-shrink-0 mt-1" style="background-color: var(--brand-primary-strong); color: #fff;">BETA</span>
+        <div>
+            <strong>Beta &mdash; work in progress.</strong> This analyzer is under active development, and not every option has been fully tested yet. If a recommendation looks off &mdash; or you have team-build suggestions &mdash; <a href="#playerPowerAnalyzerV2ReproSection">instructions for submitting feedback</a> (with a debug snapshot) are at the bottom of the page.
         </div>
     </div>
 
@@ -240,43 +263,44 @@
 
                         <hr class="my-4" />
 
-                        <div class="row g-4">
-                            <div class="col-lg-6">
-                                <h3 class="h6 fw-bold mb-2">Hard-Required Effects</h3>
-                                @foreach (var group in Model.EffectOptionsByGroup)
-                                {
-                                    <div class="mb-3">
-                                        <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
-                                        <div class="d-grid gap-2">
-                                            @foreach (var option in group.Value)
-                                            {
-                                                <label class="form-check border rounded-3 px-3 py-2 mb-0">
-                                                    <input class="form-check-input me-2" type="checkbox" name="HardRequiredEffectKeys" value="@option.Key" @(Model.HardRequiredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
-                                                    <span class="form-check-label">@option.Label</span>
-                                                </label>
-                                            }
-                                        </div>
+                        @* Tri-state effect filter: ONE row per effect, each with an Off / Preferred / Required
+                           segmented radio group. The visible radios drive two visually-hidden checkboxes per effect
+                           (name="HardRequiredEffectKeys" and name="SoftPreferredEffectKeys") so the form posts the
+                           exact same field names/values as the old two-list UI — zero server change. Mutually
+                           exclusive by construction, so the old silent-dedupe (.Except) trap is gone. JS in
+                           initEffectTriState() initializes each pill from the hidden checkbox checked-state on load
+                           (and is re-called after a repro import). *@
+                        <h3 class="h6 fw-bold mb-2">Required &amp; Preferred Effects</h3>
+                        <p class="dc-section-hint">Set each effect to <span class="fw-semibold">Off</span>, <span class="fw-semibold">⭐ Preferred</span> (boosts score), or <span class="fw-semibold">🔒 Required</span> (invalidates builds that lack it). An effect can be one or the other, not both.</p>
+                        <div id="playerPowerAnalyzerV2EffectTriState">
+                            @foreach (var group in Model.EffectOptionsByGroup)
+                            {
+                                <div class="mb-3">
+                                    <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
+                                    <div class="d-grid gap-2">
+                                        @foreach (var option in group.Value)
+                                        {
+                                            var triName = "effectTriState_" + option.Key;
+                                            var isRequired = Model.HardRequiredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase);
+                                            var isPreferred = !isRequired && Model.SoftPreferredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase);
+                                            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 border rounded-3 px-3 py-2 power-v2-effect-row" data-effect-key="@option.Key">
+                                                @* Visually-hidden checkboxes carry the binding. JS keeps them in sync with the visible radios. *@
+                                                <input class="visually-hidden power-v2-effect-hidden-required" type="checkbox" name="HardRequiredEffectKeys" value="@option.Key" tabindex="-1" aria-hidden="true" @(isRequired ? "checked" : null) />
+                                                <input class="visually-hidden power-v2-effect-hidden-preferred" type="checkbox" name="SoftPreferredEffectKeys" value="@option.Key" tabindex="-1" aria-hidden="true" @(isPreferred ? "checked" : null) />
+                                                <span class="form-check-label fw-semibold power-v2-effect-label" id="@(triName)_label">@option.Label</span>
+                                                <div class="btn-group btn-group-sm flex-shrink-0 power-v2-effect-tri" role="radiogroup" aria-labelledby="@(triName)_label">
+                                                    <input type="radio" class="btn-check" name="@triName" id="@(triName)_off" value="off" autocomplete="off" @(!isRequired && !isPreferred ? "checked" : null) />
+                                                    <label class="btn btn-outline-secondary" for="@(triName)_off">Off</label>
+                                                    <input type="radio" class="btn-check" name="@triName" id="@(triName)_preferred" value="preferred" autocomplete="off" @(isPreferred ? "checked" : null) />
+                                                    <label class="btn btn-outline-primary" for="@(triName)_preferred" title="Preferred (boosts score)">⭐ <span class="d-none d-sm-inline">Preferred</span><span class="d-sm-none">Pref</span></label>
+                                                    <input type="radio" class="btn-check" name="@triName" id="@(triName)_required" value="required" autocomplete="off" @(isRequired ? "checked" : null) />
+                                                    <label class="btn btn-outline-danger" for="@(triName)_required" title="Required (invalidates builds without it)">🔒 <span class="d-none d-sm-inline">Required</span><span class="d-sm-none">Req</span></label>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
-                                }
-                            </div>
-                            <div class="col-lg-6">
-                                <h3 class="h6 fw-bold mb-2">Preferred Effects</h3>
-                                @foreach (var group in Model.EffectOptionsByGroup)
-                                {
-                                    <div class="mb-3">
-                                        <div class="small text-uppercase text-muted fw-semibold mb-2">@group.Key</div>
-                                        <div class="d-grid gap-2">
-                                            @foreach (var option in group.Value)
-                                            {
-                                                <label class="form-check border rounded-3 px-3 py-2 mb-0">
-                                                    <input class="form-check-input me-2" type="checkbox" name="SoftPreferredEffectKeys" value="@option.Key" @(Model.SoftPreferredEffectKeys.Contains(option.Key, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
-                                                    <span class="form-check-label">@option.Label</span>
-                                                </label>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
+                                </div>
+                            }
                         </div>
 
                         <hr class="my-4" />
@@ -313,7 +337,14 @@
                     <div>
                         <div class="text-uppercase small text-primary fw-semibold mb-2">Recommended Team</div>
                         <h2 class="h3 fw-bold mb-2">@string.Join(" / ", Model.AnalysisResult.TeamCharacters)</h2>
-                        <div class="text-muted">Score: @Model.AnalysisResult.Score.ToString("N2")</div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge power-v2-score-badge px-3 py-2" title="Relative model score — a unitless ranking number, not in-game power.">Score @Model.AnalysisResult.Score.ToString("N2")</span>
+                            <span class="small text-muted">relative model number — no unit</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(Model.AnalysisResult.OffensiveAbilitySummary))
+                        {
+                            <div class="small text-muted"><span class="fw-semibold">Why:</span> @Model.AnalysisResult.OffensiveAbilitySummary</div>
+                        }
                     </div>
                     <div class="d-flex flex-wrap gap-2 align-content-start">
                         @if (!string.IsNullOrWhiteSpace(Model.AnalysisResult.MatchedTemplateName))
@@ -324,6 +355,12 @@
                         {
                             <span class="badge power-v2-pill px-3 py-2">@label</span>
                         }
+                    </div>
+                </div>
+
+                <div class="border rounded-3 p-3 mb-3 bg-light-subtle">
+                    <div class="dc-section-hint mb-0">
+                        <strong>About these suggestions:</strong> These are model-driven recommendations and a strong starting point — an experienced player might build differently. If a pick looks off, or you've found a better build, <a href="#playerPowerAnalyzerV2ReproSection"><strong>export the debug snapshot</strong></a> (it captures your inventory, settings, and this result) and send it to us with a note on what looks wrong. Submit/contact details are at the bottom of the page.
                     </div>
                 </div>
 
@@ -433,7 +470,10 @@
                                     <img src="@character.CharacterPortraitUrl" alt="@character.CharacterName" class="rounded-3 character-portrait" />
                                     <div>
                                         <h3 class="h4 fw-bold mb-1">@character.CharacterName</h3>
-                                        <div class="text-muted">@character.Role • Score @character.Score.ToString("N2")</div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="text-muted">@character.Role</span>
+                                            <span class="badge power-v2-score-badge px-2 py-1" title="Relative model score — a unitless ranking number.">Score @character.Score.ToString("N2")</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2 align-content-start">
@@ -487,9 +527,14 @@
                                         <div class="small text-uppercase text-muted fw-semibold mb-2">Weapons</div>
                                         @foreach (var slot in new[] { character.MainWeapon, character.OffHandWeapon, character.UltimateWeapon }.Where(slot => slot != null))
                                         {
+                                            var weaponChip = SlotChip(slot!.SlotName);
                                             <div class="slot-entry mb-3">
-                                                <div class="fw-semibold">@slot!.SlotName: @slot.Name</div>
-                                                <div class="small text-muted">Lv @slot.Level • OB @slot.OverboostLevel • Score @slot.Score.ToString("N2")</div>
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                    <span class="badge power-v2-slot-chip @weaponChip.CssClass" title="@slot.SlotName">@weaponChip.Label</span>
+                                                    <span class="fw-semibold">@slot.Name</span>
+                                                    <span class="badge power-v2-score-badge" title="Relative model score — a unitless ranking number.">Score @slot.Score.ToString("N2")</span>
+                                                </div>
+                                                <div class="small text-muted">Lv @slot.Level • OB @slot.OverboostLevel</div>
                                                 @if ((string.Equals(slot.SlotName, "Main Weapon", StringComparison.OrdinalIgnoreCase)
                                                     || string.Equals(slot.SlotName, "Off-hand", StringComparison.OrdinalIgnoreCase))
                                                     && !string.IsNullOrWhiteSpace(slot.AbilityText))
@@ -512,7 +557,10 @@
                                             @foreach (var sub in character.SubWeapons)
                                             {
                                                 <div class="slot-entry mb-2">
-                                                    <div class="fw-semibold">@sub.Name</div>
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                        <span class="badge power-v2-slot-chip power-v2-slot-chip-sub" title="Sub Weapon">Sub</span>
+                                                        <span class="fw-semibold">@sub.Name</span>
+                                                    </div>
                                                     <div class="small text-muted">Lv @sub.Level • OB @sub.OverboostLevel • @string.Join(" • ", sub.PassiveSummaries)</div>
                                                 </div>
                                             }
@@ -524,8 +572,12 @@
                                         <div class="small text-uppercase text-muted fw-semibold mb-2">Outfits & Passive Stack</div>
                                         @foreach (var slot in new[] { character.MainOutfit }.Where(slot => slot != null))
                                         {
+                                            var outfitChip = SlotChip(slot!.SlotName);
                                             <div class="slot-entry mb-3">
-                                                <div class="fw-semibold">@slot!.SlotName: @slot.Name</div>
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                    <span class="badge power-v2-slot-chip @outfitChip.CssClass" title="@slot.SlotName">@outfitChip.Label</span>
+                                                    <span class="fw-semibold">@slot.Name</span>
+                                                </div>
                                                 @if (!string.IsNullOrWhiteSpace(slot.AbilityText))
                                                 {
                                                     <div class="small mt-1">Ability: @slot.AbilityText</div>
@@ -539,7 +591,10 @@
                                             @foreach (var sub in character.SubOutfits)
                                             {
                                                 <div class="slot-entry mb-2">
-                                                    <div class="fw-semibold">@sub.Name</div>
+                                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                        <span class="badge power-v2-slot-chip power-v2-slot-chip-sub" title="Sub Outfit">Sub</span>
+                                                        <span class="fw-semibold">@sub.Name</span>
+                                                    </div>
                                                     <div class="small text-muted">@string.Join(" • ", sub.PassiveSummaries)</div>
                                                 </div>
                                             }
@@ -611,10 +666,11 @@
             }
             </div>
 
-        <div class="card shadow-sm border-0 mt-4">
+        <div class="card shadow-sm border-0 mt-4" id="playerPowerAnalyzerV2ReproSection">
             <div class="card-body p-4">
                 <h3 class="h5 fw-bold mb-3">Issues or Suggestions?</h3>
                 <p class="text-muted mb-3">Do you believe this team build is incorrect or misleading? Export a repro file, then send that file along with a detailed description of what you believe is wrong to <strong>ddelaneyca</strong> on Discord or <a href="mailto:ddelaneyca@gmail.com">ddelaneyca@gmail.com</a>.</p>
+                <p class="text-muted mb-3">When reporting, please include <strong>what looks wrong with the recommended team</strong> — which character/weapon/costume pick, and why you'd expect different — along with the exported snapshot, so we can reproduce and investigate.</p>
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     <button type="button" class="btn btn-primary" id="playerPowerAnalyzerV2ExportButton">Export V2 Repro File</button>
                     <button type="button" class="btn btn-outline-secondary" id="playerPowerAnalyzerV2ImportResultButton">Load Repro File and Re-run</button>
@@ -677,15 +733,69 @@
         }
 
         .power-v2-page .power-v2-pill-primary {
-            background: #1d4ed8;
-            color: #eff6ff;
-            border: 1px solid #1d4ed8;
+            background: var(--brand-primary-strong);
+            color: #ffffff;
+            border: 1px solid var(--brand-primary-strong);
         }
 
         .power-v2-page .power-v2-pill-accent {
-            background: #dbeafe;
-            color: #1e3a8a;
-            border: 1px solid rgba(30, 58, 138, 0.16);
+            background: var(--brand-primary-soft);
+            color: var(--brand-primary-strong);
+            border: 1px solid var(--brand-primary);
+        }
+
+        .power-v2-page .power-v2-score-badge {
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #c7d2fe;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+
+        /* Slot-type chips: small, uppercase, colored by slot family so the eye can scan Main / Off / UW / Sub / Costume. */
+        .power-v2-page .power-v2-slot-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.1rem 0.5rem;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .power-v2-page .power-v2-slot-chip-main {
+            background: var(--brand-primary-strong);
+            color: #ffffff;
+            border: 1px solid var(--brand-primary-strong);
+        }
+
+        .power-v2-page .power-v2-slot-chip-off {
+            background: var(--brand-primary-soft);
+            color: var(--brand-primary-strong);
+            border: 1px solid var(--brand-primary);
+        }
+
+        .power-v2-page .power-v2-slot-chip-uw {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        .power-v2-page .power-v2-slot-chip-costume {
+            background: #ede9fe;
+            color: #5b21b6;
+            border: 1px solid #ddd6fe;
+        }
+
+        .power-v2-page .power-v2-slot-chip-sub {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .power-v2-page .power-v2-effect-row {
+            background: #ffffff;
         }
 
         .power-v2-page .character-portrait {
@@ -931,6 +1041,8 @@
                 setCheckboxGroup('BossImmunityKeys', request.bossImmunityKeys);
                 setCheckboxGroup('HardRequiredEffectKeys', request.hardRequiredEffectKeys);
                 setCheckboxGroup('SoftPreferredEffectKeys', request.softPreferredEffectKeys);
+                // Re-sync the visible tri-state pills from the checkboxes we just set (function is hoisted).
+                initEffectTriState();
             }
 
             function triggerImportState() {
@@ -1002,6 +1114,60 @@
                     status.textContent = processingMessages[index];
                 }, 2400);
             }
+
+            // --- Tri-state effect filter (Off / Preferred / Required) ---------------------------------------
+            // Each effect row has two visually-hidden checkboxes (HardRequiredEffectKeys / SoftPreferredEffectKeys)
+            // that carry the form binding, plus a visible radio group. The radios drive the checkboxes so the form
+            // posts identical field names/values to the old two-list UI, with mutual exclusivity by construction.
+            function syncEffectRowFromRadios(row) {
+                if (!row) {
+                    return;
+                }
+                const requiredBox = row.querySelector('.power-v2-effect-hidden-required');
+                const preferredBox = row.querySelector('.power-v2-effect-hidden-preferred');
+                const checkedRadio = row.querySelector('.power-v2-effect-tri input[type="radio"]:checked');
+                const state = checkedRadio ? checkedRadio.value : 'off';
+                if (requiredBox) {
+                    requiredBox.checked = state === 'required';
+                }
+                if (preferredBox) {
+                    preferredBox.checked = state === 'preferred';
+                }
+            }
+
+            // Initialize each visible radio group FROM the hidden checkbox checked-state. Used on page load (so a
+            // server re-rendered form reflects correctly) and after a repro import (which sets the checkboxes).
+            function initEffectTriState() {
+                const rows = document.querySelectorAll('#playerPowerAnalyzerV2EffectTriState .power-v2-effect-row');
+                rows.forEach(function (row) {
+                    const requiredBox = row.querySelector('.power-v2-effect-hidden-required');
+                    const preferredBox = row.querySelector('.power-v2-effect-hidden-preferred');
+                    const isRequired = !!(requiredBox && requiredBox.checked);
+                    const isPreferred = !isRequired && !!(preferredBox && preferredBox.checked);
+                    const offRadio = row.querySelector('.power-v2-effect-tri input[value="off"]');
+                    const preferredRadio = row.querySelector('.power-v2-effect-tri input[value="preferred"]');
+                    const requiredRadio = row.querySelector('.power-v2-effect-tri input[value="required"]');
+                    if (offRadio) {
+                        offRadio.checked = !isRequired && !isPreferred;
+                    }
+                    if (preferredRadio) {
+                        preferredRadio.checked = isPreferred;
+                    }
+                    if (requiredRadio) {
+                        requiredRadio.checked = isRequired;
+                    }
+                    // Re-sync the hidden checkboxes so Preferred/Required are mutually exclusive even if the imported
+                    // payload set both (Required wins, matching the server's old .Except dedupe semantics).
+                    syncEffectRowFromRadios(row);
+                });
+            }
+
+            document.querySelectorAll('#playerPowerAnalyzerV2EffectTriState .power-v2-effect-tri input[type="radio"]').forEach(function (radio) {
+                radio.addEventListener('change', function () {
+                    syncEffectRowFromRadios(radio.closest('.power-v2-effect-row'));
+                });
+            });
+            initEffectTriState();
 
             hydrateInventoryState();
 

@@ -1,3 +1,13 @@
+:root {
+  /* Brand primary tokens — single source of truth for the site's primary color.
+     The site's de-facto primary is the purple #667eea family (body gradient,
+     .card-header, .btn-primary, .text-primary, nav icon). Flip the whole site's
+     primary by editing these three values in one place. */
+  --brand-primary: #667eea;        /* mid tone: accents, borders, active states, fills */
+  --brand-primary-strong: #434190; /* darker shade: TEXT use — 8.76:1 on white (AA pass) */
+  --brand-primary-soft: #eef0ff;   /* light tint: pill/badge backgrounds */
+}
+
 html {
   font-size: 14px;
 }
@@ -109,7 +119,11 @@ h1 {
 }
 
 .text-primary {
-  color: #667eea !important;
+  /* Uses the strong (darker) brand tone for WCAG AA compliance: #434190 is 8.76:1 on
+     white, vs the mid tone #667eea which is only 3.66:1 (FAILS AA for normal text).
+     This darkens primary text/headers/nav icon site-wide — a deliberate accessibility
+     decision. Accents/borders/fills still use --brand-primary (mid tone). */
+  color: var(--brand-primary-strong) !important;
 }
 
 .alert {
