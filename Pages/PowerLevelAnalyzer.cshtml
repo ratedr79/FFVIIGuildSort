@@ -89,8 +89,20 @@
                                     <input class="form-check-input" type="checkbox" id="ShowDebug" name="ShowDebug" value="true" />
                                     <label class="form-check-label" for="ShowDebug">Show debug details</label>
                                 </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="UseV2Engine" name="UseV2Engine" value="true" @(Model.UseV2Engine ? "checked" : "") />
+                                    <label class="form-check-label" for="UseV2Engine">Use V2 engine</label>
+                                    <div class="form-text small text-muted">Experimental — scores teams with the advanced V2 damage engine (faster on the limited survey data).</div>
+                                </div>
                             </div>
                         </div>
+
+                        @if (Model.UseV2Engine && Model.RankedTeams.Count > 0)
+                        {
+                            <div class="alert alert-info py-2 small mb-3">
+                                V2 engine is ON. Unresolved gear names (skipped, summed across accounts): <strong>@Model.V2UnresolvedNameCount</strong>.
+                            </div>
+                        }
 
                         <details class="mb-3">
                             <summary class="form-label">Advanced stats</summary>

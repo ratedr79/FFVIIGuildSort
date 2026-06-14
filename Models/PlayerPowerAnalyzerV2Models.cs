@@ -41,6 +41,15 @@ namespace FFVIIEverCrisisAnalyzer.Models
         // fight. This factor multiplies such a weapon's effective damage; moderate default 0.5 when unknown.
         public double OffElementDamageFactor { get; set; } = 0.5;
         public List<string> EnabledTeamTemplates { get; set; } = new();
+
+        // GATED SEARCH-WIDTH OVERRIDES (both default null = no behavior change anywhere; the V2 engine uses its
+        // mode-based defaults so the interactive page and all repro/regression tests stay byte-identical). Only the
+        // offline guild-sort adapter (PowerLevelAnalyzerV2Adapter.BuildRequest) opts in. When non-null they are
+        // applied to the AdaptiveSearchProfile: MainSeedTopNOverride widens the per-character distinct-main seeding
+        // (N=2 restores inventory-monotonicity), SkeletonExpansionLimitOverride raises the skeleton-cut cap.
+        public int? MainSeedTopNOverride { get; set; }
+        public int? SkeletonExpansionLimitOverride { get; set; }
+
         public List<string> BossImmunityKeys { get; set; } = new();
         public List<string> HardRequiredEffectKeys { get; set; } = new();
         public List<string> SoftPreferredEffectKeys { get; set; } = new();

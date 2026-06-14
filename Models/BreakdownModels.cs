@@ -86,6 +86,21 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string? Notes { get; set; }
     }
 
+    // The shared per-account bonus, split into the same components the legacy "View details" panel renders
+    // (best memoria, materia tiers, top-3 summon/enemy-skill utility) plus the scalar total. Produced by
+    // TeamOptimizer.ComputeAccountBonusBreakdown and consumed by the V2 adapter to populate its Breakdown so
+    // the V2 panel's bonus inputs match the legacy panel's numbers exactly.
+    public sealed class AccountBonusBreakdown
+    {
+        public MemoriaScoreBreakdown? SelectedMemoria { get; set; }
+        public double MemoriaScore { get; set; }
+        public List<MateriaScoreBreakdown> Materia { get; set; } = new();
+        public double MateriaScore { get; set; }
+        public List<UtilityItemScoreBreakdown> SelectedUtilityItems { get; set; } = new();
+        public double UtilityScore { get; set; }
+        public double TotalBonus => MemoriaScore + MateriaScore + UtilityScore;
+    }
+
     public sealed class TeamScoreBreakdown
     {
         public string InGameName { get; set; } = string.Empty;

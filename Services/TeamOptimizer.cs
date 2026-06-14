@@ -433,6 +433,107 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return best;
         }
 
+        // Theoretical maximum of the per-account bonus (materia + best memoria + top-3 utility), derived from the
+        // hard caps used by the scoring helpers below. This is a deterministic ceiling, NOT a per-account quantity:
+        //   - Materia: ScoreMateria caps the three tiers at 90 + 60 + 30 = 180.
+        //   - Memoria: SelectBestMemoria returns a single memoria scored at 150.0 * frac, so its ceiling is 150.
+        //   - Utility: SelectTopUtilityItems keeps the top 3 items; each item's ceiling is 150 (summons score
+        //     150.0 * frac, and every enemy ability MaxScore in the catalog is <= 100 < 150), so 3 * 150 = 450.
+        // Total = 180 + 150 + 450 = 780. Used by the V2 adapter to convert an account's raw bonus into a bounded
+        // uplift fraction. Changing the helper caps above means updating this constant.
+        public const double MaxPossibleAccountBonus = 180.0 + 150.0 + (3 * 150.0);
+
+        // Shared per-account bonus (materia + best memoria + top-3 summon/enemy-skill utility). This is the SAME
+        // computation the legacy FindBestTeam performs (utilityScore + memoriaScore + materiaScore) and reuses the
+        // SAME private scoring helpers (ScoreMateria / SelectBestMemoria / SelectTopUtilityItems), so both the legacy
+        // team-score path and the V2 adapter agree on the bonus. It is independent of which team is chosen, so it can
+        // be computed standalone here without touching FindBestTeam (legacy output stays byte-identical).
+        public double ComputeAccountBonus(AccountRow account, BattleContext context)
+        {
+            // Expressed in terms of the component breakdown so the scalar total and the per-component
+            // detail (used by the V2 "View details" panel) can never diverge.
+            return ComputeAccountBonusBreakdown(account, context).TotalBonus;
+        }
+
+        // Component-level version of ComputeAccountBonus: returns the SAME memoria / materia / utility
+        // pieces (and the same total) that the legacy detail panel shows, reusing the SAME private
+        // helpers (SelectBestMemoria / ScoreMateria / SelectTopUtilityItems). ComputeAccountBonus is
+        // defined as the .TotalBonus of this, so legacy team scoring and the V2 uplift stay in lock-step.
+        // Independent of which team is chosen, so it never touches FindBestTeam (legacy output unchanged).
+        public AccountBonusBreakdown ComputeAccountBonusBreakdown(AccountRow account, BattleContext context)
+        {
+            context ??= new BattleContext();
+
+            var ownedSummons = new List<SummonOwnership>();
+            var ownedEnemyAbilities = new List<EnemyAbilityOwnership>();
+            var ownedMemoria = new List<MemoriaOwnership>();
+            var ownedMateria = new List<MateriaOwnership>();
+
+            foreach (var kvp in account.ItemResponsesByColumnName)
+            {
+                var columnName = kvp.Key;
+                var rawValue = kvp.Value;
+
+                if (_summonCatalog.TryGetSummon(columnName, out var summonDef))
+                {
+                    var lvl = ParseSummonLevel(rawValue);
+                    if (lvl != null && lvl.Value > 0)
+                    {
+                        ownedSummons.Add(new SummonOwnership { SummonName = summonDef.Name, Level = lvl.Value });
+                    }
+                    continue;
+                }
+
+                if (_enemyAbilityCatalog.TryGetEnemyAbility(columnName, out var enemyAbilityDef))
+                {
+                    var lvl = ParseEnemyAbilityLevel(rawValue);
+                    if (lvl != null && lvl.Value > 0)
+                    {
+                        ownedEnemyAbilities.Add(new EnemyAbilityOwnership { AbilityName = enemyAbilityDef.Name, Level = lvl.Value });
+                    }
+                    continue;
+                }
+
+                if (_memoriaCatalog.TryGetMemoria(columnName, out var memoriaDef))
+                {
+                    var lvl = ParseMemoriaLevel(rawValue);
+                    if (lvl != null && lvl.Value > 0)
+                    {
+                        ownedMemoria.Add(new MemoriaOwnership { MemoriaName = memoriaDef.Name, Level = lvl.Value });
+                    }
+                    continue;
+                }
+
+                if (TryParseMateriaColumn(columnName, out var materiaName, out var tier))
+                {
+                    var count = ParseCountValue(rawValue);
+                    if (count > 0)
+                    {
+                        ownedMateria.Add(new MateriaOwnership { MateriaName = materiaName, Tier = tier, Count = count });
+                    }
+                }
+            }
+
+            var selectedMemoria = SelectBestMemoria(ownedMemoria);
+            var memoriaScore = selectedMemoria?.Score ?? 0;
+
+            var materia = ScoreMateria(ownedMateria);
+            var materiaScore = materia.Sum(m => m.Score);
+
+            var utilityItems = SelectTopUtilityItems(ownedSummons, ownedEnemyAbilities, context);
+            var utilityScore = utilityItems.Sum(u => u.Score);
+
+            return new AccountBonusBreakdown
+            {
+                SelectedMemoria = selectedMemoria,
+                MemoriaScore = memoriaScore,
+                Materia = materia,
+                MateriaScore = materiaScore,
+                SelectedUtilityItems = utilityItems,
+                UtilityScore = utilityScore
+            };
+        }
+
         private List<CostumeScoreBreakdown> SelectAndScoreCostumes(string characterName, Dictionary<string, List<CostumeOwnership>> costumesByCharacter, BattleContext context)
         {
             if (!costumesByCharacter.TryGetValue(characterName, out var owned) || owned.Count == 0)

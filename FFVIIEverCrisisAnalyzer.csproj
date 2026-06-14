@@ -24,6 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Expose internal adapter helpers (e.g. PowerLevelAnalyzerV2Adapter.BuildInventoryJson) to the test
+         project so the V2 inventory build can be asserted directly. No runtime behavior change. -->
+    <InternalsVisibleTo Include="FFVIIEverCrisisAnalyzer.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Update="data\enemyAbilities.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

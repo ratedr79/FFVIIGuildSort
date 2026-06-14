@@ -937,9 +937,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // including Event/Grindable/Limited weapons — survive; Fast only skips more of the lower-ranked tail.
             // This cuts the candidate BREADTH (and thus the number of gate evaluations / credited-ceiling builds),
             // which is where the FULL->FAST wall-clock savings come from on top of the FastSearchEpsilon prune.
+            AdaptiveSearchProfile profile;
             if (request.SearchMode == PlayerPowerAnalyzerV2SearchMode.Fast)
             {
-                return new AdaptiveSearchProfile
+                profile = new AdaptiveSearchProfile
                 {
                     MainWeaponOptionsPerCharacter = FastMainWeaponOptionsPerCharacter,
                     OffHandWeaponOptionsPerCharacter = FastOffHandWeaponOptionsPerCharacter,
@@ -951,18 +952,34 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     CharacterShortlistLimit = int.MaxValue
                 };
             }
-
-            return new AdaptiveSearchProfile
+            else
             {
-                MainWeaponOptionsPerCharacter = ExhaustiveMainWeaponOptionsPerCharacter,
-                OffHandWeaponOptionsPerCharacter = ExhaustiveOffHandWeaponOptionsPerCharacter,
-                UltimateOptionsPerCharacter = ExhaustiveUltimateOptionsPerCharacter,
-                MainOutfitOptionsPerCharacter = ExhaustiveMainOutfitOptionsPerCharacter,
-                SubOutfitOptionsPerCharacter = ExhaustiveSubOutfitOptionsPerCharacter,
-                RetainedVariantsPerCharacter = ExhaustiveRetainedVariantsPerCharacter,
-                SkeletonExpansionLimit = ExhaustiveSkeletonExpansionLimit,
-                CharacterShortlistLimit = int.MaxValue
-            };
+                profile = new AdaptiveSearchProfile
+                {
+                    MainWeaponOptionsPerCharacter = ExhaustiveMainWeaponOptionsPerCharacter,
+                    OffHandWeaponOptionsPerCharacter = ExhaustiveOffHandWeaponOptionsPerCharacter,
+                    UltimateOptionsPerCharacter = ExhaustiveUltimateOptionsPerCharacter,
+                    MainOutfitOptionsPerCharacter = ExhaustiveMainOutfitOptionsPerCharacter,
+                    SubOutfitOptionsPerCharacter = ExhaustiveSubOutfitOptionsPerCharacter,
+                    RetainedVariantsPerCharacter = ExhaustiveRetainedVariantsPerCharacter,
+                    SkeletonExpansionLimit = ExhaustiveSkeletonExpansionLimit,
+                    CharacterShortlistLimit = int.MaxValue
+                };
+            }
+
+            // GATED OVERRIDES: applied ONLY when the request supplies a non-null value (offline guild-sort adapter).
+            // When both are null (every other caller: interactive page, repro/regression tests) the profile is left
+            // at its mode defaults, so behavior is byte-identical.
+            if (request.MainSeedTopNOverride.HasValue)
+            {
+                profile.MainSeedTopN = request.MainSeedTopNOverride.Value;
+            }
+            if (request.SkeletonExpansionLimitOverride.HasValue)
+            {
+                profile.SkeletonExpansionLimitOverride = request.SkeletonExpansionLimitOverride.Value;
+            }
+
+            return profile;
         }
 
         private List<TeamCandidate> BuildTeamCandidatesFromSkeletons(
@@ -1034,7 +1051,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return OrderTeamCandidatesForSelection(teamCandidates)
-                .Take(Math.Max(1, adaptiveSearchProfile.SkeletonExpansionLimit))
+                .Take(Math.Max(1, adaptiveSearchProfile.EffectiveSkeletonExpansionLimit))
                 .ToList();
         }
 
@@ -1057,14 +1074,62 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return new List<TeamSkeleton>();
             }
 
-            var anchorCandidates = seedPool
+            var mainSeedTopN = Math.Max(1, adaptiveSearchProfile.MainSeedTopN);
+            var rankedAnchorPool = seedPool
                 .OrderByDescending(variant => ScoreAnchorCandidate(variant, request))
                 .ThenByDescending(variant => GetVariantSelectionScore(variant, request))
                 .ThenBy(BuildCharacterVariantEquipmentKey, StringComparer.OrdinalIgnoreCase)
-                .Take(Math.Max(6, adaptiveSearchProfile.SkeletonExpansionLimit))
                 .ToList();
+            var anchorCandidates = rankedAnchorPool
+                .Take(Math.Max(6, adaptiveSearchProfile.EffectiveSkeletonExpansionLimit))
+                .ToList();
+            // GATED top-N main seeding (default N=1 -> no-op, byte-identical). When N>1, ensure each character's
+            // top-N DISTINCT-main anchor variants are present, so a team-optimal lower-ranked main can anchor a
+            // skeleton instead of being pinned to the single top-proxy main. Append (don't reorder) to keep the
+            // existing top slice untouched; downstream Take/scoring is unchanged.
+            if (mainSeedTopN > 1)
+            {
+                var perCharMainCount = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                var presentEquip = new HashSet<string>(anchorCandidates.Select(BuildCharacterVariantEquipmentKey), StringComparer.OrdinalIgnoreCase);
+                var seenMainByChar = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var existing in anchorCandidates)
+                {
+                    if (!seenMainByChar.TryGetValue(existing.CharacterName, out var mains))
+                    {
+                        mains = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        seenMainByChar[existing.CharacterName] = mains;
+                    }
+                    if (mains.Add(existing.MainWeapon.Name))
+                    {
+                        perCharMainCount.TryGetValue(existing.CharacterName, out var c);
+                        perCharMainCount[existing.CharacterName] = c + 1;
+                    }
+                }
+                foreach (var variant in rankedAnchorPool)
+                {
+                    perCharMainCount.TryGetValue(variant.CharacterName, out var distinctMains);
+                    if (distinctMains >= mainSeedTopN)
+                    {
+                        continue;
+                    }
+                    if (!seenMainByChar.TryGetValue(variant.CharacterName, out var mains))
+                    {
+                        mains = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        seenMainByChar[variant.CharacterName] = mains;
+                    }
+                    if (!mains.Add(variant.MainWeapon.Name))
+                    {
+                        continue; // already have this main for this character (OB dup / same main)
+                    }
+                    perCharMainCount[variant.CharacterName] = distinctMains + 1;
+                    if (presentEquip.Add(BuildCharacterVariantEquipmentKey(variant)))
+                    {
+                        anchorCandidates.Add(variant);
+                    }
+                }
+            }
             var skeletons = new List<TeamSkeleton>();
-            var supportCandidateLimit = Math.Max(6, Math.Min(10, adaptiveSearchProfile.SkeletonExpansionLimit));
+            var supportCandidateLimit = Math.Max(6, Math.Min(10, adaptiveSearchProfile.EffectiveSkeletonExpansionLimit));
             foreach (var anchor in anchorCandidates)
             {
                 var rankedSupportCandidates = seedPool
@@ -1079,10 +1144,19 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 // character combinations; each support's variants are explored later in expansion, so keeping only the
                 // best variant per character here loses nothing and makes the Take count DISTINCT characters — which
                 // also keeps the cut robust (a fixed numeric Take on variants slips whenever variant counts change).
+                // GATED top-N main seeding (default N=1 -> .First() per character, byte-identical). When N>1, emit up
+                // to N DISTINCT-main variants per character while STILL counting supportCandidateLimit DISTINCT
+                // CHARACTERS (the Take semantic is preserved), so a character can contribute its N best mains as
+                // support seeds without crowding out other support CHARACTERS.
                 var supportCandidates = rankedSupportCandidates
                     .GroupBy(candidate => candidate.CharacterName, StringComparer.OrdinalIgnoreCase)
-                    .Select(group => group.First())
                     .Take(supportCandidateLimit)
+                    .SelectMany(group => mainSeedTopN > 1
+                        ? group
+                            .GroupBy(variant => variant.MainWeapon.Name, StringComparer.OrdinalIgnoreCase)
+                            .Select(mainGroup => mainGroup.First())
+                            .Take(mainSeedTopN)
+                        : new[] { group.First() })
                     .ToList();
                 supportCandidates.AddRange(rankedSupportCandidates
                     .Where(candidate => supportCandidates.All(existing => !existing.CharacterName.Equals(candidate.CharacterName, StringComparison.OrdinalIgnoreCase))
@@ -1124,12 +1198,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            return skeletons
+            var expansionLimit = Math.Max(1, adaptiveSearchProfile.EffectiveSkeletonExpansionLimit);
+
+            // Proxy ordering + equipment-key dedup, then cut to the (effective) expansion limit.
+            var proxyOrdered = skeletons
                 .OrderByDescending(skeleton => skeleton.Score)
                 .ThenBy(skeleton => skeleton.TeamKey, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(skeleton => skeleton.EquipmentKey, StringComparer.OrdinalIgnoreCase)
                 .DistinctBy(skeleton => skeleton.EquipmentKey, StringComparer.OrdinalIgnoreCase)
-                .Take(Math.Max(1, adaptiveSearchProfile.SkeletonExpansionLimit))
+                .ToList();
+
+            return proxyOrdered
+                .Take(expansionLimit)
                 .ToList();
         }
 
@@ -7919,6 +7999,24 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public int RetainedVariantsPerCharacter { get; set; }
             public int SkeletonExpansionLimit { get; set; }
             public int CharacterShortlistLimit { get; set; }
+
+            // GATED CAP-OVERRIDE KNOB (default null = use the mode-based SkeletonExpansionLimit -> byte-identical).
+            // When non-null, this value replaces SkeletonExpansionLimit at every skeleton-cut read (via
+            // EffectiveSkeletonExpansionLimit), letting an opt-in caller (offline guild ranking) raise the cap
+            // without touching the interactive Fast/Full defaults. Mirrors the MainSeedTopN gating pattern.
+            public int? SkeletonExpansionLimitOverride { get; set; }
+
+            // The cap actually used by every skeleton-cut .Take(...): the override when set, else the mode default.
+            public int EffectiveSkeletonExpansionLimit => SkeletonExpansionLimitOverride ?? SkeletonExpansionLimit;
+
+            // Main-seed breadth. When > 1, skeleton enumeration seeds, per character, that character's top-N
+            // DISTINCT-main seed variants (covering its N best distinct mains) into BOTH the anchor pool and the
+            // support-pool per-character dedup — fixing the inventory-monotonicity violation where a team-optimal
+            // lower-ranked main is never explored. Everything else (proxy ordering, .Take caps, scoring, downstream
+            // expansion main-pinning) is unchanged. Default 1 = byte-identical engine behavior (interactive page +
+            // 422k repro stay stable). The offline guild ranking opts into 2 via MainSeedTopNOverride (see adapter);
+            // making 2 the global default is deferred pending the spread-vs-Vincent model audit.
+            public int MainSeedTopN { get; set; } = 1;
         }
 
         private sealed class AnchorScoringContext

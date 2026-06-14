@@ -69,8 +69,9 @@ public class PowerLevelAnalyzerModel : PageModel
     private readonly SummonCatalog _summonCatalog;
     private readonly EnemyAbilityCatalog _enemyAbilityCatalog;
     private readonly MemoriaCatalog _memoriaCatalog;
+    private readonly PowerLevelAnalyzerV2Adapter _v2Adapter;
 
-    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, IConfiguration configuration, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog, SummonCatalog summonCatalog, EnemyAbilityCatalog enemyAbilityCatalog, MemoriaCatalog memoriaCatalog)
+    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, IConfiguration configuration, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog, SummonCatalog summonCatalog, EnemyAbilityCatalog enemyAbilityCatalog, MemoriaCatalog memoriaCatalog, PowerLevelAnalyzerV2Adapter v2Adapter)
     {
         _logger = logger;
         _configuration = configuration;
@@ -81,6 +82,7 @@ public class PowerLevelAnalyzerModel : PageModel
         _summonCatalog = summonCatalog;
         _enemyAbilityCatalog = enemyAbilityCatalog;
         _memoriaCatalog = memoriaCatalog;
+        _v2Adapter = v2Adapter;
     }
 
     public WeaponCatalog WeaponCatalog => _weaponCatalog;
@@ -102,6 +104,13 @@ public class PowerLevelAnalyzerModel : PageModel
 
     [BindProperty]
     public bool ShowDebug { get; set; } = false;
+
+    [BindProperty]
+    public bool UseV2Engine { get; set; } = false;
+
+    // Total survey gear names the V2 adapter could not resolve to a V2 Id (summed across accounts). Surfaced when
+    // the V2 engine is on so it is diagnosable.
+    public int V2UnresolvedNameCount { get; set; }
 
     [BindProperty]
     public Dictionary<string, int> SynergyEffectBonusPercents { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -236,7 +245,20 @@ public class PowerLevelAnalyzerModel : PageModel
                 EnabledTeamTemplates = enabledTemplateNames
             };
 
-            RankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, battleContext);
+            if (UseV2Engine)
+            {
+                // V2 adapter per account -> same List<BestTeamResult> shape as the legacy path. Everything after this
+                // (sort, guild-lock assignment, gear panel, render, CSV export) is shared and untouched.
+                var v2Run = _v2Adapter.Analyze(accounts, battleContext);
+                RankedTeams = v2Run.Results;
+                V2UnresolvedNameCount = v2Run.TotalUnresolvedNames;
+            }
+            else
+            {
+                // LEGACY path: existing Gb20Analyzer engine, EXACTLY as before (fallback / default).
+                RankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, battleContext);
+            }
+
             PlayerGearByName = BuildPlayerGearSummaries(accounts, RankedTeams, battleContext);
 
             // Reload templates for display
