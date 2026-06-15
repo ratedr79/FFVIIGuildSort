@@ -4190,6 +4190,37 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
+            // The post-greedy scoring (per-character final scores + the team headline/refinement terms) is shared,
+            // byte-identical, with the Interactive Team Builder's fixed-team scorer (DeliverScoreFixedTeam): both
+            // call ScoreFinalizedTeamCore with their assembled per-character sub state. Keeping it a single helper
+            // guarantees a manually-picked team reproduces the analyzer's number exactly.
+            return ScoreFinalizedTeamCore(
+                baseVariants,
+                characterOutputs,
+                passivePointsByCharacter,
+                baseNonPassiveScoresByCharacter,
+                subWeaponNonPassiveScoreByCharacter,
+                selectedSubPassiveContributionsByCharacter,
+                request,
+                referenceTuningProfile,
+                normalizedEnabledTemplateNames);
+        }
+
+        // Shared post-sub-selection team scoring. Inputs are the base variants and the per-character sub state that
+        // has ALREADY been accumulated by the caller (the engine's greedy in FinalizeTeamCandidate, or the user's
+        // fixed picks in the Interactive Team Builder). Computes the per-character final scores and the team Score
+        // (typed EstimateTeamDamage headline over the credited variants + refinement terms) exactly as before.
+        private TeamCandidate ScoreFinalizedTeamCore(
+            IReadOnlyList<CharacterBuildCandidate> baseVariants,
+            List<PlayerPowerAnalyzerV2CharacterBuild> characterOutputs,
+            IReadOnlyDictionary<string, Dictionary<string, int>> passivePointsByCharacter,
+            IReadOnlyDictionary<string, double> baseNonPassiveScoresByCharacter,
+            IReadOnlyDictionary<string, double> subWeaponNonPassiveScoreByCharacter,
+            IReadOnlyDictionary<string, Dictionary<string, Dictionary<string, int>>> selectedSubPassiveContributionsByCharacter,
+            PlayerPowerAnalyzerV2Request request,
+            ReferenceTuningProfile referenceTuningProfile,
+            IReadOnlyDictionary<string, string> normalizedEnabledTemplateNames)
+        {
             foreach (var character in characterOutputs)
             {
                 var finalPassiveScore = ScoreCharacterPassivePoints(passivePointsByCharacter[character.CharacterName], passivePointsByCharacter.Values, character.Role, request);
@@ -6326,54 +6357,86 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return true;
             }
 
+            if (TryGetPassiveBreakpointTable(skillName, out var breakpointPoints, out var bonuses))
+            {
+                bonusValue = ResolveBreakpointBonus(points, breakpointPoints, bonuses);
+                return true;
+            }
+
+            return false;
+        }
+
+        // Single source of truth for which (breakpointPoints[], bonuses[]) table a passive family routes to. Both the
+        // magnitude resolver (TryGetPassiveBonusValue) and the chart/level accessors share this so the per-character
+        // Levels, the modal point displays, and the breakpoint charts all read the EXACT same arrays the scorer uses.
+        // The classification order MUST match TryGetPassiveBonusValue's original cascade (more-specific families first).
+        // Note: the COSTUME literal-% marker is handled by the caller (it has no breakpoint table); this routes the
+        // weapon-calibrated families only.
+        private static bool TryGetPassiveBreakpointTable(string skillName, out IReadOnlyList<int> breakpointPoints, out IReadOnlyList<double> bonuses)
+        {
+            breakpointPoints = Array.Empty<int>();
+            bonuses = Array.Empty<double>();
+            if (string.IsNullOrWhiteSpace(skillName))
+            {
+                return false;
+            }
+
             var normalized = NormalizePassiveSkillAlias(skillName.Trim());
             if (IsOmniElementAbilityDmgLabel(normalized))
             {
-                bonusValue = ResolveBreakpointBonus(points, OmniElementAbilityDmgBreakpointPoints, OmniElementAbilityDmgBonuses);
+                breakpointPoints = OmniElementAbilityDmgBreakpointPoints;
+                bonuses = OmniElementAbilityDmgBonuses;
                 return true;
             }
 
             if (normalized.Contains("Boost PATK (All Allies)", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("Boost MATK (All Allies)", StringComparison.OrdinalIgnoreCase))
             {
-                bonusValue = ResolveBreakpointBonus(points, StandardBreakpointPoints, BoostPatkAndMatkAllAlliesBonuses);
+                breakpointPoints = StandardBreakpointPoints;
+                bonuses = BoostPatkAndMatkAllAlliesBonuses;
                 return true;
             }
 
             if (normalized.Contains("Boost ATK (All Allies)", StringComparison.OrdinalIgnoreCase))
             {
-                bonusValue = ResolveBreakpointBonus(points, StandardBreakpointPoints, BoostAtkAllAlliesBonuses);
+                breakpointPoints = StandardBreakpointPoints;
+                bonuses = BoostAtkAllAlliesBonuses;
                 return true;
             }
 
             if (normalized.Contains("Boost PDEF (All Allies)", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("Boost MDEF (All Allies)", StringComparison.OrdinalIgnoreCase))
             {
-                bonusValue = ResolveBreakpointBonus(points, BoostPdefAndMdefAllAlliesBreakpointPoints, BoostPdefAndMdefAllAlliesBonuses);
+                breakpointPoints = BoostPdefAndMdefAllAlliesBreakpointPoints;
+                bonuses = BoostPdefAndMdefAllAlliesBonuses;
                 return true;
             }
 
             if (IsGenericElementPotArcanumAllAlliesPassiveLabel(normalized))
             {
-                bonusValue = ResolveBreakpointBonus(points, ElementPotArcanumAllAlliesBreakpointPoints, ElementPotArcanumAllAlliesBonuses);
+                breakpointPoints = ElementPotArcanumAllAlliesBreakpointPoints;
+                bonuses = ElementPotArcanumAllAlliesBonuses;
                 return true;
             }
 
             if (IsElementAbilityAllAlliesPassiveLabel(normalized))
             {
-                bonusValue = ResolveBreakpointBonus(points, ElementAbilityAllAlliesBreakpointPoints, ElementAbilityAllAlliesBonuses);
+                breakpointPoints = ElementAbilityAllAlliesBreakpointPoints;
+                bonuses = ElementAbilityAllAlliesBonuses;
                 return true;
             }
 
             if (IsBuffDebuffExtensionPassive(normalized))
             {
-                bonusValue = GetBuffDebuffExtensionBreakpointBonus(points);
+                breakpointPoints = StandardBreakpointPoints;
+                bonuses = BuffDebuffExtensionBonuses;
                 return true;
             }
 
             if (normalized.Contains("boost heal", StringComparison.OrdinalIgnoreCase))
             {
-                bonusValue = ResolveBreakpointBonus(points, BoostHealBreakpointPoints, BoostHealBonuses);
+                breakpointPoints = BoostHealBreakpointPoints;
+                bonuses = BoostHealBonuses;
                 return true;
             }
 
@@ -6384,7 +6447,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 || normalized.Contains("Mag. Ability Dmg", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("Mag. Ability Damage", StringComparison.OrdinalIgnoreCase))
             {
-                bonusValue = ResolveBreakpointBonus(points, StandardBreakpointPoints, BoostPhysAndMagAbilityPotBonuses);
+                breakpointPoints = StandardBreakpointPoints;
+                bonuses = BoostPhysAndMagAbilityPotBonuses;
                 return true;
             }
 
@@ -6395,30 +6459,96 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     && !normalized.Contains("Phys.", StringComparison.OrdinalIgnoreCase)
                     && !normalized.Contains("Mag.", StringComparison.OrdinalIgnoreCase)))
             {
-                bonusValue = ResolveBreakpointBonus(points, StandardBreakpointPoints, BoostAbilityPotBonuses);
+                breakpointPoints = StandardBreakpointPoints;
+                bonuses = BoostAbilityPotBonuses;
                 return true;
             }
 
             if (normalized.Contains("Boost ATK", StringComparison.OrdinalIgnoreCase))
             {
-                bonusValue = ResolveBreakpointBonus(points, StandardBreakpointPoints, BoostAtkBonuses);
+                breakpointPoints = StandardBreakpointPoints;
+                bonuses = BoostAtkBonuses;
                 return true;
             }
 
             if (normalized.Contains("Boost PATK", StringComparison.OrdinalIgnoreCase)
                 || normalized.Contains("Boost MATK", StringComparison.OrdinalIgnoreCase))
             {
-                bonusValue = ResolveBreakpointBonus(points, StandardBreakpointPoints, BoostPatkAndMatkBonuses);
+                breakpointPoints = StandardBreakpointPoints;
+                bonuses = BoostPatkAndMatkBonuses;
                 return true;
             }
 
             if (IsElementAbilityPassiveLabel(normalized))
             {
-                bonusValue = ResolveBreakpointBonus(points, ElementPotBreakpointPoints, ElementPotBonuses);
+                breakpointPoints = ElementPotBreakpointPoints;
+                bonuses = ElementPotBonuses;
                 return true;
             }
 
             return false;
+        }
+
+        // Resolve a passive's breakpoint LEVEL for an accumulated point total: the count of breakpoint thresholds the
+        // points have passed (1-based; 0 = below the first threshold). Mirrors ResolveBreakpointBonus's accumulation so
+        // Level and Value always agree. Costume literal-% passives have no breakpoint table -> level 1 when they have a
+        // % (a single resolved magnitude), else 0.
+        private static int ResolvePassiveLevel(string skillName, int points)
+        {
+            if (points <= 0 || string.IsNullOrWhiteSpace(skillName))
+            {
+                return 0;
+            }
+
+            var (_, literalPercent) = SplitCostumeLiteralMarker(skillName.Trim());
+            if (literalPercent.HasValue)
+            {
+                return literalPercent.Value != 0 ? 1 : 0;
+            }
+
+            if (!TryGetPassiveBreakpointTable(skillName, out var breakpointPoints, out var bonuses))
+            {
+                return 0;
+            }
+
+            var level = 0;
+            for (var i = 0; i < breakpointPoints.Count && i < bonuses.Count; i++)
+            {
+                if (points < breakpointPoints[i])
+                {
+                    break;
+                }
+
+                level = i + 1;
+            }
+
+            return level;
+        }
+
+        // Build the full breakpoint CHART for a passive family: one row per level (with its threshold Points and the
+        // resolved Value), plus a natural Level-0 / 0pt / "+0%" row at the top. Reads the engine's own
+        // (breakpointPoints[], bonuses[]) arrays for the family, so the chart matches the in-game table exactly.
+        // Returns false for passives with no breakpoint table (e.g. costume literal-% or non-%-shaped passives).
+        private static bool TryBuildPassiveBreakpointChart(string skillName, out List<InteractiveTeamRAbilityChartRow> rows)
+        {
+            rows = new List<InteractiveTeamRAbilityChartRow>();
+            if (!TryGetPassiveBreakpointTable(skillName, out var breakpointPoints, out var bonuses))
+            {
+                return false;
+            }
+
+            rows.Add(new InteractiveTeamRAbilityChartRow { Level = 0, Points = 0, Value = FormatSignedPercent(0) });
+            for (var i = 0; i < breakpointPoints.Count && i < bonuses.Count; i++)
+            {
+                rows.Add(new InteractiveTeamRAbilityChartRow
+                {
+                    Level = i + 1,
+                    Points = breakpointPoints[i],
+                    Value = FormatSignedPercent(bonuses[i])
+                });
+            }
+
+            return true;
         }
 
         private static double ResolveBreakpointBonus(int points, IReadOnlyList<int> breakpoints, IReadOnlyList<double> bonuses)

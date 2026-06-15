@@ -177,4 +177,155 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string Label { get; set; } = string.Empty;
         public string Group { get; set; } = string.Empty;
     }
+
+    // ===== Interactive Team Builder (manual fixed-team scoring) =====
+
+    // One character's chosen loadout in a manually-built team. Items are given by NAME (preferred) or Id; the
+    // scorer resolves each to the player's owned copy at its owned overboost/level. Empty slots are allowed.
+    public sealed class InteractiveTeamCharacterSpec
+    {
+        public string Character { get; set; } = string.Empty;
+        public string? Main { get; set; }
+        public string? Off { get; set; }
+        public string? Ultimate { get; set; }
+        public string? MainCostume { get; set; }
+        public List<string> SubWeapons { get; set; } = new();
+        public List<string> SubCostumes { get; set; } = new();
+    }
+
+    // A full manual team spec: exactly the 3 character loadouts plus the battle context.
+    public sealed class InteractiveTeamSpec
+    {
+        public List<InteractiveTeamCharacterSpec> Characters { get; set; } = new();
+        public Element EnemyWeakness { get; set; } = Element.None;
+        public DamageType PreferredDamageType { get; set; } = DamageType.Any;
+        public EnemyTargetScenario TargetScenario { get; set; } = EnemyTargetScenario.Unknown;
+    }
+
+    // A single active buff/debuff/effect the team provides, surfaced for the UI effect list.
+    public sealed class InteractiveTeamEffect
+    {
+        public string Key { get; set; } = string.Empty;
+        // Human-readable, element-aware display label (e.g. "Ice Weapon Boost", "PATK Up", "PDEF Down").
+        // The results panel shows this instead of the raw family/key. Falls back to the raw key if empty.
+        public string DisplayName { get; set; } = string.Empty;
+        public string Family { get; set; } = string.Empty;
+        public string Axis { get; set; } = string.Empty;
+        public string Scope { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
+        public string SourceType { get; set; } = string.Empty;
+        public double? Potency { get; set; }
+        public string Kind { get; set; } = string.Empty; // "buff" | "debuff"
+    }
+
+    // One of a character's accumulated passive R-ability totals, for the character panel. Points is the character's
+    // total accumulated points for the passive (already slot-halved for off-hand/sub contributions by the scorer);
+    // Level is the resolved breakpoint level for those points (via the passive's own breakpoint-points array); Value
+    // is the resolved display value (e.g. "+40%"). All-Allies passives are kept per-character, labeled "... (All Allies)".
+    public sealed class InteractiveTeamCharacterPassive
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Points { get; set; }
+        public int Level { get; set; }
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public sealed class InteractiveTeamCharacterResult
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public int Patk { get; set; }
+        public int Matk { get; set; }
+        public double FinalScore { get; set; }
+        public PlayerPowerAnalyzerV2ItemSlot? Main { get; set; }
+        public PlayerPowerAnalyzerV2ItemSlot? Off { get; set; }
+        public PlayerPowerAnalyzerV2ItemSlot? Ult { get; set; }
+        public PlayerPowerAnalyzerV2ItemSlot? Outfit { get; set; }
+        public List<PlayerPowerAnalyzerV2ItemSlot> SubWeapons { get; set; } = new();
+        public List<PlayerPowerAnalyzerV2ItemSlot> SubOutfits { get; set; } = new();
+        // The character's accumulated passive R-ability totals (points/level/value), sorted by Points descending.
+        public List<InteractiveTeamCharacterPassive> Passives { get; set; } = new();
+    }
+
+    // One row of a passive family's breakpoint chart (the "Show R. Ability Levels" modal): the level, the point
+    // threshold to reach it, and the resolved display value. A natural Level-0 / 0pt / "+0%" row leads each chart.
+    public sealed class InteractiveTeamRAbilityChartRow
+    {
+        public int Level { get; set; }
+        public int Points { get; set; }
+        public string Value { get; set; } = string.Empty;
+    }
+
+    // The full breakpoint table for one passive family present on the scored team, straight from the engine's
+    // (breakpointPoints[], bonuses[]) arrays — so the chart matches the in-game R. Ability levels exactly.
+    public sealed class InteractiveTeamRAbilityChart
+    {
+        public string Label { get; set; } = string.Empty;
+        public List<InteractiveTeamRAbilityChartRow> Rows { get; set; } = new();
+    }
+
+    public sealed class InteractiveTeamScoreResult
+    {
+        public bool HasResult { get; set; }
+        public string? FailureReason { get; set; }
+        public double Score { get; set; }
+        public double RawDamage { get; set; }
+        public double Refinement { get; set; }
+        public List<InteractiveTeamCharacterResult> Characters { get; set; } = new();
+        public List<InteractiveTeamEffect> Buffs { get; set; } = new();
+        public List<InteractiveTeamEffect> Debuffs { get; set; } = new();
+        public string CopyText { get; set; } = string.Empty;
+        // Item NAME/Id values from the spec that could not be resolved to an owned catalog item.
+        public List<string> UnresolvedItems { get; set; } = new();
+        public List<string> Warnings { get; set; } = new();
+        // Breakpoint charts (for the "Show R. Ability Levels" modal): one per DISTINCT passive family present across
+        // the scored team (the union of the characters' Passives labels), each carrying the full breakpoint table.
+        public List<InteractiveTeamRAbilityChart> RAbilityCharts { get; set; } = new();
+    }
+
+    // Per-character slot catalog for the page: every weapon/costume option a character can equip, so the
+    // client can filter to the player's owned items locally.
+    // One resolved passive R-ability on a catalog item, rendered at FULL (main / off-outfit / ultimate slot,
+    // slotMultiplier 1.0) and HALF (off-hand / sub-weapon / sub-outfit slot, slotMultiplier 0.5) value. The two
+    // strings come straight from the engine's breakpoint resolution + the same point-halving the scorer applies
+    // (the half is floor(points * 0.5) BEFORE the breakpoint lookup, mirrored exactly), so they match what
+    // ScoreFixedTeam actually credits. Full/Half are short display strings, e.g. "+13%", "+7%", or "Tier 2".
+    public sealed class InteractiveTeamBuilderCatalogPassive
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Full { get; set; } = string.Empty;
+        public string Half { get; set; } = string.Empty;
+        // The raw points the passive contributes in a full-value slot (slotMultiplier 1.0) and a half-value slot
+        // (floor(points * 0.5)) — the same point totals feeding Full/Half. Lets the picker show "... · 18 pts · +15%".
+        public int FullPoints { get; set; }
+        public int HalfPoints { get; set; }
+    }
+
+    public sealed class InteractiveTeamBuilderCatalogItem
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Character { get; set; } = string.Empty;
+        public string Slot { get; set; } = string.Empty; // "weapon" | "ultimate" | "costume"
+        public string EquipmentType { get; set; } = string.Empty;
+        public string Element { get; set; } = string.Empty;
+        public string AbilityType { get; set; } = string.Empty;
+        public double DamagePercent { get; set; }
+
+        // The item's active ability (weapons/ultimates). For FF7EC the weapon's command ability is identified
+        // by the weapon Name; "" for costumes (no active command). AbilityDescription is the rendered ability
+        // text when available, else "".
+        public string Ability { get; set; } = string.Empty;
+        public string AbilityDescription { get; set; } = string.Empty;
+
+        // The item's passive R-abilities, each resolved against its OWN intrinsic points through the engine's
+        // breakpoint tables, at full- and half-value slots. Empty when the item has no resolvable passives.
+        public List<InteractiveTeamBuilderCatalogPassive> Passives { get; set; } = new();
+    }
+
+    public sealed class InteractiveTeamBuilderCatalog
+    {
+        public List<string> Characters { get; set; } = new();
+        public List<InteractiveTeamBuilderCatalogItem> Items { get; set; } = new();
+    }
 }

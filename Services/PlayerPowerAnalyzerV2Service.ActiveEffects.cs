@@ -20,6 +20,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private sealed class DetectedActiveEffect
         {
             public string Key { get; set; } = string.Empty;
+            // Human-readable, element-aware label this effect was matched against (e.g. "Ice Weapon Boost",
+            // "PATK Up"). Retained purely for display in the team-builder results panel; never used for
+            // scoring, matching, or detection.
+            public string DisplayName { get; set; } = string.Empty;
             public string FamilyKey { get; set; } = string.Empty;
             public string AxisKey { get; set; } = string.Empty;
             public string SourceName { get; set; } = string.Empty;
@@ -221,6 +225,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             effects.Add(new DetectedActiveEffect
             {
                 Key = key,
+                DisplayName = label,
                 FamilyKey = GetActiveEffectFamilyKey(key),
                 AxisKey = GetActiveEffectAxisKey(key),
                 SourceName = sourceName,
@@ -236,7 +241,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 DurationSeconds = TryParseMarker(DurationMarkerRegex, snippet) ?? TryParseMarker(DurationMarkerRegex, blob),
                 ExtensionSeconds = TryParseMarker(ExtensionMarkerRegex, snippet) ?? TryParseMarker(ExtensionMarkerRegex, blob),
                 MaxPotencyTierRank = TryParseTierMarker(MaxPotencyTierMarkerRegex, snippet) ?? TryParseTierMarker(MaxPotencyTierMarkerRegex, blob),
-                TargetScope = ParseTargetScope(snippet, blob),
+                // Scope from the matched effect's OWN range marker. In multi-effect abilities the snippet can
+                // span an earlier damage clause whose "[Rng.: All Enemies]" would otherwise be picked up first
+                // (e.g. Chrome Death Penalty leaking enemy range onto its "Applies Wind Weapon Boost" ally buff).
+                // Starting at the label makes the effect's own "[Rng.: ...]" the first marker ParseTargetScope sees.
+                TargetScope = ParseTargetScope(labelIndexInSnippet >= 0 ? snippet[labelIndexInSnippet..] : snippet, blob),
                 IsAssumedMateria = isAssumedMateria,
                 AppliesOnlyToSingleTargetAttacks = appliesOnlyToSingleTargetAttacks
             });
@@ -481,6 +490,41 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 "stat_debuff_tier_increase" => "debuff_amplifier",
                 _ => key
             };
+        }
+
+        // Enemy-side debuff families. An effect's buff/debuff polarity is intrinsic to its family — a
+        // Weapon Boost is always an ally buff, a Defense Down is always an enemy debuff — and must NOT be
+        // inferred from a parsed target scope. Multi-effect ability text (e.g. Chrome Death Penalty:
+        // "Deal damage [Rng.: All Enemies] ... Applies Wind Weapon Boost [Rng.: All Allies]") can leak the
+        // damage clause's enemy range onto an ally buff, which would otherwise flip it into the debuff list.
+        private static readonly HashSet<string> EnemyDebuffFamilies = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "defense_debuff", "attack_debuff", "elemental_resistance_debuff",
+            "damage_received_up", "debuff_amplifier", "enfeeble", "torpor"
+        };
+
+        // Ally/self buff families (offensive setup, sustain, tempo). Anything here is a buff regardless of scope.
+        private static readonly HashSet<string> AllyBuffFamilies = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "attack_buff", "defense_buff", "damage_bonus", "weapon_boost", "ability_amplification",
+            "damage_up", "buff_amplifier", "enliven", "tempo_utility", "exploit_weakness",
+            "haste", "healing_support", "gear_c_ability_uses"
+        };
+
+        // true = enemy debuff, false = ally buff, null = unknown family (caller falls back to target scope).
+        private static bool? GetEffectDebuffPolarityByFamily(string familyKey)
+        {
+            if (string.IsNullOrWhiteSpace(familyKey))
+            {
+                return null;
+            }
+
+            if (EnemyDebuffFamilies.Contains(familyKey))
+            {
+                return true;
+            }
+
+            return AllyBuffFamilies.Contains(familyKey) ? false : (bool?)null;
         }
 
         // Damage-pyramid layer rarity multiplier. The pyramid's higher layers multiply on top of the

@@ -1,0 +1,783 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.InteractiveTeamBuilderModel
+@{
+    ViewData["Title"] = "Interactive Team Builder";
+}
+
+<div class="container-fluid mt-4" id="interactiveTeamBuilderApp" v-cloak>
+    <div class="row justify-content-center">
+        <div class="col-12 col-xxl-11">
+
+            <div class="mb-3">
+                <h1 class="mb-2"><i class="fas fa-screwdriver-wrench"></i> Interactive Team Builder</h1>
+                <p class="text-muted mb-2">
+                    Hand-build a 3-character team and see its estimated damage live, using the same scoring engine as the
+                    Player Power Analyzer V2 &mdash; the score here is directly comparable to the analyzer's.
+                </p>
+                <details class="mb-2">
+                    <summary class="small text-primary" style="cursor: pointer;">How to use this page</summary>
+                    <ul class="small text-muted mb-0 mt-2">
+                        <li>Pick the <strong>Enemy Weakness</strong> and <strong>Damage Type</strong> for the fight &mdash; scoring depends on it.</li>
+                        <li>For each of the three cells, choose a <strong>character</strong> first; then click a gear slot to open a picker showing each owned item's <strong>ability and passives</strong>.</li>
+                        <li>Picking a character already used in another cell <strong>moves</strong> that character (and its picks) here and clears the other cell.</li>
+                        <li>Main hand, off hand, ultimate, and costumes are character-specific. <strong>Sub weapons can come from any character.</strong></li>
+                        <li>Passives show at the value the slot grants: <strong>full</strong> for main / ultimate / main-costume, <strong>half</strong> for off-hand and all subs.</li>
+                        <li>A weapon can only be equipped once across the team &mdash; choosing it where it's used elsewhere clears the other slot.</li>
+                    </ul>
+                </details>
+            </div>
+
+            <div class="alert alert-secondary py-2" role="status" v-if="!hasInventory">
+                No saved armory found. Set up your owned weapons and costumes on the
+                <a asp-page="/PlayerInventoryManagement">Player Inventory</a> page first &mdash; the pickers here read from it.
+            </div>
+            <div class="alert alert-info py-2" role="status" v-else>
+                Pickers show <strong>only gear you own</strong> (synced from <strong>Player Inventory</strong>, at each item's owned overboost/level).
+            </div>
+
+            <!-- Battle context -->
+            <div class="card mb-3">
+                <div class="card-body py-2">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1" for="itbWeakness">Enemy Weakness</label>
+                            <select id="itbWeakness" class="form-select form-select-sm" v-model="state.battle.weakness">
+                                <option v-for="el in elementOptions" :key="`el-${el}`" :value="el">{{ el }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1" for="itbDamageType">Damage Type</label>
+                            <select id="itbDamageType" class="form-select form-select-sm" v-model="state.battle.damageType">
+                                <option v-for="dt in damageTypeOptions" :key="`dt-${dt}`" :value="dt">{{ dt }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label mb-1" for="itbScenario">Target</label>
+                            <select id="itbScenario" class="form-select form-select-sm" v-model="state.battle.scenario">
+                                <option v-for="sc in scenarioOptions" :key="`sc-${sc.value}`" :value="sc.value">{{ sc.label }}</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3 text-md-end">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="resetTeam">
+                                <i class="fas fa-rotate-left"></i> Reset team
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <!-- Builders -->
+                <div class="col-12 col-xl-8">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4" v-for="(cell, idx) in state.team" :key="`cell-${idx}`">
+                            <character-builder
+                                :slot-index="idx"
+                                :cell="cell"
+                                :builder="builderApi">
+                            </character-builder>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="col-12 col-xl-4">
+                    <div class="card sticky-xl-top" style="top: 1rem;">
+                        <div class="card-header d-flex align-items-center justify-content-between">
+                            <strong><i class="fas fa-chart-simple"></i> Results</strong>
+                            <span class="spinner-border spinner-border-sm text-secondary" role="status" v-if="state.loading"></span>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-danger py-1 px-2 small mb-2" v-if="state.error">{{ state.error }}</div>
+                            <p class="text-muted small mb-0" v-if="!hasResult && !state.loading && !state.error">
+                                Pick at least one character with a main weapon to see an estimate.
+                            </p>
+
+                            <template v-if="hasResult">
+                                <div class="text-center mb-3">
+                                    <div class="text-muted small text-uppercase">Estimated Score</div>
+                                    <div class="display-6 fw-bold text-primary">{{ formatNumber(state.result.score) }}</div>
+                                    <div class="small text-muted">
+                                        raw damage {{ formatNumber(state.result.rawDamage) }}
+                                        <span v-if="state.result.refinement">&middot; refinement {{ signed(state.result.refinement) }}</span>
+                                    </div>
+                                    <div class="small text-muted fst-italic mt-1">
+                                        A relative score for comparison &mdash; not actual in-game damage. A higher number generally means a stronger team.
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning py-1 px-2 small" v-if="state.result.unresolvedItems && state.result.unresolvedItems.length">
+                                    Couldn't resolve: {{ state.result.unresolvedItems.join(', ') }}
+                                </div>
+
+                                <div class="table-responsive mb-3">
+                                    <table class="table table-sm align-middle mb-0 small">
+                                        <thead>
+                                            <tr><th>Character</th><th class="text-end">PATK</th><th class="text-end">MATK</th><th class="text-end">Score</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="ch in state.result.characters" :key="`rc-${ch.name}`">
+                                                <td>{{ ch.name }} <span class="text-muted">({{ ch.role }})</span></td>
+                                                <td class="text-end">{{ formatNumber(ch.patk) }}</td>
+                                                <td class="text-end">{{ formatNumber(ch.matk) }}</td>
+                                                <td class="text-end">{{ formatNumber(ch.finalScore) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <details class="mb-2" v-if="anyCharacterPassives">
+                                    <summary class="small fw-semibold" style="cursor:pointer;">R-ability levels (current)</summary>
+                                    <div class="mt-2" v-if="teamWidePassives.length">
+                                        <div class="small fw-semibold text-success">Team-wide (All Allies) <span class="text-muted fw-normal">&mdash; applies to every character</span></div>
+                                        <ul class="list-unstyled small mb-2">
+                                            <li v-for="(p, pi) in teamWidePassives" :key="`tw-${pi}`" class="d-flex justify-content-between gap-2">
+                                                <span>{{ p.label }} <span class="text-muted">[{{ p.source }}]</span></span>
+                                                <span class="text-muted text-nowrap">{{ p.points }} pts &middot; Lv {{ p.level }} &middot; {{ p.value }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="mt-2" v-for="ch in state.result.characters" :key="`pl-${ch.name}`">
+                                        <template v-if="selfPassives(ch).length">
+                                            <div class="small fw-semibold text-primary">{{ ch.name }}</div>
+                                            <ul class="list-unstyled small mb-2">
+                                                <li v-for="(p, pi) in selfPassives(ch)" :key="`pl-${ch.name}-${pi}`" class="d-flex justify-content-between gap-2">
+                                                    <span>{{ p.label }}</span>
+                                                    <span class="text-muted text-nowrap">{{ p.points }} pts &middot; Lv {{ p.level }} &middot; {{ p.value }}</span>
+                                                </li>
+                                            </ul>
+                                        </template>
+                                    </div>
+                                </details>
+
+                                <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-3"
+                                        v-if="state.result.rAbilityCharts && state.result.rAbilityCharts.length"
+                                        v-on:click="openCharts">
+                                    <i class="fas fa-table-list"></i> Show R. Ability Levels
+                                </button>
+
+                                <div class="mb-3" v-if="(state.result.buffs && state.result.buffs.length) || (state.result.debuffs && state.result.debuffs.length)">
+                                    <template v-if="state.result.buffs && state.result.buffs.length">
+                                        <div class="small fw-semibold mb-1">Buffs / Effects</div>
+                                        <div class="d-flex flex-wrap gap-1 mb-2">
+                                            <span class="itb-effect-chip itb-effect-buff"
+                                                  v-for="(b, i) in state.result.buffs" :key="`buff-${i}`"
+                                                  :title="effectTitle(b)">{{ effectLabel(b) }}</span>
+                                        </div>
+                                    </template>
+                                    <template v-if="state.result.debuffs && state.result.debuffs.length">
+                                        <div class="small fw-semibold mb-1">Debuffs</div>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <span class="itb-effect-chip itb-effect-debuff"
+                                                  v-for="(d, i) in state.result.debuffs" :key="`debuff-${i}`"
+                                                  :title="effectTitle(d)">{{ effectLabel(d) }}</span>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="small fw-semibold">Team summary</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary py-0" v-on:click="copySummary">
+                                            <i class="fas fa-copy"></i> {{ state.copied ? 'Copied!' : 'Copy' }}
+                                        </button>
+                                    </div>
+                                    <pre class="small bg-light border rounded p-2 mb-0" style="white-space: pre-wrap;">{{ state.result.copyText }}</pre>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Slot picker modal -->
+    <div class="modal fade show itb-modal" tabindex="-1" style="display:block;" v-if="picker.open" v-on:click.self="closePicker">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">{{ pickerContext.title }}</h5>
+                    <button type="button" class="btn-close" aria-label="Close" v-on:click="closePicker"></button>
+                </div>
+                <div class="modal-body">
+                    <input class="form-control form-control-sm mb-2" type="search" placeholder="Search name, ability, element, or passive..."
+                           v-model="picker.search" ref="pickerSearch">
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <button type="button" class="btn btn-sm py-0 px-2"
+                                :class="picker.elementFilter === '' ? 'btn-primary' : 'btn-outline-secondary'"
+                                v-on:click="setElementFilter('')">All</button>
+                        <button type="button" class="btn btn-sm py-0 px-2"
+                                v-for="el in elementFilterOptions" :key="`ef-${el}`"
+                                :class="picker.elementFilter === el ? 'btn-primary' : 'btn-outline-secondary'"
+                                v-on:click="setElementFilter(el)">{{ el }}</button>
+                    </div>
+                    <div class="mb-2" v-if="availableRAbilities.length">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="toggleRAbilityPanel">
+                            <i class="fas fa-filter"></i> R-abilities<span v-if="picker.rAbilityFilter.length"> ({{ picker.rAbilityFilter.length }})</span>
+                            <i class="fas" :class="picker.rAbilityOpen ? 'fa-caret-up' : 'fa-caret-down'"></i>
+                        </button>
+                        <div class="border rounded bg-white p-2 mt-1" v-if="picker.rAbilityOpen">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Match mode">
+                                    <button type="button" class="btn" :class="picker.rAbilityMode === 'any' ? 'btn-primary' : 'btn-outline-secondary'" v-on:click="setRAbilityMode('any')">Any</button>
+                                    <button type="button" class="btn" :class="picker.rAbilityMode === 'all' ? 'btn-primary' : 'btn-outline-secondary'" v-on:click="setRAbilityMode('all')">All</button>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-link p-0" v-if="picker.rAbilityFilter.length" v-on:click="clearRAbilities">Clear</button>
+                            </div>
+                            <div class="itb-rability-list">
+                                <div class="form-check" v-for="(ra, rai) in availableRAbilities" :key="`ra-${rai}`">
+                                    <input class="form-check-input" type="checkbox" :id="`rachk-${rai}`"
+                                           :checked="picker.rAbilityFilter.includes(ra)" v-on:change="toggleRAbility(ra)">
+                                    <label class="form-check-label small" :for="`rachk-${rai}`">{{ ra }}</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted small" v-if="pickerItems.length === 0">No owned items match.</p>
+                    <div class="list-group">
+                        <button type="button" class="list-group-item list-group-item-action py-2"
+                                v-for="it in pickerItems" :key="`pk-${it.id}`"
+                                :class="{ active: it.name === pickerContext.current }"
+                                v-on:click="selectItem(it)">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="fw-semibold">{{ it.name }}</div>
+                                <div class="text-end small">
+                                    <span class="text-muted" v-if="it.element && it.element !== 'None'">{{ it.element }}</span>
+                                    <span class="badge bg-warning text-dark ms-1" v-if="it.inUse">in use: {{ it.inUse }}</span>
+                                </div>
+                            </div>
+                            <div class="small text-muted" v-if="pickerContext.showAbility && it.ability">
+                                <i class="fas fa-bolt"></i> {{ it.ability }}<span v-if="it.abilityDescription"> &mdash; {{ it.abilityDescription }}</span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1 mt-1" v-if="it.shownPassives && it.shownPassives.length">
+                                <span class="itb-passive-chip" v-for="(p, pi) in it.shownPassives" :key="`pk-${it.id}-p${pi}`">
+                                    {{ p.label }}<span class="text-muted" v-if="p.points"> &middot; {{ p.points }} pts</span> <span class="fw-semibold">&middot; {{ p.value }}</span>
+                                </span>
+                            </div>
+                            <div class="small text-muted fst-italic" v-else-if="pickerContext.showAbility || it.ability">No passives.</div>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger me-auto" v-on:click="clearSlot" v-if="pickerContext.current">
+                        <i class="fas fa-xmark"></i> Clear this slot
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" v-on:click="closePicker">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show" v-if="picker.open"></div>
+
+    <!-- R-ability breakpoint charts modal -->
+    <div class="modal fade show itb-modal" tabindex="-1" style="display:block;" v-if="state.chartsOpen" v-on:click.self="closeCharts">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">R-Ability Breakpoint Levels</h5>
+                    <button type="button" class="btn-close" aria-label="Close" v-on:click="closeCharts"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Breakpoint charts for the R-abilities your current team has. Points are cumulative; each level grants the listed value.</p>
+                    <div class="mb-3" v-for="(chart, ci) in (state.result && state.result.rAbilityCharts ? state.result.rAbilityCharts : [])" :key="`chart-${ci}`">
+                        <div class="fw-semibold">{{ chart.label }}</div>
+                        <table class="table table-sm table-striped small mb-0">
+                            <thead><tr><th>Level</th><th>Points</th><th>Value</th></tr></thead>
+                            <tbody>
+                                <tr v-for="(r, ri) in chart.rows" :key="`cr-${ci}-${ri}`">
+                                    <td>{{ r.level }}</td>
+                                    <td>{{ r.points }}</td>
+                                    <td>{{ r.value }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" v-on:click="closeCharts">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show" v-if="state.chartsOpen"></div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+    "use strict";
+    (function () {
+        const { createApp, reactive, computed, watch, onMounted, onBeforeUnmount } = Vue;
+
+        // Read the antiforgery token BEFORE Vue mounts (Vue clears the in-DOM template before setup() runs).
+        const antiForgeryToken = (document.querySelector('input[name="__RequestVerificationToken"]') || {}).value || '';
+
+        const INVENTORY_KEY = 'player-inventory-state-v1';
+        const SUB_WEAPON_COUNT = 3;
+        const SUB_COSTUME_COUNT = 2;
+
+        function emptySlot() {
+            return {
+                character: '',
+                main: '', off: '', ult: '', costume: '',
+                subs: Array(SUB_WEAPON_COUNT).fill(''),
+                subCostumes: Array(SUB_COSTUME_COUNT).fill('')
+            };
+        }
+
+        // Reusable per-character cell. Each gear slot is a button that opens the shared picker modal.
+        const CharacterBuilder = {
+            props: { slotIndex: Number, cell: Object, builder: Object },
+            template: `
+                <div class="card h-100">
+                    <div class="card-header py-2">
+                        <label class="form-label mb-1 small text-muted" :for="'itbChar' + slotIndex">Character {{ slotIndex + 1 }}</label>
+                        <select class="form-select form-select-sm" :id="'itbChar' + slotIndex"
+                                :value="cell.character"
+                                v-on:change="builder.onCharacter(slotIndex, $event.target.value)">
+                            <option value="">&mdash; select character &mdash;</option>
+                            <option v-for="c in builder.characterOptions()" :key="'c'+slotIndex+c" :value="c">{{ c }}</option>
+                        </select>
+                    </div>
+                    <div class="card-body py-2" v-if="cell.character">
+                        <div class="mb-2" v-for="f in builder.weaponFields" :key="f.key+slotIndex">
+                            <label class="form-label mb-0 small">{{ f.label }}</label>
+                            <button type="button" class="btn btn-sm w-100 text-start itb-slot-btn"
+                                    v-on:click="builder.openPicker(slotIndex, f.key)">
+                                <span v-if="cell[f.key]">{{ cell[f.key] }}</span>
+                                <span v-else class="text-muted">{{ f.placeholder }}</span>
+                            </button>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label mb-0 small">Sub Weapons <span class="text-muted">(any character)</span></label>
+                            <button type="button" class="btn btn-sm w-100 text-start itb-slot-btn mb-1"
+                                    v-for="(s, si) in cell.subs" :key="'sw'+slotIndex+si"
+                                    v-on:click="builder.openPicker(slotIndex, 'sub:'+si)">
+                                <span v-if="cell.subs[si]">{{ cell.subs[si] }}</span>
+                                <span v-else class="text-muted">&mdash; sub weapon {{ si + 1 }} &mdash;</span>
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="form-label mb-0 small">Sub Costumes</label>
+                            <button type="button" class="btn btn-sm w-100 text-start itb-slot-btn mb-1"
+                                    v-for="(s, ci) in cell.subCostumes" :key="'sc'+slotIndex+ci"
+                                    v-on:click="builder.openPicker(slotIndex, 'subcos:'+ci)">
+                                <span v-if="cell.subCostumes[ci]">{{ cell.subCostumes[ci] }}</span>
+                                <span v-else class="text-muted">&mdash; sub costume {{ ci + 1 }} &mdash;</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body py-3 text-muted small text-center" v-else>
+                        Select a character to choose gear.
+                    </div>
+                </div>
+            `
+        };
+
+        createApp({
+            components: { 'character-builder': CharacterBuilder },
+            setup() {
+                const state = reactive({
+                    catalog: { characters: [], items: [] },
+                    inventoryRaw: '',
+                    ownedWeaponIds: new Set(),
+                    ownedCostumeIds: new Set(),
+                    team: [emptySlot(), emptySlot(), emptySlot()],
+                    battle: { weakness: 'Wind', damageType: 'Physical', scenario: 'SingleEnemy' },
+                    result: null,
+                    loading: false,
+                    error: '',
+                    copied: false,
+                    chartsOpen: false
+                });
+
+                const picker = reactive({ open: false, slotIndex: 0, slotKey: '', search: '', elementFilter: '', rAbilityOpen: false, rAbilityFilter: [], rAbilityMode: 'any' });
+
+                const elementOptions = ['None', 'Fire', 'Ice', 'Lightning', 'Earth', 'Water', 'Wind'];
+                const damageTypeOptions = ['Physical', 'Magical', 'Any'];
+                const scenarioOptions = [
+                    { value: 'SingleEnemy', label: 'Single enemy' },
+                    { value: 'MultipleEnemies', label: 'Multiple enemies' },
+                    { value: 'Unknown', label: 'Unknown' }
+                ];
+                const elementFilterOptions = ['Fire', 'Ice', 'Lightning', 'Earth', 'Water', 'Wind'];
+
+                const weaponFields = [
+                    { key: 'main', label: 'Main Hand', placeholder: '— main weapon —' },
+                    { key: 'off', label: 'Off Hand', placeholder: '— off-hand —' },
+                    { key: 'ult', label: 'Ultimate Weapon', placeholder: '— ultimate —' },
+                    { key: 'costume', label: 'Main Costume', placeholder: '— costume —' }
+                ];
+
+                const hasInventory = computed(() => state.ownedWeaponIds.size > 0 || state.ownedCostumeIds.size > 0);
+                const hasResult = computed(() => !!(state.result && state.result.hasResult));
+                const anyCharacterPassives = computed(() => !!(state.result && state.result.characters
+                    && state.result.characters.some(c => c.passives && c.passives.length)));
+                function isAllAllies(p) { return (p.label || '').toLowerCase().includes('all allies'); }
+                function selfPassives(ch) { return (ch.passives || []).filter(p => !isAllAllies(p)); }
+                const teamWidePassives = computed(() => {
+                    if (!state.result || !state.result.characters) return [];
+                    const out = [];
+                    state.result.characters.forEach(ch => {
+                        (ch.passives || []).forEach(p => {
+                            if (isAllAllies(p)) out.push({ label: p.label, source: ch.name, points: p.points, level: p.level, value: p.value });
+                        });
+                    });
+                    return out;
+                });
+
+                function ownedItems(slotType, character) {
+                    return state.catalog.items.filter(it => {
+                        if (it.slot !== slotType) return false;
+                        if (character && it.character !== character) return false;
+                        return slotType === 'costume' ? state.ownedCostumeIds.has(it.id) : state.ownedWeaponIds.has(it.id);
+                    });
+                }
+
+                function getSlotValue(idx, slotKey) {
+                    const cell = state.team[idx];
+                    if (slotKey.startsWith('sub:')) return cell.subs[parseInt(slotKey.slice(4), 10)];
+                    if (slotKey.startsWith('subcos:')) return cell.subCostumes[parseInt(slotKey.slice(7), 10)];
+                    return cell[slotKey];
+                }
+
+                // weapon names equipped anywhere on the team, optionally excluding one slot location
+                function equippedWeaponNames(excludeIdx, excludeKey) {
+                    const used = {};
+                    state.team.forEach((cell, i) => {
+                        ['main', 'off', 'ult'].forEach(k => {
+                            if (cell[k] && !(i === excludeIdx && k === excludeKey)) used[cell[k]] = cell.character || ('Char ' + (i + 1));
+                        });
+                        cell.subs.forEach((sw, si) => {
+                            if (sw && !(i === excludeIdx && excludeKey === 'sub:' + si)) used[sw] = cell.character || ('Char ' + (i + 1));
+                        });
+                    });
+                    return used;
+                }
+
+                // costume names equipped on this character (main + sub-costumes), excluding one slot
+                function equippedCostumeNames(idx, slotKey) {
+                    const cell = state.team[idx];
+                    if (!cell) return {};
+                    const used = {};
+                    if (cell.costume && slotKey !== 'costume') used[cell.costume] = cell.character || 'this character';
+                    cell.subCostumes.forEach((sc, ci) => {
+                        if (sc && slotKey !== 'subcos:' + ci) used[sc] = cell.character || 'this character';
+                    });
+                    return used;
+                }
+
+                // ---- picker ----
+                function slotKeyMeta(slotKey) {
+                    if (slotKey === 'main') return { type: 'weapon', full: true, ability: true, label: 'Main Weapon' };
+                    if (slotKey === 'off') return { type: 'weapon', full: false, ability: true, label: 'Off-hand' };
+                    if (slotKey === 'ult') return { type: 'ultimate', full: true, ability: true, label: 'Ultimate Weapon' };
+                    if (slotKey === 'costume') return { type: 'costume', full: true, ability: true, label: 'Main Costume' };
+                    if (slotKey.startsWith('sub:')) return { type: 'weapon', full: false, ability: false, label: 'Sub Weapon ' + (parseInt(slotKey.slice(4), 10) + 1) };
+                    return { type: 'costume', full: false, ability: false, label: 'Sub Costume ' + (parseInt(slotKey.slice(7), 10) + 1) };
+                }
+
+                const pickerContext = computed(() => {
+                    const meta = slotKeyMeta(picker.slotKey);
+                    const cell = state.team[picker.slotIndex] || emptySlot();
+                    const anyCharacter = picker.slotKey.startsWith('sub:'); // sub weapons only: any character
+                    return {
+                        type: meta.type,
+                        full: meta.full,
+                        showAbility: meta.ability,
+                        scope: anyCharacter ? null : cell.character,
+                        current: getSlotValue(picker.slotIndex, picker.slotKey),
+                        title: 'Choose ' + meta.label + (anyCharacter ? ' · any character' : (cell.character ? ' · ' + cell.character : ''))
+                    };
+                });
+
+                const pickerItems = computed(() => {
+                    if (!picker.open) return [];
+                    const ctx = pickerContext.value;
+                    const term = (picker.search || '').trim().toLowerCase();
+                    const elemFilter = (picker.elementFilter || '').toLowerCase();
+                    const usedWeapons = ctx.type !== 'costume' ? equippedWeaponNames(picker.slotIndex, picker.slotKey) : {};
+                    const usedCostumes = ctx.type === 'costume' ? equippedCostumeNames(picker.slotIndex, picker.slotKey) : {};
+                    let items = ownedItems(ctx.type, ctx.scope);
+                    return items.map(it => {
+                        const passives = Array.isArray(it.passives) ? it.passives : [];
+                        const shownPassives = passives.map(p => ({
+                            label: p.label,
+                            value: ctx.full ? p.full : p.half,
+                            points: ctx.full ? p.fullPoints : p.halfPoints
+                        })).filter(p => p.value);
+                        // Searchable text: name + element + ability type + ability text + passive labels.
+                        const haystack = [it.name, it.element, it.abilityType, it.ability, it.abilityDescription]
+                            .concat(shownPassives.map(p => p.label))
+                            .filter(Boolean).join(' ').toLowerCase();
+                        return {
+                            id: it.id, name: it.name, element: it.element, abilityType: it.abilityType,
+                            ability: it.ability, abilityDescription: it.abilityDescription,
+                            shownPassives, haystack, passiveLabels: passives.map(p => p.label),
+                            inUse: it.name === ctx.current ? ''
+                                : (ctx.type === 'costume' ? (usedCostumes[it.name] || '') : (usedWeapons[it.name] || ''))
+                        };
+                    }).filter(it => {
+                        if (elemFilter && !it.haystack.includes(elemFilter)) return false;
+                        if (term && !it.haystack.includes(term)) return false;
+                        if (picker.rAbilityFilter.length) {
+                            const labels = new Set(it.passiveLabels);
+                            if (picker.rAbilityMode === 'all') {
+                                if (!picker.rAbilityFilter.every(l => labels.has(l))) return false;
+                            } else if (!picker.rAbilityFilter.some(l => labels.has(l))) return false;
+                        }
+                        return true;
+                    });
+                });
+
+                const availableRAbilities = computed(() => {
+                    if (!picker.open) return [];
+                    const ctx = pickerContext.value;
+                    const set = new Set();
+                    ownedItems(ctx.type, ctx.scope).forEach(it => {
+                        (Array.isArray(it.passives) ? it.passives : []).forEach(p => { if (p.label) set.add(p.label); });
+                    });
+                    return Array.from(set).sort((a, b) => a.localeCompare(b));
+                });
+
+                function openPicker(idx, slotKey) {
+                    picker.slotIndex = idx;
+                    picker.slotKey = slotKey;
+                    picker.search = '';
+                    picker.elementFilter = '';
+                    picker.rAbilityOpen = false;
+                    picker.rAbilityFilter = [];
+                    picker.rAbilityMode = 'any';
+                    picker.open = true;
+                }
+                function closePicker() { picker.open = false; }
+                function setElementFilter(el) { picker.elementFilter = (picker.elementFilter === el ? '' : el); }
+                function toggleRAbilityPanel() { picker.rAbilityOpen = !picker.rAbilityOpen; }
+                function setRAbilityMode(mode) { picker.rAbilityMode = mode; }
+                function clearRAbilities() { picker.rAbilityFilter = []; }
+                function toggleRAbility(label) {
+                    const i = picker.rAbilityFilter.indexOf(label);
+                    if (i >= 0) picker.rAbilityFilter.splice(i, 1);
+                    else picker.rAbilityFilter.push(label);
+                }
+                function openCharts() { state.chartsOpen = true; }
+                function closeCharts() { state.chartsOpen = false; }
+
+                function setSlotValue(idx, slotKey, value) {
+                    if (slotKey.startsWith('sub:')) { onSub(idx, parseInt(slotKey.slice(4), 10), value); }
+                    else if (slotKey.startsWith('subcos:')) { onSubCostume(idx, parseInt(slotKey.slice(7), 10), value); }
+                    else { onField(idx, slotKey, value); }
+                }
+                function selectItem(it) { setSlotValue(picker.slotIndex, picker.slotKey, it.name); closePicker(); }
+                function clearSlot() { setSlotValue(picker.slotIndex, picker.slotKey, ''); closePicker(); }
+
+                // ---- mutations (preserve swap + team-wide weapon dedup) ----
+                function onCharacter(idx, value) {
+                    if (!value) { state.team[idx] = emptySlot(); return; }
+                    const existing = state.team.findIndex((s, i) => i !== idx && s.character === value);
+                    if (existing >= 0) {
+                        const moved = JSON.parse(JSON.stringify(state.team[existing]));
+                        state.team[existing] = emptySlot();
+                        state.team[idx] = moved;
+                    } else {
+                        const fresh = emptySlot();
+                        fresh.character = value;
+                        state.team[idx] = fresh;
+                    }
+                }
+
+                function clearWeaponElsewhere(name, keepIdx, keepKey) {
+                    if (!name) return;
+                    state.team.forEach((cell, i) => {
+                        ['main', 'off', 'ult'].forEach(k => {
+                            if (cell[k] === name && !(i === keepIdx && k === keepKey)) cell[k] = '';
+                        });
+                        cell.subs.forEach((sw, si) => {
+                            if (sw === name && !(i === keepIdx && keepKey === 'sub:' + si)) cell.subs[si] = '';
+                        });
+                    });
+                }
+
+                function clearCostumeElsewhere(name, keepIdx, keepKey) {
+                    if (!name) return;
+                    const cell = state.team[keepIdx];
+                    if (cell.costume === name && keepKey !== 'costume') cell.costume = '';
+                    cell.subCostumes.forEach((sc, ci) => {
+                        if (sc === name && keepKey !== 'subcos:' + ci) cell.subCostumes[ci] = '';
+                    });
+                }
+
+                function onField(idx, key, value) {
+                    state.team[idx][key] = value;
+                    if (!value) return;
+                    if (key === 'costume') clearCostumeElsewhere(value, idx, 'costume');
+                    else clearWeaponElsewhere(value, idx, key);
+                }
+                function onSub(idx, subIdx, value) {
+                    state.team[idx].subs[subIdx] = value;
+                    if (value) clearWeaponElsewhere(value, idx, 'sub:' + subIdx);
+                }
+                function onSubCostume(idx, ci, value) {
+                    state.team[idx].subCostumes[ci] = value;
+                    if (value) clearCostumeElsewhere(value, idx, 'subcos:' + ci);
+                }
+
+                function resetTeam() {
+                    state.team = [emptySlot(), emptySlot(), emptySlot()];
+                    state.result = null;
+                }
+
+                const builderApi = {
+                    characterOptions: () => state.catalog.characters,
+                    weaponFields,
+                    openPicker,
+                    onCharacter
+                };
+
+                // ---- inventory + catalog ----
+                function loadInventory() {
+                    let raw = '';
+                    try { raw = localStorage.getItem(INVENTORY_KEY) || ''; } catch (e) { raw = ''; }
+                    state.inventoryRaw = raw;
+                    const wIds = new Set(), cIds = new Set();
+                    if (raw) {
+                        try {
+                            const inv = JSON.parse(raw);
+                            const weapons = inv.weapons || {};
+                            Object.keys(weapons).forEach(id => {
+                                const o = (weapons[id] && weapons[id].ownership ? String(weapons[id].ownership) : '').toLowerCase();
+                                if (o && o !== 'do-not-own') wIds.add(id);
+                            });
+                            const costumes = inv.costumes || {};
+                            Object.keys(costumes).forEach(id => { if (costumes[id] && costumes[id].owned) cIds.add(id); });
+                        } catch (e) { /* ignore malformed */ }
+                    }
+                    state.ownedWeaponIds = wIds;
+                    state.ownedCostumeIds = cIds;
+                }
+
+                async function loadCatalog() {
+                    const resp = await fetch('?handler=Catalog', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': antiForgeryToken },
+                        body: JSON.stringify({ inventory: state.inventoryRaw })
+                    });
+                    if (!resp.ok) throw new Error('Failed to load catalog.');
+                    const data = await resp.json();
+                    state.catalog.characters = (data.characters || []).slice().sort((a, b) => String(a).localeCompare(String(b)));
+                    state.catalog.items = (data.items || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+                }
+
+                // ---- scoring ----
+                let scoreTimer = null;
+                let scoreController = null;
+
+                function buildSpec() {
+                    const characters = state.team
+                        .filter(s => s.character && s.main)
+                        .map(s => ({
+                            character: s.character, main: s.main, off: s.off || '',
+                            ultimate: s.ult || '', mainCostume: s.costume || '',
+                            subWeapons: s.subs.filter(Boolean), subCostumes: s.subCostumes.filter(Boolean)
+                        }));
+                    return {
+                        characters,
+                        enemyWeakness: state.battle.weakness,
+                        preferredDamageType: state.battle.damageType,
+                        targetScenario: state.battle.scenario
+                    };
+                }
+
+                async function runScore() {
+                    const spec = buildSpec();
+                    if (spec.characters.length === 0) { state.result = null; return; }
+                    if (scoreController) scoreController.abort();
+                    scoreController = new AbortController();
+                    state.loading = true;
+                    state.error = '';
+                    try {
+                        const resp = await fetch('?handler=Score', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            signal: scoreController.signal,
+                            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': antiForgeryToken },
+                            body: JSON.stringify({ inventory: state.inventoryRaw, team: spec })
+                        });
+                        if (!resp.ok) throw new Error('Score request failed.');
+                        state.result = await resp.json();
+                        state.error = '';
+                    } catch (e) {
+                        if (e.name !== 'AbortError') { state.error = 'Could not score this team.'; }
+                    } finally {
+                        state.loading = false;
+                    }
+                }
+
+                function scheduleScore() {
+                    if (scoreTimer) clearTimeout(scoreTimer);
+                    scoreTimer = setTimeout(runScore, 350);
+                }
+
+                // ---- display helpers ----
+                function formatNumber(n) { return (typeof n === 'number') ? Math.round(n).toLocaleString() : '—'; }
+                function signed(n) { return (n >= 0 ? '+' : '') + Math.round(n).toLocaleString(); }
+                function effectLabel(e) {
+                    const pot = e.potency ? ` ${Math.round(e.potency)}%` : '';
+                    return `${e.displayName || e.family || e.key || 'effect'}${pot}`;
+                }
+                function effectTitle(e) {
+                    return [e.displayName || e.family || e.key, e.scope ? `scope ${e.scope}` : '', e.source ? `from ${e.source}` : '']
+                        .filter(Boolean).join(' · ');
+                }
+                async function copySummary() {
+                    if (!state.result || !state.result.copyText) return;
+                    try {
+                        await navigator.clipboard.writeText(state.result.copyText);
+                        state.copied = true;
+                        setTimeout(() => { state.copied = false; }, 1500);
+                    } catch (e) { /* clipboard blocked */ }
+                }
+
+                function handleStorage(e) {
+                    if (e.key !== INVENTORY_KEY) return;
+                    loadInventory();
+                    loadCatalog().catch(() => {});
+                }
+                function handleKeydown(e) {
+                    if (e.key !== 'Escape') return;
+                    if (state.chartsOpen) closeCharts();
+                    else if (picker.open) closePicker();
+                }
+
+                watch(() => JSON.stringify([state.team, state.battle]), scheduleScore);
+
+                onMounted(async () => {
+                    loadInventory();
+                    try { await loadCatalog(); } catch (e) { state.error = 'Could not load the gear catalog.'; }
+                    window.addEventListener('storage', handleStorage);
+                    window.addEventListener('keydown', handleKeydown);
+                });
+                onBeforeUnmount(() => {
+                    window.removeEventListener('storage', handleStorage);
+                    window.removeEventListener('keydown', handleKeydown);
+                });
+
+                return {
+                    state, picker, elementOptions, damageTypeOptions, scenarioOptions, elementFilterOptions,
+                    hasInventory, hasResult, anyCharacterPassives, teamWidePassives, selfPassives, builderApi, pickerContext, pickerItems,
+                    availableRAbilities, closePicker, selectItem, clearSlot, setElementFilter,
+                    toggleRAbilityPanel, setRAbilityMode, clearRAbilities, toggleRAbility, openCharts, closeCharts,
+                    formatNumber, signed, effectLabel, effectTitle, copySummary, resetTeam
+                };
+            }
+        }).mount('#interactiveTeamBuilderApp');
+    })();
+</script>
+}
