@@ -31,6 +31,9 @@ builder.Services.AddScoped<ShouldIAttackService>();
 builder.Services.AddSingleton<SupportTeamBuilderService>();
 builder.Services.AddSingleton<SupportTeamPresetCatalog>();
 builder.Services.AddScoped<DamageCalcService>();
+// Async job runner for long analyses (keeps every HTTP request sub-second; avoids Cloudflare's 100s 524 timeout).
+builder.Services.AddSingleton<AnalysisJobService>();
+builder.Services.AddHostedService<AnalysisJobWorker>();
 builder.Services.Configure<SharedAccessOptions>(builder.Configuration.GetSection(SharedAccessOptions.SectionName));
 builder.Services.AddSingleton<SharedAccessGate>();
 

@@ -36,6 +36,7 @@ A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, 
   - [Should I Attack: Quick Walkthrough](#should-i-attack-quick-walkthrough)
   - [Should I Attack: Quick Stats](#should-i-attack-quick-stats)
 - [Support Team Builder](#support-team-builder)
+- [Interactive Team Builder](#interactive-team-builder)
   - [Support Team Builder: What It Does](#support-team-builder-what-it-does)
   - [Support Team Builder: Quick Start](#support-team-builder-quick-start)
   - [Support Team Builder: Inputs](#support-team-builder-inputs)
@@ -104,6 +105,8 @@ Required steps:
 1. Select a survey sheet or upload a CSV file.
 2. Set `Enemy Weakness`, `Preferred Damage Type`, and `Enemy Count Weighting`.
 3. Click `Find Best Teams`.
+
+A full player-base analysis can take several minutes. It runs in the background with an "Analyzing the player base..." overlay showing elapsed time; keep the tab open and the page updates automatically when it finishes. (This also prevents long runs from timing out behind the hosting proxy.)
 
 Expected output:
 - Ranked player/team results sorted by score.
@@ -375,6 +378,22 @@ Notes:
 - For effects that do not expose explicit potency tags (`[Pot]`/`[Max Pot]`) in source ability lines, potency dropdowns are auto-locked to `Low` and an inline note explains that potency thresholds are not applicable.
 - Ranking follows the current support-builder precedence: max potency score, fewer characters, fewer weapons, then base potency score.
 - Ranked team rows now show a character's selected outfit after weapon names when present.
+
+---
+
+## Interactive Team Builder
+### Interactive Team Builder: What It Does
+Lets you hand-pick a 3-character team from your own armory and see its estimated strength update live, scored by the same engine as Player Power Analyzer V2. Useful for "what if" planning and comparing specific loadouts rather than letting the analyzer choose for you.
+
+### Interactive Team Builder: Inputs
+- Your saved inventory (from Player Inventory Management) — only gear you own is selectable.
+- For each of 3 characters: a character, main hand, off hand, ultimate weapon, main costume, 3 sub weapons, and 2 sub costumes.
+
+### Interactive Team Builder: Quick Walkthrough
+1. Pick a character in each cell, then use the **Choose Weapon** / **Choose Costume** buttons to open a picker. The picker shows each item's ability and passive R-abilities, and supports searching by ability text and filtering by element or specific R-abilities.
+2. Build out the slots. Picking a weapon already used elsewhere clears it from the other slot (no duplicates); picking a character already in another cell moves it there.
+3. The results panel updates with a relative team score (comparable to Analyzer V2 — a ranking number, not literal in-game damage), each character's PATK/MATK, the active buffs/effects and debuffs, and per-character + team-wide R-ability levels (with a breakpoint-chart view).
+4. Use the quick copy-text block to share the build.
 
 ---
 

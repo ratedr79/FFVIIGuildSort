@@ -37,7 +37,7 @@
                     <h5><i class="fas fa-upload"></i> Survey Data Source</h5>
                 </div>
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" id="powerLevelForm">
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label for="GoogleSheetUrl" class="form-label">Survey Sheet (Published CSV)</label>
@@ -194,7 +194,7 @@
                             </div>
                         </details>
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="powerLevelAnalyzeButton">
                             <i class="fas fa-calculator"></i> Find Best Teams
                         </button>
                         <button type="submit" class="btn btn-outline-secondary ms-2" asp-page-handler="ExportGuilds">
@@ -1490,3 +1490,99 @@
         </div>
     }
 </div>
+
+<div id="powerLevelProcessingOverlay" style="display:none; position:fixed; inset:0; z-index:1080; align-items:center; justify-content:center; padding:1.5rem; background:rgba(15,23,42,0.52); backdrop-filter:blur(4px);">
+    <div style="width:min(100%, 34rem); border-radius:1rem; background:#ffffff; padding:2rem; text-align:center;">
+        <div class="spinner-border text-primary mb-3" role="status" aria-hidden="true"></div>
+        <h2 class="h4 fw-bold mb-2">Analyzing Player Base</h2>
+        <p class="text-muted mb-2">A full survey can take several minutes. Please keep this tab open &mdash; it will update automatically when the analysis finishes.</p>
+        <div id="powerLevelProcessingStatus" class="fw-semibold">Starting analysis...</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('powerLevelForm');
+            const analyzeButton = document.getElementById('powerLevelAnalyzeButton');
+            const overlay = document.getElementById('powerLevelProcessingOverlay');
+            const statusEl = document.getElementById('powerLevelProcessingStatus');
+            let elapsedTimer = null;
+            let startTime = 0;
+
+            function updateElapsed() {
+                if (!statusEl) { return; }
+                const secs = Math.floor((Date.now() - startTime) / 1000);
+                statusEl.textContent = 'Analyzing the player base... (' + secs + 's elapsed)';
+            }
+
+            function showOverlay() {
+                if (overlay) { overlay.style.display = 'flex'; }
+                if (analyzeButton) { analyzeButton.setAttribute('disabled', 'disabled'); }
+                startTime = Date.now();
+                updateElapsed();
+                elapsedTimer = window.setInterval(updateElapsed, 1000);
+            }
+
+            function hideOverlay() {
+                if (overlay) { overlay.style.display = 'none'; }
+                if (analyzeButton) { analyzeButton.removeAttribute('disabled'); }
+                if (elapsedTimer) { window.clearInterval(elapsedTimer); elapsedTimer = null; }
+            }
+
+            function fail(message) {
+                hideOverlay();
+                window.alert(message);
+            }
+
+            // Parse a JSON response defensively: if the server ever returns HTML (an error page, a wrong handler),
+            // surface a clear message instead of a raw "Unexpected token '<'" JSON parse error.
+            function readJson(response) {
+                return response.text().then(function (text) {
+                    let data = null;
+                    try { data = JSON.parse(text); } catch (e) { data = null; }
+                    if (!response.ok || !data) {
+                        throw new Error(data && data.error ? data.error : ('Server returned an unexpected response (HTTP ' + response.status + ').'));
+                    }
+                    return data;
+                });
+            }
+
+            function pollJob(jobId) {
+                fetch('?handler=AnalyzeStatus&id=' + encodeURIComponent(jobId), { headers: { 'Accept': 'application/json' } })
+                    .then(readJson)
+                    .then(function (state) {
+                        if (state.status === 'completed') {
+                            if (statusEl) { statusEl.textContent = 'Done — loading results...'; }
+                            window.location = window.location.pathname + '?resultJobId=' + encodeURIComponent(jobId);
+                            return;
+                        }
+                        if (state.status === 'failed') { fail(state.error ? ('Analysis failed: ' + state.error) : 'Analysis failed.'); return; }
+                        if (state.status === 'notfound') { fail('Analysis job was not found (it may have expired). Please try again.'); return; }
+                        window.setTimeout(function () { pollJob(jobId); }, 2000);
+                    })
+                    .catch(function () {
+                        // Transient network blip; keep polling a little slower.
+                        window.setTimeout(function () { pollJob(jobId); }, 3000);
+                    });
+            }
+
+            // Intercept ONLY the analyze button (the Export button keeps its normal synchronous download submit).
+            if (analyzeButton && form) {
+                analyzeButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    showOverlay();
+                    const data = new FormData(form); // includes the antiforgery token, all inputs, and any uploaded CSV
+                    // NOTE: handler is "Start" (Razor strips the "Async" suffix from OnPostStartAsync), not "StartAsync".
+                    fetch('?handler=Start', { method: 'POST', body: data })
+                        .then(readJson)
+                        .then(function (payload) {
+                            if (!payload || !payload.jobId) { throw new Error('Analysis did not start (no job id returned).'); }
+                            pollJob(payload.jobId);
+                        })
+                        .catch(function (error) { fail(error && error.message ? error.message : 'Failed to start analysis.'); });
+                });
+            }
+        })();
+    </script>
+}

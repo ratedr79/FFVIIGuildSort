@@ -158,6 +158,37 @@
   - same potency-applicability UX rules and Exploit Weakness non-potency override behavior
   - same matching panels, ranked-team rendering, and weapon/outfit details modal content
 
+## Interactive Team Builder (`/InteractiveTeamBuilder`)
+- Purpose: hand-build a 3-character team from your own armory and see its estimated damage live, scored by the same V2 engine as Player Power Analyzer V2.
+- Host pattern: Razor page shell + Vue 3 (CDN, no build step) mounted client-side; Bootstrap 5.1.
+- Files: `Pages/InteractiveTeamBuilder.cshtml` (+ `.cshtml.cs`), scoring/catalog logic in `Services/PlayerPowerAnalyzerV2Service.InteractiveTeamBuilder.cs`.
+- Data source: the browser-local inventory (`player-inventory-state-v1`) is POSTed to the server, which returns an **owned-only** catalog; gear options are restricted to what the player owns.
+- Team model: 3 character cells, each with main hand, off hand, ultimate weapon, main costume, 3 sub weapons, and 2 sub costumes.
+  - Selecting a character already used elsewhere MOVES it (preserving picks) and resets the other cell.
+  - Main/off/ult/costumes are character-specific; sub weapons may be any character's.
+  - Weapons are de-duplicated team-wide (selecting a weapon used elsewhere clears the other slot).
+- Pickers: "Choose Weapon" / "Choose Costume" open a modal showing ability + passive R-abilities (main/off/ult/main-costume show ability + passives; subs show passives). Off-hand passives count at half, ultimate at full. Modal supports search-by-ability-text, element quick-filters, and an R-ability checkbox filter (Any/All). In-use weapons/costumes are flagged; All-Allies weapon passives are shown as affecting the other characters; customization-added passives are included.
+- API handlers (`InteractiveTeamBuilder.cshtml.cs`):
+  - `GET ?handler=Catalog` -> intrinsic fallback catalog
+  - `POST ?handler=Catalog` (`{ inventory }`) -> inventory-aware owned-only catalog (passives incl. customizations)
+  - `POST ?handler=Score` (`{ inventory, team }`) -> `ScoreFixedTeam` result
+- Results panel: score (relative model index, comparable to Analyzer V2 — **not** literal in-game damage, with an in-panel note saying so), per-character PATK/MATK/score, readable buffs/effects and debuffs (element-aware display names, deduped), per-character + team-wide R-ability levels with a breakpoint-chart modal, and a quick copy-text block.
+- Scoring parity: `ScoreFixedTeam` reproduces analyzer scores; verified against the byte-identical repro and known anchor builds.
+
+## Player Inventory Management (`/PlayerInventoryManagement`)
+- Purpose: track owned weapons/costumes (and their level/overboost) in the browser; feeds the analyzers and the Interactive Team Builder.
+- Persistence: browser-local `player-inventory-state-v1` (`{ weapons: { <id>: { ownership, level } }, costumes: { <id>: { owned } } }`); weapon `ownership` is `do-not-own` / `3-star` / `4-star` / `5-star` / `ob1..ob10`, ultimates use `own`.
+- Import options:
+  - **Import** (JSON) — load a previously exported inventory file.
+  - **Paste Import** — single textarea accepting CSV/TSV or simple `Name - OB - Level` lines, with header auto-detection, per-row preview, and merge/replace modes.
+  - **Import from Sheet** — three labeled paste boxes (Weapons / Ultimate Weapons / Costumes) for the community Google tracking sheet's tabs; see below.
+  - **SOLDIER Survey Quick View** — compares a configured survey sheet's gear columns against saved inventory.
+- Import from Sheet behavior:
+  - Each box accepts the tab's pasted columns (tab-separated, with a blank spacer column + padding rows that are skipped): Weapons = `Overboost · Level · Weapon`; Ultimates = `Owned · Lv · Weapon` (the `[N Uses]` suffix is stripped); Costumes = `Owned · Gear`.
+  - Names resolve against the live catalog by exact normalized name (reusing the page's structured paste parser; `gear` is recognized as a name header). If a name maps to more than one catalog entry (a rerun/variant), it is applied to ALL matches and noted, never dropped.
+  - **Apply = replace the entire saved inventory**: both maps are wiped and rebuilt from the boxes; anything not listed becomes Do Not Own / Not Owned. A Preview step shows per-tab matched/owned/unmatched counts and warns when a box is left empty (that category would be wiped).
+  - Guarded by `Tests/SheetImportNameMatchingTests.cs`, which resolves every sample name against the real catalog.
+
 ## Should I Attack (`/ShouldIAttack`)
 - Purpose: recommend `Attack now` vs `Hold` for one selected player using simulation evidence.
 - Data source: selected guild sheet from `GoogleSheets:GuildBattleSheets`.

@@ -2,6 +2,7 @@ using FFVIIEverCrisisAnalyzer.Models;
 using FFVIIEverCrisisAnalyzer.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FFVIIEverCrisisAnalyzer.Pages
 {
@@ -9,11 +10,13 @@ namespace FFVIIEverCrisisAnalyzer.Pages
     {
         private readonly PlayerPowerAnalyzerV2Service _playerPowerAnalyzerV2Service;
         private readonly TeamTemplateCatalog _teamTemplateCatalog;
+        private readonly AnalysisJobService _jobs;
 
-        public PlayerPowerAnalyzerV2Model(PlayerPowerAnalyzerV2Service playerPowerAnalyzerV2Service, TeamTemplateCatalog teamTemplateCatalog)
+        public PlayerPowerAnalyzerV2Model(PlayerPowerAnalyzerV2Service playerPowerAnalyzerV2Service, TeamTemplateCatalog teamTemplateCatalog, AnalysisJobService jobs)
         {
             _playerPowerAnalyzerV2Service = playerPowerAnalyzerV2Service;
             _teamTemplateCatalog = teamTemplateCatalog;
+            _jobs = jobs;
         }
 
         [BindProperty]
@@ -57,16 +60,21 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public IReadOnlyDictionary<string, List<PlayerPowerAnalyzerV2EffectOption>> BossImmunityOptionsByGroup { get; private set; } = new Dictionary<string, List<PlayerPowerAnalyzerV2EffectOption>>();
         public PlayerPowerAnalyzerV2Result? AnalysisResult { get; private set; }
 
-        public void OnGet()
+        // resultJobId is set by the async flow's completion redirect: pull the finished job's result and render
+        // the full page server-side (the result is already computed, so this GET is sub-second).
+        public void OnGet(string? resultJobId)
         {
             InitializeSelections();
+
+            if (!string.IsNullOrEmpty(resultJobId) && _jobs.Get(resultJobId)?.Result is PlayerPowerAnalyzerV2Result result)
+            {
+                AnalysisResult = result;
+            }
         }
 
-        public IActionResult OnPostAnalyze()
+        private PlayerPowerAnalyzerV2Request BuildRequest()
         {
-            InitializeSelections();
-
-            var request = new PlayerPowerAnalyzerV2Request
+            return new PlayerPowerAnalyzerV2Request
             {
                 EnemyWeakness = EnemyWeakness,
                 PreferredDamageType = PreferredDamageType,
@@ -82,9 +90,47 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 HardRequiredEffectKeys = HardRequiredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 SoftPreferredEffectKeys = SoftPreferredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).Except(HardRequiredEffectKeys, StringComparer.OrdinalIgnoreCase).ToList()
             };
+        }
 
-            AnalysisResult = _playerPowerAnalyzerV2Service.Analyze(LocalInventoryStateJson, request);
+        // Synchronous fallback (no-JS). The JS path uses the async job handlers below so production requests
+        // stay under Cloudflare's 100s origin-response timeout.
+        public IActionResult OnPostAnalyze()
+        {
+            InitializeSelections();
+            AnalysisResult = _playerPowerAnalyzerV2Service.Analyze(LocalInventoryStateJson, BuildRequest());
             return Page();
+        }
+
+        // Start an async analysis job; returns immediately with the job id (sub-second request).
+        public IActionResult OnPostStartAnalyze()
+        {
+            var request = BuildRequest();
+            var inventory = LocalInventoryStateJson;
+            var job = _jobs.Enqueue((serviceProvider, _) =>
+            {
+                // Resolve a fresh scoped analyzer from the job's own scope (the request scope is gone by now).
+                var service = serviceProvider.GetRequiredService<PlayerPowerAnalyzerV2Service>();
+                return service.Analyze(inventory, request);
+            });
+
+            return new JsonResult(new { jobId = job.Id });
+        }
+
+        // Fast poll: current job state + elapsed time. No result payload here (kept tiny).
+        public IActionResult OnGetAnalyzeStatus(string id)
+        {
+            var job = _jobs.Get(id);
+            if (job == null)
+            {
+                return new JsonResult(new { status = "notfound" }) { StatusCode = 404 };
+            }
+
+            return new JsonResult(new
+            {
+                status = job.Status.ToString().ToLowerInvariant(),
+                elapsedMs = job.ElapsedMs,
+                error = job.Error
+            });
         }
 
         private void InitializeSelections()

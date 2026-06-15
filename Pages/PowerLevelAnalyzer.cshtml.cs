@@ -1,10 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using FFVIIEverCrisisAnalyzer.Services;
 using FFVIIEverCrisisAnalyzer.Models;
 
 namespace FFVIIEverCrisisAnalyzer.Pages;
+
+// Result bundle produced by the background analysis job and restored onto the page on the completion redirect.
+public sealed class PowerLevelAnalysisResult
+{
+    public List<BestTeamResult> RankedTeams { get; set; } = new();
+    public List<PlayerGuildAssignment> GuildAssignments { get; set; } = new();
+    public List<string> GuildWarnings { get; set; } = new();
+    public Dictionary<int, string> GuildTimeZoneSummaries { get; set; } = new();
+    public Dictionary<string, int> GuildSubmissionCounts { get; set; } = new();
+    public int TotalDistinctPlayers { get; set; }
+    public List<string> DuplicateSubmitters { get; set; } = new();
+    public List<PlayerSubmissionInfo> AllPlayerSubmissions { get; set; } = new();
+    public Dictionary<string, PlayerGearSummary> PlayerGearByName { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public int V2UnresolvedNameCount { get; set; }
+    public string? ErrorMessage { get; set; }
+}
 
 public class PlayerSubmissionInfo
 {
@@ -70,8 +87,9 @@ public class PowerLevelAnalyzerModel : PageModel
     private readonly EnemyAbilityCatalog _enemyAbilityCatalog;
     private readonly MemoriaCatalog _memoriaCatalog;
     private readonly PowerLevelAnalyzerV2Adapter _v2Adapter;
+    private readonly AnalysisJobService _jobs;
 
-    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, IConfiguration configuration, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog, SummonCatalog summonCatalog, EnemyAbilityCatalog enemyAbilityCatalog, MemoriaCatalog memoriaCatalog, PowerLevelAnalyzerV2Adapter v2Adapter)
+    public PowerLevelAnalyzerModel(ILogger<PowerLevelAnalyzerModel> logger, IConfiguration configuration, Gb20Analyzer gb20Analyzer, GuildAssigner guildAssigner, WeaponCatalog weaponCatalog, TeamTemplateCatalog teamTemplateCatalog, SummonCatalog summonCatalog, EnemyAbilityCatalog enemyAbilityCatalog, MemoriaCatalog memoriaCatalog, PowerLevelAnalyzerV2Adapter v2Adapter, AnalysisJobService jobs)
     {
         _logger = logger;
         _configuration = configuration;
@@ -83,6 +101,7 @@ public class PowerLevelAnalyzerModel : PageModel
         _enemyAbilityCatalog = enemyAbilityCatalog;
         _memoriaCatalog = memoriaCatalog;
         _v2Adapter = v2Adapter;
+        _jobs = jobs;
     }
 
     public WeaponCatalog WeaponCatalog => _weaponCatalog;
@@ -131,7 +150,9 @@ public class PowerLevelAnalyzerModel : PageModel
     public List<SheetDefinition> AvailableSheets { get; set; } = new();
     public Dictionary<string, PlayerGearSummary> PlayerGearByName { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public void OnGet()
+    // resultJobId is set by the async flow's completion redirect: restore the finished job's result bundle and
+    // render the full page server-side (the result is already computed, so this GET is sub-second).
+    public void OnGet(string? resultJobId)
     {
         LoadAvailableSheets();
         // Load available templates and set all as enabled by default
@@ -140,6 +161,41 @@ public class PowerLevelAnalyzerModel : PageModel
         {
             EnabledTeamTemplates[template.Name] = template.Enabled;
         }
+
+        if (!string.IsNullOrEmpty(resultJobId) && _jobs.Get(resultJobId)?.Result is PowerLevelAnalysisResult bundle)
+        {
+            ApplyResultBundle(bundle);
+        }
+    }
+
+    private PowerLevelAnalysisResult ToResultBundle() => new()
+    {
+        RankedTeams = RankedTeams,
+        GuildAssignments = GuildAssignments,
+        GuildWarnings = GuildWarnings,
+        GuildTimeZoneSummaries = GuildTimeZoneSummaries,
+        GuildSubmissionCounts = GuildSubmissionCounts,
+        TotalDistinctPlayers = TotalDistinctPlayers,
+        DuplicateSubmitters = DuplicateSubmitters,
+        AllPlayerSubmissions = AllPlayerSubmissions,
+        PlayerGearByName = PlayerGearByName,
+        V2UnresolvedNameCount = V2UnresolvedNameCount,
+        ErrorMessage = ErrorMessage
+    };
+
+    private void ApplyResultBundle(PowerLevelAnalysisResult b)
+    {
+        RankedTeams = b.RankedTeams;
+        GuildAssignments = b.GuildAssignments;
+        GuildWarnings = b.GuildWarnings;
+        GuildTimeZoneSummaries = b.GuildTimeZoneSummaries;
+        GuildSubmissionCounts = b.GuildSubmissionCounts;
+        TotalDistinctPlayers = b.TotalDistinctPlayers;
+        DuplicateSubmitters = b.DuplicateSubmitters;
+        AllPlayerSubmissions = b.AllPlayerSubmissions;
+        PlayerGearByName = b.PlayerGearByName;
+        V2UnresolvedNameCount = b.V2UnresolvedNameCount;
+        ErrorMessage = b.ErrorMessage;
     }
 
     private void LoadAvailableSheets()
@@ -158,7 +214,9 @@ public class PowerLevelAnalyzerModel : PageModel
             .ToList();
     }
 
-    private async Task<Stream?> GetCsvStreamAsync()
+    // Reads the survey CSV fully into memory so the analysis can run in a background job (the request and its
+    // upload/stream are gone by then). Returns null and sets ErrorMessage on failure.
+    private async Task<byte[]?> GetCsvBytesAsync()
     {
         if (!string.IsNullOrWhiteSpace(GoogleSheetUrl))
         {
@@ -169,10 +227,7 @@ public class PowerLevelAnalyzerModel : PageModel
                 ErrorMessage = $"Failed to download Google Sheet: {response.StatusCode}";
                 return null;
             }
-            var memStream = new MemoryStream();
-            await response.Content.CopyToAsync(memStream);
-            memStream.Position = 0;
-            return memStream;
+            return await response.Content.ReadAsByteArrayAsync();
         }
 
         if (UploadedFile != null && UploadedFile.Length > 0)
@@ -182,24 +237,92 @@ public class PowerLevelAnalyzerModel : PageModel
                 ErrorMessage = "Please upload a valid CSV file.";
                 return null;
             }
-            return UploadedFile.OpenReadStream();
+            using var ms = new MemoryStream();
+            await UploadedFile.CopyToAsync(ms);
+            return ms.ToArray();
         }
 
         ErrorMessage = "Please select a survey sheet or upload a CSV file.";
         return null;
     }
 
+    // Synchronous fallback (no-JS). The JS path uses the async job handlers below so production requests stay
+    // under Cloudflare's 100s origin-response timeout.
     public async Task<IActionResult> OnPostAsync()
     {
         LoadAvailableSheets();
-        using var stream = await GetCsvStreamAsync();
-        if (stream == null)
+        var csvBytes = await GetCsvBytesAsync();
+        if (csvBytes == null)
         {
             return Page();
         }
 
+        await ComputeAsync(csvBytes);
+        return Page();
+    }
+
+    // Start an async analysis job; returns immediately with the job id (sub-second request).
+    // Razor strips the "Async" suffix, so the client reaches this via `?handler=Start` (NOT `StartAsync`).
+    public async Task<IActionResult> OnPostStartAsync()
+    {
+        LoadAvailableSheets();
+        var csvBytes = await GetCsvBytesAsync();
+        if (csvBytes == null)
+        {
+            return new JsonResult(new { error = ErrorMessage ?? "Could not read the survey CSV." }) { StatusCode = 400 };
+        }
+
+        // Capture bound inputs as plain data for the job; the analysis runs on a fresh page-model instance built
+        // from the job's own DI scope (the request scope is gone by then).
+        var enemyWeakness = EnemyWeakness;
+        var preferredDamageType = PreferredDamageType;
+        var targetScenario = TargetScenario;
+        var showDebug = ShowDebug;
+        var useV2 = UseV2Engine;
+        var synergy = new Dictionary<string, int>(SynergyEffectBonusPercents, StringComparer.OrdinalIgnoreCase);
+        var enabledTemplates = new Dictionary<string, bool>(EnabledTeamTemplates, StringComparer.OrdinalIgnoreCase);
+
+        var job = _jobs.Enqueue((serviceProvider, _) =>
+        {
+            var model = ActivatorUtilities.CreateInstance<PowerLevelAnalyzerModel>(serviceProvider);
+            model.EnemyWeakness = enemyWeakness;
+            model.PreferredDamageType = preferredDamageType;
+            model.TargetScenario = targetScenario;
+            model.ShowDebug = showDebug;
+            model.UseV2Engine = useV2;
+            model.SynergyEffectBonusPercents = synergy;
+            model.EnabledTeamTemplates = enabledTemplates;
+            model.ComputeAsync(csvBytes).GetAwaiter().GetResult();
+            return model.ToResultBundle();
+        });
+
+        return new JsonResult(new { jobId = job.Id });
+    }
+
+    // Fast poll: current job state + elapsed time.
+    public IActionResult OnGetAnalyzeStatus(string id)
+    {
+        var job = _jobs.Get(id);
+        if (job == null)
+        {
+            return new JsonResult(new { status = "notfound" }) { StatusCode = 404 };
+        }
+
+        return new JsonResult(new
+        {
+            status = job.Status.ToString().ToLowerInvariant(),
+            elapsedMs = job.ElapsedMs,
+            error = job.Error
+        });
+    }
+
+    // Core analysis, runnable off the request thread (background job). Reads the CSV bytes and sets the result
+    // properties on this instance. Uses only injected services + bound input properties (no HttpContext).
+    public async Task ComputeAsync(byte[] csvBytes)
+    {
         try
         {
+            using var stream = new MemoryStream(csvBytes);
             var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);
             var accounts = ingestionResult.Accounts;
             DuplicateSubmitters = ingestionResult.DuplicateSubmitters;
@@ -366,18 +489,18 @@ public class PowerLevelAnalyzerModel : PageModel
             ErrorMessage = $"Error processing file: {ex.Message}";
             _logger.LogError(ex, "Error processing CSV file");
         }
-        return Page();
     }
 
     public async Task<IActionResult> OnPostExportGuildsAsync()
     {
         LoadAvailableSheets();
-        using var stream = await GetCsvStreamAsync();
-        if (stream == null)
+        var csvBytes = await GetCsvBytesAsync();
+        if (csvBytes == null)
         {
             return Page();
         }
 
+        using var stream = new MemoryStream(csvBytes);
         try
         {
             var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);

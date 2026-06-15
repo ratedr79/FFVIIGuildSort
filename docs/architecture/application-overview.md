@@ -39,6 +39,20 @@
 - Gear and enemy logic rely on local files in `data/` and external FF7EC data under `external/`.
 - Weapon and enemy catalogs are singleton services and are loaded once per app lifecycle.
 
+## Async Background Analysis Jobs
+Long analyses (Player Power Analyzer V2 in Full/Pro mode, and the whole-player-base Power Level Analyzer) can run for minutes. Production sits behind a Cloudflare proxy whose **100s origin-response timeout (error 524)** cannot be raised without Enterprise licensing. Because 524 is a *time-to-first-byte* limit (not a total-duration cap), the fix is to keep every HTTP request sub-second by moving the computation off the request thread.
+
+- `Services/AnalysisJobService.cs` — singleton in-memory job registry. `Enqueue(work)` returns a job id immediately; tracks `Status` (Queued/Running/Completed/Failed), elapsed time, result, and error. Finished jobs are evicted after 30 minutes (and capped at 200) to bound memory.
+- `Services/AnalysisJobWorker.cs` — a `BackgroundService` that drains a `Channel` and runs each job in its **own DI scope** (the originating request scope is gone by then, so jobs must resolve the scoped analyzer services themselves). Bounded to 2 concurrent heavy jobs; the rest queue.
+- Both are registered in `Program.cs` (`AddSingleton<AnalysisJobService>()` + `AddHostedService<AnalysisJobWorker>()`).
+
+Per-page request flow (Player Power Analyzer V2 and Power Level Analyzer):
+1. Client intercepts the submit, `POST ?handler=Start*` → enqueues a job, returns `{ jobId }` (sub-second).
+2. Client polls `GET ?handler=AnalyzeStatus&id=` every ~1.5–2s (sub-second each), showing an elapsed-time overlay.
+3. On `completed`, the client **redirects to `?resultJobId=<id>`**; `OnGet(resultJobId)` pulls the precomputed result from the registry and renders the full page server-side (sub-second, no recompute). This reuses all existing server-rendered result markup and interactivity unchanged.
+
+The original synchronous handlers (`OnPostAnalyze` / `OnPostAsync`) are retained as no-JS fallbacks. The Power Level Analyzer keeps its heavy logic in the page model as `ComputeAsync(byte[])`; the job runs it on a fresh page-model instance via `ActivatorUtilities.CreateInstance<PowerLevelAnalyzerModel>(scope)` and returns a `PowerLevelAnalysisResult` bundle that `OnGet` restores. See [Special Cases and Maintenance Notes](../notes/special-cases-and-maintenance.md#async-analysis-job-notes) for operational caveats.
+
 ## Important Couplings
 - `PowerLevelAnalyzer` depends on survey column naming conventions.
 - `StagePointEstimator` depends on `data/stagePointCalibration.json` being present in output.

@@ -1266,11 +1266,92 @@
                 });
             }
 
+            function stopProcessingOverlay() {
+                if (processingTimer) {
+                    window.clearInterval(processingTimer);
+                    processingTimer = null;
+                }
+                if (overlay) {
+                    overlay.classList.remove('is-visible');
+                    overlay.setAttribute('aria-hidden', 'true');
+                }
+                document.body.classList.remove('power-v2-processing-active');
+                if (analyzeButton) {
+                    analyzeButton.removeAttribute('disabled');
+                }
+            }
+
+            // Parse a JSON response defensively: if the server ever returns HTML (an error page, a wrong handler),
+            // surface a clear message instead of a raw "Unexpected token '<'" JSON parse error.
+            function readJson(response) {
+                return response.text().then(function (text) {
+                    let data = null;
+                    try { data = JSON.parse(text); } catch (e) { data = null; }
+                    if (!response.ok || !data) {
+                        throw new Error(data && data.error ? data.error : ('Server returned an unexpected response (HTTP ' + response.status + ').'));
+                    }
+                    return data;
+                });
+            }
+
+            // Async analysis: start a background job, poll until done, then reload the page with the precomputed
+            // result. Every request here is sub-second, so Cloudflare's 100s origin-response timeout never fires
+            // even when the analysis itself takes minutes.
+            function runAnalysisAsync() {
+                if (!form) {
+                    return;
+                }
+
+                const data = new FormData(form); // carries the antiforgery token, all bound fields, and the hydrated inventory
+                fetch('?handler=StartAnalyze', { method: 'POST', body: data })
+                    .then(readJson)
+                    .then(function (payload) {
+                        if (!payload || !payload.jobId) {
+                            throw new Error('Analysis did not start (no job id returned).');
+                        }
+                        pollAnalysisJob(payload.jobId);
+                    })
+                    .catch(function (error) {
+                        stopProcessingOverlay();
+                        setImportStatus(error && error.message ? error.message : 'Failed to start analysis.', true);
+                    });
+            }
+
+            function pollAnalysisJob(jobId) {
+                fetch('?handler=AnalyzeStatus&id=' + encodeURIComponent(jobId), { headers: { 'Accept': 'application/json' } })
+                    .then(readJson)
+                    .then(function (state) {
+                        if (state.status === 'completed') {
+                            if (status) { status.textContent = 'Done — loading results...'; }
+                            window.location = window.location.pathname + '?resultJobId=' + encodeURIComponent(jobId);
+                            return;
+                        }
+                        if (state.status === 'failed') {
+                            stopProcessingOverlay();
+                            setImportStatus(state.error ? ('Analysis failed: ' + state.error) : 'Analysis failed.', true);
+                            return;
+                        }
+                        if (state.status === 'notfound') {
+                            stopProcessingOverlay();
+                            setImportStatus('Analysis job was not found (it may have expired). Please try again.', true);
+                            return;
+                        }
+                        // queued / running — keep waiting (the overlay cycles its own status messages)
+                        window.setTimeout(function () { pollAnalysisJob(jobId); }, 1500);
+                    })
+                    .catch(function () {
+                        // Transient network blip; keep polling a little slower.
+                        window.setTimeout(function () { pollAnalysisJob(jobId); }, 2500);
+                    });
+            }
+
             if (form) {
-                form.addEventListener('submit', function () {
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
                     setImportStatus('', false);
                     hydrateInventoryState();
                     startProcessingOverlay();
+                    runAnalysisAsync();
                 });
             }
         })();

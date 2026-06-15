@@ -18,7 +18,7 @@ This document covers the max-damage-oriented behavior inside:
 - `Tests/PlayerPowerAnalyzerV2ServiceTests.cs`
 - `Tests/PlayerPowerAnalyzerV2BenchmarkTests.cs`
 
-This is not a general page/UI doc. It is specifically about how `PlayerPowerAnalyzerV2` currently chooses offensive teams.
+This is not a general page/UI doc. It is specifically about how `PlayerPowerAnalyzerV2` currently chooses offensive teams. For how the page *runs* the analysis (Full/Pro can exceed Cloudflare's 100s timeout, so it executes as an async background job with start/poll/redirect), see [Application Overview → Async Background Analysis Jobs](../architecture/application-overview.md#async-background-analysis-jobs).
 
 ## High-level intent
 

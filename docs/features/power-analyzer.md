@@ -10,6 +10,9 @@ This section documents the advanced scoring and assignment behavior used by `Pow
 - Core scoring logic: `Services/TeamOptimizer.cs`
 - Guild assignment: `Services/GuildAssigner.cs`
 
+## Request Execution (Async Jobs)
+A full-player-base run can take minutes, so the page does not analyze inside the POST. The "Find Best Teams" button starts a background job (`?handler=StartAsync` → `AnalysisJobService`), the client polls `?handler=AnalyzeStatus` behind an elapsed-time overlay, and on completion it redirects to `?resultJobId=` which renders the precomputed result. This keeps every request sub-second (avoids Cloudflare's 100s `524`). The heavy logic lives in `ComputeAsync(byte[])`; the job runs it on a fresh page-model instance and returns a `PowerLevelAnalysisResult` bundle. The synchronous `OnPostAsync` remains a no-JS fallback. See [Application Overview](../architecture/application-overview.md#async-background-analysis-jobs) and [maintenance notes](../notes/special-cases-and-maintenance.md#async-analysis-job-notes) (incl. the still-synchronous CSV export caveat).
+
 ## Input Model
 - Data source: configured Google Sheet (`GoogleSheets:SurveySheets`) or uploaded CSV.
 - Required column: `In-Game Name`.
