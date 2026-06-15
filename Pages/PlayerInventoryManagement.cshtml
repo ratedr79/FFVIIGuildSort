@@ -824,6 +824,7 @@
                         <button type="button" class="btn btn-primary" id="inventoryExportButton"><i class="fas fa-file-export"></i> Export</button>
                         <button type="button" class="btn btn-outline-primary" id="inventoryImportButton"><i class="fas fa-file-import"></i> Import</button>
                         <button type="button" class="btn btn-outline-secondary" id="inventoryPasteImportButton"><i class="fas fa-paste"></i> Paste Import</button>
+                        <button type="button" class="btn btn-outline-secondary" id="inventorySheetImportButton"><i class="fas fa-table"></i> Import from Sheet</button>
                         <button type="button" class="btn btn-outline-success" id="inventorySurveyQuickViewButton"><i class="fas fa-clipboard-list"></i> SOLDIER Survey Quick View</button>
                         <button type="button" class="btn btn-outline-danger" id="inventoryResetButton"><i class="fas fa-trash"></i> Reset</button>
                     </div>
@@ -1223,6 +1224,68 @@
     </div>
 </div>
 
+<div class="modal fade" id="sheetImportModal" tabindex="-1" aria-labelledby="sheetImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="sheetImportModalLabel">Import from Inventory Tracking Sheet</h5>
+                    <div class="text-muted small">Copy the columns from each tab of the tracking sheet and paste them into the matching box below. <strong>Importing replaces your entire saved inventory</strong> &mdash; anything not listed becomes Do Not Own / Not Owned.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12 col-lg-4">
+                        <label for="sheetImportWeaponsInput" class="form-label fw-semibold">Weapons</label>
+                        <textarea class="form-control" id="sheetImportWeaponsInput" rows="12" placeholder="Overboost&#9;Level&#9;&#9;Weapon&#10;OB 10&#9;Lv 140&#9;&#9;Citric Wand&#10;Unowned&#9;Lv 90&#9;&#9;Bahamut Rod"></textarea>
+                        <div class="inventory-paste-help mt-1">Columns: Overboost, Level, Weapon.</div>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label for="sheetImportUltimatesInput" class="form-label fw-semibold">Ultimate Weapons</label>
+                        <textarea class="form-control" id="sheetImportUltimatesInput" rows="12" placeholder="Owned&#9;Lv&#9;&#9;Weapon&#10;TRUE&#9;Lv 140&#9;&#9;Ragnarok [2 Uses]&#10;FALSE&#9;Lv 140&#9;&#9;Abraxas [2 Uses]"></textarea>
+                        <div class="inventory-paste-help mt-1">Columns: Owned, Lv, Weapon. The <code>[N Uses]</code> suffix is handled automatically.</div>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label for="sheetImportCostumesInput" class="form-label fw-semibold">Costumes</label>
+                        <textarea class="form-control" id="sheetImportCostumesInput" rows="12" placeholder="Owned&#9;&#9;Gear&#10;TRUE&#9;&#9;Citric Dress&#10;FALSE&#9;&#9;Chocobo Suit"></textarea>
+                        <div class="inventory-paste-help mt-1">Columns: Owned, Gear.</div>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-3 mb-3">
+                    <button type="button" class="btn btn-primary" id="previewSheetImportButton">Preview</button>
+                    <button type="button" class="btn btn-success" id="applySheetImportButton" disabled>Import &amp; Replace Inventory</button>
+                    <button type="button" class="btn btn-outline-secondary" id="clearSheetImportButton">Clear</button>
+                </div>
+                <div class="inventory-import-summary mb-2" id="sheetImportSummary">Paste one or more tabs, then Preview to see matched items and anything that didn&#39;t match.</div>
+                <div class="alert alert-warning inventory-import-errors" id="sheetImportWarnings" role="alert" hidden></div>
+                <div class="table-responsive border rounded">
+                    <table class="table table-sm align-middle mb-0 inventory-import-preview-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Category</th>
+                                <th scope="col">Rows</th>
+                                <th scope="col">Matched</th>
+                                <th scope="col">Will be owned</th>
+                                <th scope="col">Unmatched</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sheetImportPreviewBody">
+                            <tr>
+                                <td colspan="5" class="inventory-import-preview-empty">Preview to see a per-tab breakdown.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="sheetImportUnmatched" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="surveyQuickViewModal" tabindex="-1" aria-labelledby="surveyQuickViewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
@@ -1377,6 +1440,19 @@
             const pasteImportSummary = document.getElementById('pasteImportSummary');
             const pasteImportErrors = document.getElementById('pasteImportErrors');
             const pasteImportPreviewBody = document.getElementById('pasteImportPreviewBody');
+            const sheetImportModalElement = document.getElementById('sheetImportModal');
+            const sheetImportModal = sheetImportModalElement ? new bootstrap.Modal(sheetImportModalElement) : null;
+            const sheetImportButton = document.getElementById('inventorySheetImportButton');
+            const sheetImportWeaponsInput = document.getElementById('sheetImportWeaponsInput');
+            const sheetImportUltimatesInput = document.getElementById('sheetImportUltimatesInput');
+            const sheetImportCostumesInput = document.getElementById('sheetImportCostumesInput');
+            const previewSheetImportButton = document.getElementById('previewSheetImportButton');
+            const applySheetImportButton = document.getElementById('applySheetImportButton');
+            const clearSheetImportButton = document.getElementById('clearSheetImportButton');
+            const sheetImportSummary = document.getElementById('sheetImportSummary');
+            const sheetImportWarnings = document.getElementById('sheetImportWarnings');
+            const sheetImportPreviewBody = document.getElementById('sheetImportPreviewBody');
+            const sheetImportUnmatched = document.getElementById('sheetImportUnmatched');
             const snapshotOverboost = document.getElementById('snapshotOverboost');
             const snapshotLevel = document.getElementById('snapshotLevel');
             const snapshotLevelRange = document.getElementById('snapshotLevelRange');
@@ -1415,6 +1491,7 @@
             let selectedItemIds = new Set();
             let undoStateSnapshot = null;
             let lastParsedPasteImport = null;
+            let lastSheetImport = null;
             const itemNameLookup = buildItemNameLookup(allItems);
             const itemIdLookup = new Map(allItems.map(item => [String(item.id), item]));
 
@@ -2715,7 +2792,7 @@
 
             function detectStructuredHeader(columns) {
                 const normalized = columns.map(normalizeHeaderKey);
-                const nameIndex = normalized.findIndex(value => ['name', 'item', 'itemname', 'weapon', 'weaponname', 'costume', 'costumename'].includes(value));
+                const nameIndex = normalized.findIndex(value => ['name', 'item', 'itemname', 'weapon', 'weaponname', 'costume', 'costumename', 'gear', 'gearname'].includes(value));
                 const ownershipIndex = normalized.findIndex(value => ['ownership', 'owned', 'status', 'ob', 'overboost'].includes(value));
                 const levelIndex = normalized.findIndex(value => ['level', 'lv', 'weaponlevel'].includes(value));
                 if (nameIndex < 0 || (ownershipIndex < 0 && levelIndex < 0)) {
@@ -3212,6 +3289,208 @@
                 showSuccess(`Applied ${applicableRows.length.toLocaleString()} pasted inventory updates.`);
             }
 
+            // ----- Import from inventory tracking sheet (three labeled tabs, full replace) -----
+
+            // Parse one pasted sheet tab. Reuses the structured paste parser (header detection, delimiter
+            // handling, ownership/level token parsing). Strips the ultimate "[N Uses]" suffix and drops the
+            // sheet's blank padding rows. Returns { rows, matched, owned, unmatched, issues }.
+            function parseSheetImportBox(text, categoryLabel) {
+                const cleaned = String(text || '').replace(/\s*\[\d+\s*uses?\]/gi, '');
+                const result = { categoryLabel, rows: [], matched: [], owned: 0, unmatched: [], multiVariant: [], issues: [] };
+                if (!cleaned.trim()) {
+                    return result;
+                }
+
+                const parsed = parsePasteImportText(cleaned);
+                parsed.rows.forEach(row => {
+                    if (!row.normalizedName) {
+                        return; // blank padding row
+                    }
+
+                    result.rows.push(row);
+                    // A sheet only knows the item NAME. A name may map to more than one catalog entry
+                    // (a rerun/variant such as "Buster Sword Origin"); apply to ALL matches rather than
+                    // dropping the row, so an owned weapon is never silently skipped.
+                    const matches = itemNameLookup.get(row.normalizedName) || [];
+                    if (matches.length === 0) {
+                        result.unmatched.push({ name: row.name, error: 'No catalog item matched this name.' });
+                        return;
+                    }
+
+                    if (matches.length > 1) {
+                        result.multiVariant.push({ name: row.name, count: matches.length });
+                    }
+
+                    let rowOwned = false;
+                    matches.forEach(item => {
+                        const ownership = parseImportOwnershipForItem(item, row.ownershipToken);
+                        const level = parseImportLevelToken(row.levelToken);
+                        if (ownership.error) {
+                            result.issues.push(`${row.name}: ${ownership.error}`);
+                            return;
+                        }
+
+                        const isOwned = isCostumeItem(item)
+                            ? ownership.value === 'own'
+                            : ownership.value && ownership.value !== 'do-not-own';
+                        if (isOwned) {
+                            rowOwned = true;
+                        }
+
+                        result.matched.push({ item, ownership: ownership.value, level: level.value, isOwned });
+                    });
+
+                    if (rowOwned) {
+                        result.owned += 1; // count owned sheet rows (distinct names), not per-variant
+                    }
+                });
+
+                return result;
+            }
+
+            function parseAllSheetImportBoxes() {
+                return {
+                    weapons: parseSheetImportBox(sheetImportWeaponsInput.value, 'Weapons'),
+                    ultimates: parseSheetImportBox(sheetImportUltimatesInput.value, 'Ultimate Weapons'),
+                    costumes: parseSheetImportBox(sheetImportCostumesInput.value, 'Costumes')
+                };
+            }
+
+            function renderSheetImportPreview() {
+                const boxes = lastSheetImport;
+                if (!boxes) {
+                    return;
+                }
+
+                const order = [boxes.weapons, boxes.ultimates, boxes.costumes];
+                const totalRows = order.reduce((sum, box) => sum + box.rows.length, 0);
+                const totalMatched = order.reduce((sum, box) => sum + box.matched.length, 0);
+                const totalOwned = order.reduce((sum, box) => sum + box.owned, 0);
+                const totalUnmatched = order.reduce((sum, box) => sum + box.unmatched.length, 0);
+
+                sheetImportSummary.textContent = totalRows === 0
+                    ? 'No rows found. Paste the columns from one or more tabs, then Preview.'
+                    : `${totalRows.toLocaleString()} rows · ${totalMatched.toLocaleString()} matched · ${totalOwned.toLocaleString()} will be owned · ${totalUnmatched.toLocaleString()} unmatched`;
+
+                sheetImportPreviewBody.innerHTML = order.map(box => `
+                    <tr>
+                        <td>${escapeHtml(box.categoryLabel)}</td>
+                        <td>${box.rows.length.toLocaleString()}</td>
+                        <td>${box.matched.length.toLocaleString()}</td>
+                        <td>${box.owned.toLocaleString()}</td>
+                        <td>${box.unmatched.length.toLocaleString()}</td>
+                    </tr>`).join('');
+
+                // Empty-box warnings: a full replace wipes any category whose box was left blank.
+                const warnings = [];
+                if (boxes.weapons.rows.length === 0) {
+                    warnings.push('Weapons box is empty — all weapons will be set to Do Not Own.');
+                }
+                if (boxes.ultimates.rows.length === 0) {
+                    warnings.push('Ultimate Weapons box is empty — all ultimates will be set to Do Not Own.');
+                }
+                if (boxes.costumes.rows.length === 0) {
+                    warnings.push('Costumes box is empty — all costumes will be set to Not Owned.');
+                }
+                const issues = order.flatMap(box => box.issues);
+                if (issues.length > 0) {
+                    warnings.push(...issues);
+                }
+                // Transparency note: names that map to more than one catalog entry are applied to every variant.
+                const multiVariant = order.flatMap(box => box.multiVariant);
+                if (multiVariant.length > 0) {
+                    warnings.push(`Note: ${multiVariant.map(entry => `${entry.name} (${entry.count} variants)`).join(', ')} matched multiple catalog entries — all variants will be marked owned.`);
+                }
+                sheetImportWarnings.hidden = warnings.length === 0;
+                sheetImportWarnings.innerHTML = warnings.map(escapeHtml).join('<br />');
+
+                const unmatchedSections = order
+                    .filter(box => box.unmatched.length > 0)
+                    .map(box => `
+                        <div class="mb-2">
+                            <div class="fw-semibold">${escapeHtml(box.categoryLabel)} — ${box.unmatched.length.toLocaleString()} unmatched (skipped):</div>
+                            <div class="text-muted small">${box.unmatched.map(entry => escapeHtml(entry.name)).join(', ')}</div>
+                        </div>`);
+                sheetImportUnmatched.innerHTML = unmatchedSections.join('');
+
+                applySheetImportButton.disabled = totalMatched === 0;
+            }
+
+            function previewSheetImport() {
+                hideMessages();
+                lastSheetImport = parseAllSheetImportBoxes();
+                const totalRows = lastSheetImport.weapons.rows.length + lastSheetImport.ultimates.rows.length + lastSheetImport.costumes.rows.length;
+                if (totalRows === 0) {
+                    clearSheetImportSession(false);
+                    showError('Paste the columns from at least one tracking-sheet tab before previewing.');
+                    return;
+                }
+
+                renderSheetImportPreview();
+            }
+
+            function applySheetImport() {
+                hideMessages();
+                if (!lastSheetImport) {
+                    showError('Preview the pasted tabs before importing.');
+                    return;
+                }
+
+                const order = [lastSheetImport.weapons, lastSheetImport.ultimates, lastSheetImport.costumes];
+                const ownedRows = order.flatMap(box => box.matched.filter(entry => entry.isOwned));
+                if (ownedRows.length === 0) {
+                    showError('No owned items matched the catalog, so there is nothing to import.');
+                    return;
+                }
+
+                if (!window.confirm(`Replace your ENTIRE saved inventory with this import? ${ownedRows.length.toLocaleString()} owned items will be set; everything else becomes Do Not Own / Not Owned. This cannot be undone except via Undo.`)) {
+                    return;
+                }
+
+                const undoSnapshot = {
+                    description: 'sheet import (replace all)',
+                    costumes: cloneInventoryEntries(state.costumes),
+                    weapons: cloneInventoryEntries(state.weapons)
+                };
+
+                // Full replace: wipe both maps, then write only the owned rows. Absent items default to
+                // Do Not Own (weapons) / Not Owned (costumes) via getWeaponRecord / getCostumeRecord.
+                state.weapons = {};
+                state.costumes = {};
+                ownedRows.forEach(entry => {
+                    if (isCostumeItem(entry.item)) {
+                        state.costumes[entry.item.id] = { owned: true };
+                        return;
+                    }
+
+                    state.weapons[entry.item.id] = {
+                        ownership: entry.ownership,
+                        level: entry.level
+                    };
+                });
+
+                saveState();
+                undoStateSnapshot = undoSnapshot;
+                renderInventory();
+                sheetImportModal?.hide();
+                showSuccess(`Replaced inventory from tracking sheet: ${ownedRows.length.toLocaleString()} owned items imported.`);
+            }
+
+            function clearSheetImportSession(clearInputs = false) {
+                lastSheetImport = null;
+                applySheetImportButton.disabled = true;
+                sheetImportSummary.textContent = 'Paste one or more tabs, then Preview to see matched items and anything that didn’t match.';
+                sheetImportWarnings.hidden = true;
+                sheetImportWarnings.innerHTML = '';
+                sheetImportUnmatched.innerHTML = '';
+                sheetImportPreviewBody.innerHTML = '<tr><td colspan="5" class="inventory-import-preview-empty">Preview to see a per-tab breakdown.</td></tr>';
+                if (clearInputs) {
+                    sheetImportWeaponsInput.value = '';
+                    sheetImportUltimatesInput.value = '';
+                    sheetImportCostumesInput.value = '';
+                }
+            }
+
             function setSnapshotLoading(isLoading) {
                 snapshotSpinner.classList.toggle('active', isLoading);
                 snapshotOverboost.disabled = isLoading;
@@ -3476,6 +3755,23 @@
             inventoryPasteImportButton.addEventListener('click', () => {
                 clearPasteImportSession(false);
                 pasteImportModal?.show();
+            });
+
+            sheetImportButton?.addEventListener('click', () => {
+                clearSheetImportSession(false);
+                sheetImportModal?.show();
+            });
+
+            previewSheetImportButton?.addEventListener('click', () => {
+                previewSheetImport();
+            });
+
+            applySheetImportButton?.addEventListener('click', () => {
+                applySheetImport();
+            });
+
+            clearSheetImportButton?.addEventListener('click', () => {
+                clearSheetImportSession(true);
             });
 
             inventoryImportButton.addEventListener('click', () => {

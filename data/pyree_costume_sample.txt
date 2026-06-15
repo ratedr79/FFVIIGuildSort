@@ -1,0 +1,1000 @@
+Owned		Gear
+TRUE		Bahamut Robe
+FALSE		Chocobo Suit
+TRUE		Citric Dress
+FALSE		Classic Coney
+TRUE		Fairy of Snowfall
+TRUE		Festive Crimson Attire
+TRUE		Festive Dress
+TRUE		Floral Gown
+TRUE		Garb of the Possessed
+TRUE		Garnet's Gown
+TRUE		Gorgeous Dress
+TRUE		Guardian Corps Uniform (Aerith)
+TRUE		Kamura Dress
+TRUE		Loveless Songstress
+TRUE		Pink Mermaid Beachwear
+TRUE		Prism Dress
+TRUE		Rosy Battle Suit
+TRUE		Seventh High Team Cetra Uniform
+TRUE		Sunny Robe
+TRUE		Supreme Sage Garb
+TRUE		Terra's Garb
+TRUE		The Slums' Flower Girl
+TRUE		Cyan's Attire
+TRUE		Festive Suit
+TRUE		Garb of the Worthy
+TRUE		Genial SOLDIER: Second Class
+TRUE		Ghost Robe
+TRUE		Honorable Training Garb
+TRUE		Resort Style
+TRUE		Shinra Expedition Wear
+TRUE		Avalanche Leader
+TRUE		Dragon King Varvados
+TRUE		Electroarmor
+TRUE		Fiery Cape
+TRUE		Scrap Armor
+TRUE		Seventh High Athletic Gear
+TRUE		Sunrise Hakama
+TRUE		Cool Cat's Jacket
+TRUE		Felyne Kamura Garb
+TRUE		Marching Jacket
+TRUE		Nocturne Jacket
+TRUE		Party Jacket
+TRUE		Pumpkin Jacket
+TRUE		Self-Professed Fortune-Teller
+TRUE		Astronaut
+TRUE		Dark Flyer
+TRUE		Flying Captain
+TRUE		Holidays Attire
+TRUE		Patissier Frock
+TRUE		Sky-Loving Pilot
+TRUE		AC Mode
+TRUE		Bahamut Garb
+TRUE		Bandaged Coat
+TRUE		Battlefiend Garb
+TRUE		Classic Dress
+TRUE		Equilibrium
+TRUE		Erdrick's Armour
+TRUE		Ex-SOLDIER: First Class
+TRUE		Glavenus Armor
+TRUE		Holiday Outfit
+TRUE		Locke's Outfit
+TRUE		Maritime Sailor
+TRUE		Murasame Battle Garb
+TRUE		Mystic Coat
+TRUE		New Year's Battle Garb
+TRUE		Official Festive Garb
+TRUE		Polygon Cloud
+TRUE		Rider Style
+TRUE		Saber Style
+TRUE		Scanner Ensemble
+TRUE		The Sable
+TRUE		Zidane's Outfit
+TRUE		Cake Breaker
+TRUE		Desperado Mantle
+TRUE		Doom Dodger
+TRUE		Garish Hakama
+TRUE		Patissier Style
+TRUE		Pirate Captain
+TRUE		Pumpkinmare
+TRUE		Snow Style
+TRUE		Training Garb of Ruin
+TRUE		Unprecedented P0 SOLDIER
+TRUE		Vanguard Style
+TRUE		Beach Agent
+TRUE		Black Stealth
+TRUE		Dealer's Tailcoat
+TRUE		Desperado Chic
+TRUE		Disciplined P0 SOLDIER
+TRUE		Entrapment Gown
+TRUE		Gothic Bunny
+TRUE		Holiday Coat
+TRUE		Marksqueen
+TRUE		Shinra Ceremonial Uniform
+TRUE		Vivi's Garb
+TRUE		Aidman's White Coat
+TRUE		Dark Night Robe
+TRUE		Desperado Style
+TRUE		Elite Uniform
+TRUE		Holiday Helper
+TRUE		Intellectual P0 SOLDIER
+TRUE		Killer Attire
+TRUE		Physician's Hakama
+TRUE		Professor
+TRUE		Canyon Duds
+TRUE		Great Sabrecat
+TRUE		Hojo's Specimen
+TRUE		Patissier Outfit
+TRUE		Pilot's Jacket
+TRUE		Pirate Navigator
+TRUE		Rubber Harness
+TRUE		Seaside Aloha
+TRUE		The Hellhound
+TRUE		Aeroglider
+TRUE		Banesword Style
+TRUE		Cape of the Worthy
+TRUE		Celebratory Garb
+TRUE		Custom Suit
+TRUE		Dark Attire
+TRUE		Dark Harbinger
+TRUE		Edgar's Attire
+TRUE		Edged Wings Training Garb
+TRUE		Garb of the World-Ender
+TRUE		Infiltration Style
+TRUE		Knight of Etro
+TRUE		Kuja's Attire
+TRUE		Lethal Style
+TRUE		Natant Jacket
+TRUE		Remnant Suit
+TRUE		Shinra Formal Uniform
+TRUE		Shinra's Hero
+TRUE		The Immaculate
+TRUE		Conqueror of the Planet
+TRUE		Corruptor of the Planet
+TRUE		Omega Style
+TRUE		One with the Blade
+TRUE		Polygon Sephiroth
+TRUE		Ruler of the Planet
+TRUE		AC Style
+TRUE		Amarant's Guise
+TRUE		Armor of the Worthy
+TRUE		Bahamut Suit
+TRUE		Battler Ensemble
+TRUE		Bunny Bustier
+TRUE		Elegant Dress
+TRUE		Fairy of the Holy Flame
+TRUE		Feather Style
+TRUE		Festive Blue Daffodil Attire
+TRUE		Festive Style
+TRUE		Golden Flower Kimono
+TRUE		Guardian Corps Uniform (Tifa)
+TRUE		Guide Uniform
+TRUE		Kirin Suit
+TRUE		Lifeguard
+TRUE		Metalfoot
+TRUE		Passion Mermaid
+TRUE		Rider Jacket
+TRUE		Sabin's Style
+TRUE		Seventh Heaven Bartender
+TRUE		Seventh High School Uniform
+TRUE		Shining Spirit Beachwear
+TRUE		Auditing Uniform
+TRUE		Bouncer Suit
+TRUE		Chaos
+TRUE		Coat of the Worthy
+TRUE		Crowmaster Suit
+TRUE		Devil Gunner's Coat
+TRUE		Formal Attire
+TRUE		Galian Beast Mantle
+TRUE		Holiday Formal Wear
+TRUE		Mournful Former Turk
+TRUE		Stray Dog
+TRUE		AC Outfit
+TRUE		Amazing Materia Hunter
+TRUE		Bahamut Mantle
+TRUE		Bunny Apron
+TRUE		Heirloom Kimono
+TRUE		Holiday Cheer Reindeer
+TRUE		Moogle Hat & Cape
+TRUE		Nanaki Mantle
+TRUE		Puckish Lion
+TRUE		Rocker Outfit
+TRUE		Savior Ensemble
+TRUE		Shinobi Hawk
+TRUE		Sparkling Skater
+TRUE		Summer Moogle
+TRUE		Winter Moogle
+TRUE		Wutai's Idol
+TRUE		Black Hound
+TRUE		Festive Jacket
+TRUE		Glacier Armor
+TRUE		Guardian Style
+TRUE		Heavy Shield Armor
+TRUE		Holiday Suit
+TRUE		Polygon Zack
+TRUE		Rabbit Butler
+TRUE		Shinra Full Dress Uniform
+TRUE		SOLDIER: First Class Future Hero
+TRUE		SOLDIER: Second Class Future Hero
+TRUE		Surfer Look
+TRUE		Tropical Beach
+TRUE		Valiant Suit
+TRUE		Zenithian Armour
+TRUE		Zinogre Armor
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		
+FALSE		

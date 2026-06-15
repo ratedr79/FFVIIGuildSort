@@ -44,6 +44,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private readonly Dictionary<string, string> _weaponNameToId = new(StringComparer.OrdinalIgnoreCase);
         private readonly object _reloadSync = new();
 
+        // Curated exclusions: weapon records present in the master data but NOT obtainable by players, so they
+        // must not appear in the catalog (search, inventory, importer, or the analyzer's candidate set). These
+        // are hand-verified against the live game because the data exposes no general "obtainable" signal.
+        //   20002 — a legacy/non-exposed "Buster Sword Origin" (Zack) duplicate; the player-obtainable one is
+        //           id 20033 (Boost PDEF / Boost HP + Sigil Boost I). Same name caused import ambiguity.
+        private static readonly HashSet<int> ExcludedWeaponIds = new() { 20002 };
+
         // Lookup data retained for the snapshot API
         private Dictionary<int, WeaponRaw> _weaponsById = new();
         private Dictionary<int, string> _charactersById = new();
@@ -701,6 +708,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             foreach (var weapon in weapons)
             {
+                if (ExcludedWeaponIds.Contains(weapon.Id))
+                {
+                    continue; // not player-obtainable — keep it out of the catalog entirely
+                }
+
                 if (!characters.TryGetValue(weapon.CharacterId, out var characterName))
                 {
                     characterName = $"Character #{weapon.CharacterId}";

@@ -1,0 +1,1000 @@
+Overboost	Level		Weapon
+Unowned	Lv 90		Bahamut Rod
+OB 6	Lv 80		Chocobo Staff
+OB 10	Lv 140		Citric Wand
+OB 10	Lv 140		Crimson Staff
+OB 10	Lv 140		Dawn's Prayers
+OB 10	Lv 140		Egg Staff
+OB 10	Lv 140		Fairy Tale
+OB 10	Lv 140		Festive Rod
+OB 10	Lv 140		Floral Wand
+OB 10	Lv 140		Full Metal Staff
+OB 10	Lv 140		Gambanteinn
+OB 10	Lv 140		Garnet's Rod
+OB 10	Lv 140		Gorgeous Staff
+OB 10	Lv 140		Guard Stick
+OB 10	Lv 140		Hell House Rod
+OB 10	Lv 140		Kamura Wand
+OB 10	Lv 140		Lightning's Rod
+OB 10	Lv 140		Magatsuchi Rod
+OB 10	Lv 140		Mermaid Rod
+OB 10	Lv 140		Mythril Rod
+OB 10	Lv 140		Noblesse Rod
+OB 10	Lv 140		Prism Rod
+OB 10	Lv 140		Radrod
+OB 10	Lv 140		Ramuh's Staff
+OB 10	Lv 140		Rousing Wizer Staff
+OB 10	Lv 140		Sea Dragon Staff
+OB 10	Lv 140		Silver Staff
+OB 10	Lv 140		Snowflake
+OB 10	Lv 140		Staff of the Possessed
+OB 10	Lv 140		Striking Staff
+OB 10	Lv 140		Sun Umbrella
+OB 10	Lv 140		Supreme Sage's Staff
+OB 10	Lv 140		Team Leader's Bamboo Sword
+OB 10	Lv 140		Terra's Rod
+OB 10	Lv 140		Titan Rod
+OB 10	Lv 140		Umbrella
+OB 10	Lv 140		Wizard Staff
+OB 10	Lv 140		Wizer Staff
+OB 10	Lv 140		Blade of the Hunt
+OB 10	Lv 140		CC Alloy Greatsword
+OB 10	Lv 140		Cyan's Blade
+OB 10	Lv 140		Festive Blade
+OB 10	Lv 140		Gargantuan Monolith
+OB 10	Lv 140		Ghost Ensis
+OB 10	Lv 140		Greatsword (A)
+OB 10	Lv 140		Greatsword of the Worthy
+OB 10	Lv 140		Inflatable Buster Sword
+OB 10	Lv 140		Innocent Warrior
+OB 10	Lv 140		Lightning's Sword
+OB 10	Lv 140		Master Tonberry's Blade
+OB 10	Lv 140		Mythril Slasher
+OB 10	Lv 140		Orchard Shovel
+OB 10	Lv 140		Penance Blade
+OB 10	Lv 140		Rhad Blade
+OB 10	Lv 140		Sea Dragon Greatsword
+OB 10	Lv 140		Sequoiadendron
+OB 10	Lv 140		Shinra Greatsword: Model I
+OB 10	Lv 140		Stalwart Integrity
+OB 10	Lv 140		Titan Blade
+OB 10	Lv 140		Tranquility
+OB 10	Lv 140		Turks' Blade
+OB 10	Lv 140		Type-90 Longsword
+OB 10	Lv 140		Type-91 Two-Hander
+OB 10	Lv 140		Volcanic Heat
+OB 10	Lv 140		Assault Gun
+OB 10	Lv 140		Electrocannon
+OB 10	Lv 140		Enemy Launcher
+OB 10	Lv 140		Escutcheon Cannon
+OB 10	Lv 140		Fafnir Rifle
+OB 10	Lv 140		Flame Projector
+OB 10	Lv 140		Gatling Gun
+OB 10	Lv 140		Heavy Hauser
+OB 10	Lv 140		Heavy Vulcan
+OB 10	Lv 140		Hell House Cannon
+OB 10	Lv 140		Hook Launcher
+OB 10	Lv 140		Lefko Kypseli
+OB 10	Lv 140		Leviathan Buster
+OB 10	Lv 140		Max Ray
+OB 10	Lv 140		Microlaser
+OB 10	Lv 140		Quad Gatling Gun
+OB 10	Lv 140		Rhad Cannon
+OB 10	Lv 140		Rocket Punch
+OB 10	Lv 140		Sharkslayer
+OB 10	Lv 140		Shiva Cannon
+OB 10	Lv 140		Siege Cannon
+OB 10	Lv 140		Solid Bazooka
+OB 10	Lv 140		Sunrise Cannon
+OB 10	Lv 140		Teacher's Paper Fan
+OB 10	Lv 140		W Machine
+OB 10	Lv 140		Alba Megaphone
+OB 10	Lv 140		Battle Trumpet
+OB 10	Lv 140		Blue Megaphone
+OB 10	Lv 140		Catsmegaphone
+OB 10	Lv 140		Cool Cat's Megaphone
+OB 10	Lv 140		Crystal Megaphone
+OB 10	Lv 140		Fireworks Megaphone
+OB 10	Lv 140		Flower Vase
+OB 10	Lv 140		Gold Megaphone
+OB 10	Lv 140		Green Megaphone
+OB 10	Lv 140		Humus Megaphone
+OB 10	Lv 140		Icebolt Megaphone
+OB 10	Lv 140		Marching Horn
+OB 10	Lv 140		Nocturne Horn
+OB 10	Lv 140		Quina Megaphone
+OB 10	Lv 140		Red Megaphone
+OB 10	Lv 140		Sable Megaphone
+OB 10	Lv 140		Silver Megaphone
+OB 10	Lv 140		Spirit Demon Megaphone
+OB 10	Lv 140		Stilva Megaphone
+OB 10	Lv 140		Trumpet Shell
+OB 10	Lv 140		Witch's Broom
+OB 10	Lv 140		Yellow Megaphone
+OB 10	Lv 140		Antler Pike
+OB 10	Lv 140		Captain's Spear
+OB 10	Lv 140		Dragoon Lance
+OB 10	Lv 140		Festive Spear
+OB 10	Lv 140		Flayer
+OB 10	Lv 140		Grinding Gear
+OB 10	Lv 140		Lance of the Hunt
+OB 10	Lv 140		Mop
+OB 10	Lv 140		Odin Spear
+OB 10	Lv 140		Partisan
+OB 10	Lv 140		Patissier's Spear
+OB 10	Lv 140		Pole Axe
+OB 10	Lv 140		Radiant Lance
+OB 10	Lv 140		Rocket Lance
+OB 10	Lv 140		Scimitar
+OB 10	Lv 140		Slash Lance
+OB 10	Lv 140		Spear
+OB 10	Lv 140		Trident
+OB 10	Lv 140		Viper Halberd
+OB 10	Lv 140		Apocalypse
+OB 10	Lv 140		Bahamut Greatsword
+OB 10	Lv 140		Bandaged Sword
+OB 10	Lv 140		Burning Oar
+OB 10	Lv 140		Buster Sword
+OB 10	Lv 140		Butterfly Edge
+OB 10	Lv 140		Chocobo Paddle
+OB 10	Lv 140		Crimson Blitz
+OB 10	Lv 140		Cruel Successor
+OB 10	Lv 140		Crystal Sword
+OB 10	Lv 140		Enhance Sword
+OB 10	Lv 140		Erdrick's Sword
+OB 10	Lv 140		Full Throttle
+OB 10	Lv 140		Fusion Sword
+OB 10	Lv 140		Glavenus Sword
+OB 10	Lv 140		Hardedge
+OB 10	Lv 140		Holiday Blade
+OB 10	Lv 140		Holiday Cheer
+OB 10	Lv 140		Igneous Saber
+OB 10	Lv 140		Iron Blade
+OB 10	Lv 140		Locke's Sword
+OB 10	Lv 140		Maritime Sword
+OB 10	Lv 140		Murasame
+OB 10	Lv 140		Mystic Sword
+OB 10	Lv 140		Mythril Saber
+OB 10	Lv 140		Nail Bat
+OB 10	Lv 140		Neo Bahamut Greatsword
+OB 10	Lv 140		Noble Parasol
+OB 10	Lv 140		Organics
+OB 10	Lv 140		Radblade
+OB 10	Lv 140		Rune Blade
+OB 10	Lv 140		Shiva's Blade
+OB 10	Lv 140		Skysplitter
+OB 10	Lv 140		Sleek Saber
+OB 10	Lv 140		Stream Saber
+OB 10	Lv 140		Umbral Blade
+OB 10	Lv 140		Umbralschwert
+OB 10	Lv 140		Zidane's Sword
+OB 10	Lv 140		Apology in Hell
+OB 10	Lv 140		Best Wishes
+OB 10	Lv 140		Blade of Ruin
+OB 10	Lv 140		Crewkicker
+OB 10	Lv 140		Desperado Glaive
+OB 10	Lv 140		Garish Greatblade
+OB 10	Lv 140		Hardcore Squad
+OB 10	Lv 140		Inferno Grave
+OB 10	Lv 140		Jiggy Fam
+OB 10	Lv 140		Patissier's Glaive
+OB 10	Lv 140		Personal Style
+OB 10	Lv 140		Piece of Cake
+OB 10	Lv 140		Pirate's Glaive
+OB 10	Lv 140		Pumpkin Lamppost
+OB 10	Lv 140		Radglaive
+OB 10	Lv 140		Rest in Peace
+OB 10	Lv 140		Revenant Mother's Glaive
+OB 10	Lv 140		Set Square
+OB 10	Lv 140		Shockbuster
+OB 10	Lv 140		Silver Sol Buster
+OB 10	Lv 140		Slay the Day
+OB 10	Lv 140		Snow's Bardiche
+OB 10	Lv 140		Squeaky Hammer
+OB 10	Lv 140		Steiner's Blade
+OB 10	Lv 140		Stilva Glaive
+OB 10	Lv 140		Stream Slasher
+OB 10	Lv 140		Thousand Waves
+OB 10	Lv 140		Ultimatic
+OB 10	Lv 140		Bald Eagle
+OB 10	Lv 140		Barn Swallow
+OB 10	Lv 140		Black Rifle
+OB 10	Lv 140		Desperado Rifle
+OB 10	Lv 140		Eligor Rifle
+OB 10	Lv 140		Featherscatter
+OB 10	Lv 140		Holiday Revolver
+OB 10	Lv 140		Killer Falcon
+OB 10	Lv 140		Mad Minute
+OB 10	Lv 140		Marine Shooter
+OB 10	Lv 140		Nightjar
+OB 10	Lv 140		Pulse Gun
+OB 10	Lv 140		Pumpkin Blaster
+OB 10	Lv 140		Rifle of Levin
+OB 10	Lv 140		Rifle of the Hunt
+OB 10	Lv 140		Rose Musket
+OB 10	Lv 140		Rubber Band Gun
+OB 10	Lv 140		Serpent Eater
+OB 10	Lv 140		Shinra Ceremonial Rifle
+OB 10	Lv 140		Spirit Demon Rifle
+OB 10	Lv 140		SSR1976
+OB 10	Lv 140		Thunderbird
+OB 10	Lv 140		Tranquilizer Gun
+OB 10	Lv 140		Turks' Rifle
+OB 10	Lv 140		V39
+OB 10	Lv 140		Vivi's Magical Gun
+OB 10	Lv 140		Absolute Royal
+OB 10	Lv 140		Bahamut Rapier
+OB 10	Lv 140		Bramble Spine
+OB 10	Lv 140		Broadsword: Axis
+OB 10	Lv 140		Candle Rapier
+OB 10	Lv 140		Centipede
+OB 10	Lv 140		Core Defender
+OB 10	Lv 140		Deroplatys
+OB 10	Lv 140		Desperado Rapier
+OB 10	Lv 140		Dragontail Sword
+OB 10	Lv 140		Espee Rapiere Next-G
+OB 10	Lv 140		Firefish
+OB 10	Lv 140		Foam Sword
+OB 10	Lv 140		Giant Fork
+OB 10	Lv 140		Holiday Cane
+OB 10	Lv 140		Hrotti
+OB 10	Lv 140		Humus Rapier
+OB 10	Lv 140		Killer Hornet
+OB 10	Lv 140		Luminary Sword
+OB 10	Lv 140		Nautilus Spiral
+OB 10	Lv 140		Orthodox Raven
+OB 10	Lv 140		Physician's Scalpel
+OB 10	Lv 140		Prime Number
+OB 10	Lv 140		Slick Beetle
+OB 10	Lv 140		Stingray
+OB 10	Lv 140		Syringe Rapier
+OB 10	Lv 140		Amethyst Collar
+OB 10	Lv 140		Brilliant Collar
+OB 10	Lv 140		Canyon Collar
+OB 10	Lv 140		Egg Collar
+OB 10	Lv 140		Flame Dragon's Band
+OB 10	Lv 140		Gold Collar
+OB 10	Lv 140		Great Sabrecat Collar
+OB 10	Lv 140		Headphones
+OB 10	Lv 140		Hell House Collar
+OB 10	Lv 140		Iron Collar
+OB 10	Lv 140		Ivy Collar
+OB 10	Lv 140		Junk Collar
+OB 10	Lv 140		Kefka's Collar
+OB 10	Lv 140		Leather Collar
+OB 10	Lv 140		Noble Collar
+OB 10	Lv 140		Patissier's Collar
+OB 10	Lv 140		Pilot's Collar
+OB 10	Lv 140		Pirate Collar
+OB 10	Lv 140		Platinum Collar
+OB 10	Lv 140		Rage Collar
+OB 10	Lv 140		Rubber Collar
+OB 10	Lv 140		Seaside Collar
+OB 10	Lv 140		Silver Collar
+OB 10	Lv 140		Sleek Collar
+OB 10	Lv 140		Steward Collar
+OB 10	Lv 140		Tsviet Collar
+OB 10	Lv 140		Aonibi
+OB 10	Lv 140		Ashura
+OB 10	Lv 140		Blade of the Worthy
+OB 10	Lv 140		Blue Bramble
+OB 10	Lv 140		CC Alloy Sword
+OB 10	Lv 140		Dark Heavens
+OB 10	Lv 140		Edgar's Coiled Blade
+OB 10	Lv 140		Edged Wings
+OB 10	Lv 140		Flame Dragon Blade
+OB 10	Lv 140		Folding Ruler
+OB 10	Lv 140		Glaireid
+OB 10	Lv 140		Humus Saber
+OB 10	Lv 140		Immaculate Blade
+OB 10	Lv 140		Infiltration Sword
+OB 10	Lv 140		Kuja's Spirit Blade
+OB 10	Lv 140		Mythril Type-0 Katana
+OB 10	Lv 140		Nameless
+OB 10	Lv 140		Northern Lights
+OB 10	Lv 140		Overture
+OB 10	Lv 140		Pandemonic Sword
+OB 10	Lv 140		Phoenix Odachi
+OB 10	Lv 140		Protector's Blade
+OB 10	Lv 140		Prototype Crimson Blade
+OB 10	Lv 140		Radiant Edge
+OB 10	Lv 140		Serrated Remiges
+OB 10	Lv 140		Shinra Blade: Model I
+OB 10	Lv 140		Shinra Military Sword
+OB 10	Lv 140		Shinra Wyvern Blade
+OB 10	Lv 140		Sōba
+OB 10	Lv 140		Tempest
+OB 10	Lv 140		Torn Wing
+OB 10	Lv 140		Wintercrest Blade
+OB 10	Lv 140		Withering Blaze
+OB 10	Lv 140		World Tree Bough
+OB 10	Lv 140		Divine Steed Blade
+OB 10	Lv 140		Kikuichimonji
+OB 10	Lv 140		Kotetsu
+OB 10	Lv 140		Masamune
+OB 10	Lv 140		Muramasa
+OB 10	Lv 140		Omega Wing
+OB 10	Lv 140		Osafune
+OB 10	Lv 140		Shiranui
+OB 10	Lv 140		Starsoul Blade
+OB 10	Lv 140		Amarant's Claws
+OB 10	Lv 140		Bahamut Fangs
+OB 10	Lv 140		Bahamut Knuckles
+OB 10	Lv 140		Black Cat's Paws
+OB 10	Lv 140		Blue Daffodil Gloves
+OB 10	Lv 140		Bunny Gloves
+OB 10	Lv 140		Class President's Bracelet
+OB 10	Lv 140		Crystal Gloves
+OB 10	Lv 140		Demon's Impetus
+OB 10	Lv 140		Elegant Gloves
+OB 10	Lv 140		Feathered Gloves
+OB 10	Lv 140		Festive Gloves
+OB 10	Lv 140		Gauntlets of the Worthy
+OB 10	Lv 140		Grand Gloves
+OB 10	Lv 140		Guide Gloves
+OB 10	Lv 140		Holy Flame Gloves
+OB 10	Lv 140		Járngreipr
+OB 10	Lv 140		Kaiser Knuckles
+OB 10	Lv 140		Kirin Gloves
+OB 10	Lv 140		Leather Combat Gloves
+OB 10	Lv 140		Leather Gloves
+OB 10	Lv 140		Lifeguard Wraps
+OB 10	Lv 140		Lightning's Gloves
+OB 10	Lv 140		Motor Drive
+OB 10	Lv 140		Odin Gloves
+OB 10	Lv 140		Oven Mitts
+OB 10	Lv 140		Penance Gloves
+OB 10	Lv 140		Powersoul
+OB 10	Lv 140		Riding Gloves
+OB 10	Lv 140		Sabin's Claws
+OB 10	Lv 140		Shell Knuckles
+OB 10	Lv 140		Shining Gloves
+OB 10	Lv 140		Sonic Striker
+OB 10	Lv 140		Steward Gloves
+OB 10	Lv 140		Striped Moogle Gloves
+OB 10	Lv 140		Tiger Fangs
+OB 10	Lv 140		Turks' Gloves
+OB 10	Lv 140		Work Gloves
+OB 10	Lv 140		Cath Palug
+OB 10	Lv 140		Chiron
+OB 10	Lv 140		Chrome Death Penalty
+OB 10	Lv 140		Crow Familiar
+OB 10	Lv 140		Double Stem E
+OB 10	Lv 140		Electro Peashooter
+OB 10	Lv 140		Eligor Gun
+OB 10	Lv 140		Galian Roar
+OB 10	Lv 140		Gilded Age
+OB 10	Lv 140		Gun of the Worthy
+OB 10	Lv 140		Holiday Garm
+OB 10	Lv 140		Hugin & Munin
+OB 10	Lv 140		Icebolt Shooter
+OB 10	Lv 140		Kugelblitz
+OB 10	Lv 140		Merciless White
+OB 10	Lv 140		Noblesse Automatic
+OB 10	Lv 140		Quicksilver
+OB 10	Lv 140		Rhad Gun
+OB 10	Lv 140		S1976C
+OB 10	Lv 140		Sawed-Off GS
+OB 10	Lv 140		Shortbarrel
+OB 10	Lv 140		Silver Rifle
+OB 10	Lv 140		T03 Model N
+OB 10	Lv 140		Transgressor
+OB 10	Lv 140		White Dog
+OB 10	Lv 140		4-Point Shuriken
+OB 10	Lv 140		Abzu Cutter
+OB 10	Lv 140		Arctic Star
+OB 10	Lv 140		Bahamut Cutter
+OB 10	Lv 140		Bamboo Ring
+OB 10	Lv 140		Bird of Prey
+OB 10	Lv 140		Boomerang
+OB 10	Lv 140		Cactuar Fan
+OB 10	Lv 140		Chariot Wheel
+OB 10	Lv 140		Crystal Cross
+OB 10	Lv 140		Diner Tray
+OB 10	Lv 140		Fatum Ex Machina
+OB 10	Lv 140		Hawkeye
+OB 10	Lv 140		Heirloom Brush
+OB 10	Lv 140		Holiday Bell
+OB 10	Lv 140		Leviathan Cutter
+OB 10	Lv 140		Little Red Wreath
+OB 10	Lv 140		Magic Shuriken
+OB 10	Lv 140		Mallet of Luck
+OB 10	Lv 140		Pinwheel
+OB 10	Lv 140		Razor Ring
+OB 10	Lv 140		Risanautr
+OB 10	Lv 140		Rocker's Guitar
+OB 10	Lv 140		Spiral Shuriken
+OB 10	Lv 140		Striped Moogle Flag
+OB 10	Lv 140		Striped Moogle Float
+OB 10	Lv 140		Twin Viper
+OB 10	Lv 140		Uber 4-Point Shuriken
+OB 10	Lv 140		Watch of the Hunt
+OB 10	Lv 140		Wind Slash
+OB 10	Lv 140		Winged Chakram
+OB 10	Lv 140		Alba Blade
+OB 10	Lv 140		Arc Sword
+OB 10	Lv 140		Battering Sword
+OB 10	Lv 140		Beach Parasol
+OB 10	Lv 140		Beatrix Sword
+OB 10	Lv 140		Black Whiskers
+OB 10	Lv 140		Bouquet
+OB 10	Lv 140		Buster Sword Origin
+OB 10	Lv 140		Carrot Sword
+OB 10	Lv 140		Ceremonial Sword (Z)
+OB 10	Lv 140		Crystal Sword (Z)
+OB 10	Lv 140		Cutlass
+OB 10	Lv 140		Defender
+OB 10	Lv 140		Enhance Sword (Z)
+OB 10	Lv 140		Falchion
+OB 10	Lv 140		Festive Sword
+OB 10	Lv 140		Gelid Sword
+OB 10	Lv 140		Ifrit's Sword
+OB 10	Lv 140		Iron Greatsword
+OB 10	Lv 140		Magatsuchi Blade
+OB 10	Lv 140		Pressure Ridge
+OB 10	Lv 140		Rousing Arc Sword
+OB 10	Lv 140		Stream Guard
+OB 10	Lv 140		Surfer Blade
+OB 10	Lv 140		Sword of the Hunt
+OB 10	Lv 140		Twinkling Star
+OB 10	Lv 140		Type-99 Longsword
+OB 10	Lv 140		Virtuous Contract
+OB 10	Lv 140		White Tree
+OB 10	Lv 140		Zenithian Sword
+OB 10	Lv 140		Zinogre Blade
+OB 10	Lv 140		Zweihander
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
