@@ -842,6 +842,15 @@
         </div>
 
         <div class="col-12 col-xl-9">
+            <div class="card inventory-results-card mb-3">
+                <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <div class="inventory-summary-title">Character Stats</div>
+                        <div class="text-muted small" id="characterStatsHint">Record base / stream stats and the Highwind bonus to enable damage estimates.</div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" id="openCharacterStatsButton"><i class="fas fa-chart-simple"></i> Enter Character Stats</button>
+                </div>
+            </div>
             <div class="card inventory-results-card">
                 <div class="card-body p-4">
                     <div class="alert alert-success inventory-message" id="inventorySuccessMessage" role="status" aria-live="polite"></div>
@@ -1356,6 +1365,60 @@
 </div>
 
 <script id="inventoryCatalogJson" type="application/json">@Html.Raw(itemsJson)</script>
+<div class="modal fade" id="characterStatsModal" tabindex="-1" aria-labelledby="characterStatsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="characterStatsModalLabel">Character Stats</h5>
+                    <div class="text-muted small">Enter each character's Base, Character Stream, and Role Stream stats, plus the account-wide Highwind bonus. Stored locally in this browser; weapon and branding stats are added later in the Interactive Team Builder.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="fw-semibold mb-2">Highwind Bonus <span class="text-muted fw-normal">(account-wide, %)</span></h6>
+                <div class="row g-2 mb-3" id="characterStatsHighwindInputs"></div>
+                <hr />
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold" for="characterStatsSelect">Character</label>
+                        <select class="form-select" id="characterStatsSelect"></select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-semibold" for="characterStatsLevel">Level</label>
+                        <input type="number" class="form-control" id="characterStatsLevel" min="1" max="200" step="1" inputmode="numeric" />
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="characterStatsFillStreamsButton"><i class="fas fa-wand-magic-sparkles"></i> Fill streams from max</button>
+                    <span class="text-muted small ms-2">Sets Character &amp; Role Stream to the all-nodes-unlocked totals (defaults applied automatically for new characters).</span>
+                </div>
+                <div class="table-responsive border rounded">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Stat</th>
+                                <th scope="col">Base</th>
+                                <th scope="col">Character Stream</th>
+                                <th scope="col">Role Stream</th>
+                                <th scope="col">Computed Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="characterStatsGridBody"></tbody>
+                    </table>
+                </div>
+                <div class="form-text text-muted mt-2"><strong>Base</strong> auto-fills from the character's level. <strong>Character Stream</strong> and <strong>Role Stream</strong> default to their max (every growth-board node unlocked) and are editable &mdash; lower them if you haven't fully unlocked the trees. Computed Total = floor((Base + Character Stream + Role Stream) &times; (1 + Highwind%)) &mdash; the character's stats <strong>before</strong> weapons and branding. These are <em>approximate</em> but should match the in-game "Base Stats" total within ~1. Edits across characters are kept while the dialog is open; click <strong>Save</strong> to persist.</div>
+                <div class="alert alert-success inventory-message mt-2" id="characterStatsSavedMessage" role="status" aria-live="polite"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" id="characterStatsClearButton" title="Reset this character to defaults (Base from level, streams to max).">Reset to Defaults</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="characterStatsSaveButton">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script id="inventoryCharactersJson" type="application/json">@Html.Raw(charactersJson)</script>
 <script id="inventoryLevelsJson" type="application/json">@Html.Raw(levelsJson)</script>
 
@@ -3976,6 +4039,281 @@
             renderPasteImportPreview();
             setSurveyQuickViewLoading(false);
             renderInventory();
+
+            // ===== Character Stats (Phase 1: enter + save base/stream stats + account-wide Highwind) =====
+            // Stored separately in localStorage; Phase 2 wires it into the Interactive Team Builder so total
+            // PATK/MATK = (intrinsic + weapon stats + branding) x (1 + Highwind%) can feed the damage calc.
+            const characterStatsStorageKey = 'player-character-stats-v1';
+            const characterStatKeys = [
+                { key: 'hp', label: 'HP' },
+                { key: 'patk', label: 'PATK' },
+                { key: 'matk', label: 'MATK' },
+                { key: 'pdef', label: 'PDEF' },
+                { key: 'mdef', label: 'MDEF' },
+                { key: 'heal', label: 'HEAL' }
+            ];
+            const characterStatBlocks = ['base', 'characterStream', 'roleStream'];
+
+            const characterStatsModalElement = document.getElementById('characterStatsModal');
+            const characterStatsModal = characterStatsModalElement ? new bootstrap.Modal(characterStatsModalElement) : null;
+            const openCharacterStatsButton = document.getElementById('openCharacterStatsButton');
+            const characterStatsHint = document.getElementById('characterStatsHint');
+            const characterStatsHighwindInputs = document.getElementById('characterStatsHighwindInputs');
+            const characterStatsSelect = document.getElementById('characterStatsSelect');
+            const characterStatsLevel = document.getElementById('characterStatsLevel');
+            const characterStatsGridBody = document.getElementById('characterStatsGridBody');
+            const characterStatsFillStreamsButton = document.getElementById('characterStatsFillStreamsButton');
+            const characterStatsSaveButton = document.getElementById('characterStatsSaveButton');
+            const characterStatsClearButton = document.getElementById('characterStatsClearButton');
+            const characterStatsSavedMessage = document.getElementById('characterStatsSavedMessage');
+
+            let characterStatsWorking = null; // in-memory working copy kept while the modal is open
+
+            function statNumberOrZero(value) {
+                const n = Number.parseFloat(value);
+                return Number.isFinite(n) ? n : 0;
+            }
+
+            function emptyStatRow() {
+                return characterStatKeys.reduce((acc, s) => { acc[s.key] = 0; return acc; }, {});
+            }
+
+            function emptyCharacterStats() {
+                return { level: null, base: emptyStatRow(), characterStream: emptyStatRow(), roleStream: emptyStatRow() };
+            }
+
+            function defaultCharacterStatsState() {
+                return { version: 1, highwind: emptyStatRow(), characters: {} };
+            }
+
+            function normalizeStatRow(raw) {
+                const row = emptyStatRow();
+                if (raw && typeof raw === 'object') {
+                    characterStatKeys.forEach(s => { row[s.key] = statNumberOrZero(raw[s.key]); });
+                }
+                return row;
+            }
+
+            function normalizeCharacterStatsState(raw) {
+                const state = defaultCharacterStatsState();
+                if (!raw || typeof raw !== 'object') { return state; }
+                state.highwind = normalizeStatRow(raw.highwind);
+                if (raw.characters && typeof raw.characters === 'object') {
+                    Object.entries(raw.characters).forEach(([name, value]) => {
+                        if (!name || !value || typeof value !== 'object') { return; }
+                        const lvl = Number.parseInt(value.level, 10);
+                        state.characters[name] = {
+                            level: Number.isFinite(lvl) ? lvl : null,
+                            base: normalizeStatRow(value.base),
+                            characterStream: normalizeStatRow(value.characterStream),
+                            roleStream: normalizeStatRow(value.roleStream)
+                        };
+                    });
+                }
+                return state;
+            }
+
+            function loadCharacterStatsState() {
+                try {
+                    const raw = window.localStorage.getItem(characterStatsStorageKey);
+                    return normalizeCharacterStatsState(raw ? JSON.parse(raw) : null);
+                } catch (e) {
+                    return defaultCharacterStatsState();
+                }
+            }
+
+            function characterStatsEntered(entry) {
+                if (!entry) { return false; }
+                return characterStatBlocks.some(block => characterStatKeys.some(s => statNumberOrZero(entry[block] ? entry[block][s.key] : 0) !== 0))
+                    || (Number.isFinite(entry.level) && entry.level > 0);
+            }
+
+            function updateCharacterStatsHint() {
+                const state = loadCharacterStatsState();
+                const count = Object.values(state.characters).filter(characterStatsEntered).length;
+                const highwindSet = characterStatKeys.some(s => statNumberOrZero(state.highwind[s.key]) !== 0);
+                if (characterStatsHint) {
+                    characterStatsHint.textContent = (count > 0 || highwindSet)
+                        ? `${count} character${count === 1 ? '' : 's'} entered · Highwind ${highwindSet ? 'set' : 'not set'}.`
+                        : 'Record base / stream stats and the Highwind bonus to enable damage estimates.';
+                }
+            }
+
+            function computeCharacterStatTotal(state, charName, statKey) {
+                const c = state.characters[charName] || emptyCharacterStats();
+                const intrinsic = statNumberOrZero(c.base[statKey]) + statNumberOrZero(c.characterStream[statKey]) + statNumberOrZero(c.roleStream[statKey]);
+                const boost = statNumberOrZero(state.highwind[statKey]) / 100;
+                // The game floors stat math, so we floor too — this reproduces the in-game total exactly.
+                return Math.floor(intrinsic * (1 + boost));
+            }
+
+            function currentCharacterStatsKey() {
+                return characterStatsSelect ? characterStatsSelect.value : '';
+            }
+
+            function ensureWorkingCharacter(name) {
+                if (!characterStatsWorking.characters[name]) {
+                    characterStatsWorking.characters[name] = emptyCharacterStats();
+                }
+                return characterStatsWorking.characters[name];
+            }
+
+            function renderHighwindInputs() {
+                if (!characterStatsHighwindInputs) { return; }
+                characterStatsHighwindInputs.innerHTML = characterStatKeys.map(s => `
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <label class="form-label small mb-1" for="highwind_${s.key}">${s.label} %</label>
+                        <input type="number" step="0.1" inputmode="decimal" class="form-control form-control-sm" id="highwind_${s.key}" data-highwind="${s.key}" value="${characterStatsWorking.highwind[s.key] || 0}" />
+                    </div>`).join('');
+                characterStatsHighwindInputs.querySelectorAll('input[data-highwind]').forEach(input => {
+                    input.addEventListener('input', () => {
+                        characterStatsWorking.highwind[input.getAttribute('data-highwind')] = statNumberOrZero(input.value);
+                        refreshCharacterStatsTotals();
+                    });
+                });
+            }
+
+            function renderCharacterStatsGrid() {
+                const name = currentCharacterStatsKey();
+                if (!name || !characterStatsGridBody) { return; }
+                const c = ensureWorkingCharacter(name);
+                if (!Number.isFinite(c.level) || c.level <= 0) { c.level = 100; }
+                if (characterStatsLevel) { characterStatsLevel.value = c.level; }
+                characterStatsGridBody.innerHTML = characterStatKeys.map(s => `
+                    <tr>
+                        <td class="fw-semibold">${s.label}</td>
+                        ${characterStatBlocks.map(block => {
+                            const readOnly = block === 'base'; // Base auto-fills from the level dropdown; streams are editable.
+                            return `<td><input type="number" step="1" inputmode="numeric" class="form-control form-control-sm${readOnly ? ' bg-light text-muted' : ''}" data-block="${block}" data-stat="${s.key}" value="${c[block][s.key] || 0}"${readOnly ? ' readonly tabindex="-1"' : ''} /></td>`;
+                        }).join('')}
+                        <td class="fw-semibold" data-total="${s.key}">${computeCharacterStatTotal(characterStatsWorking, name, s.key)}</td>
+                    </tr>`).join('');
+                characterStatsGridBody.querySelectorAll('input[data-block]:not([readonly])').forEach(input => {
+                    input.addEventListener('input', () => {
+                        ensureWorkingCharacter(name)[input.getAttribute('data-block')][input.getAttribute('data-stat')] = statNumberOrZero(input.value);
+                        refreshCharacterStatsTotals();
+                    });
+                });
+            }
+
+            // Per-character stream maxes (every growth-board node unlocked), cached from the server for the
+            // "Fill streams from max" action and the brand-new-character default.
+            const characterStreamMaxByName = {};
+
+            function streamsAreEmpty(c) {
+                return characterStatBlocks.filter(b => b !== 'base')
+                    .every(block => characterStatKeys.every(s => statNumberOrZero(c[block][s.key]) === 0));
+            }
+
+            function applyStreamMax(name) {
+                const max = characterStreamMaxByName[name];
+                if (!max) { return; }
+                const c = ensureWorkingCharacter(name);
+                characterStatKeys.forEach(s => {
+                    c.characterStream[s.key] = statNumberOrZero(max.characterStream[s.key]);
+                    c.roleStream[s.key] = statNumberOrZero(max.roleStream[s.key]);
+                });
+            }
+
+            // Auto-fill the read-only Base row from the level, cache the stream maxes, and default the streams to
+            // max for a character that has none entered yet (Character/Role Stream = sum of all growth-board nodes).
+            function fetchCharacterStatDefaults(name) {
+                if (!name) { return; }
+                const c = ensureWorkingCharacter(name);
+                const level = (Number.isFinite(c.level) && c.level > 0) ? c.level : 100;
+                c.level = level;
+                fetch(`?handler=CharacterStatDefaults&character=${encodeURIComponent(name)}&level=${level}`, { headers: { 'Accept': 'application/json' } })
+                    .then(response => (response.ok ? response.json() : null))
+                    .then(data => {
+                        if (!data || !data.base) { return; }
+                        characterStatKeys.forEach(s => { c.base[s.key] = statNumberOrZero(data.base[s.key]); });
+                        characterStreamMaxByName[name] = { characterStream: data.characterStream || {}, roleStream: data.roleStream || {} };
+                        if (streamsAreEmpty(c)) { applyStreamMax(name); }
+                        if (currentCharacterStatsKey() === name) { renderCharacterStatsGrid(); }
+                    })
+                    .catch(() => { /* offline / unknown character — keep whatever is stored */ });
+            }
+
+            function refreshCharacterStatsTotals() {
+                const name = currentCharacterStatsKey();
+                if (!name || !characterStatsGridBody) { return; }
+                characterStatKeys.forEach(s => {
+                    const cell = characterStatsGridBody.querySelector(`[data-total="${s.key}"]`);
+                    if (cell) { cell.textContent = computeCharacterStatTotal(characterStatsWorking, name, s.key); }
+                });
+            }
+
+            function commitCharacterStatsLevel() {
+                const name = currentCharacterStatsKey();
+                if (!name) { return; }
+                const lvl = Number.parseInt(characterStatsLevel ? characterStatsLevel.value : '', 10);
+                ensureWorkingCharacter(name).level = Number.isFinite(lvl) ? lvl : null;
+            }
+
+            function populateCharacterStatsSelect() {
+                if (!characterStatsSelect) { return; }
+                const previous = characterStatsSelect.value;
+                const entered = new Set(Object.entries(characterStatsWorking.characters)
+                    .filter(entry => characterStatsEntered(entry[1])).map(entry => entry[0]));
+                characterStatsSelect.innerHTML = (availableCharacters || []).map(name =>
+                    `<option value="${escapeHtml(name)}">${escapeHtml(name)}${entered.has(name) ? ' ✓' : ''}</option>`).join('');
+                if (previous) { characterStatsSelect.value = previous; }
+            }
+
+            function openCharacterStats() {
+                characterStatsWorking = loadCharacterStatsState();
+                if (characterStatsSavedMessage) { characterStatsSavedMessage.classList.remove('active'); characterStatsSavedMessage.textContent = ''; }
+                renderHighwindInputs();
+                populateCharacterStatsSelect();
+                renderCharacterStatsGrid();
+                fetchCharacterStatDefaults(currentCharacterStatsKey());
+                characterStatsModal?.show();
+            }
+
+            function saveCharacterStats() {
+                commitCharacterStatsLevel();
+                // Drop characters that ended up entirely empty so the store stays tidy.
+                Object.keys(characterStatsWorking.characters).forEach(name => {
+                    if (!characterStatsEntered(characterStatsWorking.characters[name])) {
+                        delete characterStatsWorking.characters[name];
+                    }
+                });
+                try {
+                    window.localStorage.setItem(characterStatsStorageKey, JSON.stringify(characterStatsWorking));
+                } catch (e) { /* storage full / blocked */ }
+                populateCharacterStatsSelect();
+                updateCharacterStatsHint();
+                if (characterStatsSavedMessage) {
+                    characterStatsSavedMessage.textContent = 'Character stats saved.';
+                    characterStatsSavedMessage.classList.add('active');
+                }
+            }
+
+            updateCharacterStatsHint();
+            openCharacterStatsButton?.addEventListener('click', openCharacterStats);
+            characterStatsSelect?.addEventListener('change', () => {
+                renderCharacterStatsGrid();
+                fetchCharacterStatDefaults(currentCharacterStatsKey());
+            });
+            characterStatsLevel?.addEventListener('input', commitCharacterStatsLevel);
+            characterStatsLevel?.addEventListener('change', () => {
+                commitCharacterStatsLevel();
+                fetchCharacterStatDefaults(currentCharacterStatsKey());
+            });
+            characterStatsSaveButton?.addEventListener('click', saveCharacterStats);
+            characterStatsFillStreamsButton?.addEventListener('click', () => {
+                const name = currentCharacterStatsKey();
+                if (!name) { return; }
+                applyStreamMax(name);
+                renderCharacterStatsGrid();
+            });
+            characterStatsClearButton?.addEventListener('click', () => {
+                const name = currentCharacterStatsKey();
+                if (!name) { return; }
+                characterStatsWorking.characters[name] = emptyCharacterStats();
+                renderCharacterStatsGrid();
+                fetchCharacterStatDefaults(name);
+            });
         })();
     </script>
 }

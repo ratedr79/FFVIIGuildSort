@@ -64,6 +64,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private static readonly double[] BoostAtkBonuses = [3, 5, 7, 10, 15, 20, 25];
         private static readonly double[] BoostPdefAndMdefAllAlliesBonuses = [5, 10, 20, 30, 40];
         private static readonly int[] BoostPdefAndMdefAllAlliesBreakpointPoints = [1, 5, 15, 25, 35];
+        // "Boost Ability Pot. (All Allies)" (e.g. Aerith's Festive Dress) — caps at Lv.3 (+15%), distinct from the
+        // self "Boost Ability Pot." curve. Previously unhandled, so it fell through to the self table and mis-scaled.
+        private static readonly double[] BoostAbilityPotAllAlliesBonuses = [5, 10, 15];
+        private static readonly int[] BoostAbilityPotAllAlliesBreakpointPoints = [1, 5, 15];
         private static readonly double[] BuffDebuffExtensionBonuses = [1, 2, 3, 4, 5, 6, 7];
         private static readonly double[] BoostHealBonuses = [5, 15, 30, 45, 60, 70, 80, 90, 95, 100];
         private static readonly int[] BoostHealBreakpointPoints = [1, 5, 15, 25, 35, 45, 55, 65, 80, 100];
@@ -6409,6 +6413,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 breakpointPoints = BoostPdefAndMdefAllAlliesBreakpointPoints;
                 bonuses = BoostPdefAndMdefAllAlliesBonuses;
+                return true;
+            }
+
+            // Must precede the self "Boost Ability Pot" case below (which would otherwise swallow the All-Allies form).
+            if (normalized.Contains("Boost Ability Pot", StringComparison.OrdinalIgnoreCase)
+                && normalized.Contains("All Allies", StringComparison.OrdinalIgnoreCase))
+            {
+                breakpointPoints = BoostAbilityPotAllAlliesBreakpointPoints;
+                bonuses = BoostAbilityPotAllAlliesBonuses;
                 return true;
             }
 

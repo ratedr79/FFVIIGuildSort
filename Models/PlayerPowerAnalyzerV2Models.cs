@@ -236,6 +236,11 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string Role { get; set; } = string.Empty;
         public int Patk { get; set; }
         public int Matk { get; set; }
+        // True total attack stats = floor((base + characterStream + roleStream + weapon PATK/MATK) × (1 + Highwind%)),
+        // populated only when the player has entered Character Stats for this character (else null → weapon-only above).
+        public int? AttackPatk { get; set; }
+        public int? AttackMatk { get; set; }
+        public bool HasCharacterStats { get; set; }
         public double FinalScore { get; set; }
         public PlayerPowerAnalyzerV2ItemSlot? Main { get; set; }
         public PlayerPowerAnalyzerV2ItemSlot? Off { get; set; }

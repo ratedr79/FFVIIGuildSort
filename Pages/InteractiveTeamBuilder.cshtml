@@ -118,12 +118,21 @@
                                         <tbody>
                                             <tr v-for="ch in state.result.characters" :key="`rc-${ch.name}`">
                                                 <td>{{ ch.name }} <span class="text-muted">({{ ch.role }})</span></td>
-                                                <td class="text-end">{{ formatNumber(ch.patk) }}</td>
-                                                <td class="text-end">{{ formatNumber(ch.matk) }}</td>
+                                                <td class="text-end">
+                                                    <span v-if="ch.hasCharacterStats">{{ formatNumber(ch.attackPatk) }}</span>
+                                                    <span v-else class="text-muted" title="Weapons only — add this character's stats via Player Inventory → Character Stats for the true total.">{{ formatNumber(ch.patk) }}*</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span v-if="ch.hasCharacterStats">{{ formatNumber(ch.attackMatk) }}</span>
+                                                    <span v-else class="text-muted" title="Weapons only — add this character's stats via Player Inventory → Character Stats for the true total.">{{ formatNumber(ch.matk) }}*</span>
+                                                </td>
                                                 <td class="text-end">{{ formatNumber(ch.finalScore) }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
+                                </div>
+                                <div class="small text-muted mb-3" v-if="state.result.characters && state.result.characters.length">
+                                    PATK/MATK = total attack stat (base + character/role stream + weapons, &times;Highwind, floored) when Character Stats are entered. Values marked <span class="fw-semibold">*</span> are weapons-only &mdash; add stats in <strong>Player Inventory &rarr; Character Stats</strong>.
                                 </div>
 
                                 <details class="mb-2" v-if="anyCharacterPassives">
@@ -317,6 +326,7 @@
         const antiForgeryToken = (document.querySelector('input[name="__RequestVerificationToken"]') || {}).value || '';
 
         const INVENTORY_KEY = 'player-inventory-state-v1';
+        const CHARACTER_STATS_KEY = 'player-character-stats-v1';
         const SUB_WEAPON_COUNT = 3;
         const SUB_COSTUME_COUNT = 2;
 
@@ -386,6 +396,7 @@
                 const state = reactive({
                     catalog: { characters: [], items: [] },
                     inventoryRaw: '',
+                    characterStatsRaw: '',
                     ownedWeaponIds: new Set(),
                     ownedCostumeIds: new Set(),
                     team: [emptySlot(), emptySlot(), emptySlot()],
@@ -645,6 +656,7 @@
                     let raw = '';
                     try { raw = localStorage.getItem(INVENTORY_KEY) || ''; } catch (e) { raw = ''; }
                     state.inventoryRaw = raw;
+                    try { state.characterStatsRaw = localStorage.getItem(CHARACTER_STATS_KEY) || ''; } catch (e) { state.characterStatsRaw = ''; }
                     const wIds = new Set(), cIds = new Set();
                     if (raw) {
                         try {
@@ -708,7 +720,7 @@
                             credentials: 'same-origin',
                             signal: scoreController.signal,
                             headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': antiForgeryToken },
-                            body: JSON.stringify({ inventory: state.inventoryRaw, team: spec })
+                            body: JSON.stringify({ inventory: state.inventoryRaw, team: spec, characterStats: state.characterStatsRaw })
                         });
                         if (!resp.ok) throw new Error('Score request failed.');
                         state.result = await resp.json();

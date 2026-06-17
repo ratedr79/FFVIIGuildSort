@@ -20,6 +20,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
     public sealed class PlayerInventoryManagementModel : PageModel
     {
         private readonly WeaponSearchDataService _weaponSearchService;
+        private readonly CharacterBaseStatsService _characterBaseStats;
         private readonly IConfiguration _configuration;
 
         private static readonly Dictionary<string, string> CharacterPortraits = new(StringComparer.OrdinalIgnoreCase)
@@ -42,11 +43,56 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             ["Zack"] = "Zack.jpg"
         };
 
-        public PlayerInventoryManagementModel(WeaponSearchDataService weaponSearchService, IConfiguration configuration)
+        public PlayerInventoryManagementModel(WeaponSearchDataService weaponSearchService, CharacterBaseStatsService characterBaseStats, IConfiguration configuration)
         {
             _weaponSearchService = weaponSearchService;
+            _characterBaseStats = characterBaseStats;
             _configuration = configuration;
         }
+
+        // Defaults for the Character Stats modal: the raw per-level Base (from CharacterLevel.json) plus the MAX
+        // Character Stream / Role Stream (every growth-board node unlocked). Base depends on the chosen level; the
+        // stream maxes are level-independent. The modal auto-fills Base and defaults the streams from these.
+        public IActionResult OnGetCharacterStatDefaults(string character, int level)
+        {
+            if (string.IsNullOrWhiteSpace(character))
+            {
+                return new JsonResult(new { error = "Missing character." }) { StatusCode = 400 };
+            }
+
+            var match = _weaponSearchService.GetWeapons()
+                .FirstOrDefault(w => string.Equals(w.Character, character.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (match == null)
+            {
+                return new JsonResult(new { error = "Unknown character." }) { StatusCode = 404 };
+            }
+
+            var baseStats = _characterBaseStats.Get(match.CharacterId, level);
+            if (baseStats == null)
+            {
+                return new JsonResult(new { error = "No base stats for that character/level." }) { StatusCode = 404 };
+            }
+
+            var characterStream = _characterBaseStats.GetCharacterStreamMax(match.CharacterId);
+            var roleStream = _characterBaseStats.GetRoleStreamMax(match.CharacterId);
+
+            return new JsonResult(new
+            {
+                @base = AsRow(baseStats),
+                characterStream = AsRow(characterStream),
+                roleStream = AsRow(roleStream)
+            });
+        }
+
+        private static object AsRow(CharacterBaseStats s) => new
+        {
+            hp = s.Hp,
+            patk = s.PhysicalAttack,
+            matk = s.MagicalAttack,
+            pdef = s.PhysicalDefense,
+            mdef = s.MagicalDefense,
+            heal = s.HealingPower
+        };
 
         public IReadOnlyList<PlayerInventoryCatalogItem> Items { get; private set; } = Array.Empty<PlayerInventoryCatalogItem>();
 

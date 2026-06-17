@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Text.Json;
 using FFVIIEverCrisisAnalyzer.Models;
 
 namespace FFVIIEverCrisisAnalyzer.Services
@@ -457,10 +458,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
         }
 
         // Score one manually-chosen fixed team against the player's inventory, reproducing the analyzer's number.
-        public InteractiveTeamScoreResult ScoreFixedTeam(string localInventoryStateJson, InteractiveTeamSpec spec)
+        public InteractiveTeamScoreResult ScoreFixedTeam(string localInventoryStateJson, InteractiveTeamSpec spec, string? characterStatsJson = null)
         {
             var result = new InteractiveTeamScoreResult();
             spec ??= new InteractiveTeamSpec();
+
+            // Optional player-entered Character Stats (base + streams + Highwind) → enables true total attack stats.
+            var characterStats = ParseCharacterStats(characterStatsJson);
 
             // Build a request whose context drives the SAME scoring (element/axis gating, refinement terms) the
             // analyzer uses. Full mode is irrelevant here (no search), but pin it so any internal mode branch reads
@@ -764,6 +768,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             result.RawDamage = Math.Round(rawDamage, 2);
             result.Refinement = Math.Round(teamCandidate.Score - rawDamage, 2);
 
+            // Team-wide (All Allies) attack passives sum across every character and apply to each one.
+            double teamAllyPatk = 0, teamAllyMatk = 0, teamAllyAtk = 0;
+            foreach (var pp in passivePointsByCharacter.Values)
+            {
+                var (_, _, _, ap, am, aa) = SumAttackBoostPercents(pp);
+                teamAllyPatk += ap;
+                teamAllyMatk += am;
+                teamAllyAtk += aa;
+            }
+
             // Per-character output, ordered the same way the spec listed them.
             var outputsByName = teamCandidate.Characters.ToDictionary(c => c.CharacterName, StringComparer.OrdinalIgnoreCase);
             foreach (var charSpec in characterSpecs)
@@ -775,12 +789,33 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 passivePointsByCharacter.TryGetValue(built.CharacterName, out var characterPassivePoints);
 
+                // True total attack stat (when Character Stats exist for this character):
+                //   floor((base + characterStream + roleStream + weapon PATK/MATK) × (1 + Highwind%) × passive mult).
+                // Weapon totals (built.TotalPatk/Matk) already apply the per-slot weighting (main/ult full, off/sub half).
+                // Passive mult folds the always-on Boost-PATK/MATK/ATK R-abilities (self + team-wide All-Allies).
+                // Families are additive within a family, multiplicative across; Boost ATK boosts both PATK and MATK.
+                // Branding (RNG per-weapon ATK) is not recorded → result sits a little under in-game.
+                int? attackPatk = null, attackMatk = null;
+                var hasStats = characterStats != null && characterStats.TryGetIntrinsic(built.CharacterName, "patk", out _);
+                if (hasStats)
+                {
+                    var (selfPatk, selfMatk, selfAtk, _, _, _) = SumAttackBoostPercents(characterPassivePoints);
+                    var atkFamily = (selfAtk + teamAllyAtk) / 100d;
+                    var patkMultiplier = (1 + (selfPatk + teamAllyPatk) / 100d) * (1 + atkFamily);
+                    var matkMultiplier = (1 + (selfMatk + teamAllyMatk) / 100d) * (1 + atkFamily);
+                    attackPatk = characterStats!.ComputeAttackStat(built.CharacterName, "patk", built.TotalPatk, patkMultiplier);
+                    attackMatk = characterStats.ComputeAttackStat(built.CharacterName, "matk", built.TotalMatk, matkMultiplier);
+                }
+
                 result.Characters.Add(new InteractiveTeamCharacterResult
                 {
                     Name = built.CharacterName,
                     Role = built.Role.ToString(),
                     Patk = built.TotalPatk,
                     Matk = built.TotalMatk,
+                    AttackPatk = attackPatk,
+                    AttackMatk = attackMatk,
+                    HasCharacterStats = hasStats,
                     FinalScore = built.Score,
                     Main = built.MainWeapon,
                     Off = built.OffHandWeapon,
@@ -1004,6 +1039,126 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 2 => $"{items[0]} and {items[1]}",
                 _ => $"{string.Join(", ", items.Take(items.Count - 1))}, and {items[^1]}"
             };
+        }
+
+        // Sums the attack-STAT passive boosts from one character's passive points, split self vs (All Allies):
+        //   Boost PATK / Boost MATK / Boost ATK (ATK applies to both PATK and MATK). Values are percents (e.g. 50).
+        //   Ability-potency and defense boosts are damage/defense, NOT attack-stat boosts, so they're excluded.
+        private static (double SelfPatk, double SelfMatk, double SelfAtk, double AllyPatk, double AllyMatk, double AllyAtk)
+            SumAttackBoostPercents(Dictionary<string, int>? passivePoints)
+        {
+            double selfPatk = 0, selfMatk = 0, selfAtk = 0, allyPatk = 0, allyMatk = 0, allyAtk = 0;
+            if (passivePoints != null)
+            {
+                foreach (var (scoringLabel, points) in passivePoints)
+                {
+                    if (points <= 0)
+                    {
+                        continue;
+                    }
+
+                    var label = FormatPassiveDisplayLabel(scoringLabel);
+                    if (string.IsNullOrWhiteSpace(label) || label.Contains("Ability Pot", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue; // ability potency boosts damage, not the attack stat
+                    }
+
+                    if (!TryGetPassiveBonusValue(scoringLabel, points, out var pct) || pct == 0)
+                    {
+                        continue;
+                    }
+
+                    var ally = label.Contains("All Allies", StringComparison.OrdinalIgnoreCase);
+                    if (label.Contains("Boost ATK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (ally) { allyAtk += pct; } else { selfAtk += pct; }
+                    }
+                    else if (label.Contains("Boost PATK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (ally) { allyPatk += pct; } else { selfPatk += pct; }
+                    }
+                    else if (label.Contains("Boost MATK", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (ally) { allyMatk += pct; } else { selfMatk += pct; }
+                    }
+                }
+            }
+
+            return (selfPatk, selfMatk, selfAtk, allyPatk, allyMatk, allyAtk);
+        }
+
+        // ===== Character Stats (Phase 2): true total attack stat from player-entered base/stream stats + Highwind =====
+        private static readonly JsonSerializerOptions CharacterStatsJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+        private static CharacterStatsContext? ParseCharacterStats(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+
+            try
+            {
+                var blob = JsonSerializer.Deserialize<CharacterStatsBlob>(json, CharacterStatsJsonOptions);
+                return blob?.Characters is { Count: > 0 } ? new CharacterStatsContext(blob) : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private sealed class CharacterStatsBlob
+        {
+            public Dictionary<string, double>? Highwind { get; set; }
+            public Dictionary<string, CharacterStatsEntry>? Characters { get; set; }
+        }
+
+        private sealed class CharacterStatsEntry
+        {
+            public Dictionary<string, double>? Base { get; set; }
+            public Dictionary<string, double>? CharacterStream { get; set; }
+            public Dictionary<string, double>? RoleStream { get; set; }
+        }
+
+        private sealed class CharacterStatsContext
+        {
+            private readonly CharacterStatsBlob _blob;
+            private readonly Dictionary<string, CharacterStatsEntry> _byName;
+
+            public CharacterStatsContext(CharacterStatsBlob blob)
+            {
+                _blob = blob;
+                _byName = new Dictionary<string, CharacterStatsEntry>(blob.Characters!, StringComparer.OrdinalIgnoreCase);
+            }
+
+            private static double Val(Dictionary<string, double>? row, string statKey)
+                => row != null && row.TryGetValue(statKey, out var v) ? v : 0d;
+
+            public bool TryGetIntrinsic(string characterName, string statKey, out double intrinsic)
+            {
+                intrinsic = 0;
+                if (!_byName.TryGetValue(characterName, out var entry))
+                {
+                    return false;
+                }
+
+                intrinsic = Val(entry.Base, statKey) + Val(entry.CharacterStream, statKey) + Val(entry.RoleStream, statKey);
+                return true;
+            }
+
+            // floor((base + characterStream + roleStream + weapon total) × (1 + Highwind%) × passiveMultiplier).
+            // passiveMultiplier folds in the always-on Boost-PATK/MATK/ATK R-abilities. Branding is not recorded.
+            public int? ComputeAttackStat(string characterName, string statKey, double weaponTotal, double passiveMultiplier)
+            {
+                if (!TryGetIntrinsic(characterName, statKey, out var intrinsic))
+                {
+                    return null;
+                }
+
+                var highwind = Val(_blob.Highwind, statKey) / 100d;
+                return (int)Math.Floor((intrinsic + weaponTotal) * (1 + highwind) * passiveMultiplier);
+            }
         }
     }
 }

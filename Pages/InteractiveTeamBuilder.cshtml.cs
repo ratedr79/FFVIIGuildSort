@@ -86,7 +86,7 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             }
 
             var inventoryJson = payload.Inventory ?? string.Empty;
-            var result = _analyzer.ScoreFixedTeam(inventoryJson, payload.Team);
+            var result = _analyzer.ScoreFixedTeam(inventoryJson, payload.Team, payload.CharacterStats);
             return new JsonResult(result);
         }
 
@@ -95,6 +95,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             // The raw localStorage 'player-inventory-state-v1' JSON string the client sends.
             public string? Inventory { get; set; }
             public InteractiveTeamSpec? Team { get; set; }
+            // The raw localStorage 'player-character-stats-v1' JSON string (base/stream stats + Highwind), if entered.
+            public string? CharacterStats { get; set; }
         }
     }
 }
