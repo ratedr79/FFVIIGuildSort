@@ -74,11 +74,17 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            // Preserve the ranking order for players present in rankedTeams.
+            // Rank by team score (descending) so higher-scoring players fill earlier guilds. We compute rank here
+            // rather than trusting the order rankedTeams arrived in: the legacy engine returns score-sorted results,
+            // but the V2 adapter returns them in CSV/account order, which would scatter strong players across guilds.
             var rankIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < rankedTeams.Count; i++)
+            var scoreRanked = rankedTeams
+                .Where(t => !string.IsNullOrWhiteSpace(t.InGameName))
+                .OrderByDescending(t => t.Score)
+                .ToList();
+            for (int i = 0; i < scoreRanked.Count; i++)
             {
-                var name = rankedTeams[i].InGameName?.Trim();
+                var name = scoreRanked[i].InGameName?.Trim();
                 if (!string.IsNullOrWhiteSpace(name) && !rankIndex.ContainsKey(name))
                 {
                     rankIndex[name] = i;

@@ -197,9 +197,20 @@
                         <button type="submit" class="btn btn-primary" id="powerLevelAnalyzeButton">
                             <i class="fas fa-calculator"></i> Find Best Teams
                         </button>
-                        <button type="submit" class="btn btn-outline-secondary ms-2" asp-page-handler="ExportGuilds">
-                            <i class="fas fa-file-export"></i> Export guilds CSV
-                        </button>
+                        @* Export the CURRENTLY displayed analysis (no re-run): a GET download keyed by the result job id.
+                           Only available after an analysis has been run; matches the on-screen engine (V2 or legacy). *@
+                        @if (!string.IsNullOrEmpty(Model.ResultJobId))
+                        {
+                            <a class="btn btn-outline-secondary ms-2" href="?handler=ExportGuilds&resultJobId=@Model.ResultJobId">
+                                <i class="fas fa-file-export"></i> Export guilds CSV
+                            </a>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-outline-secondary ms-2" disabled title="Run an analysis first, then export the displayed results.">
+                                <i class="fas fa-file-export"></i> Export guilds CSV
+                            </button>
+                        }
                     </form>
                 </div>
             </div>

@@ -150,6 +150,10 @@ public class PowerLevelAnalyzerModel : PageModel
     public List<SheetDefinition> AvailableSheets { get; set; } = new();
     public Dictionary<string, PlayerGearSummary> PlayerGearByName { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    // The job id backing the currently displayed result (set on a `?resultJobId=` load). The Export button uses
+    // it to export exactly what is on screen.
+    public string? ResultJobId { get; private set; }
+
     // resultJobId is set by the async flow's completion redirect: restore the finished job's result bundle and
     // render the full page server-side (the result is already computed, so this GET is sub-second).
     public void OnGet(string? resultJobId)
@@ -165,6 +169,7 @@ public class PowerLevelAnalyzerModel : PageModel
         if (!string.IsNullOrEmpty(resultJobId) && _jobs.Get(resultJobId)?.Result is PowerLevelAnalysisResult bundle)
         {
             ApplyResultBundle(bundle);
+            ResultJobId = resultJobId;
         }
     }
 
@@ -491,117 +496,77 @@ public class PowerLevelAnalyzerModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostExportGuildsAsync()
+    // Export the guild assignments from the CURRENT on-screen analysis (the completed job) rather than re-running.
+    // This makes the CSV match exactly what is displayed (V2 or legacy engine) and keeps the request sub-second
+    // (no analysis, so no Cloudflare 100s timeout risk).
+    public IActionResult OnGetExportGuilds(string resultJobId)
     {
-        LoadAvailableSheets();
-        var csvBytes = await GetCsvBytesAsync();
-        if (csvBytes == null)
+        if (string.IsNullOrEmpty(resultJobId) || _jobs.Get(resultJobId)?.Result is not PowerLevelAnalysisResult bundle)
         {
+            // No recent result to export (not run yet, or the job expired). Re-render with a hint.
+            LoadAvailableSheets();
+            AvailableTeamTemplates = _teamTemplateCatalog.GetAllTemplates();
+            foreach (var template in AvailableTeamTemplates)
+            {
+                EnabledTeamTemplates[template.Name] = template.Enabled;
+            }
+            ErrorMessage = "No analysis result to export. Run the analysis first, then export (results expire after a while).";
             return Page();
         }
 
-        using var stream = new MemoryStream(csvBytes);
-        try
+        var bytes = BuildGuildAssignmentsCsv(bundle);
+        var fileName = $"guild-assignments_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
+    }
+
+    // Formats the guild-assignment CSV from an already-computed result bundle (no re-analysis), pulling every value
+    // from the bundle so the output reflects whichever engine produced the displayed result.
+    private static byte[] BuildGuildAssignmentsCsv(PowerLevelAnalysisResult bundle)
+    {
+        var scoreByPlayer = bundle.RankedTeams
+            .GroupBy(t => t.InGameName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Score, StringComparer.OrdinalIgnoreCase);
+        var submittedGuildByPlayer = bundle.RankedTeams
+            .GroupBy(t => t.InGameName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().SubmittedGuild ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+        var bannerByPlayer = bundle.RankedTeams
+            .GroupBy(t => t.InGameName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().BannerResponse ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+        var discordByPlayer = bundle.AllPlayerSubmissions
+            .Where(p => !string.IsNullOrWhiteSpace(p.InGameName))
+            .GroupBy(p => p.InGameName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().DiscordName ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Guild,In-Game Name,Discord Name,Submitted Guild,Score,Reason,Banner Response");
+
+        foreach (var a in bundle.GuildAssignments
+                     .OrderBy(x => x.Guild)
+                     .ThenByDescending(x => scoreByPlayer.TryGetValue(x.Player, out var s) ? s : 0)
+                     .ThenBy(x => x.Player, StringComparer.OrdinalIgnoreCase))
         {
-            var ingestionResult = await _gb20Analyzer.ReadAccountsAsync(stream);
-            var accounts = ingestionResult.Accounts;
-            
-            // Build list of enabled team templates
-            var enabledTemplateNames = EnabledTeamTemplates
-                .Where(kvp => kvp.Value)
-                .Select(kvp => kvp.Key)
-                .ToList();
-            
-            var rankedTeams = await _gb20Analyzer.AnalyzeAsync(accounts, new BattleContext
-            {
-                EnemyWeakness = EnemyWeakness,
-                PreferredDamageType = PreferredDamageType,
-                TargetScenario = TargetScenario,
-                SynergyEffectBonusPercents = SynergyEffectBonusPercents,
-                EnabledTeamTemplates = enabledTemplateNames
-            });
-
-            var rules = _guildAssigner.LoadRulesOrDefault();
-            var assignmentResult = _guildAssigner.AssignGuilds(rankedTeams, rules);
-
-            // Build banner response lookup
-            var bannerByPlayer = accounts
-                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
-                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    g => g.Key,
-                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Battle release day banner?", out var banner) ? banner : string.Empty).Trim(),
-                    StringComparer.OrdinalIgnoreCase);
-
-            // Build Discord name lookup
-            var discordByPlayer = accounts
-                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
-                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    g => g.Key,
-                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Discord Name (If different)", out var discord) ? discord : string.Empty).Trim(),
-                    StringComparer.OrdinalIgnoreCase);
-
-            // Build submitted guild lookup
-            var submittedGuildByPlayer = accounts
-                .Where(a => !string.IsNullOrWhiteSpace(a.InGameName))
-                .GroupBy(a => a.InGameName.Trim(), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    g => g.Key,
-                    g => (g.First().ItemResponsesByColumnName.TryGetValue("Your Guild", out var guild) ? guild : string.Empty).Trim(),
-                    StringComparer.OrdinalIgnoreCase);
-
-            // Build score lookup from ranked teams
-            var scoreByPlayer = rankedTeams
-                .ToDictionary(
-                    t => t.InGameName,
-                    t => t.Score,
-                    StringComparer.OrdinalIgnoreCase);
-
-            var sb = new StringBuilder();
-            sb.AppendLine("Guild,In-Game Name,Discord Name,Submitted Guild,Score,Reason,Banner Response");
-
-            foreach (var a in assignmentResult.Assignments
-                         .OrderBy(x => x.Guild)
-                         .ThenByDescending(x => scoreByPlayer.TryGetValue(x.Player, out var s) ? s : 0)
-                         .ThenBy(x => x.Player, StringComparer.OrdinalIgnoreCase))
-            {
-                sb.Append(a.Guild);
-                sb.Append(',');
-                sb.Append(EscapeCsv(a.Player));
-                sb.Append(',');
-                var discordName = discordByPlayer.TryGetValue(a.Player, out var dn) ? dn : string.Empty;
-                sb.Append(EscapeCsv(discordName));
-                sb.Append(',');
-                var submittedGuild = submittedGuildByPlayer.TryGetValue(a.Player, out var sg) ? sg : string.Empty;
-                sb.Append(EscapeCsv(submittedGuild));
-                sb.Append(',');
-                var score = scoreByPlayer.TryGetValue(a.Player, out var s) ? s.ToString("F0") : "0";
-                sb.Append(score);
-                sb.Append(',');
-                sb.Append(EscapeCsv(a.Reason ?? string.Empty));
-                sb.Append(',');
-                var bannerResponse = bannerByPlayer.TryGetValue(a.Player, out var br) ? br : string.Empty;
-                sb.AppendLine(EscapeCsv(bannerResponse));
-            }
-
-            // Use UTF-8 with BOM for proper Japanese character display in Excel
-            var utf8WithBom = new UTF8Encoding(true);
-            using var memoryStream = new MemoryStream();
-            using (var writer = new StreamWriter(memoryStream, utf8WithBom, leaveOpen: true))
-            {
-                writer.Write(sb.ToString());
-            }
-            var bytes = memoryStream.ToArray();
-            var fileName = $"guild-assignments_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
-            return File(bytes, "text/csv; charset=utf-8", fileName);
+            sb.Append(a.Guild);
+            sb.Append(',');
+            sb.Append(EscapeCsv(a.Player));
+            sb.Append(',');
+            sb.Append(EscapeCsv(discordByPlayer.TryGetValue(a.Player, out var dn) ? dn : string.Empty));
+            sb.Append(',');
+            sb.Append(EscapeCsv(submittedGuildByPlayer.TryGetValue(a.Player, out var sg) ? sg : string.Empty));
+            sb.Append(',');
+            sb.Append(scoreByPlayer.TryGetValue(a.Player, out var sc) ? sc.ToString("F0") : "0");
+            sb.Append(',');
+            sb.Append(EscapeCsv(a.Reason ?? string.Empty));
+            sb.Append(',');
+            sb.AppendLine(EscapeCsv(bannerByPlayer.TryGetValue(a.Player, out var br) ? br : string.Empty));
         }
-        catch (Exception ex)
+
+        var utf8WithBom = new UTF8Encoding(true);
+        using var memoryStream = new MemoryStream();
+        using (var writer = new StreamWriter(memoryStream, utf8WithBom, leaveOpen: true))
         {
-            ErrorMessage = $"Error processing file: {ex.Message}";
-            _logger.LogError(ex, "Error exporting guild assignments");
-            return Page();
+            writer.Write(sb.ToString());
         }
+        return memoryStream.ToArray();
     }
 
     private static string EscapeCsv(string value)

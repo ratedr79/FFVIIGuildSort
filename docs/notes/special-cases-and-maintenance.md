@@ -7,6 +7,7 @@ This document captures nuanced behavior that should be retained unless intention
 - Cookie validity is tied to `PasswordVersion`; bump it to invalidate existing unlocks.
 
 ## Power Analyzer Notes
+- Guild assignment ranks by team **score** inside `GuildAssigner` (it does not assume `rankedTeams` arrives sorted — the V2 adapter returns CSV/account order, the legacy engine pre-sorts). Locked players (`guildRules.json` → `lockedPlayers`) are placed first and intentionally override score; per-guild exclusions can also push a high scorer to a later guild. So some out-of-score-order placements are by design, but guilds otherwise fill top-down by score.
 - Survey dedupe uses latest `Timestamp` per in-game name.
 - Missing configured players (guild rules) can be inserted with placeholder score 0.
 - Team scoring strongly favors DPS + weapon potency context; this is intentional.
@@ -46,8 +47,8 @@ The Player Power Analyzer V2 and Power Level Analyzer run their analyses as back
 - **Jobs do not survive a restart/deploy.** In-memory by design — a deploy mid-run loses the job; the user simply re-runs. Acceptable for now; persist if that changes.
 - **Concurrency cap.** `AnalysisJobWorker.MaxConcurrentJobs = 2` protects the box. Raise only if the host can absorb more parallel heavy analyses.
 - **Eviction.** Finished jobs live 30 minutes (`FinishedRetention`) and are capped at 200 (`MaxRetainedJobs`). After eviction, a `?resultJobId=` reload shows no result (graceful) and `AnalyzeStatus` returns `notfound`.
+- **Export guilds CSV** exports the CURRENTLY displayed analysis, not a fresh run. `OnGetExportGuilds(resultJobId)` builds the CSV from the completed job's result bundle (`BuildGuildAssignmentsCsv`), so it (a) reflects whichever engine produced the on-screen result — V2 or legacy — and (b) is sub-second with no 524 risk. The button is a GET download link that only appears after an analysis has been run (and is disabled otherwise); if the job has expired, the page shows a "run the analysis first" hint. Earlier, the export re-ran the analysis synchronously AND always used the legacy engine regardless of the V2 checkbox — both fixed.
 - **Known follow-ups (v1 was intentionally minimal, no engine changes):**
-  - The Power Level Analyzer **"Export guilds CSV"** handler (`OnPostExportGuildsAsync`) still re-runs the analysis synchronously, so it carries the same 524 risk. A future change should export from the already-computed job result instead.
   - Form selections reset after the completion redirect (the result is correct; inputs return to defaults). Restore from the job/request if this becomes annoying.
   - Progress is elapsed-time only — no real percent or cancellation (that would require threading `IProgress`/`CancellationToken` through the engine).
 
