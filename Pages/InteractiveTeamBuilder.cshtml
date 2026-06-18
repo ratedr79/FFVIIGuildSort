@@ -57,10 +57,18 @@
                                 <option v-for="sc in scenarioOptions" :key="`sc-${sc.value}`" :value="sc.value">{{ sc.label }}</option>
                             </select>
                         </div>
-                        <div class="col-6 col-md-3 text-md-end">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="resetTeam">
-                                <i class="fas fa-rotate-left"></i> Reset team
-                            </button>
+                        <div class="col-12 col-md-3 text-md-end">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Team actions">
+                                <button type="button" class="btn btn-outline-primary" v-on:click="openSaveTeam">
+                                    <i class="fas fa-floppy-disk"></i> Save
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" v-on:click="openLoadTeam">
+                                    <i class="fas fa-folder-open"></i> Load
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" v-on:click="resetTeam">
+                                    <i class="fas fa-rotate-left"></i> Reset
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -315,6 +323,93 @@
         </div>
     </div>
     <div class="modal-backdrop fade show" v-if="state.chartsOpen"></div>
+
+    <!-- Save Team modal -->
+    <div class="modal fade show itb-modal" tabindex="-1" style="display:block;" v-if="teams.saveOpen" v-on:click.self="closeSaveTeam">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">Save Team</h5>
+                    <button type="button" class="btn-close" v-on:click="closeSaveTeam" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label small mb-1" for="itbSaveName">Team name</label>
+                    <input id="itbSaveName" type="text" class="form-control" maxlength="60"
+                           v-model="teams.saveName" v-on:keyup.enter="confirmSaveTeam"
+                           placeholder="e.g. Wind burst — Cloud/Aerith/Yuffie" />
+                    <div class="form-text text-warning" v-if="saveCollision">
+                        <i class="fas fa-triangle-exclamation"></i> A team named &ldquo;{{ teams.saveName.trim() }}&rdquo; already exists &mdash; saving will overwrite it.
+                    </div>
+                    <div class="form-text text-danger" v-if="teams.saveError">{{ teams.saveError }}</div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="closeSaveTeam">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-primary" v-on:click="confirmSaveTeam">{{ saveCollision ? 'Overwrite' : 'Save' }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show" v-if="teams.saveOpen"></div>
+
+    <!-- Load Team modal -->
+    <div class="modal fade show itb-modal" tabindex="-1" style="display:block;" v-if="teams.loadOpen" v-on:click.self="closeLoadTeam">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">Load Team</h5>
+                    <button type="button" class="btn-close" v-on:click="closeLoadTeam" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="teams.pendingLoad" class="alert alert-warning py-2 px-2 small mb-0">
+                        Replace your current team with &ldquo;<strong>{{ teams.pendingLoad.name }}</strong>&rdquo;? Unsaved changes to the current build will be lost.
+                        <div class="mt-2 text-end">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="cancelLoadTeam">Cancel</button>
+                            <button type="button" class="btn btn-sm btn-primary" v-on:click="applyLoadTeam(teams.pendingLoad)">Load anyway</button>
+                        </div>
+                    </div>
+                    <template v-else>
+                        <p class="text-muted small mb-0" v-if="!teams.saved.length">No saved teams yet. Build a team and click <strong>Save</strong>.</p>
+                        <ul class="list-group" v-else>
+                            <li class="list-group-item d-flex align-items-center justify-content-between gap-2" v-for="t in teams.saved" :key="t.id">
+                                <button type="button" class="btn btn-link text-start text-decoration-none p-0 flex-grow-1" v-on:click="requestLoadTeam(t)">
+                                    <div class="fw-semibold">{{ t.name }}</div>
+                                    <div class="small text-muted">{{ teamSummary(t) }}</div>
+                                    <div class="small text-muted">{{ formatSavedAt(t.savedAt) }}</div>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0" v-on:click="requestDeleteTeam(t)" :title="'Delete ' + t.name" :aria-label="'Delete ' + t.name">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </template>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="closeLoadTeam">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show" v-if="teams.loadOpen"></div>
+
+    <!-- Delete-confirmation modal (stacks above the Load modal) -->
+    <div class="modal fade show itb-modal" tabindex="-1" style="display:block; z-index:1070;" v-if="teams.deleteTarget" v-on:click.self="cancelDeleteTeam">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">Delete Team</h5>
+                    <button type="button" class="btn-close" v-on:click="cancelDeleteTeam" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Delete the saved team &ldquo;<strong>{{ teams.deleteTarget.name }}</strong>&rdquo;? This can&rsquo;t be undone.</p>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" v-on:click="cancelDeleteTeam">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-danger" v-on:click="confirmDeleteTeam">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show" v-if="teams.deleteTarget" style="z-index:1065;"></div>
 </div>
 
 @Html.AntiForgeryToken()
@@ -331,6 +426,7 @@
 
         const INVENTORY_KEY = 'player-inventory-state-v1';
         const CHARACTER_STATS_KEY = 'player-character-stats-v1';
+        const SAVED_TEAMS_KEY = 'itb-saved-teams-v1';
         const SUB_WEAPON_COUNT = 3;
         const SUB_COSTUME_COUNT = 2;
 
@@ -341,6 +437,27 @@
                 subs: Array(SUB_WEAPON_COUNT).fill(''),
                 subCostumes: Array(SUB_COSTUME_COUNT).fill('')
             };
+        }
+
+        function padNames(arr, n) {
+            const out = Array(n).fill('');
+            if (Array.isArray(arr)) { for (let i = 0; i < n; i++) { out[i] = (arr[i] || '').toString(); } }
+            return out;
+        }
+
+        // Saved-team persistence (localStorage 'itb-saved-teams-v1'): an array of
+        // { id, name, team:[cell,cell,cell], battle:{weakness,damageType,scenario}, savedAt:ISO }.
+        // Defensive parse — malformed entries are dropped rather than throwing.
+        function loadSavedTeams() {
+            try {
+                const arr = JSON.parse(localStorage.getItem(SAVED_TEAMS_KEY) || '[]');
+                if (!Array.isArray(arr)) { return []; }
+                return arr.filter(t => t && typeof t === 'object' && t.name && Array.isArray(t.team));
+            } catch (e) { return []; }
+        }
+
+        function persistSavedTeams(list) {
+            try { localStorage.setItem(SAVED_TEAMS_KEY, JSON.stringify(list)); } catch (e) { /* quota/full — ignore */ }
         }
 
         // Reusable per-character cell. Each gear slot is a button that opens the shared picker modal.
@@ -413,6 +530,17 @@
                 });
 
                 const picker = reactive({ open: false, slotIndex: 0, slotKey: '', search: '', elementFilter: '', rAbilityOpen: false, rAbilityFilter: [], rAbilityMode: 'any' });
+
+                // Save / Load / Delete saved team builds.
+                const teams = reactive({
+                    saved: loadSavedTeams(),
+                    saveOpen: false,   // Save-Team modal open
+                    saveName: '',
+                    saveError: '',
+                    loadOpen: false,   // Load-Team modal open
+                    pendingLoad: null, // a record awaiting "replace current team" confirmation
+                    deleteTarget: null // a record awaiting delete confirmation
+                });
 
                 const elementOptions = ['None', 'Fire', 'Ice', 'Lightning', 'Earth', 'Water', 'Wind'];
                 const damageTypeOptions = ['Physical', 'Magical', 'Any'];
@@ -583,6 +711,102 @@
                 }
                 function openCharts() { state.chartsOpen = true; }
                 function closeCharts() { state.chartsOpen = false; }
+
+                // ===== Save / Load / Delete team builds =====
+                function teamHasContent() {
+                    return state.team.some(c => c.character || c.main || c.off || c.ult || c.costume
+                        || (c.subs || []).some(Boolean) || (c.subCostumes || []).some(Boolean));
+                }
+
+                // True when the trimmed Save name matches an existing build (case-insensitive) → Save becomes "Overwrite".
+                const saveCollision = computed(() => {
+                    const name = (teams.saveName || '').trim().toLowerCase();
+                    return !!name && teams.saved.some(t => (t.name || '').toLowerCase() === name);
+                });
+
+                function openSaveTeam() {
+                    teams.saveName = '';
+                    teams.saveError = '';
+                    teams.saveOpen = true;
+                }
+                function closeSaveTeam() { teams.saveOpen = false; }
+
+                function confirmSaveTeam() {
+                    const name = (teams.saveName || '').trim();
+                    if (!name) { teams.saveError = 'Please enter a name.'; return; }
+                    if (!teamHasContent()) { teams.saveError = 'Pick at least one character before saving.'; return; }
+                    const record = {
+                        id: 't' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                        name,
+                        team: JSON.parse(JSON.stringify(state.team)),
+                        battle: JSON.parse(JSON.stringify(state.battle)),
+                        savedAt: new Date().toISOString()
+                    };
+                    const idx = teams.saved.findIndex(t => (t.name || '').toLowerCase() === name.toLowerCase());
+                    if (idx >= 0) {
+                        record.id = teams.saved[idx].id; // keep id stable on overwrite
+                        teams.saved.splice(idx, 1, record);
+                    } else {
+                        teams.saved.push(record);
+                    }
+                    persistSavedTeams(teams.saved);
+                    teams.saveOpen = false;
+                }
+
+                function openLoadTeam() {
+                    teams.saved = loadSavedTeams(); // pick up edits from other tabs
+                    teams.pendingLoad = null;
+                    teams.loadOpen = true;
+                }
+                function closeLoadTeam() { teams.loadOpen = false; teams.pendingLoad = null; }
+
+                // Clicking a saved team: confirm first if the current build has unsaved content, else load now.
+                function requestLoadTeam(record) {
+                    if (teamHasContent()) { teams.pendingLoad = record; }
+                    else { applyLoadTeam(record); }
+                }
+                function cancelLoadTeam() { teams.pendingLoad = null; }
+
+                function applyLoadTeam(record) {
+                    const cells = [emptySlot(), emptySlot(), emptySlot()];
+                    (record.team || []).slice(0, 3).forEach((c, i) => {
+                        cells[i] = {
+                            character: (c.character || '').toString(),
+                            main: (c.main || '').toString(),
+                            off: (c.off || '').toString(),
+                            ult: (c.ult || '').toString(),
+                            costume: (c.costume || '').toString(),
+                            subs: padNames(c.subs, SUB_WEAPON_COUNT),
+                            subCostumes: padNames(c.subCostumes, SUB_COSTUME_COUNT)
+                        };
+                    });
+                    state.team = cells;
+                    const b = record.battle || {};
+                    if (b.weakness) { state.battle.weakness = b.weakness; }
+                    if (b.damageType) { state.battle.damageType = b.damageType; }
+                    if (b.scenario) { state.battle.scenario = b.scenario; }
+                    teams.loadOpen = false;
+                    teams.pendingLoad = null;
+                    // The [team, battle] watcher re-scores automatically.
+                }
+
+                function requestDeleteTeam(record) { teams.deleteTarget = record; }
+                function cancelDeleteTeam() { teams.deleteTarget = null; }
+                function confirmDeleteTeam() {
+                    if (teams.deleteTarget) {
+                        teams.saved = teams.saved.filter(t => t.id !== teams.deleteTarget.id);
+                        persistSavedTeams(teams.saved);
+                    }
+                    teams.deleteTarget = null;
+                }
+
+                function teamSummary(record) {
+                    const names = (record.team || []).map(c => c && c.character).filter(Boolean);
+                    return names.length ? names.join(', ') : '(empty)';
+                }
+                function formatSavedAt(iso) {
+                    try { return new Date(iso).toLocaleString(); } catch (e) { return ''; }
+                }
 
                 function setSlotValue(idx, slotKey, value) {
                     if (slotKey.startsWith('sub:')) { onSub(idx, parseInt(slotKey.slice(4), 10), value); }
@@ -762,13 +986,18 @@
                 }
 
                 function handleStorage(e) {
+                    if (e.key === SAVED_TEAMS_KEY) { teams.saved = loadSavedTeams(); return; }
                     if (e.key !== INVENTORY_KEY) return;
                     loadInventory();
                     loadCatalog().catch(() => {});
                 }
                 function handleKeydown(e) {
                     if (e.key !== 'Escape') return;
-                    if (state.chartsOpen) closeCharts();
+                    if (teams.deleteTarget) cancelDeleteTeam();
+                    else if (teams.pendingLoad) cancelLoadTeam();
+                    else if (teams.loadOpen) closeLoadTeam();
+                    else if (teams.saveOpen) closeSaveTeam();
+                    else if (state.chartsOpen) closeCharts();
                     else if (picker.open) closePicker();
                 }
 
@@ -786,11 +1015,14 @@
                 });
 
                 return {
-                    state, picker, elementOptions, damageTypeOptions, scenarioOptions, elementFilterOptions,
+                    state, picker, teams, elementOptions, damageTypeOptions, scenarioOptions, elementFilterOptions,
                     hasInventory, hasResult, anyCharacterPassives, teamWidePassives, selfPassives, builderApi, pickerContext, pickerItems,
                     availableRAbilities, closePicker, selectItem, clearSlot, setElementFilter,
                     toggleRAbilityPanel, setRAbilityMode, clearRAbilities, toggleRAbility, openCharts, closeCharts,
-                    formatNumber, signed, effectLabel, effectTitle, copySummary, resetTeam
+                    formatNumber, signed, effectLabel, effectTitle, copySummary, resetTeam,
+                    saveCollision, openSaveTeam, closeSaveTeam, confirmSaveTeam,
+                    openLoadTeam, closeLoadTeam, requestLoadTeam, cancelLoadTeam, applyLoadTeam,
+                    requestDeleteTeam, cancelDeleteTeam, confirmDeleteTeam, teamSummary, formatSavedAt
                 };
             }
         }).mount('#interactiveTeamBuilderApp');

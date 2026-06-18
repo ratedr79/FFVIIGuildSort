@@ -13,6 +13,16 @@ All notable changes to this project should be documented in this file.
 
 ---
 
+## 2026-06-18
+
+### Added
+- Interactive Team Builder can now **Save / Load / Delete team builds** (client-side, localStorage `itb-saved-teams-v1`). Save (top action row) opens a name modal; an existing name shows an overwrite warning and the button switches to "Overwrite". Load opens a modal listing saved builds (name + character summary + saved date) that restores the team + battle context and re-scores; loading while the current build has content prompts for confirmation. Each row has a delete button that opens a confirmation modal. A saved record holds `{ id, name, team, battle, savedAt }` — gear/battle selections only (inventory + Character Stats apply fresh on load). Cross-tab `storage` events refresh the list; Escape closes the modals top-down. No server/engine changes.
+
+### Docs
+- Added a Save/Load builds step to the README Interactive Team Builder walkthrough and noted the behavior in `docs/features/other-pages.md`.
+
+---
+
 ## 2026-06-17
 
 ### Added
