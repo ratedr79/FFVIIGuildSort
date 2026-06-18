@@ -836,6 +836,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // Team active buffs/debuffs/effects (reuse the per-variant detected-effect state the damage model uses).
             PopulateTeamEffects(result, creditedVariants, request);
 
+            // Phase 2b: estimated average damage per character (needs both the per-character attack stats AND the
+            // team-wide buffs/debuffs just populated, so it runs as a second pass). Only characters with real attack
+            // stats (Character Stats entered) get a number; the rest stay null.
+            var highwindWeaponPotency = characterStats?.GetHighwind("wpnCAbilityPot") ?? 0d; // account-wide, % (e.g. 31)
+            foreach (var ch in result.Characters)
+            {
+                passivePointsByCharacter.TryGetValue(ch.Name, out var chPassives);
+                ch.EstimatedAverageDamage = EstimateAverageDamage(ch, chPassives, spec, result.Buffs, result.Debuffs, highwindWeaponPotency);
+            }
+
             // CopyText: one line per character, in the spec's order, omitting empty clauses.
             result.CopyText = BuildCopyText(characterSpecs, outputsByName);
             result.UnresolvedItems = result.UnresolvedItems.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -1087,6 +1097,220 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return (selfPatk, selfMatk, selfAtk, allyPatk, allyMatk, allyAtk);
         }
 
+        // ===== Phase 2b: estimated average damage (literal Shira DamageCalc model fed by real stats) =====
+        // DamageCalcService is stateless (only static lookup tables), so one shared instance is safe to reuse.
+        private static readonly DamageCalcService DamageEstimator = new();
+
+        // Standard reference enemy (agreed): PDef/MDef 100; a moderate elemental weakness. -100 → PercentInputToDecimal
+        // → (1 - (-1.0)) = ×2.0 elemental layer (the model's default -200 would be ×3.0).
+        private const double ReferenceEnemyDefense = 100d;
+        private const double ReferenceEnemyElementalResistanceModifier = -100d;
+        private const double NoDamageWeaponFallbackPotency = 300d; // % — character with no damage-dealing weapon
+
+        // Estimate one cast's average damage for a character, against the standard reference enemy. Returns null
+        // unless the character has real attack stats (Character Stats entered). Carry ability = the equipped damage
+        // weapon matching the enemy weakness element, else the highest-potency weapon, else a 300% fallback.
+        private static double? EstimateAverageDamage(
+            InteractiveTeamCharacterResult ch,
+            Dictionary<string, int>? passivePoints,
+            InteractiveTeamSpec spec,
+            IReadOnlyList<InteractiveTeamEffect> buffs,
+            IReadOnlyList<InteractiveTeamEffect> debuffs,
+            double highwindWeaponPotency)
+        {
+            // Absolute damage needs a real attack stat; without Character Stats we only have weapon-only PATK/MATK.
+            if (ch.AttackPatk is not int patk || ch.AttackMatk is not int matk)
+            {
+                return null;
+            }
+
+            // --- Carry ability + potency: element-match (enemy weakness) → highest potency → 300% fallback. ---
+            var weakness = spec.EnemyWeakness == Element.None ? null : spec.EnemyWeakness.ToString();
+            var damageWeapons = new[] { ch.Main, ch.Off, ch.Ult }
+                .Concat(ch.SubWeapons)
+                .Where(w => w != null && w.DamagePercent > 0)
+                .Select(w => w!)
+                .ToList();
+
+            PlayerPowerAnalyzerV2ItemSlot? carry = null;
+            if (weakness != null)
+            {
+                carry = damageWeapons
+                    .Where(w => string.Equals(w.Element, weakness, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(w => w.DamagePercent)
+                    .FirstOrDefault();
+            }
+            carry ??= damageWeapons.OrderByDescending(w => w.DamagePercent).FirstOrDefault();
+
+            var potency = carry?.DamagePercent ?? NoDamageWeaponFallbackPotency;
+            var abilityType = carry?.AbilityType ?? (patk >= matk ? "Phys." : "Mag.");
+            var castElement = carry?.Element ?? "Non-Elemental";
+            var isMag = abilityType.Equals("Mag.", StringComparison.OrdinalIgnoreCase);
+            var isMixed = abilityType.Equals("Phys./Mag.", StringComparison.OrdinalIgnoreCase);
+            var physApplies = !isMag || isMixed; // "Phys." / fallback / mixed
+            var magApplies = isMag || isMixed;
+            var damageType = isMixed ? "Physical/Magical" : isMag ? "Magical" : "Physical";
+
+            // --- Ability-potency passive layer (additive within the potency bundle; element/axis matched). ---
+            var (abilityPot, abilityPotAllAllies, physAbilityPot, magAbilityPot, elementalPot) =
+                SumAbilityPotencyPercents(passivePoints, castElement, physApplies, magApplies);
+
+            var req = new DamageCalcRequest
+            {
+                DamageType = damageType,
+                PhysicalAttackStat = patk,
+                MagicalAttackStat = matk,
+                WeaponAbilityPotency = potency,
+                HighwindWeaponPotencyBonus = highwindWeaponPotency, // "Boost Wpn. C. Ability Pot." Highwind line, % (e.g. 31)
+                // Resolved fractions bypass the tier-string lookups AND their non-zero defaults.
+                AbilityPotencyResolved = abilityPot / 100d,
+                BoostAbilityPotAllAllies = abilityPotAllAllies, // percent; PercentInputToDecimal applied inside service
+                PhysicalAbilityPotencyResolved = physAbilityPot / 100d,
+                MagicalAbilityPotencyResolved = magAbilityPot / 100d,
+                ElementalPotencyResolved = elementalPot / 100d,
+                // Ability-dmg families are summed into the resolved values above → neutralize the model's non-zero defaults.
+                OutfitAbilityBonus = 0,            // default 30
+                MemoriaElementalPotencyBonus = 0,  // default 15
+                MemoriaPhysicalAbilityBonus = 0,   // default 15
+                // Standard reference enemy.
+                EnemyPhysicalDefense = ReferenceEnemyDefense,
+                EnemyMagicDefense = ReferenceEnemyDefense,
+                EnemyElementalResistanceModifier = ReferenceEnemyElementalResistanceModifier,
+            };
+
+            ApplyTeamEffectsToRequest(req, buffs, debuffs, physApplies, magApplies, castElement);
+
+            var damage = DamageEstimator.Calculate(req).AverageDamage;
+            return double.IsFinite(damage) && damage > 0 ? Math.Round(damage) : null;
+        }
+
+        // Sums one character's ability-POTENCY passive boosts — a DAMAGE multiplier layer, distinct from the
+        // attack-stat Boost PATK/MATK handled by SumAttackBoostPercents. Buckets mirror the engine's breakpoint
+        // classification: self ability pot, (All Allies) ability pot, Phys./Mag. ability pot (axis-gated), and
+        // elemental potency (only when the passive's element matches the cast). Arcanum/Mastery/generic → self.
+        // Returns percents.
+        private static (double AbilityPot, double AbilityPotAllAllies, double PhysAbilityPot, double MagAbilityPot, double ElementalPot)
+            SumAbilityPotencyPercents(Dictionary<string, int>? passivePoints, string castElement, bool physApplies, bool magApplies)
+        {
+            double abilityPot = 0, abilityPotAll = 0, physPot = 0, magPot = 0, elemPot = 0;
+            if (passivePoints != null)
+            {
+                var elementalCast = ContainsElementName(castElement); // a real element (not Non-Elemental)
+                foreach (var (scoringLabel, points) in passivePoints)
+                {
+                    if (points <= 0)
+                    {
+                        continue;
+                    }
+
+                    var label = FormatPassiveDisplayLabel(scoringLabel);
+                    if (string.IsNullOrWhiteSpace(label))
+                    {
+                        continue;
+                    }
+
+                    // Only ability-potency / ability-damage / elemental-potency families feed the damage potency layer.
+                    var isAbilityPotFamily = label.Contains("Ability Pot", StringComparison.OrdinalIgnoreCase)
+                        || label.Contains("Ability Dmg", StringComparison.OrdinalIgnoreCase)
+                        || label.Contains("Ability Damage", StringComparison.OrdinalIgnoreCase)
+                        || IsElementAbilityPassiveLabel(label);
+                    if (!isAbilityPotFamily || !TryGetPassiveBonusValue(scoringLabel, points, out var pct) || pct == 0)
+                    {
+                        continue;
+                    }
+
+                    if (label.Contains("Boost Ability Pot", StringComparison.OrdinalIgnoreCase)
+                        && label.Contains("All Allies", StringComparison.OrdinalIgnoreCase))
+                    {
+                        abilityPotAll += pct; // self + all-allies ability pot share one additive pool
+                    }
+                    else if (ContainsElementName(label))
+                    {
+                        // Elemental potency / [Element] Ability Dmg — only when the cast deals that element.
+                        if (elementalCast && label.Contains(castElement, StringComparison.OrdinalIgnoreCase))
+                        {
+                            elemPot += pct;
+                        }
+                    }
+                    else if (label.Contains("Phys.", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (physApplies) { physPot += pct; }
+                    }
+                    else if (label.Contains("Mag.", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (magApplies) { magPot += pct; }
+                    }
+                    else
+                    {
+                        abilityPot += pct; // generic Boost Ability Pot. / Arcanum / Mastery ability dmg
+                    }
+                }
+            }
+
+            return (abilityPot, abilityPotAll, physPot, magPot, elemPot);
+        }
+
+        // Maps the team's detected active buffs/debuffs onto the DamageCalc request (the "assume team's detected
+        // buffs active" choice). Axis-gated to the attacker (phys/mag) and element-gated to the cast for elemental
+        // effects. Same-family effects share a battle cap, so the strongest wins (Max). Resolved-fraction slots
+        // bypass the tier-string lookups; the *Tier/raw double slots take a percent (PercentInputToDecimal inside).
+        private static void ApplyTeamEffectsToRequest(
+            DamageCalcRequest req,
+            IReadOnlyList<InteractiveTeamEffect> buffs,
+            IReadOnlyList<InteractiveTeamEffect> debuffs,
+            bool physApplies, bool magApplies, string castElement)
+        {
+            var elementalCast = ContainsElementName(castElement);
+            bool ElementMatches(InteractiveTeamEffect e) =>
+                elementalCast && e.DisplayName != null && e.DisplayName.Contains(castElement, StringComparison.OrdinalIgnoreCase);
+
+            foreach (var e in buffs.Concat(debuffs))
+            {
+                var pct = e.Potency ?? 0;       // percent (e.g. 20)
+                var frac = pct / 100d;          // fraction (e.g. 0.20)
+                if (pct <= 0)
+                {
+                    continue;
+                }
+
+                var physMag = e.Axis == "physical" ? physApplies : e.Axis == "magical" ? magApplies : false;
+
+                switch (e.Family)
+                {
+                    case "attack_buff": // PATK/MATK Up
+                        if (e.Axis == "physical" && physApplies) { req.PhysicalAttackBuffResolved = Math.Max(req.PhysicalAttackBuffResolved ?? 0, frac); }
+                        else if (e.Axis == "magical" && magApplies) { req.MagicalAttackBuffResolved = Math.Max(req.MagicalAttackBuffResolved ?? 0, frac); }
+                        break;
+                    case "defense_debuff": // PDEF/MDEF Down — shrinks the enemy-defense denominator
+                        if (e.Axis == "physical") { req.PhysicalDefenseDebuffResolved = Math.Max(req.PhysicalDefenseDebuffResolved ?? 0, frac); }
+                        else if (e.Axis == "magical") { req.MagicDefenseDebuffResolved = Math.Max(req.MagicDefenseDebuffResolved ?? 0, frac); }
+                        break;
+                    case "elemental_resistance_debuff": // stacks on the reference enemy's -100 weakness
+                        if (ElementMatches(e)) { req.ElementalResistanceDebuffResolved = Math.Max(req.ElementalResistanceDebuffResolved ?? 0, frac); }
+                        break;
+                    case "weapon_boost":
+                        if (e.Axis == "elemental") { if (ElementMatches(e)) { req.ElementalWeaponBuffTier = Math.Max(req.ElementalWeaponBuffTier, pct); } }
+                        else if (physMag) { req.PhysMagWeaponBuffTier = Math.Max(req.PhysMagWeaponBuffTier, pct); }
+                        break;
+                    case "damage_up": // Elem. Pot. Up buff
+                        if (ElementMatches(e)) { req.ElementalPotUpBuffResolved = Math.Max(req.ElementalPotUpBuffResolved ?? 0, frac); }
+                        break;
+                    case "ability_amplification":
+                        if (e.Axis == "elemental") { if (ElementMatches(e)) { req.ElementalAmplification = Math.Max(req.ElementalAmplification, pct); } }
+                        else if (physMag) { req.AmplificationPhysicalAbility = Math.Max(req.AmplificationPhysicalAbility, pct); }
+                        break;
+                    case "damage_bonus":
+                        if (e.Axis == "elemental") { if (ElementMatches(e)) { req.ElementalBonusAdditionalDamage = Math.Max(req.ElementalBonusAdditionalDamage, pct); } }
+                        else if (physMag) { req.PhysMagBonusAdditionalDamage = Math.Max(req.PhysMagBonusAdditionalDamage, pct); }
+                        break;
+                    case "damage_received_up":
+                        if (e.Axis == "elemental") { if (ElementMatches(e)) { req.ElementalDamageReceivedUp = Math.Max(req.ElementalDamageReceivedUp, pct); } }
+                        else if (physMag) { req.PhysMagDamageReceivedUp = Math.Max(req.PhysMagDamageReceivedUp, pct); }
+                        break;
+                }
+            }
+        }
+
         // ===== Character Stats (Phase 2): true total attack stat from player-entered base/stream stats + Highwind =====
         private static readonly JsonSerializerOptions CharacterStatsJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -1134,6 +1358,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             private static double Val(Dictionary<string, double>? row, string statKey)
                 => row != null && row.TryGetValue(statKey, out var v) ? v : 0d;
+
+            // Account-wide Highwind bonus line by key (stat keys hp/patk/... plus ability-potency lines like
+            // "wpnCAbilityPot"). Returns the raw percent (e.g. 31 for +31%), 0 when unset.
+            public double GetHighwind(string key) => Val(_blob.Highwind, key);
 
             public bool TryGetIntrinsic(string characterName, string statKey, out double intrinsic)
             {

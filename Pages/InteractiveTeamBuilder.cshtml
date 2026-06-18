@@ -113,7 +113,7 @@
                                 <div class="table-responsive mb-3">
                                     <table class="table table-sm align-middle mb-0 small">
                                         <thead>
-                                            <tr><th>Character</th><th class="text-end">PATK</th><th class="text-end">MATK</th><th class="text-end">Score</th></tr>
+                                            <tr><th>Character</th><th class="text-end">PATK</th><th class="text-end">MATK</th><th class="text-end" title="Estimated average damage of one cast vs a standard reference enemy (PDef/MDef 100, &times;2.0 elemental weakness). Needs Character Stats.">Est. Dmg</th><th class="text-end">Score</th></tr>
                                         </thead>
                                         <tbody>
                                             <tr v-for="ch in state.result.characters" :key="`rc-${ch.name}`">
@@ -126,13 +126,17 @@
                                                     <span v-if="ch.hasCharacterStats">{{ formatNumber(ch.attackMatk) }}</span>
                                                     <span v-else class="text-muted" title="Weapons only — add this character's stats via Player Inventory → Character Stats for the true total.">{{ formatNumber(ch.matk) }}*</span>
                                                 </td>
+                                                <td class="text-end">
+                                                    <span v-if="ch.estimatedAverageDamage">{{ formatNumber(ch.estimatedAverageDamage) }}</span>
+                                                    <span v-else class="text-muted" title="Needs Character Stats (add via Player Inventory → Character Stats).">&mdash;</span>
+                                                </td>
                                                 <td class="text-end">{{ formatNumber(ch.finalScore) }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
                                 <div class="small text-muted mb-3" v-if="state.result.characters && state.result.characters.length">
-                                    PATK/MATK = total attack stat (base + character/role stream + weapons, &times;Highwind, floored) when Character Stats are entered. Values marked <span class="fw-semibold">*</span> are weapons-only &mdash; add stats in <strong>Player Inventory &rarr; Character Stats</strong>.
+                                    PATK/MATK = total attack stat (base + character/role stream + weapons, &times;Highwind, floored) when Character Stats are entered. Values marked <span class="fw-semibold">*</span> are weapons-only &mdash; add stats in <strong>Player Inventory &rarr; Character Stats</strong>. <strong>Est. Dmg</strong> = approximate average damage of one cast (element-matched carry ability + ability-potency passives + the team's detected buffs/debuffs) vs a standard reference enemy; excludes branding &amp; rotation specifics.
                                 </div>
 
                                 <details class="mb-2" v-if="anyCharacterPassives">

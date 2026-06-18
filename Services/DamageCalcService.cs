@@ -117,6 +117,7 @@ public sealed class DamageCalcService
 
         var outfitAbilityBonus = PercentInputToDecimal(request.OutfitAbilityBonus);
         var boostElementalPotAllies = PercentInputToDecimal(request.BoostElementalPotAllies);
+        var boostAbilityPotAllAllies = PercentInputToDecimal(request.BoostAbilityPotAllAllies);
         var memoriaElementalPotencyBonus = PercentInputToDecimal(request.MemoriaElementalPotencyBonus);
         var memoriaPhysicalAbilityBonus = PercentInputToDecimal(request.MemoriaPhysicalAbilityBonus);
         var memoriaMagicalAbilityBonus = PercentInputToDecimal(request.MemoriaMagicalAbilityBonus);
@@ -145,17 +146,17 @@ public sealed class DamageCalcService
         var physMagBonusAdditionalDamage = PercentInputToDecimal(request.PhysMagBonusAdditionalDamage);
         var elementalBonusAdditionalDamage = PercentInputToDecimal(request.ElementalBonusAdditionalDamage);
 
-        var abilityPotencyLookup = Lookup(AbilityPotencyLookup, request.AbilityPotencyTier);
-        var physicalAbilityPotencyLookup = Lookup(PhysicalMagicalAbilityPotencyLookup, request.PhysicalAbilityPotencyTier);
-        var magicalAbilityPotencyLookup = Lookup(PhysicalMagicalAbilityPotencyLookup, request.MagicalAbilityPotencyTier);
-        var elementalPotencyLookup = Lookup(ElementalPotencyLookup, request.ElementalPotencyTier);
-        var pDefDebuff = Lookup(DefenseDebuffLookup, request.PhysicalDefenseDebuffTier);
-        var mDefDebuff = Lookup(DefenseDebuffLookup, request.MagicDefenseDebuffTier);
-        var elementalPotUpBuffLookup = Lookup(ElementalPotUpLookup, request.ElementalPotUpBuffTier);
-        var elementalResDebuffLookup = Lookup(ElementalResistanceDebuffLookup, request.ElementalResistanceDebuffTier);
+        var abilityPotencyLookup = request.AbilityPotencyResolved ?? Lookup(AbilityPotencyLookup, request.AbilityPotencyTier);
+        var physicalAbilityPotencyLookup = request.PhysicalAbilityPotencyResolved ?? Lookup(PhysicalMagicalAbilityPotencyLookup, request.PhysicalAbilityPotencyTier);
+        var magicalAbilityPotencyLookup = request.MagicalAbilityPotencyResolved ?? Lookup(PhysicalMagicalAbilityPotencyLookup, request.MagicalAbilityPotencyTier);
+        var elementalPotencyLookup = request.ElementalPotencyResolved ?? Lookup(ElementalPotencyLookup, request.ElementalPotencyTier);
+        var pDefDebuff = request.PhysicalDefenseDebuffResolved ?? Lookup(DefenseDebuffLookup, request.PhysicalDefenseDebuffTier);
+        var mDefDebuff = request.MagicDefenseDebuffResolved ?? Lookup(DefenseDebuffLookup, request.MagicDefenseDebuffTier);
+        var elementalPotUpBuffLookup = request.ElementalPotUpBuffResolved ?? Lookup(ElementalPotUpLookup, request.ElementalPotUpBuffTier);
+        var elementalResDebuffLookup = request.ElementalResistanceDebuffResolved ?? Lookup(ElementalResistanceDebuffLookup, request.ElementalResistanceDebuffTier);
         var overspeedBuffLookup = Lookup(OverspeedLookup, request.OverspeedBuffTier);
-        var physicalAttackBuffLookup = Lookup(GenericBuffLookup, request.PhysicalAttackBuffTier);
-        var magicalAttackBuffLookup = Lookup(GenericBuffLookup, request.MagicalAttackBuffTier);
+        var physicalAttackBuffLookup = request.PhysicalAttackBuffResolved ?? Lookup(GenericBuffLookup, request.PhysicalAttackBuffTier);
+        var magicalAttackBuffLookup = request.MagicalAttackBuffResolved ?? Lookup(GenericBuffLookup, request.MagicalAttackBuffTier);
 
         Validate(request, result);
 
@@ -168,7 +169,7 @@ public sealed class DamageCalcService
         var averageDamagePhysical = request.PhysicalAttackStat
             * 50
             * (weaponAbilityPotency * (1 + highwindWeaponPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d)
+            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
             * (1 + physicalAttackBuffLookup)
@@ -188,7 +189,7 @@ public sealed class DamageCalcService
         var averageDamageMagical = request.MagicalAttackStat
             * 50
             * (weaponAbilityPotency * (1 + highwindWeaponPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d)
+            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
             * (1 + magicalAttackBuffLookup)
@@ -217,7 +218,7 @@ public sealed class DamageCalcService
         var interruptionDamagePhysical = request.PhysicalAttackStat
             * 50
             * (weaponAbilityPotency * (1 + highwindWeaponPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d + interruptionRAbilities + interruptionMastery + interruptionArcanum)
+            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d + interruptionRAbilities + interruptionMastery + interruptionArcanum)
             * (1 + interruptionSigilDamageBoost)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
@@ -238,7 +239,7 @@ public sealed class DamageCalcService
         var interruptionDamageMagical = request.MagicalAttackStat
             * 50
             * (weaponAbilityPotency * (1 + highwindWeaponPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d + interruptionRAbilities + interruptionMastery + interruptionArcanum)
+            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d + interruptionRAbilities + interruptionMastery + interruptionArcanum)
             * (1 + interruptionSigilDamageBoost)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
@@ -269,7 +270,7 @@ public sealed class DamageCalcService
         var summonPhysicalDamage = request.PhysicalAttackStat
             * 50
             * (summonSkillPotency * (1 + highwindLimitPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d)
+            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
             * (1 + physicalAttackBuffLookup)
@@ -286,7 +287,7 @@ public sealed class DamageCalcService
         var summonMagicalDamage = request.MagicalAttackStat
             * 50
             * (summonSkillPotency * (1 + highwindLimitPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d)
+            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
             * (1 + magicalAttackBuffLookup)
@@ -307,7 +308,7 @@ public sealed class DamageCalcService
         var mixedSummonPhysical = mixedAttackAverage
             * 50
             * (summonSkillPotency * (1 + highwindLimitPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d)
+            * (1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus + request.OutfitPhysCmdStanceBonus / 100d)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
             * (1 + physicalAttackBuffLookup)
@@ -324,7 +325,7 @@ public sealed class DamageCalcService
         var mixedSummonMagical = mixedAttackAverage
             * 50
             * (summonSkillPotency * (1 + highwindLimitPotencyBonus) * 1.5)
-            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d)
+            * (1 + abilityPotencyLookup + magicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaMagicalAbilityBonus + request.OutfitMagCmdStanceBonus / 100d)
             * (1 + overspeedBuffLookup)
             * (1 + sumElementalPotencyFromMateria)
             * (1 + magicalAttackBuffLookup)
@@ -351,7 +352,7 @@ public sealed class DamageCalcService
         result.PhysicalAbilityPotencyLookup = physicalAbilityPotencyLookup;
         result.MagicalAbilityPotencyLookup = magicalAbilityPotencyLookup;
         result.ElementalPotencyLookup = elementalPotencyLookup;
-        result.PhysicalPotencyStackMultiplier = 1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus;
+        result.PhysicalPotencyStackMultiplier = 1 + abilityPotencyLookup + physicalAbilityPotencyLookup + elementalPotencyLookup + outfitAbilityBonus + boostElementalPotAllies + boostAbilityPotAllAllies + memoriaElementalPotencyBonus + memoriaPhysicalAbilityBonus;
         result.PhysicalDefenseDebuffLookup = pDefDebuff;
         result.MagicDefenseDebuffLookup = mDefDebuff;
         result.PhysicalDefenseDenominator = physicalDefenseDenominator;

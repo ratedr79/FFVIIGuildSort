@@ -241,6 +241,11 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int? AttackPatk { get; set; }
         public int? AttackMatk { get; set; }
         public bool HasCharacterStats { get; set; }
+        // Estimated average damage of one cast against a standard reference enemy (PDef/MDef 100, ×2.0 elemental
+        // weakness), via the literal Shira DamageCalc model fed by the real attack stat + carry-ability potency +
+        // ability-potency passives + the team's detected buffs/debuffs. Null when no Character Stats (no real attack
+        // stat to feed). Approximate — branding and in-battle rotation specifics are not modeled.
+        public double? EstimatedAverageDamage { get; set; }
         public double FinalScore { get; set; }
         public PlayerPowerAnalyzerV2ItemSlot? Main { get; set; }
         public PlayerPowerAnalyzerV2ItemSlot? Off { get; set; }

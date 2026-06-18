@@ -6,13 +6,13 @@
     { "player": "DDelaneyCA", "guild": 1 },
     { "player": "DrakeSky", "guild": 2 },
     { "player": "Stormzy", "guild": 2 },
-    { "player": "あきら", "guild": 3 },
     { "player": "Rikudou", "guild": 3 },
     { "player": "Babyroth", "guild": 3 }
   ],
   "playerGuildExclusions": [
     { "player": "Mikey4Life", "excludedGuilds": [ 1 ] },
     { "player": "Intern-Kun", "excludedGuilds": [ 1 ] },
+    { "player": "5aF", "excludedGuilds": [ 1 ] }
     { "player": "Sin", "excludedGuilds": [ 1 ] }
   ],
   "ensurePlayersPresent": [

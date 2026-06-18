@@ -20,6 +20,26 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public string MagicalAbilityPotencyTier { get; set; } = "No Points";
         public string ElementalPotencyTier { get; set; } = "No Points";
 
+        // Resolved-decimal override path (used by the Interactive Team Builder, which has already resolved each
+        // passive/buff to a bonus fraction via the V2 engine). When non-null, the matching tier-string lookup is
+        // bypassed and this decimal is used directly. Null (the default) → existing tier-string behavior, so the
+        // standalone DamageCalc page is unaffected. Decimals are fractions (0.30 = +30%), NOT percents.
+        public double? AbilityPotencyResolved { get; set; }
+        public double? PhysicalAbilityPotencyResolved { get; set; }
+        public double? MagicalAbilityPotencyResolved { get; set; }
+        public double? ElementalPotencyResolved { get; set; }
+        public double? PhysicalAttackBuffResolved { get; set; }
+        public double? MagicalAttackBuffResolved { get; set; }
+        public double? ElementalPotUpBuffResolved { get; set; }
+        public double? PhysicalDefenseDebuffResolved { get; set; }
+        public double? MagicDefenseDebuffResolved { get; set; }
+        public double? ElementalResistanceDebuffResolved { get; set; }
+
+        // "Boost Ability Pot. (All Allies)" — same ability-potency pool as the self bonus, so it stacks ADDITIVELY
+        // within the potency layer (mirrors how BoostElementalPotAllies sits next to the self elemental term).
+        // Percent input (15 = +15%); defaults 0 → no effect for existing callers.
+        public double BoostAbilityPotAllAllies { get; set; }
+
         public string PhysicalAttackBuffTier { get; set; } = "No Buff";
         public string MagicalAttackBuffTier { get; set; } = "No Buff";
         public string ElementalPotUpBuffTier { get; set; } = "No Elem. Pot. Buff";

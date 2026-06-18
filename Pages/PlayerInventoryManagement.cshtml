@@ -1377,7 +1377,8 @@
             </div>
             <div class="modal-body">
                 <h6 class="fw-semibold mb-2">Highwind Bonus <span class="text-muted fw-normal">(account-wide, %)</span></h6>
-                <div class="row g-2 mb-3" id="characterStatsHighwindInputs"></div>
+                <div class="row g-2" id="characterStatsHighwindInputs"></div>
+                <div class="form-text text-muted mb-3"><strong>Boost Wpn. C. Ability Pot.</strong> feeds the team-builder damage estimate (weapon command-ability potency). Mat. C. and Limit lines are recorded for reference but aren't part of that estimate.</div>
                 <hr />
                 <div class="row g-2 align-items-end mb-3">
                     <div class="col-12 col-md-6">
@@ -4053,6 +4054,15 @@
                 { key: 'heal', label: 'HEAL' }
             ];
             const characterStatBlocks = ['base', 'characterStream', 'roleStream'];
+            // Highwind-only ability-potency lines (no base/stream — pure account-wide % bonuses). Stored in the same
+            // highwind object alongside the 6 stat keys. "Boost Wpn. C. Ability Pot." feeds the damage calc as the
+            // weapon command-ability potency bonus; the other two are recorded for completeness (materia / limit
+            // abilities are outside the team-builder damage estimate).
+            const highwindExtraKeys = [
+                { key: 'wpnCAbilityPot', label: 'Boost Wpn. C. Ability Pot.' },
+                { key: 'matCAbilityPot', label: 'Boost Mat. C. Ability Pot.' },
+                { key: 'limitAbilityPot', label: 'Boost Limit Ability Pot.' }
+            ];
 
             const characterStatsModalElement = document.getElementById('characterStatsModal');
             const characterStatsModal = characterStatsModalElement ? new bootstrap.Modal(characterStatsModalElement) : null;
@@ -4082,8 +4092,15 @@
                 return { level: null, base: emptyStatRow(), characterStream: emptyStatRow(), roleStream: emptyStatRow() };
             }
 
+            // The Highwind row carries the 6 stat keys PLUS the highwind-only ability-potency lines.
+            function emptyHighwindRow() {
+                const row = emptyStatRow();
+                highwindExtraKeys.forEach(s => { row[s.key] = 0; });
+                return row;
+            }
+
             function defaultCharacterStatsState() {
-                return { version: 1, highwind: emptyStatRow(), characters: {} };
+                return { version: 1, highwind: emptyHighwindRow(), characters: {} };
             }
 
             function normalizeStatRow(raw) {
@@ -4094,10 +4111,20 @@
                 return row;
             }
 
+            function normalizeHighwindRow(raw) {
+                const row = normalizeStatRow(raw);
+                if (raw && typeof raw === 'object') {
+                    highwindExtraKeys.forEach(s => { row[s.key] = statNumberOrZero(raw[s.key]); });
+                } else {
+                    highwindExtraKeys.forEach(s => { row[s.key] = 0; });
+                }
+                return row;
+            }
+
             function normalizeCharacterStatsState(raw) {
                 const state = defaultCharacterStatsState();
                 if (!raw || typeof raw !== 'object') { return state; }
-                state.highwind = normalizeStatRow(raw.highwind);
+                state.highwind = normalizeHighwindRow(raw.highwind);
                 if (raw.characters && typeof raw.characters === 'object') {
                     Object.entries(raw.characters).forEach(([name, value]) => {
                         if (!name || !value || typeof value !== 'object') { return; }
@@ -4131,7 +4158,7 @@
             function updateCharacterStatsHint() {
                 const state = loadCharacterStatsState();
                 const count = Object.values(state.characters).filter(characterStatsEntered).length;
-                const highwindSet = characterStatKeys.some(s => statNumberOrZero(state.highwind[s.key]) !== 0);
+                const highwindSet = characterStatKeys.concat(highwindExtraKeys).some(s => statNumberOrZero(state.highwind[s.key]) !== 0);
                 if (characterStatsHint) {
                     characterStatsHint.textContent = (count > 0 || highwindSet)
                         ? `${count} character${count === 1 ? '' : 's'} entered · Highwind ${highwindSet ? 'set' : 'not set'}.`
@@ -4160,11 +4187,17 @@
 
             function renderHighwindInputs() {
                 if (!characterStatsHighwindInputs) { return; }
-                characterStatsHighwindInputs.innerHTML = characterStatKeys.map(s => `
+                const statCols = characterStatKeys.map(s => `
                     <div class="col-6 col-md-4 col-lg-2">
                         <label class="form-label small mb-1" for="highwind_${s.key}">${s.label} %</label>
                         <input type="number" step="0.1" inputmode="decimal" class="form-control form-control-sm" id="highwind_${s.key}" data-highwind="${s.key}" value="${characterStatsWorking.highwind[s.key] || 0}" />
                     </div>`).join('');
+                const extraCols = highwindExtraKeys.map(s => `
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <label class="form-label small mb-1" for="highwind_${s.key}">${s.label} %</label>
+                        <input type="number" step="0.1" inputmode="decimal" class="form-control form-control-sm" id="highwind_${s.key}" data-highwind="${s.key}" value="${characterStatsWorking.highwind[s.key] || 0}" />
+                    </div>`).join('');
+                characterStatsHighwindInputs.innerHTML = statCols + extraCols;
                 characterStatsHighwindInputs.querySelectorAll('input[data-highwind]').forEach(input => {
                     input.addEventListener('input', () => {
                         characterStatsWorking.highwind[input.getAttribute('data-highwind')] = statNumberOrZero(input.value);
