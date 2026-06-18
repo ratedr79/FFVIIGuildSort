@@ -6,6 +6,14 @@ A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, 
 - [Getting Started](#getting-started)
 - [Access and Leadership Tools](#access-and-leadership-tools)
 - [Home Page](#home-page)
+- [Player Power Analyzer V2](#player-power-analyzer-v2)
+  - [Player Power Analyzer V2: What It Does](#player-power-analyzer-v2-what-it-does)
+  - [Player Power Analyzer V2: Inputs](#player-power-analyzer-v2-inputs)
+  - [Player Power Analyzer V2: Quick Walkthrough](#player-power-analyzer-v2-quick-walkthrough)
+- [Player Inventory](#player-inventory)
+  - [Player Inventory: What It Does](#player-inventory-what-it-does)
+  - [Player Inventory: Import Options](#player-inventory-import-options)
+  - [Player Inventory: Character Stats](#player-inventory-character-stats)
 - [Power Level Analyzer](#power-level-analyzer)
   - [Power Level Analyzer: What It Does](#power-level-analyzer-what-it-does)
   - [Power Level Analyzer: Inputs](#power-level-analyzer-inputs)
@@ -71,7 +79,89 @@ Some tools are leadership-only and require unlock through `/Unlock`:
 Unlock uses a shared password and a temporary cookie session.
 
 ## Home Page
-The Home page lists all available tools with short descriptions and lock icons for restricted pages.
+The Home page lists all available tools with short descriptions and lock icons for restricted pages. The card order leads with the personal-loadout tools — Player Power Analyzer V2 (`NEW`), Interactive Team Builder (`NEW`), and Player Inventory (`Updated`) — followed by Gear Search, Guild Battle Sheet, Enemy Stats, and the remaining utility and leadership tools.
+
+---
+
+## Player Power Analyzer V2
+### Player Power Analyzer V2: What It Does
+Builds and scores a recommended 3-character team from your own **local inventory** (the owned weapons/costumes and levels you save in [Player Inventory](#player-inventory)), and is the primary single-player analysis tool. Unlike the survey-based [Power Level Analyzer](#power-level-analyzer), it does not need a Google Sheet — it reads the browser's `player-inventory-state-v1` state directly.
+
+It models a full loadout explicitly: a main hand, off hand, ultimate weapon, main outfit, shared sub-weapons, and (optionally) boss immunities and required/preferred effects. Off-hand and ultimate weapons use their abilities as active utility; sub-weapons and sub-outfits contribute half-value stats and passive points only. The result is one recommended team plus alternates, each with a relative score, per-character PATK/MATK/HEAL, provided effects, passive totals, and an assumed materia setup.
+
+> The page is marked **BETA** and under active development. If a recommendation looks off, you can export a debug "repro" snapshot (it captures your inventory and settings) and send it for investigation; instructions are at the bottom of the page.
+
+### Player Power Analyzer V2: Inputs
+| Input | Expected Value | Use |
+|---|---|---|
+| Saved inventory | Your `player-inventory-state-v1` (from Player Inventory) | Only gear you own is considered; no sheet required |
+| Enemy Weakness | None/Earth/Fire/Ice/Lightning/Water/Wind/Holy/Dark | Sets the elemental offensive axis |
+| Preferred Damage Type | Any/Physical/Magical | Biases scoring toward physical or magical builds |
+| Target Scenario | Single/Multiple enemy context | Influences single-target vs AoE priorities |
+| Search Mode | `Fast · ~15s` / `Full · ~60s` | Search breadth vs speed (see below) |
+| Pro: deeper sub-weapon optimization | Checkbox (Full mode only) | ~87s; picks sub-weapons by exact damage contribution |
+| Team Templates | Enable one or more templates | Restricts valid team composition shapes |
+| Boss Immunities (Advanced) | Checkboxes by group | Invalidates builds relying on an immune effect |
+| Required & Preferred Effects (Advanced) | Off / ⭐ Preferred / 🔒 Required per effect | Required invalidates builds lacking the effect; Preferred boosts score |
+
+Search modes:
+- **Fast (~15s)** — searches a reduced set of your strongest options and skips clearly-behind candidates; good for rough ideas, may differ from Full.
+- **Full (~60s, recommended)** — searches your full armory for the most accurate recommendation. Byte-identical to the reference baseline.
+- **Pro (Full only, ~87s)** — adds exact-damage-contribution sub-weapon selection for the most refined build; most accurate, slowest.
+
+### Player Power Analyzer V2: Quick Walkthrough
+Required steps:
+1. Build up your inventory first in [Player Inventory](#player-inventory).
+2. Open `/PlayerPowerAnalyzerV2`, set `Enemy Weakness`, `Preferred Damage Type`, and `Target Scenario`.
+3. Choose a `Search Mode` (and optionally `Pro`), and expand `Advanced filters` if you need boss-immunity or required/preferred-effect constraints.
+4. Click `Analyze V2 Team`.
+
+Full and Pro analyses can take roughly a minute or more, so they run in the background: the page shows an "Analyzing V2 Team" overlay, keeps the request sub-second, and updates automatically when the result is ready (keep the tab open). This also avoids long runs timing out behind the hosting proxy.
+
+Expected output:
+- A recommended team with a relative model score (a unitless ranking number, not literal in-game damage), plus selectable alternate teams with their Adds/Drops vs the recommended team.
+- Per-character build-out: weapons (main/off/ultimate + sub-weapons), outfit + sub-outfits, PATK/MATK/HEAL, provided effects, top passive totals, and an assumed materia setup.
+- Matched/missing hard-required and preferred effects, plus inventory-coverage notes (characters available, weapons with unset levels).
+- A quick copy-text block for sharing, and an `Export V2 Repro File` action for feedback.
+
+---
+
+## Player Inventory
+### Player Inventory: What It Does
+Your local armory. Player Inventory (`/PlayerInventoryManagement`) tracks which weapons and costumes you own, at a simplified level/overboost, entirely in your browser — no account login. It feeds [Player Power Analyzer V2](#player-power-analyzer-v2) and the [Interactive Team Builder](#interactive-team-builder).
+
+Inventory is saved to browser-local `player-inventory-state-v1`. Weapon ownership is `Do Not Own` / `3★` / `4★` / `5★` / `OB1`–`OB10` (ultimates use a simple owned flag); costumes are owned / not owned. You can export the inventory to a JSON file and import it back as a backup.
+
+### Player Inventory: Import Options
+| Option | Use |
+|---|---|
+| Import (JSON) | Load a previously exported inventory backup file. |
+| Paste Import | Paste CSV/TSV or simple `Name - OB - Level` lines, with header auto-detection, a per-row preview, and merge/replace modes. |
+| Import from Sheet | Paste three labeled boxes copied from the community Google tracking sheet's tabs (Weapons / Ultimate Weapons / Costumes). |
+| SOLDIER Survey Quick View | Compare a configured survey sheet's gear columns against your saved inventory. |
+
+**Import from Sheet** is the fastest way to seed your inventory from the community tracking sheet:
+- Paste each tab into its matching box: Weapons (`Overboost · Level · Weapon`), Ultimate Weapons (`Owned · Lv · Weapon`, the `[N Uses]` suffix is ignored), and Costumes (`Owned · Gear`).
+- Names resolve against the live catalog; a name that maps to more than one entry (a rerun/variant) is applied to all matches, never dropped.
+- **Apply replaces your entire saved inventory** — anything not listed in the boxes becomes Do Not Own / Not Owned. A preview shows per-tab matched/owned/unmatched counts and warns if a box is left empty (that whole category would be wiped).
+
+### Player Inventory: Character Stats
+A **Character Stats** panel (with an "Enter Character Stats" modal) records per-character stats so analysis tools can use your **real attack stats** instead of weapons-only estimates. This is stored separately in browser-local `player-character-stats-v1` and never leaves your browser.
+
+What you enter:
+- An account-wide **Highwind Bonus** (%) for each of the six stats (HP, PATK, MATK, PDEF, MDEF, HEAL).
+- Per character: a **Level**, then three stat blocks — **Base**, **Character Stream**, and **Role Stream** (each across the six stats).
+
+How it fills in:
+- **Base** auto-fills (read-only) from the selected character's Level, using game data.
+- **Character Stream** and **Role Stream** default to their **max** (every growth-board node unlocked) and reproduce the in-game stream values. They stay editable — lower them if your trees aren't fully unlocked. Use **Fill streams from max** to re-apply the maxes, or **Reset to Defaults** to restore base + max.
+- A live **Computed Total** per stat shows `floor((Base + Character Stream + Role Stream) × (1 + Highwind%))` — your stats *before* weapons and branding, matching the in-game "Base Stats" total within about 1. Values are approximate (the game floors, and weapon branding is RNG and not recorded).
+
+The Highwind section also records three Highwind-only ability-potency lines:
+- **Boost Wpn. C. Ability Pot.** — feeds the Interactive Team Builder's damage estimate as the weapon command-ability potency bonus.
+- **Boost Mat. C. Ability Pot.** and **Boost Limit Ability Pot.** — recorded for reference only; materia and limit abilities are outside the team-builder damage estimate.
+
+Once a character has stats entered, the [Interactive Team Builder](#interactive-team-builder) shows that character's true total PATK/MATK and an estimated per-cast damage.
 
 ---
 
@@ -109,11 +199,12 @@ Required steps:
 A full player-base analysis can take several minutes. It runs in the background with an "Analyzing the player base..." overlay showing elapsed time; keep the tab open and the page updates automatically when it finishes. (This also prevents long runs from timing out behind the hosting proxy.)
 
 Expected output:
-- Ranked player/team results sorted by score.
+- Ranked player/team results sorted by score (descending). Under the `Use V2 Engine` option, players are ranked by their V2 score rather than the order they appeared in the input.
 - Guild assignment output based on configured guild rules.
 - Per-player context fields (for example submitted guild/banner response) shown in results.
 - Click a player's in-game name in the ranked table to open a submitted-gear modal (weapons/costumes by character, utility items, materia summary, and missing-catalog hints).
 - Debug view now exposes weighted team synergy notes, richer weapon sub-scores, and raw-vs-weighted outfit synergy details.
+- An `Export guilds CSV` button appears after an analysis runs. It exports exactly what is on screen — it honors both the async result and the `Use V2 Engine` checkbox (reading the completed background job's result bundle) instead of re-running the analysis.
 
 ---
 
@@ -392,8 +483,15 @@ Lets you hand-pick a 3-character team from your own armory and see its estimated
 ### Interactive Team Builder: Quick Walkthrough
 1. Pick a character in each cell, then use the **Choose Weapon** / **Choose Costume** buttons to open a picker. The picker shows each item's ability and passive R-abilities, and supports searching by ability text and filtering by element or specific R-abilities.
 2. Build out the slots. Picking a weapon already used elsewhere clears it from the other slot (no duplicates); picking a character already in another cell moves it there.
-3. The results panel updates with a relative team score (comparable to Analyzer V2 — a ranking number, not literal in-game damage), each character's PATK/MATK, the active buffs/effects and debuffs, and per-character + team-wide R-ability levels (with a breakpoint-chart view).
+3. The results panel updates with a relative team score (comparable to Analyzer V2 — a ranking number, not literal in-game damage), each character's PATK/MATK, an estimated per-cast damage, the active buffs/effects and debuffs, and per-character + team-wide R-ability levels (with a breakpoint-chart view).
 4. Use the quick copy-text block to share the build.
+
+#### True attack stats and estimated damage
+When a character has **Character Stats** entered in [Player Inventory](#player-inventory), the results table shows that character's **true total attack stat**: `floor((base + character stream + role stream + weapons) × (1 + Highwind%) × passive multiplier)`, where the passive multiplier folds in the always-on Boost PATK / MATK / ATK R-abilities (self plus team-wide "All Allies"). Characters *without* Character Stats fall back to a weapons-only PATK/MATK marked with an asterisk (`*`).
+
+The **Est. Dmg** column shows the estimated average damage of one cast against a standard reference enemy (enemy PDEF/MDEF 100, with a ×2.0 elemental weakness), fed by that real attack stat. The carry ability is chosen as the equipped damage weapon whose element matches the enemy weakness → else the highest-potency damage weapon → else a 300% fallback. The estimate includes the character's ability-potency passives and the team's detected buffs/debuffs (PATK/MATK Up, DEF Down, elemental res down, weapon boosts, amplification, etc.). It shows `—` when Character Stats aren't entered (there is no real attack stat to feed it).
+
+Both numbers are **approximate** — weapon branding and exact in-battle rotation specifics aren't modeled, so the estimate sits slightly conservative. The team **Score** remains a relative ranking number (not literal in-game damage); the **Est. Dmg** column is the absolute-damage estimate.
 
 ---
 

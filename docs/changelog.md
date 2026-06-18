@@ -13,6 +13,22 @@ All notable changes to this project should be documented in this file.
 
 ---
 
+## 2026-06-17
+
+### Added
+- Interactive Team Builder results table now has an **Est. Dmg** column: the estimated average damage of one cast against a standard reference enemy (PDEF/MDEF 100, ×2.0 elemental weakness) when the character has Character Stats entered. `EstimateAverageDamage(...)` feeds the real `AttackPatk`/`AttackMatk` into the literal `DamageCalcService` model. Carry ability = the equipped damage weapon matching the enemy weakness element → else highest `DamagePercent` → else a 300% fallback. Includes the character's ability-potency passives (`SumAbilityPotencyPercents`), the account-wide `Boost Wpn. C. Ability Pot.` Highwind line (`HighwindWeaponPotencyBonus`), and the team's detected buffs/debuffs (`ApplyTeamEffectsToRequest`). Renders `—` when Character Stats aren't entered. Approximate (branding/rotation not modeled → slightly conservative); the team Score remains a relative model index. (Additive; the byte-identical analyzer repro is unchanged.)
+- Player Inventory **Character Stats** Highwind section now records three Highwind-only ability-potency lines: `Boost Wpn. C. Ability Pot.` (consumed by the Interactive Team Builder damage estimate as the weapon command-ability potency bonus), `Boost Mat. C. Ability Pot.`, and `Boost Limit Ability Pot.` (recorded for reference only; materia/limit abilities are outside the team-builder damage estimate).
+
+### Fixed
+- Scoring engine now resolves the `Boost Ability Pot. (All Allies)` passive with its own breakpoint table (caps at Lv.3 = +15%) instead of falling through to the self `Boost Ability Pot.` table, fixing an over-credited team-wide ability-potency value.
+
+### Docs
+- Rewrote the end-user `README.md` to add a **Player Power Analyzer V2** section (local-inventory engine, Fast/Full/Pro search modes, advanced boss-immunity / required-preferred-effect inputs, async background run) and a **Player Inventory** section (ownership state, Import options incl. Import from Sheet, and the Character Stats panel incl. Highwind ability-potency lines). Updated the Table of Contents and the Home Page tool-order/badges description.
+- Extended the README **Interactive Team Builder** section with true-attack-stat and **Est. Dmg** column behavior, and extended the **Power Level Analyzer** Expected-output with the score-ordered ranking and the async-+-V2-aware `Export guilds CSV`.
+- Updated `docs/features/other-pages.md` Interactive Team Builder and Player Inventory entries with the Est. Dmg estimate (`EstimateAverageDamage`, reference enemy, carry selection, Highwind weapon-potency line) and reconciled the Character Stats entry to reflect Phase 2 being wired in.
+
+---
+
 ## Unreleased
 
 ### Added

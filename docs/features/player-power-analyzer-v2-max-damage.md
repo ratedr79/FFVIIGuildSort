@@ -449,6 +449,7 @@ Project-level breakpoint tables were provided and are now important to the desig
 Relevant supported families include:
 - `Boost PATK/MATK`
 - `Boost Ability Pot.`
+- `Boost Ability Pot. (All Allies)` — resolved with its **own** breakpoint table (caps at Lv.3 = +15%), not the self `Boost Ability Pot.` table it previously fell through to
 - `Boost [Element] Pot.`
 - `Boost Phys./Mag. Ability Pot.`
 - `[Element] Ability (All Allies)`
