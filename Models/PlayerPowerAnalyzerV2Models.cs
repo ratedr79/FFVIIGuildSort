@@ -42,6 +42,12 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public double OffElementDamageFactor { get; set; } = 0.5;
         public List<string> EnabledTeamTemplates { get; set; } = new();
 
+        // 0–3 characters the player requires in the build. Every skeleton must include all of them (filtered during
+        // skeleton enumeration, before the expansion-limit prune, so a required combo is never pruned away). Empty
+        // (the default) = no constraint → byte-identical to prior behavior. Respects the same mutually-exclusive
+        // character groups as templates (e.g. Sephiroth + Sephiroth (Original) can't both be required).
+        public List<string> RequiredCharacters { get; set; } = new();
+
         // GATED SEARCH-WIDTH OVERRIDES (both default null = no behavior change anywhere; the V2 engine uses its
         // mode-based defaults so the interactive page and all repro/regression tests stay byte-identical). Only the
         // offline guild-sort adapter (PowerLevelAnalyzerV2Adapter.BuildRequest) opts in. When non-null they are

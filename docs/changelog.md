@@ -17,9 +17,11 @@ All notable changes to this project should be documented in this file.
 
 ### Added
 - Interactive Team Builder can now **Save / Load / Delete team builds** (client-side, localStorage `itb-saved-teams-v1`). Save (top action row) opens a name modal; an existing name shows an overwrite warning and the button switches to "Overwrite". Load opens a modal listing saved builds (name + character summary + saved date) that restores the team + battle context and re-scores; loading while the current build has content prompts for confirmation. Each row has a delete button that opens a confirmation modal. A saved record holds `{ id, name, team, battle, savedAt }` — gear/battle selections only (inventory + Character Stats apply fresh on load). Cross-tab `storage` events refresh the list; Escape closes the modals top-down. No server/engine changes.
+- Player Power Analyzer V2 **Required Characters**: pick 0–3 characters (UI card above Team Templates) that every built team must include. Filtered during skeleton enumeration in `BuildTeamSkeletons` — the combo membership filter runs *before* the expansion-limit prune (so a valid required combo is never pruned), required teammates are force-included into the per-anchor support pool (so a low-ranked required character isn't cut by the `.Take`), and when all 3 slots are pinned, anchors outside the required set are skipped (search-narrowing speedup on large armories). Up-front validation (in `Analyze`) returns a clear `FailureReason` for >3 required, a required character with no owned main weapon, or a mutually-exclusive required pair (reuses `IsCharacterCombinationAllowed`, the same Sephiroth / Sephiroth (Original) rule templates use). Default empty → byte-identical to prior behavior (repro unchanged). `RequiredCharacters` added to `PlayerPowerAnalyzerV2Request`; page model binds it and exposes the roster via `AvailableCharacters`.
 
 ### Docs
 - Added a Save/Load builds step to the README Interactive Team Builder walkthrough and noted the behavior in `docs/features/other-pages.md`.
+- Added **Required Characters** to the README Player Power Analyzer V2 inputs table + walkthrough, and documented the engine behavior (skeleton filter / force-include / anchor short-circuit / validation) in `docs/features/player-power-analyzer-v2-max-damage.md`.
 
 ---
 

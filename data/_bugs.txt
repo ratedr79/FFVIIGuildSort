@@ -1,14 +1,3 @@
 IDEA: Analyzer V2 required characters
 IDEA: Analyzer V2 sigils
 IDEA: Analyzer V2 Battle Profiles -- Presets for high level battle requirements
-
---
-
-What'd like to plan out is wiring the damage calc into the Interactive Team Builder. This can be done part of the update to the details panel, or a secondary call after the current stats are pulled, whichever seems to work better architecturally. Currently there is a table that displays the character, patk, matk and score individually, for example:
-
-Character	PATK	MATK	Score
-Vincent (DPS)	1,037	885	1,680
-Tifa (DPS)	1,048	924	1,659
-Aerith (Healer)	825	774	1,029
-
-In this table, I'd like to replace the score with average damage. We can use what we know from the Damage Calc page and use the same endpoints if possible, to prevent code duplication.

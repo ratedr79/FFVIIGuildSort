@@ -112,8 +112,15 @@ Adaptive and exhaustive modes now share the same skeleton-first architecture. Th
 - chooses anchor candidates via `ScoreAnchorCandidate(...)`
 - ranks supporting candidates around each anchor via `ScoreSupportSeedForAnchor(...)`
 - forms 3-character seed trios
+- enforces `mutuallyExclusiveCharacterGroups` via `IsCharacterCombinationAllowed(...)` (e.g. Sephiroth + Sephiroth (Original) can't share a team)
 - scores each trio with `ScoreTeamSkeleton(...)`
 - keeps top skeletons by score and distinct equipment key
+
+**Required Characters** (`request.RequiredCharacters`, 0–3): when set, every skeleton must include all of them. Enforced here, *before* the expansion-limit cut, so a valid required combo is never pruned away:
+- combo membership filter (right after the mutual-exclusion check) drops any trio missing a required character;
+- required teammates are **force-included** into each anchor's support pool, so a required character that ranks low for a given anchor isn't dropped by the support `.Take` (a correctness trap, not just polish);
+- when all 3 slots are pinned, anchors outside the required set are skipped — the search-narrowing speedup on large armories.
+- Up-front validation in `Analyze(...)` returns a `FailureReason` (no result) for >3 required, a required character with no owned main-hand weapon, or a mutually-exclusive required pair (reuses `IsCharacterCombinationAllowed`). Default empty → byte-identical to prior behavior.
 
 ### 4. Expand skeletons into full per-character variants
 `BuildTeamCandidatesFromSkeletons(...)`:

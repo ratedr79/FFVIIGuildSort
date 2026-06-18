@@ -100,6 +100,7 @@ It models a full loadout explicitly: a main hand, off hand, ultimate weapon, mai
 | Target Scenario | Single/Multiple enemy context | Influences single-target vs AoE priorities |
 | Search Mode | `Fast · ~15s` / `Full · ~60s` | Search breadth vs speed (see below) |
 | Pro: deeper sub-weapon optimization | Checkbox (Full mode only) | ~87s; picks sub-weapons by exact damage contribution |
+| Required Characters | 0–3 characters | Forces specific characters into every built team; you must own a main-hand weapon for each |
 | Team Templates | Enable one or more templates | Restricts valid team composition shapes |
 | Boss Immunities (Advanced) | Checkboxes by group | Invalidates builds relying on an immune effect |
 | Required & Preferred Effects (Advanced) | Off / ⭐ Preferred / 🔒 Required per effect | Required invalidates builds lacking the effect; Preferred boosts score |
@@ -109,11 +110,16 @@ Search modes:
 - **Full (~60s, recommended)** — searches your full armory for the most accurate recommendation. Byte-identical to the reference baseline.
 - **Pro (Full only, ~87s)** — adds exact-damage-contribution sub-weapon selection for the most refined build; most accurate, slowest.
 
+Required Characters:
+- Pick up to 3 characters (above Team Templates) to force into the recommended team — every built team (and every alternate) will include all of them. The picker locks once 3 are chosen.
+- You must own a main-hand weapon for each required character, and they must be able to share a team — two mutually-exclusive characters (e.g. a character and its alternate version) can't both be required. Either case returns a clear message instead of a result.
+- Pinning characters also narrows the search, so a large armory can analyze faster with required characters set.
+
 ### Player Power Analyzer V2: Quick Walkthrough
 Required steps:
 1. Build up your inventory first in [Player Inventory](#player-inventory).
 2. Open `/PlayerPowerAnalyzerV2`, set `Enemy Weakness`, `Preferred Damage Type`, and `Target Scenario`.
-3. Choose a `Search Mode` (and optionally `Pro`), and expand `Advanced filters` if you need boss-immunity or required/preferred-effect constraints.
+3. Choose a `Search Mode` (and optionally `Pro`), pick any `Required Characters`, and expand `Advanced filters` if you need boss-immunity or required/preferred-effect constraints.
 4. Click `Analyze V2 Team`.
 
 Full and Pro analyses can take roughly a minute or more, so they run in the background: the page shows an "Analyzing V2 Team" overlay, keeps the request sub-second, and updates automatically when the result is ready (keep the tab open). This also avoids long runs timing out behind the hosting proxy.

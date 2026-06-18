@@ -11,12 +11,14 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         private readonly PlayerPowerAnalyzerV2Service _playerPowerAnalyzerV2Service;
         private readonly TeamTemplateCatalog _teamTemplateCatalog;
         private readonly AnalysisJobService _jobs;
+        private readonly WeaponSearchDataService _weaponSearchDataService;
 
-        public PlayerPowerAnalyzerV2Model(PlayerPowerAnalyzerV2Service playerPowerAnalyzerV2Service, TeamTemplateCatalog teamTemplateCatalog, AnalysisJobService jobs)
+        public PlayerPowerAnalyzerV2Model(PlayerPowerAnalyzerV2Service playerPowerAnalyzerV2Service, TeamTemplateCatalog teamTemplateCatalog, AnalysisJobService jobs, WeaponSearchDataService weaponSearchDataService)
         {
             _playerPowerAnalyzerV2Service = playerPowerAnalyzerV2Service;
             _teamTemplateCatalog = teamTemplateCatalog;
             _jobs = jobs;
+            _weaponSearchDataService = weaponSearchDataService;
         }
 
         [BindProperty]
@@ -42,7 +44,14 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public bool ProSubWeaponOptimization { get; set; }
 
         [BindProperty]
+        public List<string> RequiredCharacters { get; set; } = new();
+
+        [BindProperty]
         public Dictionary<string, bool> EnabledTeamTemplates { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        // Full character roster (from weapon data) for the Required Characters picker. Backend validation still
+        // enforces ownership + mutual exclusion, so listing the whole roster here is safe.
+        public IReadOnlyList<string> AvailableCharacters { get; private set; } = Array.Empty<string>();
 
         [BindProperty]
         public List<string> BossImmunityKeys { get; set; } = new();
@@ -86,6 +95,12 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                     ? PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.DamageModelMarginal
                     : PlayerPowerAnalyzerV2SubWeaponSelectionStrategy.Backbone,
                 EnabledTeamTemplates = EnabledTeamTemplates.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList(),
+                RequiredCharacters = RequiredCharacters
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Select(name => name.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Take(3)
+                    .ToList(),
                 BossImmunityKeys = BossImmunityKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 HardRequiredEffectKeys = HardRequiredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 SoftPreferredEffectKeys = SoftPreferredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).Except(HardRequiredEffectKeys, StringComparer.OrdinalIgnoreCase).ToList()
@@ -143,6 +158,13 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                     EnabledTeamTemplates[template.Name] = template.Enabled;
                 }
             }
+
+            AvailableCharacters = _weaponSearchDataService.GetWeapons()
+                .Select(item => item.Character)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             AvailableEffectOptions = PlayerPowerAnalyzerV2Service.AvailableEffectOptions;
             AvailableBossImmunityOptions = PlayerPowerAnalyzerV2Service.AvailableBossImmunityOptions;

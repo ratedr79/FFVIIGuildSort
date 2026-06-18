@@ -209,6 +209,24 @@
 
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
+                <h2 class="h5 fw-bold mb-1">Required Characters <span class="text-muted fw-normal fs-6">(optional, up to 3)</span></h2>
+                <p class="text-muted small mb-3">Force specific characters into the recommended team &mdash; every built team will include all of them. You must own a main-hand weapon for each. Mutually-exclusive characters (e.g. a character and its alternate version) can't both be required.</p>
+                <div class="row g-2" id="requiredCharactersGroup" data-max-required="3">
+                    @foreach (var character in Model.AvailableCharacters)
+                    {
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <label class="form-check border rounded-3 px-3 py-2 mb-0">
+                                <input class="form-check-input me-2 required-character-input" type="checkbox" name="RequiredCharacters" value="@character" @(Model.RequiredCharacters.Contains(character, StringComparer.OrdinalIgnoreCase) ? "checked" : null) />
+                                <span class="form-check-label">@character</span>
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
                 <h2 class="h5 fw-bold mb-3">Team Templates</h2>
                 <div class="row g-2">
                     @foreach (var template in Model.AvailableTeamTemplates)
@@ -1207,6 +1225,24 @@
                 radio.addEventListener('change', syncProSubWeaponGating);
             });
             syncProSubWeaponGating();
+
+            // Required Characters: cap selection at 3 — once 3 are checked, disable the rest until one is freed.
+            const requiredCharacterGroup = document.getElementById('requiredCharactersGroup');
+            if (requiredCharacterGroup) {
+                const maxRequired = parseInt(requiredCharacterGroup.getAttribute('data-max-required'), 10) || 3;
+                const requiredInputs = Array.prototype.slice.call(requiredCharacterGroup.querySelectorAll('.required-character-input'));
+                const syncRequiredCharacterLimit = function () {
+                    const atLimit = requiredInputs.filter(function (i) { return i.checked; }).length >= maxRequired;
+                    requiredInputs.forEach(function (input) {
+                        input.disabled = atLimit && !input.checked;
+                        input.closest('.form-check').classList.toggle('opacity-50', input.disabled);
+                    });
+                };
+                requiredInputs.forEach(function (input) {
+                    input.addEventListener('change', syncRequiredCharacterLimit);
+                });
+                syncRequiredCharacterLimit();
+            }
 
             if (exportButton) {
                 exportButton.addEventListener('click', exportStateToFile);

@@ -353,6 +353,40 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return result;
             }
 
+            // Required characters (0-3): every built team must include all of them. Validate up front — against owned
+            // main weapons and the same mutual-exclusion rules templates use — so we fail with a clear reason instead
+            // of silently producing no team.
+            var requiredCharacters = new HashSet<string>(
+                (request.RequiredCharacters ?? new List<string>())
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Select(name => name.Trim()),
+                StringComparer.OrdinalIgnoreCase);
+            if (requiredCharacters.Count > 3)
+            {
+                result.IsPlaceholder = true;
+                result.FailureReason = $"At most 3 required characters are allowed (received {requiredCharacters.Count}).";
+                return result;
+            }
+            if (requiredCharacters.Count > 0)
+            {
+                var missingRequired = requiredCharacters
+                    .Where(name => !charactersWithMainWeapon.Contains(name, StringComparer.OrdinalIgnoreCase))
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                if (missingRequired.Count > 0)
+                {
+                    result.IsPlaceholder = true;
+                    result.FailureReason = $"Required character(s) with no owned main-hand weapon: {string.Join(", ", missingRequired)}. Add a main weapon for them in Player Inventory, or remove them from Required Characters.";
+                    return result;
+                }
+                if (!IsCharacterCombinationAllowed(requiredCharacters, mutuallyExclusiveCharacterGroups))
+                {
+                    result.IsPlaceholder = true;
+                    result.FailureReason = "The selected Required Characters can't all be on the same team (mutually exclusive — e.g. a character and its alternate version).";
+                    return result;
+                }
+            }
+
             var adaptiveSearchProfile = BuildAdaptiveSearchProfile(charactersWithMainWeapon.Count, request);
 
             var seedEntries = new KeyValuePair<string, List<CharacterBuildCandidate>>[charactersWithMainWeapon.Count];
@@ -380,13 +414,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 adaptiveSearchProfile,
                 normalizedEnabledTemplateNames,
                 mutuallyExclusiveCharacterGroups,
+                requiredCharacters,
                 weaponSlotEvaluationCache,
                 costumeSlotEvaluationCache);
             if (teamCandidates.Count == 0)
             {
-                result.FailureReason = request.HardRequiredEffectKeys.Count > 0
-                    ? "No valid V2 team matched the selected hard-required effects with the current local inventory."
-                    : "No valid V2 team could be assembled from the current local inventory.";
+                result.FailureReason = requiredCharacters.Count > 0
+                    ? $"No valid V2 team could be assembled that includes the required character(s) ({string.Join(", ", requiredCharacters.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}) under the current filters and local inventory."
+                    : request.HardRequiredEffectKeys.Count > 0
+                        ? "No valid V2 team matched the selected hard-required effects with the current local inventory."
+                        : "No valid V2 team could be assembled from the current local inventory.";
                 return result;
             }
 
@@ -997,10 +1034,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             AdaptiveSearchProfile adaptiveSearchProfile,
             IReadOnlyDictionary<string, string> normalizedEnabledTemplateNames,
             IReadOnlyList<HashSet<string>> mutuallyExclusiveCharacterGroups,
+            IReadOnlyCollection<string> requiredCharacters,
             ConcurrentDictionary<string, SlotEvaluation> weaponSlotEvaluationCache,
             ConcurrentDictionary<string, SlotEvaluation> costumeSlotEvaluationCache)
         {
-            var skeletons = BuildTeamSkeletons(seedVariantsByCharacter, request, referenceTuningProfile, adaptiveSearchProfile, normalizedEnabledTemplateNames, mutuallyExclusiveCharacterGroups);
+            var skeletons = BuildTeamSkeletons(seedVariantsByCharacter, request, referenceTuningProfile, adaptiveSearchProfile, normalizedEnabledTemplateNames, mutuallyExclusiveCharacterGroups, requiredCharacters);
             if (skeletons.Count == 0)
             {
                 return new List<TeamCandidate>();
@@ -1065,7 +1103,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             ReferenceTuningProfile referenceTuningProfile,
             AdaptiveSearchProfile adaptiveSearchProfile,
             IReadOnlyDictionary<string, string> normalizedEnabledTemplateNames,
-            IReadOnlyList<HashSet<string>> mutuallyExclusiveCharacterGroups)
+            IReadOnlyList<HashSet<string>> mutuallyExclusiveCharacterGroups,
+            IReadOnlyCollection<string> requiredCharacters)
         {
             var seedPool = seedVariantsByCharacter
                 .Values
@@ -1136,6 +1175,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var supportCandidateLimit = Math.Max(6, Math.Min(10, adaptiveSearchProfile.EffectiveSkeletonExpansionLimit));
             foreach (var anchor in anchorCandidates)
             {
+                // When all 3 slots are pinned by Required Characters, the anchor itself must be one of them — every
+                // other anchor produces zero valid combos, so skip it (the main runtime win on larger armories).
+                if (requiredCharacters.Count == 3 && !requiredCharacters.Contains(anchor.CharacterName, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 var rankedSupportCandidates = seedPool
                     .Where(candidate => !candidate.CharacterName.Equals(anchor.CharacterName, StringComparison.OrdinalIgnoreCase))
                     .OrderByDescending(candidate => ScoreSupportSeedForAnchor(anchor, candidate, request))
@@ -1168,6 +1214,25 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     .GroupBy(candidate => candidate.CharacterName, StringComparer.OrdinalIgnoreCase)
                     .Select(group => group.First())
                     .Take(2));
+                // A required teammate that ranks low for this anchor would otherwise be dropped by the Take above,
+                // making it impossible to form a valid (required) combo for this anchor. Force its best variant in.
+                if (requiredCharacters.Count > 0)
+                {
+                    foreach (var requiredName in requiredCharacters)
+                    {
+                        if (requiredName.Equals(anchor.CharacterName, StringComparison.OrdinalIgnoreCase)
+                            || supportCandidates.Any(existing => existing.CharacterName.Equals(requiredName, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            continue;
+                        }
+                        var bestRequired = rankedSupportCandidates
+                            .FirstOrDefault(candidate => candidate.CharacterName.Equals(requiredName, StringComparison.OrdinalIgnoreCase));
+                        if (bestRequired != null)
+                        {
+                            supportCandidates.Add(bestRequired);
+                        }
+                    }
+                }
                 for (var i = 0; i < supportCandidates.Count; i++)
                 {
                     for (var j = i + 1; j < supportCandidates.Count; j++)
@@ -1181,6 +1246,14 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                         var teamCharacters = new[] { anchor.CharacterName, supportA.CharacterName, supportB.CharacterName };
                         if (!IsCharacterCombinationAllowed(teamCharacters, mutuallyExclusiveCharacterGroups))
+                        {
+                            continue;
+                        }
+
+                        // Required Characters: the team must include every required character (filtered here, before
+                        // the expansion-limit prune below, so a valid required combo is never pruned away).
+                        if (requiredCharacters.Count > 0
+                            && !requiredCharacters.All(required => teamCharacters.Contains(required, StringComparer.OrdinalIgnoreCase)))
                         {
                             continue;
                         }
