@@ -815,6 +815,17 @@
                                 <option value="Costume">Costumes</option>
                             </select>
                         </div>
+                        <div class="col-12">
+                            <label for="inventorySortSelect" class="form-label fw-semibold">Sort by</label>
+                            <select class="form-select" id="inventorySortSelect">
+                                <option value="defaultAsc">Default Ascending</option>
+                                <option value="defaultDesc">Default Descending</option>
+                                <option value="nameAsc">Item Name Ascending</option>
+                                <option value="nameDesc">Item Name Descending</option>
+                                <option value="charNameAsc">Char. &amp; Item Name Ascending</option>
+                                <option value="charNameDesc">Char. &amp; Item Name Descending</option>
+                            </select>
+                        </div>
                         <div class="col-12 d-grid gap-2 d-sm-flex">
                             <button type="button" class="btn btn-outline-secondary flex-fill" id="inventoryClearFiltersButton">Clear filters</button>
                         </div>
@@ -1435,6 +1446,7 @@
             const inventorySearchInput = document.getElementById('inventorySearchInput');
             const inventoryCharacterFilter = document.getElementById('inventoryCharacterFilter');
             const inventoryTypeFilter = document.getElementById('inventoryTypeFilter');
+            const inventorySortSelect = document.getElementById('inventorySortSelect');
             const inventoryClearFiltersButton = document.getElementById('inventoryClearFiltersButton');
             const inventoryExportButton = document.getElementById('inventoryExportButton');
             const inventoryImportButton = document.getElementById('inventoryImportButton');
@@ -1547,6 +1559,10 @@
             ];
             const surveyQuickViewEndpoint = '@Url.Page("/PlayerInventoryManagement", "SurveyQuickView")';
 
+            // Find & Manage "Sort by" options (declared before state init, which references the default).
+            const inventorySortOptions = ['defaultAsc', 'defaultDesc', 'nameAsc', 'nameDesc', 'charNameAsc', 'charNameDesc'];
+            const defaultInventorySort = 'defaultAsc';
+
             let state = loadState();
             let currentSnapshotItem = null;
             let inventorySearchDebounceTimer = null;
@@ -1566,6 +1582,7 @@
                         searchText: '',
                         character: 'all',
                         itemType: 'all',
+                        sortBy: defaultInventorySort,
                         page: 1,
                         pageSize: defaultInventoryPageSize
                     },
@@ -1607,6 +1624,7 @@
                         searchText: typeof nextState.filters?.searchText === 'string' ? nextState.filters.searchText : '',
                         character: typeof nextState.filters?.character === 'string' ? nextState.filters.character : 'all',
                         itemType: typeof nextState.filters?.itemType === 'string' ? nextState.filters.itemType : 'all',
+                        sortBy: inventorySortOptions.includes(nextState.filters?.sortBy) ? nextState.filters.sortBy : defaultInventorySort,
                         page: normalizeInventoryPage(nextState.filters?.page),
                         pageSize: normalizeInventoryPageSize(nextState.filters?.pageSize)
                     },
@@ -1807,6 +1825,7 @@
                 inventorySearchInput.value = state.filters.searchText;
                 inventoryCharacterFilter.value = state.filters.character;
                 inventoryTypeFilter.value = state.filters.itemType;
+                inventorySortSelect.value = state.filters.sortBy;
                 inventoryPageSizeSelect.value = String(state.filters.pageSize);
             }
 
@@ -1820,24 +1839,38 @@
                 });
             }
 
-            function compareInventoryItems(left, right) {
-                const leftCharacterId = Number.parseInt(String(left?.characterId ?? 0), 10) || 0;
-                const rightCharacterId = Number.parseInt(String(right?.characterId ?? 0), 10) || 0;
-                if (leftCharacterId !== rightCharacterId) {
-                    return leftCharacterId - rightCharacterId;
+            // ----- Inventory sort options (Find & Manage "Sort by") -----
+            // Weapons and costumes are sorted as one combined list (the Item type filter still narrows what shows
+            // first). The descending name variants intentionally keep Character Name ascending and only reverse the
+            // item-name key. A numeric-aware id compare is the final tiebreaker so ordering is always deterministic.
+            // (inventorySortOptions / defaultInventorySort are declared earlier, before state init.)
+            function inventoryCmpText(a, b) {
+                return String(a ?? '').localeCompare(String(b ?? ''), undefined, { sensitivity: 'base' });
+            }
+            function inventoryCmpId(a, b) {
+                const na = Number(a);
+                const nb = Number(b);
+                if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) {
+                    return na - nb;
                 }
+                return inventoryCmpText(a, b);
+            }
+            function inventoryCmpCharacterId(left, right) {
+                return (Number.parseInt(String(left?.characterId ?? 0), 10) || 0)
+                    - (Number.parseInt(String(right?.characterId ?? 0), 10) || 0);
+            }
 
-                const equipmentCompare = String(left?.equipmentType ?? '').localeCompare(String(right?.equipmentType ?? ''), undefined, { sensitivity: 'base' });
-                if (equipmentCompare !== 0) {
-                    return equipmentCompare;
-                }
+            const inventorySortComparators = {
+                defaultAsc: (l, r) => inventoryCmpCharacterId(l, r) || inventoryCmpId(l?.id, r?.id),
+                defaultDesc: (l, r) => -inventoryCmpCharacterId(l, r) || -inventoryCmpId(l?.id, r?.id),
+                nameAsc: (l, r) => inventoryCmpText(l?.name, r?.name) || inventoryCmpId(l?.id, r?.id),
+                nameDesc: (l, r) => -inventoryCmpText(l?.name, r?.name) || inventoryCmpId(l?.id, r?.id),
+                charNameAsc: (l, r) => inventoryCmpText(l?.character, r?.character) || inventoryCmpText(l?.name, r?.name) || inventoryCmpId(l?.id, r?.id),
+                charNameDesc: (l, r) => inventoryCmpText(l?.character, r?.character) || -inventoryCmpText(l?.name, r?.name) || inventoryCmpId(l?.id, r?.id)
+            };
 
-                const nameCompare = String(left?.name ?? '').localeCompare(String(right?.name ?? ''), undefined, { sensitivity: 'base' });
-                if (nameCompare !== 0) {
-                    return nameCompare;
-                }
-
-                return String(left?.id ?? '').localeCompare(String(right?.id ?? ''), undefined, { sensitivity: 'base' });
+            function getInventoryComparator() {
+                return inventorySortComparators[state?.filters?.sortBy] || inventorySortComparators[defaultInventorySort];
             }
 
             function isCostumeItem(item) {
@@ -2066,7 +2099,7 @@
                     }
 
                     return true;
-                }).sort(compareInventoryItems);
+                }).sort(getInventoryComparator());
             }
 
             function openItemImagePreview(previewImageUrl, fallbackImageUrl, name, equipmentType) {
@@ -3746,6 +3779,11 @@
 
             inventoryTypeFilter.addEventListener('change', event => {
                 updateFilters({ itemType: event.target.value || 'all' });
+            });
+
+            inventorySortSelect.addEventListener('change', event => {
+                const value = inventorySortOptions.includes(event.target.value) ? event.target.value : defaultInventorySort;
+                updateFilters({ sortBy: value });
             });
 
             inventoryPageSizeSelect.addEventListener('change', event => {
