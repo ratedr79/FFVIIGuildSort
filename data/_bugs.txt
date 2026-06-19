@@ -1,3 +1,2 @@
-IDEA: Analyzer V2 required characters
 IDEA: Analyzer V2 sigils
 IDEA: Analyzer V2 Battle Profiles -- Presets for high level battle requirements

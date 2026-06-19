@@ -131,7 +131,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 TryAddDetectedEffect(effects, blob, "elemental_resistance_down", $"{element} Resistance Down", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
                 TryAddDetectedEffect(effects, blob, "elemental_resistance_down", $"Status Ailment: {element} Weakness", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
                 TryAddDetectedEffect(effects, blob, "elemental_damage_up", $"{element} Damage Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
-                TryAddDetectedEffect(effects, blob, "elemental_damage_received_up", $"{element} Damage Received Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
+                // Match the abbreviated, target-prefixed forms the data actually uses ("Single-Tgt./All-Tgt.
+                // {element} Dmg. Rcvd. Up", e.g. status types 41/42), mirroring the phys/mag detectors below. The
+                // earlier full-spelled "{element} Damage Received Up" marker matched NO data string, so elemental
+                // Dmg-Rcvd-Up was never detected/credited on any gear.
+                TryAddDetectedEffect(effects, blob, "elemental_damage_received_up", $"Single-Tgt. {element} Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria, appliesOnlyToSingleTargetAttacks: true);
+                TryAddDetectedEffect(effects, blob, "elemental_damage_received_up", $"All-Tgt. {element} Dmg. Rcvd. Up", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
                 TryAddDetectedEffect(effects, blob, "elemental_damage_bonus", $"{element} Damage Bonus", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
                 TryAddDetectedEffect(effects, blob, "elemental_weapon_boost", $"{element} Weapon Boost", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);
                 TryAddDetectedEffect(effects, blob, "elemental_ability_amplification", $"Amp. {element} Abilities", sourceType, sourceName, sourceAbilityType, sourceElement, isAssumedMateria);

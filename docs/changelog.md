@@ -13,6 +13,13 @@ All notable changes to this project should be documented in this file.
 
 ---
 
+## 2026-06-19
+
+### Fixed
+- Player Power Analyzer V2 / scoring engine now detects **elemental "Dmg. Rcvd. Up" effects** (e.g. "All-Tgt. Wind Dmg. Rcvd. Up" on Cirrus Hakama). The `elemental_damage_received_up` detector in `DetectActiveEffects` looked for the full-spelled, prefix-less `"{element} Damage Received Up"`, which matched **no** data string — the status tables use the abbreviated, target-prefixed `"Single-Tgt./All-Tgt. {element} Dmg. Rcvd. Up"` (status types 41/42). So elemental Damage-Received-Up was never detected or credited on any gear, while the phys/mag equivalents worked. Now matched via `Single-Tgt. {element} Dmg. Rcvd. Up` (single-target-gated) + `All-Tgt. {element} Dmg. Rcvd. Up`, mirroring the phys/mag detectors. This is a strong Layer-3 damage multiplier (×1.3 rarity), so it materially raises the value of gear carrying it on element-matched teams (e.g. flips an outfit pick toward a costume that provides it). Additive recognition only; the byte-identical analyzer repro is unchanged. Regression tests added: element-specific detection (Wind credited, Fire not) and recognition of the bundled Prodigious Talent R-ability lines (Wind Ability Dmg. / Phys. Ability Dmg. resolve to non-zero).
+
+---
+
 ## 2026-06-18
 
 ### Added
