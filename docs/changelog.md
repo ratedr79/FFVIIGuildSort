@@ -13,6 +13,13 @@ All notable changes to this project should be documented in this file.
 
 ---
 
+## 2026-06-20
+
+### Fixed
+- Interactive Team Builder **Est. Dmg** now aggregates team-wide ability-potency "(All Allies)" passives across the whole team, instead of only crediting the character wearing them. A support's `Boost Ability Pot. (All Allies)` (e.g. Aerith's Festive Dress) now raises the **carry's** estimate too, matching how the attack-stat All-Allies passives already work. Replaced the per-character `SumAbilityPotencyPercents` with `ClassifyAbilityPotency`, which splits each character's ability-potency passives into Self vs (All Allies) buckets, each scoped (General / Phys / Mag / ByElement). The second pass sums the All-Allies buckets across the team and matches that pool to each recipient's own cast (general always; phys/mag by the recipient's attack axis; elemental by the recipient's cast element). Same gap (and fix) applied to elemental and phys/mag ability-dmg "(All Allies)" lines — an "All Allies" Wind ability-dmg buff only credits teammates actually casting Wind. Self contributions stay per-character (matched to that character's own cast), so nothing is double-counted. ITB-only (not in the V2 scoring path) → analyzer repro byte-identical. Regression test added: `Boost Ability Pot. (All Allies)` classifies into the team pool, not the owner's self bucket.
+
+---
+
 ## 2026-06-19
 
 ### Added

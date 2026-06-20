@@ -840,10 +840,24 @@ namespace FFVIIEverCrisisAnalyzer.Services
             // team-wide buffs/debuffs just populated, so it runs as a second pass). Only characters with real attack
             // stats (Character Stats entered) get a number; the rest stay null.
             var highwindWeaponPotency = characterStats?.GetHighwind("wpnCAbilityPot") ?? 0d; // account-wide, % (e.g. 31)
+
+            // Classify each character's ability-potency passives once, and sum the (All Allies) pool across the whole
+            // team — so a team-wide ability-potency buff (e.g. a support's "Boost Ability Pot. (All Allies)") credits
+            // every character's estimate, not only the one wearing it. Matched to each recipient's own cast at use.
+            var selfPotencyByCharacter = new Dictionary<string, ScopedAbilityPotency>(StringComparer.OrdinalIgnoreCase);
+            var teamAllAlliesPotency = new ScopedAbilityPotency();
             foreach (var ch in result.Characters)
             {
                 passivePointsByCharacter.TryGetValue(ch.Name, out var chPassives);
-                ch.EstimatedAverageDamage = EstimateAverageDamage(ch, chPassives, spec, result.Buffs, result.Debuffs, highwindWeaponPotency);
+                var breakdown = ClassifyAbilityPotency(chPassives);
+                selfPotencyByCharacter[ch.Name] = breakdown.Self;
+                teamAllAlliesPotency.Add(breakdown.AllAllies);
+            }
+
+            foreach (var ch in result.Characters)
+            {
+                var selfPotency = selfPotencyByCharacter.TryGetValue(ch.Name, out var sp) ? sp : new ScopedAbilityPotency();
+                ch.EstimatedAverageDamage = EstimateAverageDamage(ch, selfPotency, teamAllAlliesPotency, spec, result.Buffs, result.Debuffs, highwindWeaponPotency);
             }
 
             // CopyText: one line per character, in the spec's order, omitting empty clauses.
@@ -1112,7 +1126,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // weapon matching the enemy weakness element, else the highest-potency weapon, else a 300% fallback.
         private static double? EstimateAverageDamage(
             InteractiveTeamCharacterResult ch,
-            Dictionary<string, int>? passivePoints,
+            ScopedAbilityPotency selfPotency,
+            ScopedAbilityPotency teamAllAlliesPotency,
             InteractiveTeamSpec spec,
             IReadOnlyList<InteractiveTeamEffect> buffs,
             IReadOnlyList<InteractiveTeamEffect> debuffs,
@@ -1151,9 +1166,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var magApplies = isMag || isMixed;
             var damageType = isMixed ? "Physical/Magical" : isMag ? "Magical" : "Physical";
 
-            // --- Ability-potency passive layer (additive within the potency bundle; element/axis matched). ---
-            var (abilityPot, abilityPotAllAllies, physAbilityPot, magAbilityPot, elementalPot) =
-                SumAbilityPotencyPercents(passivePoints, castElement, physApplies, magApplies);
+            // --- Ability-potency passive layer (additive within the potency bundle). Self contributions are matched to
+            //     this character's own cast; the team-wide (All Allies) pool is matched to this character as a recipient
+            //     (general always, phys/mag by this attacker's axis, elemental by this cast's element). ---
+            var elementalCast = ContainsElementName(castElement);
+            var selfElemental = elementalCast && selfPotency.ByElement.TryGetValue(castElement, out var se) ? se : 0d;
 
             var req = new DamageCalcRequest
             {
@@ -1163,11 +1180,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 WeaponAbilityPotency = potency,
                 HighwindWeaponPotencyBonus = highwindWeaponPotency, // "Boost Wpn. C. Ability Pot." Highwind line, % (e.g. 31)
                 // Resolved fractions bypass the tier-string lookups AND their non-zero defaults.
-                AbilityPotencyResolved = abilityPot / 100d,
-                BoostAbilityPotAllAllies = abilityPotAllAllies, // percent; PercentInputToDecimal applied inside service
-                PhysicalAbilityPotencyResolved = physAbilityPot / 100d,
-                MagicalAbilityPotencyResolved = magAbilityPot / 100d,
-                ElementalPotencyResolved = elementalPot / 100d,
+                AbilityPotencyResolved = selfPotency.General / 100d,
+                // Team-wide All-Allies ability potency (summed across the team, matched to this recipient) — percent.
+                BoostAbilityPotAllAllies = teamAllAlliesPotency.MatchedTotal(physApplies, magApplies, castElement),
+                PhysicalAbilityPotencyResolved = (physApplies ? selfPotency.Phys : 0d) / 100d,
+                MagicalAbilityPotencyResolved = (magApplies ? selfPotency.Mag : 0d) / 100d,
+                ElementalPotencyResolved = selfElemental / 100d,
                 // Ability-dmg families are summed into the resolved values above → neutralize the model's non-zero defaults.
                 OutfitAbilityBonus = 0,            // default 30
                 MemoriaElementalPotencyBonus = 0,  // default 15
@@ -1184,70 +1202,122 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return double.IsFinite(damage) && damage > 0 ? Math.Round(damage) : null;
         }
 
-        // Sums one character's ability-POTENCY passive boosts — a DAMAGE multiplier layer, distinct from the
-        // attack-stat Boost PATK/MATK handled by SumAttackBoostPercents. Buckets mirror the engine's breakpoint
-        // classification: self ability pot, (All Allies) ability pot, Phys./Mag. ability pot (axis-gated), and
-        // elemental potency (only when the passive's element matches the cast). Arcanum/Mastery/generic → self.
-        // Returns percents.
-        private static (double AbilityPot, double AbilityPotAllAllies, double PhysAbilityPot, double MagAbilityPot, double ElementalPot)
-            SumAbilityPotencyPercents(Dictionary<string, int>? passivePoints, string castElement, bool physApplies, bool magApplies)
+        // Ability-potency contributions split by scope, so team-wide (All Allies) sources can be summed across the
+        // whole team and applied to each recipient (matched to THAT recipient's cast) — the way attack-stat All-Allies
+        // passives already are. General = element/axis-agnostic ability pot; Phys/Mag = axis-specific; ByElement =
+        // elemental potency / "[Element] Ability Dmg" keyed by element. Values are percents.
+        private sealed class ScopedAbilityPotency
         {
-            double abilityPot = 0, abilityPotAll = 0, physPot = 0, magPot = 0, elemPot = 0;
-            if (passivePoints != null)
+            public double General;
+            public double Phys;
+            public double Mag;
+            public Dictionary<string, double> ByElement { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            public void Add(ScopedAbilityPotency other)
             {
-                var elementalCast = ContainsElementName(castElement); // a real element (not Non-Elemental)
-                foreach (var (scoringLabel, points) in passivePoints)
+                General += other.General;
+                Phys += other.Phys;
+                Mag += other.Mag;
+                foreach (var (element, value) in other.ByElement)
                 {
-                    if (points <= 0)
-                    {
-                        continue;
-                    }
-
-                    var label = FormatPassiveDisplayLabel(scoringLabel);
-                    if (string.IsNullOrWhiteSpace(label))
-                    {
-                        continue;
-                    }
-
-                    // Only ability-potency / ability-damage / elemental-potency families feed the damage potency layer.
-                    var isAbilityPotFamily = label.Contains("Ability Pot", StringComparison.OrdinalIgnoreCase)
-                        || label.Contains("Ability Dmg", StringComparison.OrdinalIgnoreCase)
-                        || label.Contains("Ability Damage", StringComparison.OrdinalIgnoreCase)
-                        || IsElementAbilityPassiveLabel(label);
-                    if (!isAbilityPotFamily || !TryGetPassiveBonusValue(scoringLabel, points, out var pct) || pct == 0)
-                    {
-                        continue;
-                    }
-
-                    if (label.Contains("Boost Ability Pot", StringComparison.OrdinalIgnoreCase)
-                        && label.Contains("All Allies", StringComparison.OrdinalIgnoreCase))
-                    {
-                        abilityPotAll += pct; // self + all-allies ability pot share one additive pool
-                    }
-                    else if (ContainsElementName(label))
-                    {
-                        // Elemental potency / [Element] Ability Dmg — only when the cast deals that element.
-                        if (elementalCast && label.Contains(castElement, StringComparison.OrdinalIgnoreCase))
-                        {
-                            elemPot += pct;
-                        }
-                    }
-                    else if (label.Contains("Phys.", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (physApplies) { physPot += pct; }
-                    }
-                    else if (label.Contains("Mag.", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (magApplies) { magPot += pct; }
-                    }
-                    else
-                    {
-                        abilityPot += pct; // generic Boost Ability Pot. / Arcanum / Mastery ability dmg
-                    }
+                    ByElement[element] = (ByElement.TryGetValue(element, out var existing) ? existing : 0) + value;
                 }
             }
 
-            return (abilityPot, abilityPotAll, physPot, magPot, elemPot);
+            // The portion that applies to a given cast: general always, phys/mag by attacker axis, elemental only when
+            // the cast deals that element. Returns a percent.
+            public double MatchedTotal(bool physApplies, bool magApplies, string castElement)
+            {
+                var total = General;
+                if (physApplies) { total += Phys; }
+                if (magApplies) { total += Mag; }
+                if (ContainsElementName(castElement) && ByElement.TryGetValue(castElement, out var elemental))
+                {
+                    total += elemental;
+                }
+                return total;
+            }
+        }
+
+        private sealed class AbilityPotencyBreakdown
+        {
+            public ScopedAbilityPotency Self { get; } = new();      // the character's own; matched to its own cast
+            public ScopedAbilityPotency AllAllies { get; } = new(); // team-wide; summed across the team, matched per recipient
+        }
+
+        private static readonly string[] PotencyElementNames = { "Fire", "Ice", "Lightning", "Water", "Wind", "Earth", "Holy", "Dark" };
+        private static string? ExtractPotencyElementName(string label)
+        {
+            foreach (var element in PotencyElementNames)
+            {
+                if (label.Contains(element, StringComparison.OrdinalIgnoreCase))
+                {
+                    return element;
+                }
+            }
+            return null;
+        }
+
+        // Classifies one character's ability-POTENCY passives (a DAMAGE multiplier layer, distinct from the attack-stat
+        // Boost PATK/MATK handled by SumAttackBoostPercents) into Self vs (All Allies), each broken down by scope. The
+        // All-Allies bucket is left UNMATCHED so the caller can sum it across the team and match it to each recipient's
+        // own cast — mirroring how SumAttackBoostPercents' ally portion is summed team-wide.
+        private static AbilityPotencyBreakdown ClassifyAbilityPotency(Dictionary<string, int>? passivePoints)
+        {
+            var breakdown = new AbilityPotencyBreakdown();
+            if (passivePoints == null)
+            {
+                return breakdown;
+            }
+
+            foreach (var (scoringLabel, points) in passivePoints)
+            {
+                if (points <= 0)
+                {
+                    continue;
+                }
+
+                var label = FormatPassiveDisplayLabel(scoringLabel);
+                if (string.IsNullOrWhiteSpace(label))
+                {
+                    continue;
+                }
+
+                // Only ability-potency / ability-damage / elemental-potency families feed the damage potency layer.
+                var isAbilityPotFamily = label.Contains("Ability Pot", StringComparison.OrdinalIgnoreCase)
+                    || label.Contains("Ability Dmg", StringComparison.OrdinalIgnoreCase)
+                    || label.Contains("Ability Damage", StringComparison.OrdinalIgnoreCase)
+                    || IsElementAbilityPassiveLabel(label);
+                if (!isAbilityPotFamily || !TryGetPassiveBonusValue(scoringLabel, points, out var pct) || pct == 0)
+                {
+                    continue;
+                }
+
+                // "(All Allies)" passives buff the whole team → team pool; everything else is the character's own.
+                var target = label.Contains("All Allies", StringComparison.OrdinalIgnoreCase)
+                    ? breakdown.AllAllies
+                    : breakdown.Self;
+
+                var element = ExtractPotencyElementName(label);
+                if (element != null)
+                {
+                    target.ByElement[element] = (target.ByElement.TryGetValue(element, out var existing) ? existing : 0) + pct;
+                }
+                else if (label.Contains("Phys.", StringComparison.OrdinalIgnoreCase))
+                {
+                    target.Phys += pct;
+                }
+                else if (label.Contains("Mag.", StringComparison.OrdinalIgnoreCase))
+                {
+                    target.Mag += pct;
+                }
+                else
+                {
+                    target.General += pct; // generic Boost Ability Pot. / Arcanum / Mastery ability dmg
+                }
+            }
+
+            return breakdown;
         }
 
         // Maps the team's detected active buffs/debuffs onto the DamageCalc request (the "assume team's detected
