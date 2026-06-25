@@ -341,7 +341,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 StatusImmunities = statusImmunities,
                 BuffDebuffImmunities = buffImmunities,
                 Description = BuildDescription(enemy.LevelConstantGroupId),
-                SkillSummaries = Array.Empty<string>()
+                SkillSummaries = Array.Empty<string>(),
+                BattleSigils = enemy.BattleSigils,
+                BattleDamageSigils = enemy.BattleDamageSigils
             };
 
             _detailCache[cacheKey] = detail;
@@ -364,6 +366,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var eventMultiBattles = LoadList<EventMultiBattleRaw>(Path.Combine(masterPath, "EventMultiBattle.json"));
             var battles = LoadList<BattleRaw>(Path.Combine(masterPath, "Battle.json"));
             var battleWaves = LoadList<BattleWaveRaw>(Path.Combine(masterPath, "BattleWave.json"));
+            var autoBattleNotes = LoadList<AutoBattleNotesRelRaw>(Path.Combine(masterPath, "AutoBattleNotesRel.json"));
+            var autoBattleDamageNotes = LoadList<AutoBattleNotesRelRaw>(Path.Combine(masterPath, "AutoBattleNotesDamageRel.json"));
 
             foreach (var group in levelParams.GroupBy(p => p.EnemyLevelParameterBaseGroupId))
             {
@@ -401,6 +405,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             var enemyStageNames = BuildStageNameLookup(soloAreaBattles, eventSoloBattles, eventMultiBattles, battles, battleWaves, battleEnemies);
+            var enemyBattleSigils = BuildBattleSigilsByEnemy(autoBattleNotes, battles, battleWaves, battleEnemies);
+            var enemyBattleDamageSigils = BuildBattleSigilsByEnemy(autoBattleDamageNotes, battles, battleWaves, battleEnemies);
 
             foreach (var enemy in enemies)
             {
@@ -429,7 +435,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     StageNames = stageNames.All,
                     SoloStageNames = stageNames.Solo,
                     CoopStageNames = stageNames.Coop,
-                    StageSummary = BuildStageSummary(stageNames.All)
+                    StageSummary = BuildStageSummary(stageNames.All),
+                    BattleSigils = enemyBattleSigils.TryGetValue(enemy.Id, out var sigils) ? sigils : Array.Empty<string>(),
+                    BattleDamageSigils = enemyBattleDamageSigils.TryGetValue(enemy.Id, out var dmgSigils) ? dmgSigils : Array.Empty<string>()
                 };
 
                 record.SpeciesSummary = record.Species.Count > 0
@@ -470,6 +478,98 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
+        }
+
+        // SkillNotesId → display sigil (matches WeaponSearchDataService.SkillNotesSigils). Ascending id order gives a
+        // stable display order: Circle, Triangle, Cross, Diamond.
+        private static readonly Dictionary<int, string> SkillNotesSigils = new()
+        {
+            { 1101, "◯ Circle" },
+            { 2101, "△ Triangle" },
+            { 3101, "✕ Cross" },
+            { 4101, "◊ Diamond" }
+        };
+
+        // Sigils used in each enemy's battle(s), via the same Battle → WaveGroup → EnemyGroup → Enemy join as the stage
+        // lookup. AutoBattleNotesRel maps BattleId → SkillNotesId (the auto-battle's notes); we union those per enemy.
+        private static Dictionary<int, IReadOnlyList<string>> BuildBattleSigilsByEnemy(
+            IReadOnlyList<AutoBattleNotesRelRaw> autoBattleNotes,
+            IReadOnlyList<BattleRaw> battles,
+            IReadOnlyList<BattleWaveRaw> battleWaves,
+            IReadOnlyList<BattleEnemyRaw> battleEnemies)
+        {
+            if (autoBattleNotes.Count == 0 || battles.Count == 0 || battleWaves.Count == 0 || battleEnemies.Count == 0)
+            {
+                return new();
+            }
+
+            var noteIdsByBattleId = new Dictionary<long, List<int>>();
+            foreach (var rel in autoBattleNotes)
+            {
+                if (!SkillNotesSigils.ContainsKey(rel.SkillNotesId))
+                {
+                    continue;
+                }
+
+                if (!noteIdsByBattleId.TryGetValue(rel.BattleId, out var list))
+                {
+                    list = new List<int>();
+                    noteIdsByBattleId[rel.BattleId] = list;
+                }
+
+                if (!list.Contains(rel.SkillNotesId))
+                {
+                    list.Add(rel.SkillNotesId);
+                }
+            }
+            if (noteIdsByBattleId.Count == 0)
+            {
+                return new();
+            }
+
+            var waveGroupByBattleId = battles.GroupBy(b => b.Id).ToDictionary(g => g.Key, g => g.First().WaveGroupId);
+            var enemyGroupIdsByWaveGroupId = battleWaves
+                .GroupBy(w => w.WaveGroupId)
+                .ToDictionary(g => g.Key, g => g.Select(w => w.EnemyGroupId).Distinct().ToList());
+            var enemyIdsByGroupId = battleEnemies
+                .GroupBy(b => b.EnemyGroupId)
+                .ToDictionary(g => g.Key, g => g.Select(b => b.EnemyId).Distinct().ToList());
+
+            var noteIdsByEnemy = new Dictionary<int, HashSet<int>>();
+            foreach (var (battleId, noteIds) in noteIdsByBattleId)
+            {
+                if (!waveGroupByBattleId.TryGetValue(battleId, out var waveGroupId)
+                    || !enemyGroupIdsByWaveGroupId.TryGetValue(waveGroupId, out var enemyGroupIds))
+                {
+                    continue;
+                }
+
+                foreach (var enemyGroupId in enemyGroupIds)
+                {
+                    if (!enemyIdsByGroupId.TryGetValue(enemyGroupId, out var enemyIds))
+                    {
+                        continue;
+                    }
+
+                    foreach (var enemyId in enemyIds)
+                    {
+                        if (!noteIdsByEnemy.TryGetValue(enemyId, out var acc))
+                        {
+                            acc = new HashSet<int>();
+                            noteIdsByEnemy[enemyId] = acc;
+                        }
+
+                        foreach (var noteId in noteIds)
+                        {
+                            acc.Add(noteId);
+                        }
+                    }
+                }
+            }
+
+            return noteIdsByEnemy.ToDictionary(
+                kvp => kvp.Key,
+                kvp => (IReadOnlyList<string>)kvp.Value.OrderBy(id => id).Select(id => SkillNotesSigils[id]).ToList());
         }
 
         private Dictionary<int, StageNamesByMode> BuildStageNameLookup(
@@ -867,6 +967,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             public IReadOnlyList<string> SoloStageNames { get; set; } = Array.Empty<string>();
             public IReadOnlyList<string> CoopStageNames { get; set; } = Array.Empty<string>();
             public string StageSummary { get; set; } = string.Empty;
+            public IReadOnlyList<string> BattleSigils { get; set; } = Array.Empty<string>();
+            public IReadOnlyList<string> BattleDamageSigils { get; set; } = Array.Empty<string>();
         }
 
         private sealed class StageNameAccumulator
@@ -950,6 +1052,13 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             public long WaveGroupId { get; set; }
             public long EnemyGroupId { get; set; }
+        }
+
+        private sealed class AutoBattleNotesRelRaw
+        {
+            public long BattleId { get; set; }
+            public int SkillNotesId { get; set; }
+            public int OrderNo { get; set; }
         }
 
         private sealed class EnemyLevelParameterBaseRaw

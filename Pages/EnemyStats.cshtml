@@ -329,6 +329,33 @@
                             </ul>
                         </div>
                     </div>
+                    @if (detail.BattleSigils.Count > 0 || detail.BattleDamageSigils.Count > 0)
+                    {
+                        <div class="mt-3">
+                            <strong>Battle Sigils</strong>
+                            <div class="small text-muted">From auto-battle notes &mdash; break the main sigil(s); damage sigils add bonus damage after the break.</div>
+                            @if (detail.BattleSigils.Count > 0)
+                            {
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                                    <span class="small text-muted" style="min-width: 4.5rem;">Break:</span>
+                                    @foreach (var sigil in detail.BattleSigils)
+                                    {
+                                        <span class="badge rounded-pill bg-primary text-white fs-6">@sigil</span>
+                                    }
+                                </div>
+                            }
+                            @if (detail.BattleDamageSigils.Count > 0)
+                            {
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                                    <span class="small text-muted" style="min-width: 4.5rem;">Damage:</span>
+                                    @foreach (var sigil in detail.BattleDamageSigils)
+                                    {
+                                        <span class="badge rounded-pill bg-warning text-dark fs-6">@sigil</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
                     @if (!string.IsNullOrWhiteSpace(detail.Description))
                     {
                         <div class="mt-3">

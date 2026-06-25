@@ -45,6 +45,15 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public IReadOnlyList<string> BuffDebuffImmunities { get; set; } = Array.Empty<string>();
         public IReadOnlyList<string> SkillSummaries { get; set; } = Array.Empty<string>();
 
+        // Sigils used in this enemy's battle(s), derived from AutoBattleNotesRel (e.g. "◯ Circle", "△ Triangle").
+        // A strong proxy for the battle's sigil gimmick (the auto-battle's notes), not an explicit "required" flag.
+        public IReadOnlyList<string> BattleSigils { get; set; } = Array.Empty<string>();
+
+        // Damage sigils (from AutoBattleNotesDamageRel) — the sigils that deal bonus damage once the main sigil is
+        // broken (e.g. Train of Titan EX 3: break ◊ Diamond, then ◯ Circle is the damage sigil). Separate from the
+        // break/main sigils above.
+        public IReadOnlyList<string> BattleDamageSigils { get; set; } = Array.Empty<string>();
+
         public string Description { get; set; } = string.Empty;
     }
 }
