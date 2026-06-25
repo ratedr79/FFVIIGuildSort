@@ -417,13 +417,47 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 requiredCharacters,
                 weaponSlotEvaluationCache,
                 costumeSlotEvaluationCache);
+
+            // Required sigils (team-level): keep only teams where EVERY required sigil is covered by some character —
+            // a MAIN-HAND sigil-boost materia slot (Circle/Triangle/Cross), or a MAIN/OFF-HAND ability command sigil
+            // (Diamond). Bonus (damage) sigils are NOT a filter: covering them adds a small score nudge that scales
+            // with the count. Both applied here, after team build (a team-level pass, not a seed constraint).
+            var requiredSigils = NormalizeRequiredSigils(request.RequiredSigils);
+            var bonusSigils = NormalizeRequiredSigils(request.BonusSigils);
+            if (requiredSigils.Count > 0 || bonusSigils.Count > 0)
+            {
+                var sigilsByItemId = BuildWeaponSigilLookup();
+
+                if (requiredSigils.Count > 0)
+                {
+                    teamCandidates = teamCandidates
+                        .Where(team => requiredSigils.All(sigil => TeamCoversSigil(team, sigil, sigilsByItemId)))
+                        .ToList();
+                }
+
+                if (bonusSigils.Count > 0)
+                {
+                    foreach (var team in teamCandidates)
+                    {
+                        var covered = bonusSigils.Count(sigil => TeamCoversSigil(team, sigil, sigilsByItemId));
+                        if (covered > 0)
+                        {
+                            team.Score *= 1 + (covered * DamageSigilBonusPerCoveredSigil);
+                            team.DebugNotes.Add($"Damage-sigil bonus: covers {covered}/{bonusSigils.Count} → +{covered * DamageSigilBonusPerCoveredSigil:P1} score.");
+                        }
+                    }
+                }
+            }
+
             if (teamCandidates.Count == 0)
             {
-                result.FailureReason = requiredCharacters.Count > 0
-                    ? $"No valid V2 team could be assembled that includes the required character(s) ({string.Join(", ", requiredCharacters.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}) under the current filters and local inventory."
-                    : request.HardRequiredEffectKeys.Count > 0
-                        ? "No valid V2 team matched the selected hard-required effects with the current local inventory."
-                        : "No valid V2 team could be assembled from the current local inventory.";
+                result.FailureReason = requiredSigils.Count > 0
+                    ? $"No team in your inventory covers the required sigil(s): {string.Join(", ", requiredSigils.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}. A character needs a matching main-hand sigil-boost materia slot (Circle/Triangle/Cross), or a main/off-hand Diamond ability sigil."
+                    : requiredCharacters.Count > 0
+                        ? $"No valid V2 team could be assembled that includes the required character(s) ({string.Join(", ", requiredCharacters.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))}) under the current filters and local inventory."
+                        : request.HardRequiredEffectKeys.Count > 0
+                            ? "No valid V2 team matched the selected hard-required effects with the current local inventory."
+                            : "No valid V2 team could be assembled from the current local inventory.";
                 return result;
             }
 
@@ -4750,6 +4784,89 @@ namespace FFVIIEverCrisisAnalyzer.Services
             return string.Join("/", (templateName ?? string.Empty)
                 .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .OrderBy(role => role, StringComparer.OrdinalIgnoreCase));
+        }
+
+        // The four sigil types. Circle/Triangle/Cross exist as both materia-boost slots and command (ability) sigils;
+        // Diamond exists only as a command sigil.
+        private static readonly HashSet<string> ValidSigilTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Circle", "Triangle", "Cross", "Diamond"
+        };
+
+        // Per-covered-damage-sigil score nudge (a team covering 3 of a boss's damage sigils → +4.5%). Modest by
+        // design — damage-sigil coverage is situational. Tunable.
+        private const double DamageSigilBonusPerCoveredSigil = 0.015;
+
+        private static HashSet<string> NormalizeRequiredSigils(IEnumerable<string>? requested)
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (requested != null)
+            {
+                foreach (var raw in requested)
+                {
+                    var sigil = raw?.Trim();
+                    if (!string.IsNullOrEmpty(sigil) && ValidSigilTypes.Contains(sigil))
+                    {
+                        set.Add(sigil);
+                    }
+                }
+            }
+            return set;
+        }
+
+        // itemId -> the weapon's sigils (command + materia-slot). Built once per analysis (only when sigils are required).
+        private Dictionary<string, IReadOnlyList<SigilInfo>> BuildWeaponSigilLookup()
+        {
+            var lookup = new Dictionary<string, IReadOnlyList<SigilInfo>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in _weaponSearchDataService.GetWeapons())
+            {
+                if (item.Sigils.Count > 0 && !lookup.ContainsKey(item.Id))
+                {
+                    lookup[item.Id] = item.Sigils;
+                }
+            }
+            return lookup;
+        }
+
+        // A team "covers" a sigil if some character can break/produce it: Circle/Triangle/Cross via a MAIN-HAND
+        // sigil-boost MATERIA slot; Diamond via a MAIN- or OFF-HAND ability COMMAND sigil (Diamond has no materia slot).
+        private static bool TeamCoversSigil(TeamCandidate team, string sigil, IReadOnlyDictionary<string, IReadOnlyList<SigilInfo>> sigilsByItemId)
+        {
+            var isDiamond = sigil.Equals("Diamond", StringComparison.OrdinalIgnoreCase);
+            foreach (var character in team.Characters)
+            {
+                if (isDiamond)
+                {
+                    if (SlotHasSigil(character.MainWeapon, "Command", sigil, sigilsByItemId)
+                        || SlotHasSigil(character.OffHandWeapon, "Command", sigil, sigilsByItemId))
+                    {
+                        return true;
+                    }
+                }
+                else if (SlotHasSigil(character.MainWeapon, "Materia", sigil, sigilsByItemId))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool SlotHasSigil(PlayerPowerAnalyzerV2ItemSlot? slot, string source, string sigilType, IReadOnlyDictionary<string, IReadOnlyList<SigilInfo>> sigilsByItemId)
+        {
+            if (slot == null || string.IsNullOrEmpty(slot.ItemId) || !sigilsByItemId.TryGetValue(slot.ItemId, out var sigils))
+            {
+                return false;
+            }
+
+            foreach (var sigil in sigils)
+            {
+                if (sigil.Source.Equals(source, StringComparison.OrdinalIgnoreCase)
+                    && sigil.SigilType.Equals(sigilType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static bool IsCharacterCombinationAllowed(

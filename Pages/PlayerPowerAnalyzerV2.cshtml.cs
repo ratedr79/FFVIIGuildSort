@@ -12,13 +12,15 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         private readonly TeamTemplateCatalog _teamTemplateCatalog;
         private readonly AnalysisJobService _jobs;
         private readonly WeaponSearchDataService _weaponSearchDataService;
+        private readonly EnemyCatalog _enemyCatalog;
 
-        public PlayerPowerAnalyzerV2Model(PlayerPowerAnalyzerV2Service playerPowerAnalyzerV2Service, TeamTemplateCatalog teamTemplateCatalog, AnalysisJobService jobs, WeaponSearchDataService weaponSearchDataService)
+        public PlayerPowerAnalyzerV2Model(PlayerPowerAnalyzerV2Service playerPowerAnalyzerV2Service, TeamTemplateCatalog teamTemplateCatalog, AnalysisJobService jobs, WeaponSearchDataService weaponSearchDataService, EnemyCatalog enemyCatalog)
         {
             _playerPowerAnalyzerV2Service = playerPowerAnalyzerV2Service;
             _teamTemplateCatalog = teamTemplateCatalog;
             _jobs = jobs;
             _weaponSearchDataService = weaponSearchDataService;
+            _enemyCatalog = enemyCatalog;
         }
 
         [BindProperty]
@@ -52,6 +54,20 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         // Full character roster (from weapon data) for the Required Characters picker. Backend validation still
         // enforces ownership + mutual exclusion, so listing the whole roster here is safe.
         public IReadOnlyList<string> AvailableCharacters { get; private set; } = Array.Empty<string>();
+
+        [BindProperty]
+        public List<string> RequiredSigils { get; set; } = new();
+
+        // Damage sigils (from a selected boss) → soft score bonus. Hidden field, set by the By-Boss picker. Empty in
+        // Manual mode → no bonus → analyzer repro unaffected.
+        [BindProperty]
+        public List<string> BonusSigils { get; set; } = new();
+
+        // Sigil options for the Required Sigils picker (value + display glyph).
+        public IReadOnlyList<(string Value, string Symbol)> AvailableSigils { get; } = new[]
+        {
+            ("Circle", "◯"), ("Triangle", "△"), ("Cross", "✕"), ("Diamond", "◊")
+        };
 
         [BindProperty]
         public List<string> BossImmunityKeys { get; set; } = new();
@@ -101,6 +117,8 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Take(3)
                     .ToList(),
+                RequiredSigils = RequiredSigils.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                BonusSigils = BonusSigils.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 BossImmunityKeys = BossImmunityKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 HardRequiredEffectKeys = HardRequiredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 SoftPreferredEffectKeys = SoftPreferredEffectKeys.Distinct(StringComparer.OrdinalIgnoreCase).Except(HardRequiredEffectKeys, StringComparer.OrdinalIgnoreCase).ToList()
@@ -114,6 +132,55 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             InitializeSelections();
             AnalysisResult = _playerPowerAnalyzerV2Service.Analyze(LocalInventoryStateJson, BuildRequest());
             return Page();
+        }
+
+        // By-Boss mode: search enemies/stages for the picker.
+        public IActionResult OnGetBossSearch(string? q)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+            {
+                return new JsonResult(Array.Empty<object>());
+            }
+
+            var results = _enemyCatalog.SearchEnemies(q.Trim())
+                .Take(25)
+                .Select(r => new
+                {
+                    enemyId = r.EnemyId,
+                    level = r.Level,
+                    label = !string.IsNullOrWhiteSpace(r.StageName) && !r.StageName.Equals("N/A", StringComparison.OrdinalIgnoreCase)
+                        ? $"{r.Name} (Lv {r.Level}) — {r.StageName}"
+                        : $"{r.Name} (Lv {r.Level})"
+                })
+                .ToList();
+
+            return new JsonResult(results);
+        }
+
+        // By-Boss mode: derive battle context (weakness, damage type, scenario, sigils) from a selected enemy.
+        public IActionResult OnGetBossContext(int enemyId, int level)
+        {
+            var detail = _enemyCatalog.GetEnemyDetails(enemyId, level);
+            if (detail == null)
+            {
+                return new JsonResult(new { found = false });
+            }
+
+            var context = BossBattleContextDeriver.Derive(detail);
+            return new JsonResult(new
+            {
+                found = true,
+                enemyName = detail.Name,
+                level = detail.Level,
+                pdef = detail.PhysicalDefense,
+                mdef = detail.MagicalDefense,
+                weakness = context.EnemyWeakness.ToString(),
+                damageType = context.PreferredDamageType.ToString(),
+                scenario = context.TargetScenario.ToString(),
+                requiredSigils = context.RequiredSigils,
+                bonusSigils = context.BonusSigils,
+                damageTypeReason = context.DamageTypeReason
+            });
         }
 
         // Start an async analysis job; returns immediately with the job id (sub-second request).

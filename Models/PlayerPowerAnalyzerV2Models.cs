@@ -59,6 +59,16 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public List<string> BossImmunityKeys { get; set; } = new();
         public List<string> HardRequiredEffectKeys { get; set; } = new();
         public List<string> SoftPreferredEffectKeys { get; set; } = new();
+
+        // Required sigils (Circle / Triangle / Cross / Diamond). Team-level: a team qualifies only if, for EACH
+        // required sigil, at least one character "covers" it — a MAIN-HAND sigil-boost materia slot for
+        // Circle/Triangle/Cross, or a MAIN- or OFF-HAND weapon ability command sigil for Diamond. Empty (default)
+        // = no constraint → byte-identical to prior behavior.
+        public List<string> RequiredSigils { get; set; } = new();
+
+        // Bonus (damage) sigils — a boss's damage sigils. NOT a filter: teams that cover them get a small score
+        // bonus that scales with how many they cover (situational; from "By Boss" mode). Empty → no bonus.
+        public List<string> BonusSigils { get; set; } = new();
     }
 
     public sealed class PlayerPowerAnalyzerV2Result
