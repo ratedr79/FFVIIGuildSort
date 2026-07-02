@@ -1906,9 +1906,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var typeMultiplier = request.PreferredDamageType == DamageType.Any || MatchesRequestedDamageType(slot.AbilityType, request.PreferredDamageType)
                 ? 1.0
                 : 0.55;
+            // Non-elemental weapons ("None"/empty OR the literal data string "Non-Elemental") are neutral, not
+            // resisted — see the Finding B fix in GetWeaponEffectiveDamagePercent (docs/multi-weapon-potency-spike.md).
             var elementMultiplier = request.EnemyWeakness == Element.None
                 || string.IsNullOrWhiteSpace(slot.Element)
                 || slot.Element.Equals("None", StringComparison.OrdinalIgnoreCase)
+                || slot.Element.Equals("Non-Elemental", StringComparison.OrdinalIgnoreCase)
                 || MatchesRequestedElement(slot.Element, request.EnemyWeakness)
                 ? 1.0
                 : 0.7;
@@ -7189,7 +7192,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
         {
             var damageWeight = role == CharacterRole.DPS ? 0.34 : 0.15;
             var typeMultiplier = request.PreferredDamageType == DamageType.Any || MatchesRequestedDamageType(weapon.Item.AbilityType, request.PreferredDamageType) ? 1.0 : 0.65;
-            var elementMultiplier = request.EnemyWeakness == Element.None || MatchesRequestedElement(weapon.Item.Element, request.EnemyWeakness) || weapon.Item.Element.Equals("None", StringComparison.OrdinalIgnoreCase) ? 1.0 : 0.55;
+            // Non-elemental weapons ("None"/empty OR the literal data string "Non-Elemental") are neutral, not
+            // resisted — see the Finding B fix in GetWeaponEffectiveDamagePercent (docs/multi-weapon-potency-spike.md).
+            var elementMultiplier = request.EnemyWeakness == Element.None
+                || MatchesRequestedElement(weapon.Item.Element, request.EnemyWeakness)
+                || weapon.Item.Element.Equals("None", StringComparison.OrdinalIgnoreCase)
+                || weapon.Item.Element.Equals("Non-Elemental", StringComparison.OrdinalIgnoreCase) ? 1.0 : 0.55;
             return weapon.Snapshot.DamagePercent * damageWeight * typeMultiplier * elementMultiplier;
         }
 

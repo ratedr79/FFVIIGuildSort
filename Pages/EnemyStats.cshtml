@@ -122,6 +122,7 @@
     .enemy-result-actions {
         display: flex;
         justify-content: flex-end;
+        gap: 0.5rem;
     }
 
     .enemy-suggestions {
@@ -238,9 +239,12 @@
                     <div class="enemy-result-row"><div class="enemy-result-label">Species</div><div class="enemy-result-value">@result.SpeciesSummary</div></div>
                 </div>
                 <div class="enemy-result-actions">
-                    <button class="btn btn-sm btn-outline-secondary btn-open-enemy-detail" type="button" data-detail-template-id="@detailTemplateId">
-                        Show Details
+                    <button class="btn btn-sm btn-primary btn-open-enemy-detail" type="button" data-detail-template-id="@detailTemplateId">
+                        <i class="fas fa-circle-info"></i> Show Details
                     </button>
+                    <a class="btn btn-sm btn-primary" asp-page="/PlayerPowerAnalyzerV2" asp-route-bossEnemyId="@result.EnemyId" asp-route-bossLevel="@result.Level" title="Analyze a team against this enemy in Player Power Analyzer V2">
+                        <i class="fas fa-chess-board"></i> Build a Team
+                    </a>
                 </div>
             </article>
         }
@@ -264,8 +268,11 @@
                 else
                 {
                     var allImmunities = detail.StatusImmunities;
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                         <h5 class="mb-0">@detail.Name [Level @detail.Level]</h5>
+                        <a class="btn btn-sm btn-primary" asp-page="/PlayerPowerAnalyzerV2" asp-route-bossEnemyId="@detail.EnemyId" asp-route-bossLevel="@detail.Level">
+                            <i class="fas fa-chess-board"></i> Build a Team
+                        </a>
                     </div>
                     <div class="fw-semibold mb-2">
                         <span class="me-3">HP: @string.Format("{0:N0}", detail.Hp)</span>

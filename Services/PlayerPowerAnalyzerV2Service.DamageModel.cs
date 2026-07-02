@@ -499,6 +499,12 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // main slot orients by damage, not R-abilities). Pure buff/heal weapons fall below this.
         private const double AttackingWeaponDamageThreshold = 500d;
 
+        // [Finding A] The ultimate's fixed share of a character's damage rotation (charge-gated + use-limited, so it
+        // fires far less than the ATB-cast main/off). The one calibration knob for the multi-weapon blend; the
+        // regular weapons split the remaining (1 - this). Only active when request.EnableMultiWeaponPotencyBlend.
+        // Calibrated to 0.12 (ultimates fire rarely — long charge / few uses — so main/off weapons dominate).
+        private const double UltimateRotationShare = 0.12;
+
         // [D2] Simple bucketed uptime: an active buff/debuff on an attacker's always-cast MAIN weapon is
         // auto-maintained every turn (full uptime); everything else is assumed maintainer-covered at this
         // fraction. (Start-only / non-reapplied fidelity is a later refinement.) Passives are flat (no uptime).
@@ -614,9 +620,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var elementFactor = 1.0;
             if (request.EnemyWeakness != Element.None)
             {
-                if (string.IsNullOrWhiteSpace(weapon.Element) || weapon.Element.Equals("None", StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(weapon.Element)
+                    || weapon.Element.Equals("None", StringComparison.OrdinalIgnoreCase)
+                    || weapon.Element.Equals("Non-Elemental", StringComparison.OrdinalIgnoreCase))
                 {
-                    elementFactor = 0.85; // non-elemental: no weakness bonus, but not resisted
+                    // non-elemental: no weakness bonus, but not resisted. NOTE: the live data string is
+                    // "Non-Elemental" (the slot carries Element verbatim, no normalization) — matching only
+                    // "None"/empty here wrongly dropped every non-elemental weapon to the off-element RESIST
+                    // penalty below (~0.5), under-rating it ~41% on weakness fights. See docs/multi-weapon-potency-spike.md.
+                    elementFactor = 0.85;
                 }
                 else if (!MatchesRequestedElement(weapon.Element, request.EnemyWeakness))
                 {
@@ -635,7 +647,54 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var main = variant.MainWeapon != null ? GetWeaponEffectiveDamagePercent(variant.MainWeapon, request) : 0d;
             var off = variant.OffHandWeapon != null ? GetWeaponEffectiveDamagePercent(variant.OffHandWeapon, request) : 0d;
             var ultimate = variant.UltimateWeapon != null ? GetWeaponEffectiveDamagePercent(variant.UltimateWeapon, request) : 0d;
-            return Math.Max(main, Math.Max(off, ultimate));
+
+            // Default (byte-identical): the character's single biggest weapon. Gated Finding-A path below.
+            if (!request.EnableMultiWeaponPotencyBlend)
+            {
+                return Math.Max(main, Math.Max(off, ultimate));
+            }
+
+            return BlendVariantWeaponDamagePercent(variant, main, off, ultimate);
+        }
+
+        // [Finding A] A character casts BOTH its main and off-hand weapon abilities in the rotation (plus the
+        // charge-limited ultimate), so its sustained attack % is an uptime-weighted blend of them — not the single
+        // biggest (max), which shadows the off-hand entirely. Weights: the regular ATB-cast weapons (main + off)
+        // split (1 - UltimateRotationShare) inversely by CommandAtb (cheaper cast = more frequent); the ultimate
+        // takes the fixed UltimateRotationShare. EVERY equipped main/off takes a rotation slice — including a
+        // 0-damage buff/heal weapon, which therefore DILUTES the attacker's damage % (casting it is a turn not spent
+        // attacking). Falls back to the ultimate / max-equivalent only when the character has no main/off at all.
+        private static double BlendVariantWeaponDamagePercent(CharacterBuildCandidate variant, double main, double off, double ultimate)
+        {
+            var regulars = new List<(double Eff, int CommandAtb)>();
+            if (variant.MainWeapon != null)
+            {
+                regulars.Add((main, Math.Max(1, variant.MainWeapon.CommandAtb)));
+            }
+
+            if (variant.OffHandWeapon != null)
+            {
+                regulars.Add((off, Math.Max(1, variant.OffHandWeapon.CommandAtb)));
+            }
+
+            var hasUltimate = ultimate > 0;
+            if (regulars.Count == 0)
+            {
+                // No equipped main/off at all: the ultimate is the only damage source.
+                return hasUltimate ? ultimate : Math.Max(main, Math.Max(off, ultimate));
+            }
+
+            var ultimateShare = hasUltimate ? UltimateRotationShare : 0d;
+            var regularBudget = 1d - ultimateShare;
+            var inverseAtbSum = regulars.Sum(r => 1d / r.CommandAtb);
+
+            var blended = ultimateShare * ultimate;
+            foreach (var (eff, commandAtb) in regulars)
+            {
+                blended += regularBudget * (1d / commandAtb) / inverseAtbSum * eff;
+            }
+
+            return blended;
         }
 
         // True if this attacker can actually hit the enemy's weakness — i.e. any of its main / off-hand / ultimate

@@ -176,11 +176,13 @@
                 </div>
                 <div class="dc-section-hint mt-2">Set Enemy Weakness / Damage Type / Target Scenario yourself, or pick a boss to infer them (and its required/damage sigils). Inferred values are shown below and stay editable.</div>
 
-                <div id="bossPickerSection" class="mt-3 d-none">
+                <div id="bossPickerSection" class="mt-3 d-none" data-prefill-enemy-id="@Model.PrefillBossEnemyId" data-prefill-level="@Model.PrefillBossLevel">
                     <label class="form-label fw-semibold" for="bossSearchInput">Select an enemy</label>
                     <input type="text" class="form-control" id="bossSearchInput" placeholder="Search a boss or stage (e.g. Titan)" autocomplete="off" aria-autocomplete="list" />
+                    <div class="form-text">Can't find the exact encounter? Search it on the <a asp-page="/EnemyStats">Enemy Stats</a> page, then use its <strong>Build a Team</strong> button to jump back here with the boss pre-selected.</div>
                     <div id="bossSearchResults" class="list-group mt-1" style="max-height: 18rem; overflow-y: auto;"></div>
                     <div id="bossContextSummary" class="alert alert-info mt-2 small mb-0 d-none"></div>
+                    <div id="bossDefensiveNotes" class="alert alert-warning mt-2 small mb-0 d-none border border-warning-subtle"></div>
                 </div>
                 <div id="bonusSigilsContainer"></div>
             </div>
@@ -1286,6 +1288,7 @@
                 const searchInput = document.getElementById('bossSearchInput');
                 const resultsList = document.getElementById('bossSearchResults');
                 const summary = document.getElementById('bossContextSummary');
+                const defensiveNotes = document.getElementById('bossDefensiveNotes');
                 const bonusContainer = document.getElementById('bonusSigilsContainer');
                 const weaknessSelect = document.getElementById('EnemyWeakness');
                 const damageTypeSelect = document.getElementById('PreferredDamageType');
@@ -1297,6 +1300,7 @@
                     if (!isBoss) {
                         bonusContainer.innerHTML = '';
                         summary.classList.add('d-none');
+                        defensiveNotes.classList.add('d-none');
                         resultsList.innerHTML = '';
                     }
                 }
@@ -1343,7 +1347,7 @@
                         if (!ctx.found) { return; }
                         applyContext(ctx);
                         resultsList.innerHTML = '';
-                        searchInput.value = label;
+                        searchInput.value = label || (ctx.enemyName + ' (Lv ' + ctx.level + ')');
                     } catch (e) { /* ignore */ }
                 }
 
@@ -1368,6 +1372,18 @@
                         cb.checked = required.indexOf(cb.value.toLowerCase()) >= 0;
                     });
 
+                    // Boss immunities the enemy actually has → check them so the analyzer stops crediting teams that
+                    // rely on a debuff the boss resists. (Additive: leaves any others the user already ticked.)
+                    const immunities = (ctx.bossImmunityKeys || []).map(function (s) { return s.toLowerCase(); });
+                    const immunityLabels = [];
+                    document.querySelectorAll('input[name="BossImmunityKeys"]').forEach(function (cb) {
+                        if (immunities.indexOf(cb.value.toLowerCase()) >= 0) {
+                            cb.checked = true;
+                            const label = cb.closest('label');
+                            if (label) { immunityLabels.push(label.textContent.trim().replace(/ Immunity$/, '')); }
+                        }
+                    });
+
                     bonusContainer.innerHTML = '';
                     (ctx.bonusSigils || []).forEach(function (s) {
                         const input = document.createElement('input');
@@ -1382,8 +1398,37 @@
                     summary.innerHTML = '<strong>' + ctx.enemyName + ' (Lv ' + ctx.level + ')</strong> — Weakness: <strong>' + ctx.weakness +
                         '</strong> · Damage type: <strong>' + ctx.damageType + '</strong> <span class="text-muted">(' + ctx.damageTypeReason + ')</span>' +
                         ' · PDEF ' + ctx.pdef + ' / MDEF ' + ctx.mdef + '<br>Required sigils: <strong>' + reqText +
-                        '</strong> · Damage sigils (bonus): <strong>' + bonusText + '</strong>. <span class="text-muted">All values stay editable above / in Advanced filters.</span>';
+                        '</strong> · Damage sigils (bonus): <strong>' + bonusText + '</strong>' +
+                        '<br>Boss immunities applied: <strong>' + (immunityLabels.length ? immunityLabels.join(', ') : 'none') + '</strong>. <span class="text-muted">All values stay editable above / in Advanced filters.</span>';
                     summary.classList.remove('d-none');
+
+                    // Defensive advisory — a heads-up on what the boss does TO you. Guidance only; it does not change
+                    // the analyzer's (offense-only) ranking. Shown only when we could infer something.
+                    const advisory = ctx.advisory;
+                    if (advisory) {
+                        let threat = '';
+                        if (advisory.attackElement && advisory.attackDamageType) { threat = advisory.attackElement + '-element ' + advisory.attackDamageType.toLowerCase(); }
+                        else if (advisory.attackElement) { threat = advisory.attackElement + '-element'; }
+                        else if (advisory.attackDamageType) { threat = advisory.attackDamageType.toLowerCase(); }
+
+                        let notes = '<span class="fw-semibold"><i class="fas fa-shield-halved"></i> Defensive heads-up</span> <span class="text-muted">— guidance only, doesn\'t change the ranking</span>';
+                        if (threat) { notes += '<br>Deals <strong>' + threat + '</strong> damage.'; }
+                        if (advisory.recommendations && advisory.recommendations.length) { notes += '<br>Recommended defenses: <strong>' + advisory.recommendations.join(', ') + '</strong>.'; }
+                        if (advisory.ailments && advisory.ailments.length) { notes += '<br>Inflicts <strong>' + advisory.ailments.join(', ') + '</strong> — consider cleanse or status immunity.'; }
+                        defensiveNotes.innerHTML = notes;
+                        defensiveNotes.classList.remove('d-none');
+                    } else {
+                        defensiveNotes.classList.add('d-none');
+                    }
+                }
+
+                // Deep-link from Enemy Stats "Build a Team": auto-enter By-Boss mode and pre-select the enemy.
+                const prefillEnemyId = parseInt(pickerSection.getAttribute('data-prefill-enemy-id'), 10);
+                const prefillLevel = parseInt(pickerSection.getAttribute('data-prefill-level'), 10);
+                if (prefillEnemyId > 0 && prefillLevel > 0) {
+                    bossRadio.checked = true;
+                    setMode(true);
+                    selectEnemy(prefillEnemyId, prefillLevel, '');
                 }
             })();
 

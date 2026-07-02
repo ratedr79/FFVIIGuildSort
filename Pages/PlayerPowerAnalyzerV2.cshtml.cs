@@ -85,11 +85,23 @@ namespace FFVIIEverCrisisAnalyzer.Pages
         public IReadOnlyDictionary<string, List<PlayerPowerAnalyzerV2EffectOption>> BossImmunityOptionsByGroup { get; private set; } = new Dictionary<string, List<PlayerPowerAnalyzerV2EffectOption>>();
         public PlayerPowerAnalyzerV2Result? AnalysisResult { get; private set; }
 
+        // Deep-link from Enemy Stats ("Build a Team"): the enemy to auto-select into By-Boss mode on load. The client
+        // reads these and prefills via OnGetBossContext; -1 means "not provided".
+        public int PrefillBossEnemyId { get; private set; } = -1;
+        public int PrefillBossLevel { get; private set; } = -1;
+
         // resultJobId is set by the async flow's completion redirect: pull the finished job's result and render
         // the full page server-side (the result is already computed, so this GET is sub-second).
-        public void OnGet(string? resultJobId)
+        // bossEnemyId/bossLevel come from the Enemy Stats "Build a Team" link → auto-enter By-Boss mode.
+        public void OnGet(string? resultJobId, int? bossEnemyId, int? bossLevel)
         {
             InitializeSelections();
+
+            if (bossEnemyId is > 0 && bossLevel is > 0)
+            {
+                PrefillBossEnemyId = bossEnemyId.Value;
+                PrefillBossLevel = bossLevel.Value;
+            }
 
             if (!string.IsNullOrEmpty(resultJobId) && _jobs.Get(resultJobId)?.Result is PlayerPowerAnalyzerV2Result result)
             {
@@ -179,7 +191,15 @@ namespace FFVIIEverCrisisAnalyzer.Pages
                 scenario = context.TargetScenario.ToString(),
                 requiredSigils = context.RequiredSigils,
                 bonusSigils = context.BonusSigils,
-                damageTypeReason = context.DamageTypeReason
+                bossImmunityKeys = context.BossImmunityKeys,
+                damageTypeReason = context.DamageTypeReason,
+                advisory = context.DefensiveAdvisory.HasContent ? new
+                {
+                    attackElement = context.DefensiveAdvisory.AttackElement,
+                    attackDamageType = context.DefensiveAdvisory.AttackDamageType,
+                    ailments = context.DefensiveAdvisory.InflictedAilments,
+                    recommendations = context.DefensiveAdvisory.Recommendations
+                } : null
             });
         }
 
