@@ -13,6 +13,15 @@ All notable changes to this project should be documented in this file.
 
 ---
 
+## 2026-07-03
+
+### Docs
+- Documented the **multi-weapon potency spike** (`docs/multi-weapon-potency-spike.md`): Finding A (the `max(main, off, ultimate)` off-hand-damage blindspot) is implemented behind a default-off flag `EnableMultiWeaponPotencyBlend` and **parked** — calibrating the single share constant against the behavioral benchmark suite proved knife-edge (it reshuffles weapon selection), so it awaits a principled off-hand-gate model that weighs off-hand damage AND buff value together. Includes a pruning-ceiling safety audit (the blend is provably ceiling-safe if ever enabled). No production behavior change (flag defaults off).
+- **Validated the R-ability breakpoint layer** against the live in-game charts — all 12 tables + the aggregation mechanic (off/sub points halved → pooled within a character → one breakpoint lookup; resolved %s summed across characters) match exactly. Closes the long-deferred spread-team over-crediting audit (verdict: the model credits spread-team buff stacking **correctly**). Recorded in `docs/item3-damage-model-design.md` ("Later refinements").
+- **Re-verified the inventory-monotonicity fix** on current post-Finding-B code and refreshed `docs/v2-team-search-skeleton-cap-and-monotonicity.md`: the guild-path fix (MainSeedTopN=2 + raised skeleton cap, adapter-only) still resolves the whale-ranked-below-rival violation (N=1 −81k → N=2 +51k), and its production regression test is green. Also repaired the diagnostic monotonicity probe's reflection (a `requiredCharacters` parameter had silently re-broken it).
+
+---
+
 ## 2026-07-01
 
 ### Added

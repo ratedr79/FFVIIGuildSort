@@ -206,7 +206,32 @@ to apply the weakness-exploit / elemental effects:
   Sephiroth/Titan (Serrated must beat Wintercrest), the parked test (Demon's Impetus must beat
   Lightning's Gloves for Tifa's off-hand), plus a few known single-carry teams that must NOT regress.
 
-## Phased plan (each step gated)
+## Outcome (2026-07-03): Finding A PARKED behind the default-off flag
+
+The blend is correct in principle and fully implemented + tested (`EnableMultiWeaponPotencyBlend`,
+default **false**), but **shipping it default-on was abandoned** because calibrating it against the
+behavioral benchmark suite proved knife-edge:
+
+- The final model is **primary/secondary**: rank a character's two regular weapons by cast priority
+  (`eff × WeaknessCastPreference ÷ ATB`); the primary takes `PrimaryRegularShare` of the non-ultimate
+  rotation, the secondary the rest; the ultimate takes `UltimateRotationShare`. This keeps a *junk*
+  secondary diluting (so a strong damage off-hand beats a weak one) while *capping* a merely-decent
+  secondary (so it can't out-damage a strong buff off-hand).
+- Threading the two anchor benchmarks (Leather/Guide **and** AvoidsOffFit) required
+  `PrimaryRegularShare = 0.77` — a **razor-thin** window (0.75 and 0.79 each break one), and even 0.77
+  then broke a *third* benchmark (`MattDeroplatys` — the blend reshuffled weapon selection so the chosen
+  team dropped its Enfeeble source). Classic over-fit of a single constant.
+- Root: the behavioral benchmark suite encodes many max()-era "team X provides effect Y / beats Z"
+  beliefs, and the blend legitimately reshuffles weapon selection, so a robust default-on needs a
+  **principled off-hand-gate model that weighs off-hand DAMAGE and BUFF value together** — not a single
+  share constant. That's the real next step, deferred.
+
+**Kept:** the blend code (`BlendVariantWeaponDamagePercent` + the three knobs), the gated flag, the
+anchor test (`GetVariantWeaponDamagePercent_MultiWeaponBlend_IsGatedByFlag`), and this doc. **Reverted:**
+the default-on flip and its re-baselines (repro back to 572874.89; ITB scores at their B-only values); the
+`AvoidsReportedOffFit` acceptance test is **skipped** again (passes only with the blend on).
+
+## Phased plan (as executed)
 
 1. **Flag + implement — DONE (2026-07-01).** `request.EnableMultiWeaponPotencyBlend` (default FALSE →
    byte-identical). `GetVariantWeaponDamagePercent` branches to `BlendVariantWeaponDamagePercent` when set:

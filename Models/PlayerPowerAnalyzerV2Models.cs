@@ -56,11 +56,13 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int? MainSeedTopNOverride { get; set; }
         public int? SkeletonExpansionLimitOverride { get; set; }
 
-        // GATED (Finding A — multi-weapon potency blindspot; docs/multi-weapon-potency-spike.md). Default FALSE =
+        // Finding A — multi-weapon potency blindspot (docs/multi-weapon-potency-spike.md). DEFAULT FALSE =
         // byte-identical: a character's representative attack % stays max(main, off, ultimate). When TRUE, it becomes
-        // an uptime-weighted blend of the character's castable weapons (main + off split by ATB cast cost; ultimate a
-        // small charge-limited share), so an off-hand's real damage is no longer shadowed by the biggest single
-        // weapon. Phase-1 flag: off everywhere until the sweep + calibration land (repro/regression stay green).
+        // a primary/secondary uptime blend of its castable weapons, so an off-hand's real damage is no longer
+        // shadowed by the biggest single weapon. PARKED default-off (2026-07-03): the blend is correct in principle
+        // and fully implemented + tested, but calibrating the single share constant against the behavioral benchmark
+        // suite proved knife-edge (it reshuffles weapon selection), so it awaits a more principled off-hand-gate model
+        // (weigh off-hand damage AND buff value together) before going live. The code path stays for that work.
         public bool EnableMultiWeaponPotencyBlend { get; set; }
 
         public List<string> BossImmunityKeys { get; set; } = new();

@@ -387,3 +387,31 @@ Now that the analyzer exposes "other teams," showing only character names + scor
 - Cross-family > same-family: two different-family +30% → ×1.69 beats one family +60% → ×1.60.
 - Active tier→% resolves correctly: PATK Up High = 30%, Elem Damage Up High = 40%, PDEF Down High = 35%, Elem Resist Down High = 50%.
 - Amplifier moves a present family +2 tiers (High 30% → Extreme High 50%) and is 0 with nothing to amplify.
+
+## Later refinements (2026-07) — element factor, multi-weapon potency, breakpoint validation
+
+Three developments after the core model landed:
+
+- **Finding B — non-elemental element factor (FIXED, live).** `GetWeaponEffectiveDamagePercent`'s "neutral, not
+  resisted" branch matched only `""`/`"None"`, but the live weapon data string is `"Non-Elemental"` — so every
+  non-elemental weapon wrongly took the off-element **resist** penalty (~×0.5) instead of the intended neutral
+  ×0.85 on any weakness fight (~41% under-rate; e.g. a 2000% non-elem ultimate scored 1000 not 1700). Fixed at all
+  three damage-value sites (`GetWeaponEffectiveDamagePercent` → 0.85; `ScoreDamage` and
+  `ScoreVariantOffensiveSlotPressure` → 1.0). Deliberately re-baselined the repro (572,874.89). See `changelog.md`.
+
+- **Finding A — multi-weapon potency blindspot (PARKED behind a default-off flag).** A character's representative
+  attack % is `max(main, off, ultimate)`, so an off-hand's *own* damage is shadowed by the biggest single weapon —
+  a character can end up running an off-fit off-hand chosen only for its passives (the off-hand's potency is
+  invisible to selection). A primary/secondary uptime blend is implemented behind
+  `request.EnableMultiWeaponPotencyBlend` (default **false** = byte-identical `max()`), but calibrating the single
+  share constant against the behavioral benchmark suite proved knife-edge (it reshuffles weapon selection), so it
+  awaits a **principled off-hand-gate model that weighs off-hand DAMAGE and BUFF value together**, not a share
+  constant. Full analysis + the ceiling-safety audit: `multi-weapon-potency-spike.md`.
+
+- **R-ability breakpoint tables — VALIDATED against live game charts (2026-07-03).** All 12 tables (Boost
+  PATK/MATK Self + All-Allies, Boost ATK Self + All-Allies, Boost Ability Pot Self + All-Allies, Boost Phys/Mag
+  Ability Pot, Element Pot, Element Ability All-Allies, Boost PDEF/MDEF All-Allies, Boost Heal, omni-element) match
+  the in-game charts EXACTLY, as does the aggregation mechanic: **off/sub points HALVED → same-named pooled within a
+  character → ONE breakpoint lookup; resolved %s SUMMED across characters** (each character's All-Allies passive is
+  its own additive source — three 45-pt providers → +75%, not a pooled breakpoint). So spread-team buff stacking is
+  credited correctly. See memory `vincent-vs-tifa-spread-team-model-audit`.

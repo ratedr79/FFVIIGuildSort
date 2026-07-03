@@ -3,6 +3,14 @@
 > Why the guild-sort ranking raises the V2 skeleton cap, what bug it fixes, and what to check
 > if "a stronger account ranked below a weaker one" ever comes up again.
 
+> **Re-verified 2026-07-03** on current (post-Finding-B) code. The violation still reproduces at the interactive
+> default (N=1: whale DDelaneyCA 490,933 < rival Jakeryan00 572,210 — Finding B *amplified* the raw gap) and the
+> guild-path fix still resolves it (N=2: whale 634,953 > rival 583,529; N=3 identical → N=2 is sufficient; runtime
+> ~flat). The production regression test `Analyze_Gb24_WindPhysical_GuildOptIn_RanksWhaleAboveRival_NoRegressions`
+> is **green**. Note: the diagnostic `PowerLevelAnalyzerV2MonotonicityProbeTests` reflection needed repair —
+> `BuildTeamCandidatesFromSkeletons`/`BuildTeamSkeletons` gained a `requiredCharacters` parameter after this doc
+> was written, which had silently broken the probe's reflective `Invoke`.
+
 ## TL;DR
 
 The V2 team search is a **two-stage funnel**:

@@ -505,6 +505,18 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // Calibrated to 0.12 (ultimates fire rarely — long charge / few uses — so main/off weapons dominate).
         private const double UltimateRotationShare = 0.12;
 
+        // [Finding A] How much more a top player casts a weapon that HITS the enemy's weakness (chasing the exploit
+        // bonus, which lives in the multiplier layer and so isn't in the base eff%). Multiplies a weapon's cast
+        // PRIORITY (which ranks primary vs secondary), so an on-weakness weapon becomes the primary even against a
+        // slightly higher raw-% non-weakness weapon. Calibration knob.
+        private const double WeaknessCastPreference = 2.0;
+
+        // [Finding A] The primary (highest cast-priority) of a character's two regular weapons takes this fraction of
+        // the non-ultimate rotation; the secondary takes the rest. A FIXED split (not value-proportional) keeps a junk
+        // secondary DILUTING the rotation — so a strong damage off-hand still clearly beats a weak one — while CAPPING
+        // a merely-decent secondary's share, so it can't out-damage a strong buff/utility off-hand. Calibration knob.
+        private const double PrimaryRegularShare = 0.77;
+
         // [D2] Simple bucketed uptime: an active buff/debuff on an attacker's always-cast MAIN weapon is
         // auto-maintained every turn (full uptime); everything else is assumed maintainer-covered at this
         // fraction. (Start-only / non-reapplied fidelity is a later refinement.) Passives are flat (no uptime).
@@ -654,28 +666,38 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return Math.Max(main, Math.Max(off, ultimate));
             }
 
-            return BlendVariantWeaponDamagePercent(variant, main, off, ultimate);
+            return BlendVariantWeaponDamagePercent(variant, request, main, off, ultimate);
         }
 
         // [Finding A] A character casts BOTH its main and off-hand weapon abilities in the rotation (plus the
         // charge-limited ultimate), so its sustained attack % is an uptime-weighted blend of them — not the single
-        // biggest (max), which shadows the off-hand entirely. Weights: the regular ATB-cast weapons (main + off)
-        // split (1 - UltimateRotationShare) inversely by CommandAtb (cheaper cast = more frequent); the ultimate
-        // takes the fixed UltimateRotationShare. EVERY equipped main/off takes a rotation slice — including a
-        // 0-damage buff/heal weapon, which therefore DILUTES the attacker's damage % (casting it is a turn not spent
-        // attacking). Falls back to the ultimate / max-equivalent only when the character has no main/off at all.
-        private static double BlendVariantWeaponDamagePercent(CharacterBuildCandidate variant, double main, double off, double ultimate)
+        // biggest (max), which shadows the off-hand entirely. A top player weaves the higher-value / on-weakness
+        // weapon as the PRIMARY (PrimaryRegularShare of the non-ultimate rotation) and the other as a moderate
+        // SECONDARY. The fixed primary/secondary split means: a junk secondary still dilutes (so a strong damage
+        // off-hand clearly beats a weak one), while a merely-decent secondary is share-capped (so it can't out-damage
+        // a strong buff/utility off-hand). Ranking by cast priority (eff × weakness preference ÷ ATB) lets a genuinely
+        // better or on-weakness off-hand become the primary. The ultimate takes the fixed UltimateRotationShare.
+        private static double BlendVariantWeaponDamagePercent(
+            CharacterBuildCandidate variant, PlayerPowerAnalyzerV2Request request, double main, double off, double ultimate)
         {
-            var regulars = new List<(double Eff, int CommandAtb)>();
-            if (variant.MainWeapon != null)
+            var regulars = new List<(double Eff, double CastPriority)>();
+
+            void AddRegular(PlayerPowerAnalyzerV2ItemSlot? weapon, double eff)
             {
-                regulars.Add((main, Math.Max(1, variant.MainWeapon.CommandAtb)));
+                if (weapon == null)
+                {
+                    return;
+                }
+
+                var atb = Math.Max(1, weapon.CommandAtb);
+                var hitsWeakness = request.EnemyWeakness != Element.None
+                    && MatchesRequestedElement(weapon.Element, request.EnemyWeakness);
+                var castPriority = eff * (hitsWeakness ? WeaknessCastPreference : 1d) / atb;
+                regulars.Add((eff, castPriority));
             }
 
-            if (variant.OffHandWeapon != null)
-            {
-                regulars.Add((off, Math.Max(1, variant.OffHandWeapon.CommandAtb)));
-            }
+            AddRegular(variant.MainWeapon, main);
+            AddRegular(variant.OffHandWeapon, off);
 
             var hasUltimate = ultimate > 0;
             if (regulars.Count == 0)
@@ -686,14 +708,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
             var ultimateShare = hasUltimate ? UltimateRotationShare : 0d;
             var regularBudget = 1d - ultimateShare;
-            var inverseAtbSum = regulars.Sum(r => 1d / r.CommandAtb);
-
             var blended = ultimateShare * ultimate;
-            foreach (var (eff, commandAtb) in regulars)
+
+            if (regulars.Count == 1)
             {
-                blended += regularBudget * (1d / commandAtb) / inverseAtbSum * eff;
+                return blended + regularBudget * regulars[0].Eff;
             }
 
+            // Two regulars: rank by cast priority → primary gets PrimaryRegularShare, secondary gets the rest.
+            var primaryFirst = regulars[0].CastPriority >= regulars[1].CastPriority;
+            var primaryEff = primaryFirst ? regulars[0].Eff : regulars[1].Eff;
+            var secondaryEff = primaryFirst ? regulars[1].Eff : regulars[0].Eff;
+
+            blended += regularBudget * PrimaryRegularShare * primaryEff;
+            blended += regularBudget * (1d - PrimaryRegularShare) * secondaryEff;
             return blended;
         }
 
