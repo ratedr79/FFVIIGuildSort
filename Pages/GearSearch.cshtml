@@ -65,8 +65,8 @@
             "Low" => "low",
             "Mid" => "mid",
             "High" => "high",
-            "Extra High" => "extra_high",
-            "Extreme High" => "very_high",
+            "Extra High" => "very_high",
+            "Extreme High" => "extra_high",
             "Extreme High+" => "extra_extra_high",
             "Extreme High++" => "maximum",
             _ => "low"
@@ -826,6 +826,144 @@
 
     }
 
+    /* --- Faceted filter rail (2-column layout) --- */
+    .gear-filters-col {
+        margin-bottom: 1rem;
+    }
+
+    /*
+       Bootstrap 5.1 has no responsive `.offcanvas-lg` variant (added in 5.2).
+       At >=lg we neutralize the offcanvas drawer styles so the rail renders as
+       a static, sticky in-flow column beside the results; at <lg it stays a
+       standard slide-in offcanvas drawer.
+    */
+    @@media (min-width: 992px) {
+        .gear-filters-offcanvas.offcanvas {
+            position: sticky;
+            top: 0.75rem;
+            bottom: auto;
+            left: auto;
+            right: auto;
+            z-index: 1;
+            width: auto;
+            max-width: none;
+            max-height: calc(100vh - 1.5rem);
+            transform: none !important;
+            visibility: visible !important;
+            border: 1px solid #ddd3ed;
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gear-filters-offcanvas .offcanvas-header {
+            display: none;
+        }
+
+        .gear-filters-offcanvas .offcanvas-body.gear-filters-rail-body {
+            overflow-y: auto;
+            padding: 0.85rem 0.75rem 0.85rem 0.85rem;
+            scrollbar-width: thin;
+        }
+    }
+
+    .gear-filters-offcanvas {
+        background: #ffffff;
+        border-color: #ddd3ed;
+    }
+
+    .gear-filters-rail-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+    }
+
+    .gear-rail-toggles {
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid #efe7fb;
+    }
+
+    .rail-toggle-label {
+        font-weight: 700;
+    }
+
+    .rail-facet {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .rail-facet-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .rail-facet-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6d6780;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .rail-facet-reset {
+        font-size: 0.72rem;
+        padding: 0 0.2rem;
+    }
+
+    .rail-facet-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .rail-facet-search {
+        display: flex;
+        gap: 0.4rem;
+    }
+
+    .rail-facet-search .form-control {
+        flex: 1 1 auto;
+    }
+
+    .rail-facet-search .btn {
+        flex: 0 0 auto;
+    }
+
+    .rail-facet-scroll {
+        max-height: 240px;
+        overflow-y: auto;
+        border: 1px solid #ece3f8;
+        border-radius: 0.55rem;
+        padding: 0.5rem 0.6rem;
+        background: #fdfcff;
+        scrollbar-width: thin;
+    }
+
+    .rail-facet-scroll .form-check {
+        margin-bottom: 0.15rem;
+    }
+
+    .rail-facet-scroll .form-check-label {
+        font-size: 0.82rem;
+    }
+
+    .gear-filters-rail-footer {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-top: 1px solid #ece3f8;
+        background: #fff;
+    }
+
+    .gear-filters-rail-footer .btn {
+        flex: 1 1 auto;
+    }
+
     .stat-stack,
     .element-stack {
         display: inline-flex;
@@ -1528,7 +1666,7 @@
     @@media (min-width: 768px) {
         #gearMobileResultsList {
             display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
             gap: 0.85rem !important;
         }
 
@@ -1536,6 +1674,7 @@
             display: flex;
             flex-direction: column;
             height: 100%;
+            min-width: 0;
             padding: 0.72rem 0.78rem;
             border-radius: 0.72rem;
             box-shadow: 0 2px 8px rgba(39, 26, 65, 0.08);
@@ -1626,8 +1765,7 @@
         }
 
         #gearMobileResultsList {
-            grid-template-columns: repeat(2, minmax(480px, 620px));
-            justify-content: center;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
             gap: 1rem 1.1rem !important;
         }
 
@@ -2189,16 +2327,16 @@
         </div>
     </div>
 
-    <div class="card mb-4 sticky-gear-controls" id="gearSearchToolbarCard">
+    <div class="card mb-3 sticky-gear-controls" id="gearSearchToolbarCard">
         <div class="card-body gear-search-toolbar-body">
             <div class="gear-search-topline">
                 <div class="gear-search-input-group">
                     <label for="searchBox" class="form-label gear-search-toolbar-label mb-1">Search</label>
                     <input id="searchBox" type="text" class="form-control" placeholder="Search by weapon, ability, effects..." />
-                    <div class="gear-search-toolbar-hint mt-1">Search gear first, then refine with characters, quick presets, or filters.</div>
+                    <div class="gear-search-toolbar-hint mt-1">Search gear first, then refine with characters and the filter rail.</div>
                 </div>
                 <div class="gear-search-toolbar-actions d-lg-none">
-                    <button class="btn advanced-toggle-btn" id="mobileFiltersToggleBtn" type="button" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
+                    <button class="btn advanced-toggle-btn" id="mobileFiltersToggleBtn" type="button" data-bs-toggle="offcanvas" data-bs-target="#gearFiltersOffcanvas" aria-controls="gearFiltersOffcanvas">
                         Filters
                     </button>
                 </div>
@@ -2221,45 +2359,6 @@
                 </div>
             </div>
 
-            <div class="gear-search-toolbar-section">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <span class="gear-search-toolbar-label">Quick Filters</span>
-                    <button type="button" class="btn btn-sm btn-link text-decoration-none quick-filter-clear" id="quickFiltersClearBtn">Clear Quick</button>
-                </div>
-                <div class="quick-filter-bar">
-                    @foreach (var quickEquipment in equipmentTypeOptions.Take(3))
-                    {
-                        <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-equipment="@quickEquipment">@quickEquipment</button>
-                    }
-                    @if (equipmentTypeOptions.Any(t => string.Equals(t, "Ultimate", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-equipment="Ultimate">
-                            <span>Ultimate</span>
-                        </button>
-                    }
-                    @foreach (var quickFilter in elementalQuickFilters)
-                    {
-                        <button type="button"
-                                class="btn btn-sm btn-outline-secondary quick-filter-btn"
-                                data-quick-element="@quickFilter.Element"
-                                data-quick-ability="@quickFilter.AbilityType">@quickFilter.Label</button>
-                    }
-                    @foreach (var quickSigil in quickSigilFilters)
-                    {
-                        var quickSigilIconPath = GetSigilIconPath(quickSigil.Value);
-                        <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-sigil="@quickSigil.Value">
-                            @if (!string.IsNullOrWhiteSpace(quickSigilIconPath))
-                            {
-                                <img class="quick-filter-icon" src="@quickSigilIconPath" alt="" aria-hidden="true" />
-                            }
-                            <span>@quickSigil.Label</span>
-                        </button>
-                    }
-                    <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-owned="true">Only Owned</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary quick-filter-btn" data-quick-customizations="true">Has Customizations</button>
-                </div>
-            </div>
-
             <div id="activeFiltersWrap" class="active-filters-wrap d-none gear-toolbar-active-filters">
                 <span class="active-filters-label">Active Filters</span>
                 <div id="activeFilterChips" class="active-filter-chips"></div>
@@ -2268,299 +2367,214 @@
         </div>
     </div>
 
-    <div class="card mb-4 gear-filters-panel" id="filtersPanelCard">
-        <div class="card-header d-flex justify-content-between align-items-center gap-2">
-            <div>
-                <div class="fw-semibold">Filters</div>
-                <div class="small text-muted">Refine results without leaving the current list. If advanced filters are hidden, use the Filters button here to show them.</div>
-            </div>
-            <div class="gear-filters-header-actions">
-                <button type="button" class="btn btn-sm advanced-toggle-btn filters-header-toggle d-none d-lg-inline-flex" id="desktopFiltersToggleBtn" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
-                    Filters
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary d-lg-none" id="mobileCloseFiltersBtn" data-bs-toggle="collapse" data-bs-target="#filtersPanelCollapse" aria-expanded="false" aria-controls="filtersPanelCollapse">
-                    Close
-                </button>
-            </div>
-        </div>
-        <div class="collapse" id="filtersPanelCollapse">
-            <div class="card-body">
-                <div class="accordion" id="advancedFiltersAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingElement">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseElement" aria-expanded="false" aria-controls="collapseElement">
-                                Element Type
-                                <span id="badgeElementCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".element-filter">Reset</button>
-                        </h2>
-                        <div id="collapseElement" class="accordion-collapse collapse" aria-labelledby="headingElement" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body">
-                                <div class="row row-cols-2 row-cols-md-3 g-2">
-                                    @foreach (var element in elementOptions)
-                                    {
-                                        var checkboxId = $"element-{element.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter element-filter" type="checkbox" value="@element" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@element</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingAbility">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAbility" aria-expanded="false" aria-controls="collapseAbility">
-                                Ability Type
-                                <span id="badgeAbilityCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".ability-filter">Reset</button>
-                        </h2>
-                        <div id="collapseAbility" class="accordion-collapse collapse" aria-labelledby="headingAbility" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body">
-                                <div class="row row-cols-2 row-cols-md-3 g-2">
-                                    @foreach (var ability in abilityTypeOptions)
-                                    {
-                                        var checkboxId = $"ability-{ability.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter ability-filter" type="checkbox" value="@ability" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@ability</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingRange">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRange" aria-expanded="false" aria-controls="collapseRange">
-                                Range Type
-                                <span id="badgeRangeCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".range-filter">Reset</button>
-                        </h2>
-                        <div id="collapseRange" class="accordion-collapse collapse" aria-labelledby="headingRange" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body">
-                                <div class="row row-cols-2 row-cols-md-3 g-2">
-                                    @foreach (var range in rangeOptions)
-                                    {
-                                        var checkboxId = $"range-{range.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter range-filter" type="checkbox" value="@range" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@range</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingEquipment">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEquipment" aria-expanded="false" aria-controls="collapseEquipment">
-                                Equipment Type
-                                <span id="badgeEquipmentCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".equipment-filter">Reset</button>
-                        </h2>
-                        <div id="collapseEquipment" class="accordion-collapse collapse" aria-labelledby="headingEquipment" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body">
-                                <div class="row row-cols-2 row-cols-md-3 g-2">
-                                    @foreach (var type in equipmentTypeOptions)
-                                    {
-                                        var checkboxId = $"equipment-{type.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter equipment-filter" type="checkbox" value="@type" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@type</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingRAbilities">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRAbilities" aria-expanded="false" aria-controls="collapseRAbilities">
-                                R Abilities
-                                <span id="badgeRAbilitiesCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".rability-filter">Reset</button>
-                        </h2>
-                        <div id="collapseRAbilities" class="accordion-collapse collapse" aria-labelledby="headingRAbilities" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
-                                <div class="row g-2 mb-2">
-                                    <div class="col-12 col-md-9">
-                                        <input
-                                            type="text"
-                                            class="form-control form-control-sm"
-                                            id="rabilityFilterSearch"
-                                            placeholder="Search R Abilities..."
-                                            autocomplete="off" />
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clearRabilityFilterSearch">Clear</button>
-                                    </div>
-                                </div>
-                                <div class="row row-cols-2 row-cols-md-3 g-2">
-                                    @foreach (var passive in rAbilityOptions)
-                                    {
-                                        var checkboxId = $"rability-{passive.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter rability-filter" type="checkbox" value="@passive" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@passive</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                                <div id="rabilityFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingEffects">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEffects" aria-expanded="false" aria-controls="collapseEffects">
-                                Effects
-                                <span id="badgeEffectsCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".effect-filter">Reset</button>
-                        </h2>
-                        <div id="collapseEffects" class="accordion-collapse collapse" aria-labelledby="headingEffects" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
-                                <div class="row g-2 mb-2">
-                                    <div class="col-12 col-md-9">
-                                        <input
-                                            type="text"
-                                            class="form-control form-control-sm"
-                                            id="effectFilterSearch"
-                                            placeholder="Search Effects..."
-                                            autocomplete="off" />
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clearEffectFilterSearch">Clear</button>
-                                    </div>
-                                </div>
-                                <div class="row row-cols-2 row-cols-md-3 g-2">
-                                    @foreach (var effect in effectOptions)
-                                    {
-                                        var checkboxId = $"effect-{effect.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter effect-filter" type="checkbox" value="@effect" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@effect</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                                <div id="effectFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingSubRAbilities">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSubRAbilities" aria-expanded="false" aria-controls="collapseSubRAbilities">
-                                Sub-R Abilities
-                                <span id="badgeSubRAbilitiesCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".subr-filter">Reset</button>
-                        </h2>
-                        <div id="collapseSubRAbilities" class="accordion-collapse collapse" aria-labelledby="headingSubRAbilities" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body" style="max-height: 320px; overflow-y: auto;">
-                                <div class="row g-2 mb-2">
-                                    <div class="col-12 col-md-9">
-                                        <input
-                                            type="text"
-                                            class="form-control form-control-sm"
-                                            id="subRFilterSearch"
-                                            placeholder="Search Sub-R Abilities..."
-                                            autocomplete="off" />
-                                    </div>
-                                    <div class="col-12 col-md-3">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clearSubRFilterSearch">Clear</button>
-                                    </div>
-                                </div>
-                                <div class="row row-cols-1 row-cols-md-2 g-2">
-                                    @foreach (var subR in subRAbilityOptions)
-                                    {
-                                        var checkboxId = $"subr-{subR.Key.Replace(":", "-").Replace("/", "-").Replace(" ", "-").ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter subr-filter" type="checkbox" value="@subR.Key" data-label="@subR.Label" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@subR.Label</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                                <div id="subRFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex align-items-center justify-content-between" id="headingSigils">
-                            <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSigils" aria-expanded="false" aria-controls="collapseSigils">
-                                Sigils
-                                <span id="badgeSigilsCount" class="badge rounded-pill text-bg-secondary ms-2 filter-count-badge d-none">0</span>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter" data-filter-target=".sigil-filter">Reset</button>
-                        </h2>
-                        <div id="collapseSigils" class="accordion-collapse collapse" aria-labelledby="headingSigils" data-bs-parent="#advancedFiltersAccordion">
-                            <div class="accordion-body">
-                                <div class="row row-cols-2 row-cols-md-4 g-2">
-                                    @foreach (var sigil in sigilOptions)
-                                    {
-                                        var checkboxId = $"sigil-{sigil.Type.ToLowerInvariant()}";
-                                        <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input advanced-filter sigil-filter" type="checkbox" value="@sigil.Type" id="@checkboxId" />
-                                                <label class="form-check-label" for="@checkboxId">@sigil.Symbol @sigil.Type</label>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+    <div class="row gx-lg-4 gear-search-layout">
+        <div class="col-lg-3 gear-filters-col">
+            <div class="offcanvas offcanvas-start gear-filters-offcanvas" tabindex="-1" id="gearFiltersOffcanvas" aria-labelledby="gearFiltersOffcanvasLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="gearFiltersOffcanvasLabel">Filters</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#gearFiltersOffcanvas" aria-label="Close"></button>
                 </div>
-
-                <div class="border-top pt-2 d-flex flex-wrap align-items-center gap-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="ownedItemsOnlyFilter" />
-                        <label class="form-check-label" for="ownedItemsOnlyFilter">
-                            Only Show Owned Items
-                        </label>
+                <div class="offcanvas-body gear-filters-rail-body">
+                    <div class="gear-rail-toggles">
+                        <div class="rail-facet-chips">
+                            <div class="character-chip-option">
+                                <input class="character-chip-input" type="checkbox" id="ownedItemsOnlyFilter" />
+                                <label class="character-chip-label rail-toggle-label" for="ownedItemsOnlyFilter">Only Owned</label>
+                            </div>
+                            <div class="character-chip-option">
+                                <input class="character-chip-input" type="checkbox" id="hasCustomizationsFilter" />
+                                <label class="character-chip-label rail-toggle-label" for="hasCustomizationsFilter">Has Customizations</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="hasCustomizationsFilter" />
-                        <label class="form-check-label" for="hasCustomizationsFilter">
-                            Has Customizations
-                        </label>
+
+                    <div class="rail-facet">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">Element
+                                <span id="badgeElementCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".element-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-chips">
+                            @foreach (var element in elementOptions)
+                            {
+                                var checkboxId = $"element-{element.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                <div class="character-chip-option">
+                                    <input class="character-chip-input advanced-filter element-filter" type="checkbox" value="@element" id="@checkboxId" />
+                                    <label class="character-chip-label" for="@checkboxId">@element</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="rail-facet">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">Ability Type
+                                <span id="badgeAbilityCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".ability-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-chips">
+                            @foreach (var ability in abilityTypeOptions)
+                            {
+                                var checkboxId = $"ability-{ability.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                <div class="character-chip-option">
+                                    <input class="character-chip-input advanced-filter ability-filter" type="checkbox" value="@ability" id="@checkboxId" />
+                                    <label class="character-chip-label" for="@checkboxId">@ability</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="rail-facet">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">Range
+                                <span id="badgeRangeCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".range-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-chips">
+                            @foreach (var range in rangeOptions)
+                            {
+                                var checkboxId = $"range-{range.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                <div class="character-chip-option">
+                                    <input class="character-chip-input advanced-filter range-filter" type="checkbox" value="@range" id="@checkboxId" />
+                                    <label class="character-chip-label" for="@checkboxId">@range</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="rail-facet">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">Equipment
+                                <span id="badgeEquipmentCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".equipment-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-chips">
+                            @foreach (var type in equipmentTypeOptions)
+                            {
+                                var checkboxId = $"equipment-{type.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                <div class="character-chip-option">
+                                    <input class="character-chip-input advanced-filter equipment-filter" type="checkbox" value="@type" id="@checkboxId" />
+                                    <label class="character-chip-label" for="@checkboxId">@type</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="rail-facet">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">Sigils
+                                <span id="badgeSigilsCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".sigil-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-chips">
+                            @foreach (var sigil in sigilOptions)
+                            {
+                                var checkboxId = $"sigil-{sigil.Type.ToLowerInvariant()}";
+                                <div class="character-chip-option">
+                                    <input class="character-chip-input advanced-filter sigil-filter" type="checkbox" value="@sigil.Type" id="@checkboxId" />
+                                    <label class="character-chip-label" for="@checkboxId">@sigil.Symbol @sigil.Type</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="rail-facet rail-facet-list">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">R Abilities
+                                <span id="badgeRAbilitiesCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".rability-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-search">
+                            <input type="text" class="form-control form-control-sm" id="rabilityFilterSearch" placeholder="Search R Abilities..." autocomplete="off" />
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearRabilityFilterSearch">Clear</button>
+                        </div>
+                        <div class="rail-facet-scroll">
+                            <div class="row row-cols-1 g-1">
+                                @foreach (var passive in rAbilityOptions)
+                                {
+                                    var checkboxId = $"rability-{passive.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                    <div class="col">
+                                        <div class="form-check">
+                                            <input class="form-check-input advanced-filter rability-filter" type="checkbox" value="@passive" id="@checkboxId" />
+                                            <label class="form-check-label" for="@checkboxId">@passive</label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <div id="rabilityFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
+                        </div>
+                    </div>
+
+                    <div class="rail-facet rail-facet-list">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">Effects
+                                <span id="badgeEffectsCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".effect-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-search">
+                            <input type="text" class="form-control form-control-sm" id="effectFilterSearch" placeholder="Search Effects..." autocomplete="off" />
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearEffectFilterSearch">Clear</button>
+                        </div>
+                        <div class="rail-facet-scroll">
+                            <div class="row row-cols-1 g-1">
+                                @foreach (var effect in effectOptions)
+                                {
+                                    var checkboxId = $"effect-{effect.Replace(" ", "-").Replace("/", "-").ToLowerInvariant()}";
+                                    <div class="col">
+                                        <div class="form-check">
+                                            <input class="form-check-input advanced-filter effect-filter" type="checkbox" value="@effect" id="@checkboxId" />
+                                            <label class="form-check-label" for="@checkboxId">@effect</label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <div id="effectFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
+                        </div>
+                    </div>
+
+                    <div class="rail-facet rail-facet-list">
+                        <div class="rail-facet-head">
+                            <span class="rail-facet-title">Sub-R Abilities
+                                <span id="badgeSubRAbilitiesCount" class="badge rounded-pill text-bg-secondary ms-1 filter-count-badge d-none">0</span>
+                            </span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none reset-filter rail-facet-reset" data-filter-target=".subr-filter">Reset</button>
+                        </div>
+                        <div class="rail-facet-search">
+                            <input type="text" class="form-control form-control-sm" id="subRFilterSearch" placeholder="Search Sub-R Abilities..." autocomplete="off" />
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSubRFilterSearch">Clear</button>
+                        </div>
+                        <div class="rail-facet-scroll">
+                            <div class="row row-cols-1 g-1">
+                                @foreach (var subR in subRAbilityOptions)
+                                {
+                                    var checkboxId = $"subr-{subR.Key.Replace(":", "-").Replace("/", "-").Replace(" ", "-").ToLowerInvariant()}";
+                                    <div class="col">
+                                        <div class="form-check">
+                                            <input class="form-check-input advanced-filter subr-filter" type="checkbox" value="@subR.Key" data-label="@subR.Label" id="@checkboxId" />
+                                            <label class="form-check-label" for="@checkboxId">@subR.Label</label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <div id="subRFilterNoMatches" class="small text-muted mt-2 d-none">No matches found.</div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="gear-filters-sheet-footer d-lg-none">
+                <div class="offcanvas-footer gear-filters-rail-footer d-lg-none">
                     <button type="button" class="btn btn-outline-secondary" id="mobileClearFiltersBtn">Clear all</button>
-                    <button type="button" class="btn btn-primary" id="mobileApplyFiltersBtn">Apply filters</button>
+                    <button type="button" class="btn btn-primary" id="mobileApplyFiltersBtn" data-bs-dismiss="offcanvas" data-bs-target="#gearFiltersOffcanvas">Show results</button>
                 </div>
             </div>
         </div>
-    </div>
 
+        <div class="col-lg-9 gear-results-col">
     <div class="gear-results-meta flex-md-row align-items-md-center justify-content-between mb-2">
         <div id="resultsSummary" class="results-summary">Showing 0 of 0 items</div>
         <div class="gear-results-page-size">
@@ -2865,6 +2879,8 @@
             </span>
             <span>Materia Support (dashed border)</span>
         </span>
+    </div>
+        </div>
     </div>
 </div>
 
@@ -3191,12 +3207,9 @@
             const selectedSigils = new Set();
 
             const stickyControlsCard = document.querySelector('.sticky-gear-controls');
-            const filtersPanelCard = document.getElementById('filtersPanelCard');
-            const filtersPanelCollapse = document.getElementById('filtersPanelCollapse');
+            const filtersOffcanvas = document.getElementById('gearFiltersOffcanvas');
             const mobileFiltersToggleBtn = document.getElementById('mobileFiltersToggleBtn');
-            const desktopFiltersToggleBtn = document.getElementById('desktopFiltersToggleBtn');
-            const filtersToggleButtons = [mobileFiltersToggleBtn, desktopFiltersToggleBtn].filter(Boolean);
-            const mobileCloseFiltersBtn = document.getElementById('mobileCloseFiltersBtn');
+            const filtersToggleButtons = [mobileFiltersToggleBtn].filter(Boolean);
             const syncStickyOffsets = () => {
                 if (!stickyControlsCard || window.innerWidth < 992) {
                     document.documentElement.style.removeProperty('--gear-compare-top');
@@ -3211,9 +3224,9 @@
 
             syncStickyOffsets();
             window.addEventListener('resize', syncStickyOffsets);
-            if (filtersPanelCollapse) {
-                ['shown.bs.collapse', 'hidden.bs.collapse'].forEach(eventName => {
-                    filtersPanelCollapse.addEventListener(eventName, () => {
+            if (filtersOffcanvas) {
+                ['shown.bs.offcanvas', 'hidden.bs.offcanvas'].forEach(eventName => {
+                    filtersOffcanvas.addEventListener(eventName, () => {
                         syncStickyOffsets();
                         setTimeout(syncStickyOffsets, 220);
                     });
@@ -3862,16 +3875,9 @@
                 { selector: '.sigil-filter', badgeId: 'badgeSigilsCount' }
             ];
 
-            const accordionSelectionMap = [
-                { selector: '.element-filter', collapseId: 'collapseElement' },
-                { selector: '.ability-filter', collapseId: 'collapseAbility' },
-                { selector: '.range-filter', collapseId: 'collapseRange' },
-                { selector: '.equipment-filter', collapseId: 'collapseEquipment' },
-                { selector: '.rability-filter', collapseId: 'collapseRAbilities' },
-                { selector: '.effect-filter', collapseId: 'collapseEffects' },
-                { selector: '.subr-filter', collapseId: 'collapseSubRAbilities' },
-                { selector: '.sigil-filter', collapseId: 'collapseSigils' }
-            ];
+            // Facets now render as always-visible chips/lists in the filter rail,
+            // so there are no accordion sections to auto-open.
+            const accordionSelectionMap = [];
 
             const updateFilterCountBadges = () => {
                 filterCountBadges.forEach(({ selector, badgeId }) => {
@@ -3892,24 +3898,17 @@
                 }
 
                 const activeCount = buildActiveFilterEntries().length;
-                const isOpen = filtersPanelCollapse?.classList.contains('show') ?? false;
-                const label = isOpen ? 'Hide Filters' : 'Filters';
 
                 filtersToggleButtons.forEach((button) => {
                     if (activeCount > 0) {
-                        button.innerHTML = `${label}<span class="badge rounded-pill text-bg-primary filter-count-badge">${activeCount}</span>`;
+                        button.innerHTML = `Filters<span class="badge rounded-pill text-bg-primary filter-count-badge">${activeCount}</span>`;
                     } else {
-                        button.textContent = label;
+                        button.textContent = 'Filters';
                     }
                 });
             };
 
             const syncFiltersPresentation = () => {
-                const isMobile = window.innerWidth < 992;
-                const isOpen = filtersPanelCollapse?.classList.contains('show') ?? false;
-
-                document.body.classList.toggle('gear-filters-open', isMobile && isOpen);
-                filtersPanelCard?.classList.toggle('gear-filters-mobile-active', isMobile && isOpen);
                 syncFiltersToggleLabel();
             };
 
@@ -4883,43 +4882,25 @@
                 });
             }
 
-            if (mobileApplyFiltersBtn && filtersPanelCollapse) {
+            // The "Show results" footer button uses data-bs-dismiss to close the
+            // offcanvas on mobile; make sure the summary reflects the live count too.
+            if (mobileApplyFiltersBtn) {
                 mobileApplyFiltersBtn.addEventListener('click', () => {
-                    bootstrap.Collapse.getOrCreateInstance(filtersPanelCollapse).hide();
+                    updateResultsSummary();
                 });
             }
 
-            if (mobileCloseFiltersBtn && filtersPanelCollapse) {
-                mobileCloseFiltersBtn.addEventListener('click', () => {
-                    bootstrap.Collapse.getOrCreateInstance(filtersPanelCollapse).hide();
+            if (filtersOffcanvas) {
+                filtersOffcanvas.addEventListener('shown.bs.offcanvas', () => {
+                    syncFiltersPresentation();
                 });
-            }
-
-            if (filtersPanelCollapse) {
-                ['shown.bs.collapse', 'hidden.bs.collapse'].forEach(eventName => {
-                    filtersPanelCollapse.addEventListener(eventName, (event) => {
-                        if (event.target !== filtersPanelCollapse) {
-                            return;
-                        }
-
-                        if (eventName === 'shown.bs.collapse') {
-                            syncAdvancedAccordionSelectionState();
-                            if (window.innerWidth < 992) {
-                                window.setTimeout(() => {
-                                    mobileCloseFiltersBtn?.focus();
-                                }, 40);
-                            }
-                        } else if (window.innerWidth < 992) {
-                            window.setTimeout(() => {
-                                mobileFiltersToggleBtn?.focus();
-                            }, 40);
-                        } else {
-                            window.setTimeout(() => {
-                                desktopFiltersToggleBtn?.focus();
-                            }, 40);
-                        }
-                        syncFiltersPresentation();
-                    });
+                filtersOffcanvas.addEventListener('hidden.bs.offcanvas', () => {
+                    if (window.innerWidth < 992) {
+                        window.setTimeout(() => {
+                            mobileFiltersToggleBtn?.focus();
+                        }, 40);
+                    }
+                    syncFiltersPresentation();
                 });
             }
 
