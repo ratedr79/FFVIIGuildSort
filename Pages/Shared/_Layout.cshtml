@@ -20,7 +20,7 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-xl navbar-light bg-white border-bottom box-shadow mb-3 app-topnav">
+        <nav class="navbar navbar-expand-xl navbar-light bg-white border-bottom box-shadow app-topnav">
             <div class="container-fluid app-topnav-container">
                 <a class="navbar-brand app-topnav-brand" asp-area="" asp-page="/Index">
                     <i class="fas fa-tools text-primary"></i> SOLDIER Tools
@@ -134,6 +134,71 @@
                 </div>
             </div>
         </nav>
+        @* FF7EC end-of-service countdown bar (temporary). Target = 2026-10-06 23:00 PDT (-07:00). To retire: delete this whole block and re-add `mb-3` to the nav above. *@
+        <style>
+            .eos-countdown-bar {
+                background: linear-gradient(90deg, #241a3a 0%, #3a2a5e 100%);
+                color: #f3edff;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+            }
+            .eos-countdown-inner {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                justify-content: center;
+                gap: 0.4rem 0.6rem;
+                padding: 0.45rem 1rem;
+                font-size: 0.9rem;
+                text-align: center;
+            }
+            .eos-countdown-label { font-weight: 600; }
+            .eos-countdown-timer {
+                font-weight: 700;
+                color: #ffd27a;
+                font-variant-numeric: tabular-nums;
+                letter-spacing: 0.02em;
+                min-width: 12ch;
+            }
+            .eos-countdown-local { color: rgba(243, 237, 255, 0.72); font-size: 0.82rem; }
+            @@media (max-width: 575.98px) {
+                .eos-countdown-local { flex-basis: 100%; }
+            }
+        </style>
+        <div id="eosCountdownBar" class="eos-countdown-bar mb-3" role="status">
+            <div class="container-fluid eos-countdown-inner">
+                <span class="eos-countdown-label"><i class="fas fa-hourglass-half me-1"></i> FF7 Ever Crisis ends in</span>
+                <span id="eosCountdownTimer" class="eos-countdown-timer" aria-live="off">calculating&hellip;</span>
+                <span id="eosCountdownLocal" class="eos-countdown-local"></span>
+            </div>
+        </div>
+        <script>
+            (function () {
+                var target = new Date('2026-10-06T23:00:00-07:00').getTime();
+                var timerEl = document.getElementById('eosCountdownTimer');
+                var localEl = document.getElementById('eosCountdownLocal');
+                if (!timerEl) { return; }
+                try {
+                    localEl.textContent = '(' + new Date(target).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) + ' your time)';
+                } catch (e) { /* older browsers: skip local time */ }
+                function pad(n) { return (n < 10 ? '0' : '') + n; }
+                var iv;
+                function tick() {
+                    var diff = target - Date.now();
+                    if (diff <= 0) {
+                        timerEl.textContent = 'Service has ended';
+                        if (iv) { clearInterval(iv); }
+                        return;
+                    }
+                    var s = Math.floor(diff / 1000);
+                    timerEl.textContent = Math.floor(s / 86400) + 'd '
+                        + pad(Math.floor((s % 86400) / 3600)) + 'h '
+                        + pad(Math.floor((s % 3600) / 60)) + 'm '
+                        + pad(s % 60) + 's';
+                }
+                iv = setInterval(tick, 1000);
+                tick();
+            })();
+        </script>
     </header>
     <div class="container">
         <main role="main" class="pb-3">

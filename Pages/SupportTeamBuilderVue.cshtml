@@ -568,6 +568,15 @@
             return 0;
         }
 
+        // Ultimate weapons have no overboost ladder — the inventory stores their ownership as the
+        // literal 'own'. Treat an owned ultimate as fully owned: the server ignores overboost for
+        // ultimates (upgradeCount forced to 0) and applies their effect at full value regardless,
+        // so this only needs to resolve to a non-zero selection. Without this, every owned ultimate
+        // was mapped to 0 and silently dropped from shared-inventory support searches.
+        if (normalized === 'own') {
+            return 4;
+        }
+
         if (normalized === '3-star' || normalized === '4-star' || normalized === '5-star') {
             return 1;
         }

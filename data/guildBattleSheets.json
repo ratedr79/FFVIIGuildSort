@@ -1,6 +1,18 @@
 {
   "schemaVersion": 1,
-  "battles": [
+  "battles": [    
+    {
+      "id": "2026-07",
+      "name": "",
+      "month": "July",
+      "year": 2026,
+      "element": "Fire",
+      "abilityType": "Physical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
     {
       "id": "2026-06",
       "name": "",

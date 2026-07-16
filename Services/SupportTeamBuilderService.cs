@@ -68,7 +68,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     continue;
                 }
 
-                if (entries.Any(entry => ExtractEffectLineCandidates(entry.AbilityText, effect).Any(c => c.HasExplicitPotency)))
+                if (entries.Any(entry => ExtractEffectLineCandidates(BuildEffectSearchText(entry.AbilityText, entry.Customizations), effect).Any(c => c.HasExplicitPotency)))
                 {
                     effectHasPotency[effect] = true;
                 }
@@ -147,7 +147,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     SelectionToOverboost(selectedOb),
                     _weaponSearchDataService.MaxWeaponLevel);
                 var abilityText = snapshot?.AbilityText ?? weapon.AbilityText;
-                var effectCandidates = ExtractEffectLineCandidates(abilityText, filter.EffectType);
+                var searchText = BuildEffectSearchText(abilityText, snapshot?.Customizations ?? weapon.Customizations);
+                var effectCandidates = ExtractEffectLineCandidates(searchText, filter.EffectType);
                 var candidate = effectCandidates
                     .Where(c => MatchesRange(filter.Range, c.Range))
                     .FirstOrDefault(c => c.BasePotency >= filter.MinBasePotency && c.MaxPotency >= filter.MinMaxPotency);
@@ -187,7 +188,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 var selected = ResolveOwnedOutfitSelection(outfit.Id, request.OwnedOutfitById, request.UseSharedInventoryOwnership);
                 var abilityText = outfit.AbilityText;
-                var effectCandidates = ExtractEffectLineCandidates(abilityText, filter.EffectType);
+                var searchText = BuildEffectSearchText(abilityText, outfit.Customizations);
+                var effectCandidates = ExtractEffectLineCandidates(searchText, filter.EffectType);
                 var candidate = effectCandidates
                     .Where(c => MatchesRange(filter.Range, c.Range))
                     .FirstOrDefault(c => c.BasePotency >= filter.MinBasePotency && c.MaxPotency >= filter.MinMaxPotency);
@@ -547,6 +549,29 @@ namespace FFVIIEverCrisisAnalyzer.Services
             }
 
             return (tiers.Min(), tiers.Max());
+        }
+
+        // Customization-ADDED effects (e.g. a Spade upgrade "Applies Amp. Mag. Abilities [Rng.: Self]") carry the
+        // effect TAG but live only in the customization description — NOT the base ability text — and that description
+        // is a SINGLE line packing several effects, each with its own [Rng.]. Break it before each "Also," / "Applies "
+        // so every effect becomes its own line (so ExtractEffectLineCandidates reads the right [Rng.] per effect,
+        // instead of grabbing the first one), then union with the base ability text.
+        private static string BuildEffectSearchText(string abilityText, IEnumerable<WeaponCustomization>? customizations)
+        {
+            var text = abilityText ?? string.Empty;
+            if (customizations == null)
+            {
+                return text;
+            }
+
+            var customizationLines = customizations
+                .Where(c => !string.IsNullOrWhiteSpace(c.Description))
+                .Select(c => c.Description
+                    .Replace(" Also, ", "\n", StringComparison.OrdinalIgnoreCase)
+                    .Replace(" Applies ", "\n", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            return customizationLines.Count == 0 ? text : text + "\n" + string.Join("\n", customizationLines);
         }
 
         private static List<EffectLineCandidate> ExtractEffectLineCandidates(string abilityText, string effectType)
