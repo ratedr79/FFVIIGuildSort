@@ -28,7 +28,7 @@ public sealed class EosPlayerStatsService
         ["5"] = "Heal", ["67"] = "✖", ["69"] = "▲", ["71"] = "⬤", ["65"] = "■", ["73"] = "◆",
         ["128"] = "Non-elemental", ["129"] = "Wind", ["130"] = "Water", ["131"] = "Thunder", ["133"] = "Ice",
         ["134"] = "Holy", ["135"] = "Fire", ["136"] = "Earth",
-        ["192"] = "★", ["193"] = "★", ["195"] = "★", ["196"] = "★", ["197"] = "★", ["198"] = "★",
+        ["192"] = "★", ["193"] = "★", ["195"] = "★", ["196"] = "★", ["197"] = "★", ["198"] = "★", ["782"] = "Stamina ",
     };
 
     private static readonly Regex SpriteRegex = new("<sprite=\"tmp_icon\" index=(\\d+)>", RegexOptions.Compiled);
@@ -219,6 +219,7 @@ public sealed class EosPlayerStatsService
 
         ParseAccountExtras(info, stats, m);
         ParseCollections(info, stats, m);
+        ParseProgress(info, stats, m);
         if (includePurchases) stats.Purchases = ParsePurchases(info, m);
 
         stats.Warnings = stats.Warnings.Distinct().Take(10).ToList();
@@ -320,6 +321,50 @@ public sealed class EosPlayerStatsService
                     .Select(id => m.Characters.TryGetValue(id, out var c) ? c.Name : $"#{id}");
                 return string.Join(", ", names);
             });
+        // Per-stage bests; the event id is the stage id / 1000.
+        // Stage scores live in the general solo battle list.
+        var stageScores = List(info, "UserEventSoloBattleList").GroupBy(b => Long(b, "EventSoloBattleId"))
+            .ToDictionary(g => g.Key, g => (Score: Long(g.First(), "HighScore"), Wins: Long(g.First(), "TotalWinCount")));
+        List<EosEventStage> StagesFor(string list, long eventId) => List(info, list)
+            .Where(b => Long(b, "EventSoloBattleId") / 1000 == eventId)
+            .OrderBy(b => Long(b, "EventSoloBattleId"))
+            .Select(b =>
+            {
+                var team = new[] { "HighScoreCharacterId0", "HighScoreCharacterId1", "HighScoreCharacterId2" }
+                    .Select(k => Long(b, k)).Where(id => id > 0).Select(id => CharacterName(m, id)).ToList();
+                var modifiers = 0;
+                var levelBonus = 0;
+                var raw = Str(b, "BuffDebuffSelectionInfo");
+                if (!string.IsNullOrWhiteSpace(raw))
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(raw);
+                        if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                            foreach (var p in doc.RootElement.EnumerateObject())
+                                if (p.Value.ValueKind == JsonValueKind.Array)
+                                    foreach (var mod in p.Value.EnumerateArray())
+                                    {
+                                        modifiers++;
+                                        if (mod.TryGetInt64(out var modId)) levelBonus += m.CrisisModifierLevels.GetValueOrDefault(modId);
+                                    }
+                    }
+                    catch (JsonException) { }
+                }
+                var id = Long(b, "EventSoloBattleId");
+                var name = m.SoloBattleNames.GetValueOrDefault(id);
+                return new EosEventStage
+                {
+                    Name = string.IsNullOrEmpty(name) ? $"Stage #{id}" : name,
+                    Team = team.Count > 0 ? string.Join(", ", team) : null,
+                    BestSet = FromMs(Long(b, "LastUpdateHighScoreDatetime")),
+                    WithMemoria = b.TryGetProperty("IsHighScoreWithMemoria0", out var mem) && mem.ValueKind == JsonValueKind.True,
+                    Modifiers = modifiers,
+                    HighScore = stageScores.TryGetValue(id, out var sc) ? sc.Score : 0,
+                    Clears = stageScores.TryGetValue(id, out var sw) ? sw.Wins : 0,
+                    StageLevel = m.CrisisStageDefaults.TryGetValue(id, out var baseLevel) ? baseLevel + levelBonus : null,
+                };
+            }).ToList();
         foreach (var e in List(info, "UserEventCrisisBattleList"))
         {
             var id = Long(e, "EventCrisisBattleId");
@@ -337,9 +382,14 @@ public sealed class EosPlayerStatsService
             {
                 rank.BestDamage = Long(e, "MaxHighScore");
                 rank.BestTeam = damageTeams.GetValueOrDefault(id);
+                rank.Stages = StagesFor("UserEventDamageRankingBattleSoloBattleList", id);
                 stats.DamageRankings.Add(rank);
             }
-            else stats.CrisisEvents.Add(rank);
+            else
+            {
+                rank.Stages = StagesFor("UserEventCrisisBattleSoloBattleList", id);
+                stats.CrisisEvents.Add(rank);
+            }
         }
         stats.CrisisEvents = stats.CrisisEvents.OrderByDescending(e => e.EndDate).ToList();
         stats.DamageRankings = stats.DamageRankings.OrderByDescending(e => e.EndDate).ToList();
@@ -349,6 +399,32 @@ public sealed class EosPlayerStatsService
         var currentGuildRanks = List(info, "SharedGuildEventGuildRankingBaseList")
             .GroupBy(g => Long(g, "EventBaseId"))
             .ToDictionary(g => g.Key, g => (int)Long(g.First(), "FinalTotalScoreRank"));
+        // Shared rows are the current guild's history, including battles fought before the player joined.
+        // Only trust them where the player's own final rank matches, i.e. they were in this guild for that battle.
+        var ownGuildRanks = List(info, "UserEventGuildRankingBaseList")
+            .GroupBy(g => Long(g, "EventBaseId")).ToDictionary(g => g.Key, g => (int)Long(g.First(), "FinalTotalScoreRank"));
+        bool SameGuild(long eventBaseId) => currentGuildRanks.TryGetValue(eventBaseId, out var cur) && cur > 0
+            && ownGuildRanks.TryGetValue(eventBaseId, out var own) && own == cur;
+        var guildShared = List(info, "SharedGuildEventGuildRankingBattleList")
+            .GroupBy(g => Long(g, "EventGuildRankingBattleId")).ToDictionary(g => g.Key, g => g.First());
+        var fightsByEvent = List(info, "UserEventGuildRankingBattleList")
+            .Select(f => (Id: Long(f, "EventGuildRankingBattleId"), Row: f))
+            .GroupBy(f => m.GuildFights.TryGetValue(f.Id, out var d) ? d.EventBaseId : f.Id / 100)
+            .ToDictionary(g => g.Key, g => g.OrderBy(f => f.Id).Select(f =>
+            {
+                m.GuildFights.TryGetValue(f.Id, out var d);
+                JsonElement sh = default;
+                var hasShared = SameGuild(d.EventBaseId) && guildShared.TryGetValue(f.Id, out sh);
+                return new EosGuildFight
+                {
+                    Stars = d.Stars,
+                    Boss = string.IsNullOrEmpty(d.Boss) ? $"Boss #{f.Id}" : d.Boss,
+                    HighScore = Long(f.Row, "HighScore"),
+                    PracticeBest = Long(f.Row, "PracticeBattleBestScore"),
+                    GuildDefeats = hasShared ? Long(sh, "EnemyDefeatCount") : null,
+                    GuildScore = hasShared ? Long(sh, "TotalScore") : null,
+                };
+            }).ToList());
         var guildBattleNames = new Dictionary<string, int>();
         stats.GuildBattles = List(info, "UserEventGuildRankingBaseList")
             .Select(g => (BaseId: Long(g, "EventBaseId"), Rank: (int)Long(g, "FinalTotalScoreRank")))
@@ -367,6 +443,7 @@ public sealed class EosPlayerStatsService
                     EndDate = FromMs(d.EndMs),
                     FinalRank = g.Rank,
                     CurrentGuildRank = currentGuildRanks.TryGetValue(g.BaseId, out var cr) && cr > 0 ? cr : null,
+                    Fights = fightsByEvent.GetValueOrDefault(g.BaseId) ?? new(),
                 };
             })
             .OrderByDescending(g => g.EndDate)
@@ -432,6 +509,175 @@ public sealed class EosPlayerStatsService
 
     private static string CharacterName(MasterData m, long id) =>
         m.Characters.TryGetValue(id, out var c) ? c.Name : $"#{id}";
+
+    // Mission group types that reset daily/weekly, so "completed" means nothing for them.
+    private static readonly HashSet<long> RepeatingMissionGroupTypes = new() { 2, 3, 11, 15, 16, 19, 9999 };
+
+    private static void ParseProgress(JsonElement info, EosPlayerStats stats, MasterData m)
+    {
+        // Highwind
+        stats.Highwind.IdleCollections = List(info, "UserHighwindList").Sum(h => Long(h, "TotalIdlingCollectCount"));
+        stats.Highwind.Parts = List(info, "UserHighwindPartsList")
+            .OrderBy(p => Long(p, "HighwindPartsId"))
+            .Select(p => new EosNamedCount
+            {
+                Name = m.HighwindParts.GetValueOrDefault(Long(p, "HighwindPartsId")) ?? $"Part {Long(p, "HighwindPartsId")}",
+                Value = Long(p, "Level"),
+            }).ToList();
+        stats.Highwind.KeyItemsTotal = m.HighwindKeyItems.Count;
+        stats.Highwind.KeyItems = List(info, "UserHighwindKeyItemList").Select(k =>
+        {
+            m.HighwindKeyItems.TryGetValue(Long(k, "HighwindKeyItemId"), out var def);
+            return new EosHighwindKeyItem
+            {
+                Name = string.IsNullOrEmpty(def.Name) ? $"Key item #{Long(k, "HighwindKeyItemId")}" : def.Name,
+                Upgrades = (int)Long(k, "UpgradeCount"),
+                MaxUpgrades = def.MaxUpgrades,
+                Obtained = FromMs(Long(k, "GetDatetime")),
+            };
+        }).OrderBy(k => k.Obtained).ToList();
+
+        // Guild
+        stats.Guild.Created = List(info, "SharedGuildBaseList").Select(g => FromMs(Long(g, "CreatedDatetime"))).FirstOrDefault();
+        stats.Guild.TimesLeftAGuild = (int)List(info, "UserGuildBaseList").Sum(g => Long(g, "TotalLeaveCount"));
+        stats.Guild.Bonuses = List(info, "UserGuildBonusList")
+            .OrderBy(b => m.GuildBonuses.TryGetValue(Long(b, "GuildBonusId"), out var d) ? d.Order : 99)
+            .Select(b =>
+            {
+                m.GuildBonuses.TryGetValue(Long(b, "GuildBonusId"), out var d);
+                var name = d.Name ?? $"Bonus #{Long(b, "GuildBonusId")}";
+                stats.Guild.BonusMax[name] = d.MaxLevel;
+                return new EosNamedCount { Name = name, Value = Long(b, "Level") };
+            }).ToList();
+        // Guild level achievements repeat once per reward track; keep one row per description.
+        stats.Guild.Achievements = List(info, "SharedGuildAchievementList")
+            .Select(a => (Def: m.GuildAchievements.GetValueOrDefault(Long(a, "GuildAchievementId")), Progress: Long(a, "ProgressCount")))
+            .Where(a => a.Def.Text != null)
+            .GroupBy(a => a.Def.Text)
+            .Select(g => g.First())
+            .OrderBy(a => a.Def.Order)
+            .Select(a => new EosGuildAchievement { Description = a.Def.Text!, Progress = a.Progress, Goal = a.Def.Goal })
+            .ToList();
+
+        // Memoria: owned once enough fragments are collected (EquipableDatetime set).
+        var userMemoria = List(info, "UserMemoriaList").GroupBy(x => Long(x, "MemoriaId")).ToDictionary(g => g.Key, g => g.First());
+        stats.Memoria = m.Memoria.Select(kv =>
+        {
+            var has = userMemoria.TryGetValue(kv.Key, out var um);
+            var equipable = has ? Long(um, "EquipableDatetime") : 0;
+            return new EosMemoriaStat
+            {
+                Name = kv.Value.Name,
+                Stars = kv.Value.Rarity,
+                Source = kv.Value.Source,
+                Owned = equipable > 0,
+                Fragments = has ? (int)Long(um, "FragmentCount") : 0,
+                FragmentsNeeded = kv.Value.Fragments,
+                Obtained = FromMs(equipable),
+            };
+        }).OrderByDescending(x => x.Owned).ThenByDescending(x => x.Stars).ThenBy(x => x.Name).ToList();
+
+        // Skills
+        var special = List(info, "UserSkillSpecialList").Select(x => Long(x, "SpecialSkillId")).ToHashSet();
+        var overaccel = List(info, "UserSkillOveraccelList").Select(x => Long(x, "OveraccelSkillId")).ToHashSet();
+        stats.Skills = m.SpecialSkills.Select(kv => new EosSkillStat { Name = kv.Value.Name, Type = kv.Value.Type, For = kv.Value.For, Owned = special.Contains(kv.Key) })
+            .Concat(m.OveraccelSkills.Select(kv => new EosSkillStat { Name = kv.Value.Name, Type = "Overaccel", For = kv.Value.For, Owned = overaccel.Contains(kv.Key) }))
+            .ToList();
+
+        // Missions: skip repeating daily/weekly groups; a mission is complete once its last reward step is claimed.
+        stats.Missions = List(info, "UserMissionList").Select(u =>
+        {
+            if (!m.Missions.TryGetValue(Long(u, "MissionId"), out var def) || RepeatingMissionGroupTypes.Contains(def.GroupType)) return null;
+            var progress = Long(u, "ProgressCount");
+            var claimed = Long(u, "ReceivedProgressCount");
+            var goal = def.Goal > 0 ? def.Goal : 1;
+            return new EosMissionStat
+            {
+                Category = def.Category,
+                Mission = def.Text.Replace("{0}", goal.ToString("N0")),
+                Progress = Math.Min(progress, goal),
+                Goal = goal,
+                Complete = claimed >= goal,
+            };
+        }).Where(x => x != null && x.Mission.Length > 0).Select(x => x!)
+            .OrderBy(x => x.Category).ThenBy(x => x.Mission).ToList();
+
+        ParseBattles(info, stats, m);
+    }
+
+    private static void ParseBattles(JsonElement info, EosPlayerStats stats, MasterData m)
+    {
+        var bs = stats.Battles;
+        var wins = new List<(EosBattleWin Win, long EventId, string AreaKey, string Category)>();
+        string Or(string? name, string fallback) => string.IsNullOrWhiteSpace(name) ? fallback : name;
+
+        foreach (var b in List(info, "UserEventSoloBattleList"))
+        {
+            var id = Long(b, "EventSoloBattleId");
+            var ev = m.SoloBattleEvent.TryGetValue(id, out var e) ? e : id / 1000;
+            var evName = Or(m.EventNames.GetValueOrDefault(ev), $"Event #{ev}");
+            wins.Add((new EosBattleWin { Name = Or(m.SoloBattleNames.GetValueOrDefault(id), $"Battle #{id}"), Source = evName, Wins = Long(b, "TotalWinCount"), HighScore = Long(b, "HighScore") }, ev, "", ""));
+        }
+        foreach (var b in List(info, "UserEventMultiBattleList"))
+        {
+            var id = Long(b, "EventMultiBattleId");
+            var ev = m.MultiBattleEvent.GetValueOrDefault(id);
+            var evName = Or(m.EventNames.GetValueOrDefault(ev), $"Event #{ev}");
+            wins.Add((new EosBattleWin { Name = Or(m.MultiBattleNames.GetValueOrDefault(id), $"Battle #{id}"), Source = evName, Coop = true, Wins = Long(b, "TotalWinCount"), HighScore = Long(b, "HighScore") }, ev, "", ""));
+        }
+        foreach (var b in List(info, "UserSoloAreaBattleList"))
+        {
+            var id = Long(b, "SoloAreaBattleId");
+            m.SoloAreaBattles.TryGetValue(id, out var d);
+            var area = Or(d.Area, $"Area #{id / 100}");
+            wins.Add((new EosBattleWin { Name = Or(d.Battle, $"Battle #{id}"), Source = area, Wins = Long(b, "TotalWinCount"), HighScore = Long(b, "HighScore") }, 0, "S" + area, "Solo area"));
+        }
+        foreach (var b in List(info, "UserMultiAreaBattleList"))
+        {
+            var id = Long(b, "MultiAreaBattleId");
+            m.MultiAreaBattles.TryGetValue(id, out var d);
+            var area = Or(d.Area, $"Boss #{id / 100}");
+            wins.Add((new EosBattleWin { Name = Or(d.Battle, $"Battle #{id}"), Source = area, Coop = true, Wins = Long(b, "TotalWinCount"), HighScore = Long(b, "HighScore") }, 0, "M" + area, Or(d.Label, "Co-op") + " co-op boss"));
+        }
+
+        var events = wins.Where(w => w.EventId > 0).ToList();
+        var areas = wins.Where(w => w.AreaKey.Length > 0).ToList();
+        var criterion = List(info, "UserAnotherBattleList").ToList();
+        var highwind = stats.TotalHighwindCactuars + stats.TotalHighwindGoldCactuars + stats.TotalHighwindGoldBombs;
+        bs.ByMode = new List<EosBattleMode>
+        {
+            new() { Name = "Event battles", Wins = events.Where(w => !w.Win.Coop).Sum(w => w.Win.Wins), Battles = events.Count(w => !w.Win.Coop && w.Win.Wins > 0) },
+            new() { Name = "Event battles", Coop = true, Wins = events.Where(w => w.Win.Coop).Sum(w => w.Win.Wins), Battles = events.Count(w => w.Win.Coop && w.Win.Wins > 0) },
+            new() { Name = "Solo areas (EXP, uncap, materia…)", Wins = areas.Where(w => !w.Win.Coop).Sum(w => w.Win.Wins), Battles = areas.Count(w => !w.Win.Coop && w.Win.Wins > 0) },
+            new() { Name = "Co-op boss areas", Coop = true, Wins = areas.Where(w => w.Win.Coop).Sum(w => w.Win.Wins), Battles = areas.Count(w => w.Win.Coop && w.Win.Wins > 0) },
+            new() { Name = "Criterion dungeon battles", Wins = criterion.Sum(c => Long(c, "WinCount")), Battles = criterion.Where(c => Long(c, "WinCount") > 0).Select(c => Long(c, "AnotherBattleId")).Distinct().Count() },
+            new() { Name = "Highwind treasure battles", Wins = highwind, Battles = 3 },
+        }.Where(x => x.Wins > 0).ToList();
+        bs.SoloWins = bs.ByMode.Where(x => !x.Coop).Sum(x => x.Wins);
+        bs.CoopWins = bs.ByMode.Where(x => x.Coop).Sum(x => x.Wins);
+        bs.StoryBattlesCleared = List(info, "UserEpisodeBattleList").Count();
+
+        bs.Events = events.GroupBy(w => w.EventId).Select(g => new EosEventBattles
+        {
+            Id = g.Key,
+            Name = g.First().Win.Source,
+            SoloWins = g.Where(w => !w.Win.Coop).Sum(w => w.Win.Wins),
+            CoopWins = g.Where(w => w.Win.Coop).Sum(w => w.Win.Wins),
+            Battles = g.Count(w => w.Win.Wins > 0),
+        }).Where(e => e.TotalWins > 0).OrderByDescending(e => e.TotalWins).ToList();
+
+        bs.Areas = areas.GroupBy(w => w.AreaKey).Select(g => new EosAreaBattles
+        {
+            Category = g.First().Category,
+            Name = g.First().Win.Source,
+            Coop = g.First().Win.Coop,
+            Wins = g.Sum(w => w.Win.Wins),
+            Battles = g.Count(w => w.Win.Wins > 0),
+            HighScore = g.Max(w => w.Win.HighScore),
+        }).Where(a => a.Wins > 0).OrderByDescending(a => a.Wins).ToList();
+
+        bs.TopBattles = wins.Select(w => w.Win).Where(w => w.Wins > 0).OrderByDescending(w => w.Wins).Take(25).ToList();
+    }
 
     private static void ParseCollections(JsonElement info, EosPlayerStats stats, MasterData m)
     {
@@ -517,11 +763,29 @@ public sealed class EosPlayerStatsService
             .ToList();
         stats.MateriaStatColumns = statOrder.OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
 
-        // Criterion dungeons ("another dungeons" in the data).
+        // Criterion dungeons ("another dungeons" in the data). Battle rows repeat per boss enhancement level.
+        var userBattles = List(info, "UserAnotherBattleList")
+            .GroupBy(b => Long(b, "AnotherBattleId"))
+            .ToDictionary(g => g.Key, g => g.Select(b => (Stage: (int)Long(b, "BossEnhanceStage"), Wins: Long(b, "WinCount"))).ToList());
         stats.CriterionDungeons = List(info, "UserAnotherDungeonList").Select(d =>
         {
             m.CriterionDungeons.TryGetValue(Long(d, "AnotherDungeonId"), out var def);
             var rank = (int)Long(d, "HighRankType");
+            var battles = (m.CriterionBattles.GetValueOrDefault(Long(d, "AnotherDungeonId")) ?? new())
+                .OrderBy(b => b.Idx)
+                .Select(b =>
+                {
+                    var rows = userBattles.GetValueOrDefault(b.Id) ?? new();
+                    var won = rows.Where(r => r.Wins > 0).ToList();
+                    return new EosDungeonBattle
+                    {
+                        Idx = b.Idx,
+                        Kind = b.Kind,
+                        Enemy = string.IsNullOrEmpty(b.Enemy) ? "–" : b.Enemy,
+                        MaxEnhancement = won.Count > 0 ? won.Max(r => r.Stage) : null,
+                        Wins = rows.Sum(r => r.Wins),
+                    };
+                }).ToList();
             var team = new[] { "UsedCharacterId0", "UsedCharacterId1", "UsedCharacterId2" }
                 .Select(k => Long(d, k)).Where(id => id > 0).Select(id => CharacterName(m, id)).ToList();
             return new EosDungeonStat
@@ -534,8 +798,26 @@ public sealed class EosPlayerStatsService
                 Clears = Long(d, "WinCount"),
                 Team = team.Count > 0 ? string.Join(", ", team) : null,
                 LastImproved = FromMs(Long(d, "LastUpdateScoreDatetime")),
+                Battles = battles,
             };
         }).OrderByDescending(d => d.LastImproved).ToList();
+
+        // Crash battles: cleared when the matching solo/co-op battle has at least one win.
+        var soloWins = List(info, "UserEventSoloBattleList").GroupBy(b => Long(b, "EventSoloBattleId")).ToDictionary(g => g.Key, g => g.First());
+        var multiWins = List(info, "UserEventMultiBattleList").GroupBy(b => Long(b, "EventMultiBattleId")).ToDictionary(g => g.Key, g => g.First());
+        stats.CrashBattles = m.CrashBattles.OrderBy(c => c.Coop).ThenBy(c => c.Id).Select(c =>
+        {
+            var found = (c.Coop ? multiWins : soloWins).TryGetValue(c.Id, out var row);
+            var name = (c.Coop ? m.MultiBattleNames : m.SoloBattleNames).GetValueOrDefault(c.Id);
+            return new EosCrashBattle
+            {
+                Name = string.IsNullOrEmpty(name) ? $"Battle #{c.Id}" : name,
+                Coop = c.Coop,
+                Attempted = found,
+                Wins = found ? Long(row, "TotalWinCount") : 0,
+                HighScore = found ? Long(row, "HighScore") : 0,
+            };
+        }).ToList();
 
         stats.EscalationChallenges = List(info, "UserBossChallengeList").Select(b =>
         {
@@ -654,6 +936,7 @@ public sealed class EosPlayerStatsService
     private sealed record StepInfo(int Seq, int NextSeq, int ConsumptionType, long ConsumptionCount, long DrawCount);
     private sealed record WeaponInfo(string Name, string Character);
     private sealed record HighwindInfo(int Type, int DirectionType);
+    private sealed record MissionInfo(string Text, long Goal, long GroupType, string Category);
     private sealed record StoreProductInfo(string Name, decimal PriceUsd, long Crystals);
 
     private sealed class MasterData
@@ -912,8 +1195,187 @@ public sealed class EosPlayerStatsService
                 data.StoreProducts[group] = new StoreProductInfo(english ?? string.Empty, usd, Long(p, "PaidStoneCount") + Long(p, "FreeStoneCount"));
             }
 
+            // Battle names for solo/co-op event battles (Crash battles, Crisis and Damage Ranking stages).
+            foreach (var b in Rows(master, "EventSoloBattle", logger)) data.SoloBattleNames[Long(b, "Id")] = Name(b, "NameLanguageId");
+            foreach (var b in Rows(master, "EventMultiBattle", logger))
+            {
+                data.MultiBattleNames[Long(b, "Id")] = Name(b, "NameLanguageId");
+                data.MultiBattleEvent[Long(b, "Id")] = Long(b, "EventBaseId");
+            }
+            // Event solo battles belong to an event through their area and area group.
+            var soloAreaEvent = Rows(master, "EventSoloAreaGroup", logger).ToDictionary(g => Long(g, "Id"), g => Long(g, "EventBaseId"));
+            var soloAreaGroup = Rows(master, "EventSoloArea", logger).ToDictionary(a => Long(a, "Id"), a => Long(a, "EventSoloAreaGroupId"));
+            foreach (var b in Rows(master, "EventSoloBattle", logger))
+                if (soloAreaGroup.TryGetValue(Long(b, "EventSoloAreaId"), out var sg) && soloAreaEvent.TryGetValue(sg, out var se))
+                    data.SoloBattleEvent[Long(b, "Id")] = se;
+            foreach (var e in Rows(master, "EventBase", logger)) data.EventNames[Long(e, "Id")] = Name(e, "NameLanguageId");
+
+            // Regular solo areas (EXP, uncap, materia...) and co-op boss areas.
+            var soloGroups = Rows(master, "SoloAreaGroup", logger).ToDictionary(g => Long(g, "Id"), g => Name(g, "NameLanguageId"));
+            var soloAreas = Rows(master, "SoloArea", logger).ToDictionary(a => Long(a, "Id"), a => (Name: Name(a, "NameLanguageId"), Group: soloGroups.GetValueOrDefault(Long(a, "SoloAreaGroupId")) ?? string.Empty));
+            foreach (var b in Rows(master, "SoloAreaBattle", logger))
+            {
+                var area = soloAreas.GetValueOrDefault(Long(b, "SoloAreaId"));
+                data.SoloAreaBattles[Long(b, "Id")] = (area.Name ?? string.Empty, area.Group ?? string.Empty, Name(b, "NameLanguageId"));
+            }
+            var multiAreas = Rows(master, "MultiArea", logger).ToDictionary(a => Long(a, "Id"), a => (Name: Name(a, "NameLanguageId"), Label: Name(a, "LabelLanguageId")));
+            foreach (var b in Rows(master, "MultiAreaBattle", logger))
+            {
+                var area = multiAreas.GetValueOrDefault(Long(b, "MultiAreaId"));
+                data.MultiAreaBattles[Long(b, "Id")] = (area.Name ?? string.Empty, area.Label ?? string.Empty, Name(b, "NameLanguageId"));
+            }
+            // Crash battles are the ones that count toward the Crash badges (AwardBattle 10000 solo, 20000 co-op).
+            foreach (var a in Rows(master, "AwardBattle", logger))
+            {
+                var award = Long(a, "AwardId");
+                if (award == 10000 || award == 20000) data.CrashBattles.Add((Long(a, "EventBattleId"), award == 20000));
+            }
+
+            // Enemy names for a battle: Battle -> BattleWave -> BattleEnemy -> Enemy, using the targets of the last wave.
+            var battleWaves = Rows(master, "Battle", logger).ToDictionary(b => Long(b, "Id"), b => Long(b, "WaveGroupId"));
+            var waves = Rows(master, "BattleWave", logger).GroupBy(w => Long(w, "WaveGroupId"))
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(w => Long(w, "Idx")).Select(w => Long(w, "EnemyGroupId")).ToList());
+            var groupEnemies = Rows(master, "BattleEnemy", logger).GroupBy(e => Long(e, "EnemyGroupId"))
+                .ToDictionary(g => g.Key, g => g.OrderBy(e => Long(e, "Idx")).Select(e => (Id: Long(e, "EnemyId"), Target: e.TryGetProperty("IsTarget", out var t) && t.ValueKind == JsonValueKind.True)).ToList());
+            var enemyNames = Rows(master, "Enemy", logger).ToDictionary(e => Long(e, "Id"), e => Name(e, "NameLanguageId"));
+            string Enemies(long battleId)
+            {
+                if (!battleWaves.TryGetValue(battleId, out var wg) || !waves.TryGetValue(wg, out var groups)) return string.Empty;
+                foreach (var g in groups)
+                {
+                    if (!groupEnemies.TryGetValue(g, out var list)) continue;
+                    var picked = list.Any(e => e.Target) ? list.Where(e => e.Target) : list;
+                    var names = picked.Select(e => enemyNames.GetValueOrDefault(e.Id) ?? string.Empty).Where(n => n.Length > 0).Distinct().ToList();
+                    if (names.Count > 0) return string.Join(" & ", names);
+                }
+                return string.Empty;
+            }
+
+            // Criterion dungeon battles, with the enemies of the unenhanced version.
+            var battleRels = Rows(master, "AnotherBattleRel", logger).GroupBy(r => Long(r, "AnotherBattleId"))
+                .ToDictionary(g => g.Key, g => Long(g.OrderBy(r => Long(r, "BossEnhanceStage")).First(), "BattleId"));
+            foreach (var b in Rows(master, "AnotherBattle", logger))
+            {
+                var dungeon = Long(b, "AnotherDungeonId");
+                if (!data.CriterionBattles.TryGetValue(dungeon, out var list)) data.CriterionBattles[dungeon] = list = new();
+                var chaser = b.TryGetProperty("IsChaser", out var ch) && ch.ValueKind == JsonValueKind.True;
+                var kind = chaser ? "Chaser" : Long(b, "BattleType") switch { 1 => "Battle", 2 => "Boss", 3 => "Final boss", _ => "Special" };
+                list.Add((Long(b, "Id"), (int)Long(b, "Idx"), kind, Enemies(battleRels.GetValueOrDefault(Long(b, "Id")))));
+            }
+
+            // Crisis stage levels: default level + StageLevelIncreaseValue of each selected modifier (matches HighStageLevel).
+            foreach (var c in Rows(master, "EventCrisisBattleSoloBattle", logger)) data.CrisisStageDefaults[Long(c, "EventSoloBattleId")] = (int)Long(c, "DefaultStageLevel");
+            foreach (var b in Rows(master, "EventCrisisBattleBuffDebuff", logger)) data.CrisisModifierLevels[Long(b, "Id")] = (int)Long(b, "StageLevelIncreaseValue");
+
+            // Highwind parts (names are localization 243004+) and key items with their max upgrade.
+            foreach (var p in Rows(master, "HighwindParts", logger))
+                data.HighwindParts[Long(p, "Id")] = CleanName(loc.GetValueOrDefault(243003 + Long(p, "HighwindPartsType")));
+            var keyUpgrades = Rows(master, "HighwindKeyItemRankUpgrade", logger).GroupBy(u => Long(u, "HighwindKeyItemRankUpgradeGroupId"))
+                .ToDictionary(g => g.Key, g => g.Max(u => (int)Long(u, "UpgradeCount")));
+            var keyItemNames = new Dictionary<long, string>();
+            foreach (var k in Rows(master, "HighwindKeyItem", logger))
+            {
+                var name = Name(k, "LanguageId");
+                data.HighwindKeyItems[Long(k, "Id")] = (name, keyUpgrades.GetValueOrDefault(Long(k, "HighwindKeyItemRankUpgradeGroupId")));
+                keyItemNames[Long(k, "UpgradeMissionGroupId")] = name;
+            }
+
+            // Guild bonuses and achievements. Achievement text has {0} = target and {1} = times; the last progress row is the goal.
+            var bonusMax = Rows(master, "GuildBonusLevel", logger).GroupBy(l => Long(l, "GuildBonusLevelGroupId")).ToDictionary(g => g.Key, g => g.Max(l => (int)Long(l, "Level")));
+            foreach (var b in Rows(master, "GuildBonus", logger))
+                data.GuildBonuses[Long(b, "Id")] = ($"{Name(b, "NameLanguageId")} – {Name(b, "TitleLanguageId")}", bonusMax.GetValueOrDefault(Long(b, "GuildBonusLevelGroupId")), (int)Long(b, "OrderNo"));
+            var achievementSteps = Rows(master, "GuildAchievementProgress", logger).GroupBy(p => Long(p, "GuildAchievementId"))
+                .ToDictionary(g => g.Key, g => g.OrderBy(p => Long(p, "ProgressCount")).Last());
+            foreach (var a in Rows(master, "GuildAchievement", logger))
+            {
+                if (!achievementSteps.TryGetValue(Long(a, "Id"), out var step)) continue;
+                var goal = Long(step, "ProgressCount");
+                var target = Long(a, "TargetValue1");
+                var text = CleanName(loc.GetValueOrDefault(Long(step, "DescriptionLanguageId")));
+                text = target > 0 ? text.Replace("{0}", target.ToString("N0")).Replace("{1}", goal.ToString("N0")) : text.Replace("{0}", goal.ToString("N0"));
+                data.GuildAchievements[Long(a, "Id")] = (text, goal, (int)Long(a, "OrderNo"));
+            }
+
+            // Memoria
+            foreach (var mm in Rows(master, "Memoria", logger))
+            {
+                var source = Name(mm, "SourceInformationLanguageId");
+                data.Memoria[Long(mm, "Id")] = (Name(mm, "NameLanguageId"), (int)Long(mm, "RarityType"), string.IsNullOrEmpty(source) ? null : source, (int)Long(mm, "RequiredFragmentCount"));
+            }
+
+            // Special skills: type 1 = limit break (ContentId = character), 2 = summon skill (ContentId = summon).
+            var summonNames = Rows(master, "Summon", logger).ToDictionary(x => Long(x, "Id"), x => Name(x, "NameLanguageId"));
+            var skillNames = Rows(master, "SkillBase", logger).ToDictionary(x => Long(x, "Id"), x => Name(x, "NameLanguageId"));
+            foreach (var sp in Rows(master, "SkillSpecial", logger))
+            {
+                var type = Long(sp, "SkillSpecialType");
+                var content = Long(sp, "ContentId");
+                // Limit breaks tied to non-playable characters (e.g. ContentId 100) are not obtainable.
+                if (type == 1 && !characters.ContainsKey(content)) continue;
+                var forName = type == 1 ? characters.GetValueOrDefault(content) ?? string.Empty
+                    : type == 2 ? summonNames.GetValueOrDefault(content) ?? string.Empty : string.Empty;
+                data.SpecialSkills[Long(sp, "Id")] = (skillNames.GetValueOrDefault(Long(sp, "SkillBaseId")) ?? $"Skill #{Long(sp, "Id")}",
+                    type switch { 1 => "Limit Break", 2 => "Summon", _ => "Other" }, forName);
+            }
+            foreach (var o in Rows(master, "SkillOveraccel", logger))
+                data.OveraccelSkills[Long(o, "Id")] = (Name(o, "NameLanguageId"), characters.GetValueOrDefault(Long(o, "CharacterId")) ?? string.Empty);
+
+            // Missions: text template ({0} = goal), goal = last progress step, category from the mission group.
+            var eventNames2 = Rows(master, "EventBase", logger).ToDictionary(e => Long(e, "Id"), e => Name(e, "NameLanguageId"));
+            var groups = Rows(master, "MissionGroup", logger).ToDictionary(g => Long(g, "Id"), g =>
+            {
+                var id = Long(g, "Id");
+                var type = Long(g, "MissionGroupType");
+                var name = Name(g, "NameLanguageId");
+                if (type == 9)
+                {
+                    // Event mission groups are 12 + event id (5 digits) [+ 2-digit index].
+                    var digits = id.ToString();
+                    if (digits.StartsWith("12") && digits.Length >= 7 && long.TryParse(digits.Substring(2, 5), out var eventId)
+                        && eventNames2.TryGetValue(eventId, out var eventName) && eventName.Length > 0)
+                        name = $"Event: {eventName}";
+                }
+                else if (type == 24) name = keyItemNames.TryGetValue(id, out var key) ? $"Highwind: {key}" : "Highwind";
+                else if (type == 7) name = $"Limit Break: {name}";
+                else if (type == 8) name = $"Summon: {name}";
+                else if (type == 27) name = $"Overaccel: {name}";
+                return (Type: type, Name: string.IsNullOrEmpty(name) || name.Any(c => c > 0x2E7F) ? "Other" : name);
+            });
+            var setGroup = Rows(master, "MissionSet", logger).ToDictionary(x => Long(x, "Id"), x => Long(x, "MissionGroupId"));
+            var goals = Rows(master, "MissionProgress", logger).GroupBy(p => Long(p, "MissionId")).ToDictionary(g => g.Key, g => g.Max(p => Long(p, "ProgressCount")));
+            foreach (var mi in Rows(master, "Mission", logger))
+            {
+                var group = groups.GetValueOrDefault(setGroup.GetValueOrDefault(Long(mi, "MissionSetId")));
+                data.Missions[Long(mi, "Id")] = new MissionInfo(Name(mi, "NameTemplateLanguageId"), goals.GetValueOrDefault(Long(mi, "Id")), group.Type, group.Name ?? "Other");
+            }
+
+            // Guild battle bosses: EnemyLevel is the star count shown in game.
+            foreach (var g in Rows(master, "EventGuildRankingBattle", logger))
+                data.GuildFights[Long(g, "Id")] = (Long(g, "EventBaseId"), (int)Long(g, "EnemyLevel"), Enemies(Long(g, "BattleId")));
+
             return data;
         }
+
+        public Dictionary<long, string> SoloBattleNames { get; } = new();
+        public Dictionary<long, string> MultiBattleNames { get; } = new();
+        public Dictionary<long, long> SoloBattleEvent { get; } = new();
+        public Dictionary<long, long> MultiBattleEvent { get; } = new();
+        public Dictionary<long, string> EventNames { get; } = new();
+        public Dictionary<long, (string Area, string Group, string Battle)> SoloAreaBattles { get; } = new();
+        public Dictionary<long, (string Area, string Label, string Battle)> MultiAreaBattles { get; } = new();
+        public List<(long Id, bool Coop)> CrashBattles { get; } = new();
+        public Dictionary<long, int> CrisisStageDefaults { get; } = new();
+        public Dictionary<long, string> HighwindParts { get; } = new();
+        public Dictionary<long, (string Name, int MaxUpgrades)> HighwindKeyItems { get; } = new();
+        public Dictionary<long, (string? Name, int MaxLevel, int Order)> GuildBonuses { get; } = new();
+        public Dictionary<long, (string? Text, long Goal, int Order)> GuildAchievements { get; } = new();
+        public SortedDictionary<long, (string Name, int Rarity, string? Source, int Fragments)> Memoria { get; } = new();
+        public SortedDictionary<long, (string Name, string Type, string For)> SpecialSkills { get; } = new();
+        public SortedDictionary<long, (string Name, string For)> OveraccelSkills { get; } = new();
+        public Dictionary<long, MissionInfo> Missions { get; } = new();
+        public Dictionary<long, int> CrisisModifierLevels { get; } = new();
+        public Dictionary<long, List<(long Id, int Idx, string Kind, string Enemy)>> CriterionBattles { get; } = new();
+        public Dictionary<long, (long EventBaseId, int Stars, string Boss)> GuildFights { get; } = new();
 
         public List<(int Rank, long Exp)> UserRankExp { get; set; } = new();
         public List<(int Level, long Exp)> GuildLevelExp { get; set; } = new();

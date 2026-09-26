@@ -63,8 +63,21 @@ public sealed class EosPlayerStats
     public List<string> MateriaStatColumns { get; set; } = new();
     public List<EosDungeonStat> CriterionDungeons { get; set; } = new();
     public List<EosProgressStat> EscalationChallenges { get; set; } = new();
+    /// <summary>Every Crash battle that awards a Crash badge, cleared or not.</summary>
+    public List<EosCrashBattle> CrashBattles { get; set; } = new();
     public List<EosSeasonPass> SeasonPasses { get; set; } = new();
     public EosAchievements Achievements { get; set; } = new();
+
+    public EosHighwind Highwind { get; set; } = new();
+    public EosGuildInfo Guild { get; set; } = new();
+    /// <summary>Every memoria in the game data, owned or not.</summary>
+    public List<EosMemoriaStat> Memoria { get; set; } = new();
+    /// <summary>Every special skill (limit breaks, summon skills) and overaccel skill, owned or not.</summary>
+    public List<EosSkillStat> Skills { get; set; } = new();
+    /// <summary>Non-repeating missions the player has progress on.</summary>
+    public List<EosMissionStat> Missions { get; set; } = new();
+
+    public EosBattleStats Battles { get; set; } = new();
 
     /// <summary>Only filled when the player opts in to showing purchases.</summary>
     public EosPurchases? Purchases { get; set; }
@@ -122,6 +135,51 @@ public sealed class EosDungeonStat
     public long Clears { get; set; }
     public string? Team { get; set; }
     public DateTime? LastImproved { get; set; }
+    public List<EosDungeonBattle> Battles { get; set; } = new();
+}
+
+public sealed class EosDungeonBattle
+{
+    public int Idx { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Enemy { get; set; } = string.Empty;
+    /// <summary>Highest boss enhancement level beaten, when the battle has been won.</summary>
+    public int? MaxEnhancement { get; set; }
+    public long Wins { get; set; }
+}
+
+public sealed class EosCrashBattle
+{
+    public string Name { get; set; } = string.Empty;
+    public bool Coop { get; set; }
+    public bool Attempted { get; set; }
+    public long Wins { get; set; }
+    public long HighScore { get; set; }
+    public bool Cleared => Wins > 0;
+}
+
+public sealed class EosEventStage
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Team { get; set; }
+    public DateTime? BestSet { get; set; }
+    public bool WithMemoria { get; set; }
+    public int Modifiers { get; set; }
+    public long HighScore { get; set; }
+    public long Clears { get; set; }
+    /// <summary>Stage level of the best run (Crisis events only): the default level plus the selected modifiers.</summary>
+    public int? StageLevel { get; set; }
+}
+
+public sealed class EosGuildFight
+{
+    public int Stars { get; set; }
+    public string Boss { get; set; } = string.Empty;
+    public long HighScore { get; set; }
+    public long PracticeBest { get; set; }
+    /// <summary>Current guild totals, when the player is still in the guild that fought it.</summary>
+    public long? GuildDefeats { get; set; }
+    public long? GuildScore { get; set; }
 }
 
 public sealed class EosSeasonPass
@@ -221,6 +279,10 @@ public sealed class EosEventRank
     public int? CurrentGuildRank { get; set; }
     /// <summary>Placement was good enough to earn a ranking badge.</summary>
     public bool EarnedBadge { get; set; }
+    /// <summary>Per-stage bests (Crisis and Damage Ranking events).</summary>
+    public List<EosEventStage> Stages { get; set; } = new();
+    /// <summary>Per-boss results (guild battles).</summary>
+    public List<EosGuildFight> Fights { get; set; } = new();
 }
 
 public sealed class EosBadge
@@ -309,4 +371,115 @@ public sealed class EosMateriaOverview
     public long[] ObtainedByStar { get; set; } = new long[5];
     public long TotalCrafted => CraftedByStar.Sum();
     public long TotalObtained => ObtainedByStar.Sum();
+}
+
+public sealed class EosHighwind
+{
+    public long IdleCollections { get; set; }
+    public List<EosNamedCount> Parts { get; set; } = new();
+    public List<EosHighwindKeyItem> KeyItems { get; set; } = new();
+    public int KeyItemsTotal { get; set; }
+}
+
+public sealed class EosHighwindKeyItem
+{
+    public string Name { get; set; } = string.Empty;
+    public int Upgrades { get; set; }
+    public int MaxUpgrades { get; set; }
+    public DateTime? Obtained { get; set; }
+}
+
+public sealed class EosGuildInfo
+{
+    public DateTime? Created { get; set; }
+    public int TimesLeftAGuild { get; set; }
+    public List<EosNamedCount> Bonuses { get; set; } = new();
+    public Dictionary<string, int> BonusMax { get; set; } = new();
+    public List<EosGuildAchievement> Achievements { get; set; } = new();
+}
+
+public sealed class EosGuildAchievement
+{
+    public string Description { get; set; } = string.Empty;
+    public long Progress { get; set; }
+    public long Goal { get; set; }
+    public bool Complete => Goal > 0 && Progress >= Goal;
+}
+
+public sealed class EosMemoriaStat
+{
+    public string Name { get; set; } = string.Empty;
+    public int Stars { get; set; }
+    public string? Source { get; set; }
+    public bool Owned { get; set; }
+    public int Fragments { get; set; }
+    public int FragmentsNeeded { get; set; }
+    public DateTime? Obtained { get; set; }
+}
+
+public sealed class EosSkillStat
+{
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string For { get; set; } = string.Empty;
+    public bool Owned { get; set; }
+}
+
+public sealed class EosMissionStat
+{
+    public string Category { get; set; } = string.Empty;
+    public string Mission { get; set; } = string.Empty;
+    public long Progress { get; set; }
+    public long Goal { get; set; }
+    public bool Complete { get; set; }
+}
+
+/// <summary>Lifetime battle wins. Only sources that don't overlap are counted in the totals.</summary>
+public sealed class EosBattleStats
+{
+    public long SoloWins { get; set; }
+    public long CoopWins { get; set; }
+    public long TotalWins => SoloWins + CoopWins;
+    public int StoryBattlesCleared { get; set; }
+    public List<EosBattleMode> ByMode { get; set; } = new();
+    public List<EosEventBattles> Events { get; set; } = new();
+    public List<EosBattleWin> TopBattles { get; set; } = new();
+    public List<EosAreaBattles> Areas { get; set; } = new();
+}
+
+public sealed class EosBattleMode
+{
+    public string Name { get; set; } = string.Empty;
+    public bool Coop { get; set; }
+    public long Wins { get; set; }
+    public int Battles { get; set; }
+}
+
+public sealed class EosEventBattles
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public long SoloWins { get; set; }
+    public long CoopWins { get; set; }
+    public long TotalWins => SoloWins + CoopWins;
+    public int Battles { get; set; }
+}
+
+public sealed class EosBattleWin
+{
+    public string Name { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public bool Coop { get; set; }
+    public long Wins { get; set; }
+    public long HighScore { get; set; }
+}
+
+public sealed class EosAreaBattles
+{
+    public string Category { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool Coop { get; set; }
+    public long Wins { get; set; }
+    public int Battles { get; set; }
+    public long HighScore { get; set; }
 }
