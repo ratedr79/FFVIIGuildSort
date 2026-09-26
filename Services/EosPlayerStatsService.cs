@@ -1,0 +1,986 @@
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using FFVIIEverCrisisAnalyzer.Models;
+
+namespace FFVIIEverCrisisAnalyzer.Services;
+
+/// <summary>
+/// Turns an EOS account export (raw AccountInfo JSON) into readable player stats.
+/// IDs are resolved to names through the UnknownX7 master data + English localization.
+/// </summary>
+public sealed class EosPlayerStatsService
+{
+    // Gacha consumption types that spend crystals (the rest are tickets / free draws).
+    private static readonly HashSet<int> CrystalConsumptionTypes = new() { 1, 2, 5 };
+
+    private static readonly Dictionary<int, string> GachaTypeLabels = new()
+    {
+        [0] = "Featured",
+        [1] = "Tutorial",
+        [2] = "Step Up",
+        [3] = "Ticket",
+        [4] = "Limit Break",
+    };
+
+    // Inline icons used in localized names, mapped to the characters players type for them.
+    private static readonly Dictionary<string, string> SpriteText = new()
+    {
+        ["5"] = "Heal", ["67"] = "✖", ["69"] = "▲", ["71"] = "⬤", ["65"] = "■", ["73"] = "◆",
+        ["128"] = "Non-elemental", ["129"] = "Wind", ["130"] = "Water", ["131"] = "Thunder", ["133"] = "Ice",
+        ["134"] = "Holy", ["135"] = "Fire", ["136"] = "Earth",
+        ["192"] = "★", ["193"] = "★", ["195"] = "★", ["196"] = "★", ["197"] = "★", ["198"] = "★",
+    };
+
+    private static readonly Regex SpriteRegex = new("<sprite=\"tmp_icon\" index=(\\d+)>", RegexOptions.Compiled);
+    private static readonly Regex TagRegex = new("<[^>]+>", RegexOptions.Compiled);
+    private static readonly Regex SpaceRegex = new("\\s+", RegexOptions.Compiled);
+
+    private readonly ILogger<EosPlayerStatsService> _logger;
+    private readonly Lazy<MasterData> _master;
+
+    public EosPlayerStatsService(ILogger<EosPlayerStatsService> logger, IWebHostEnvironment environment)
+    {
+        _logger = logger;
+        var basePath = Path.Combine(environment.ContentRootPath, "external", "UnknownX7", "FF7EC-Data");
+        _master = new Lazy<MasterData>(() => MasterData.Load(basePath, _logger));
+    }
+
+    public EosPlayerStats Parse(Stream json, bool includePurchases = false)
+    {
+        using var doc = JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = true });
+        var root = doc.RootElement;
+        if (!root.TryGetProperty("AccountInfo", out var info) || info.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidDataException("This doesn't look like an EOS account export: no \"AccountInfo\" section found.");
+        }
+
+        var m = _master.Value;
+        var stats = new EosPlayerStats();
+
+        var profile = List(info, "UserProfileList").FirstOrDefault();
+        if (profile.ValueKind == JsonValueKind.Object)
+        {
+            stats.PlayerName = Str(profile, "Name") ?? string.Empty;
+            stats.ProfileMessage = Str(profile, "Message");
+        }
+        stats.GuildName = List(info, "SharedGuildBaseList").Select(g => Str(g, "Name")).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
+
+        // Currencies
+        foreach (var stone in root.TryGetProperty("OtherInfo", out var other) ? List(other, "UserStoneList") : Enumerable.Empty<JsonElement>())
+        {
+            var id = Long(stone, "StoneId");
+            if (id == 1) stats.RedCrystals = Long(stone, "Count");
+            else if (id == 2) stats.BlueCrystals = Long(stone, "Count");
+        }
+
+        // Unclaimed gift-box rewards count as owned (matches the community stats bot).
+        var pendingGifts = new Dictionary<long, long>();
+        foreach (var gift in List(root, "GiftsInfo"))
+        {
+            if (Long(gift, "RewardType") != 1) continue; // 1 = item
+            var id = Long(gift, "TargetId");
+            pendingGifts[id] = pendingGifts.GetValueOrDefault(id) + Long(gift, "Count");
+        }
+
+        foreach (var item in List(info, "UserItemList"))
+        {
+            var id = Long(item, "ItemId");
+            var pending = pendingGifts.GetValueOrDefault(id);
+            var count = Long(item, "Count") + pending;
+            var total = Long(item, "TotalObtainCount") + pending;
+            if (id == 1)
+            {
+                stats.Gil = new EosCurrency { Count = count, TotalObtained = total };
+                continue;
+            }
+            stats.Items.Add(new EosItemStat
+            {
+                Id = id,
+                Name = m.ItemNames.TryGetValue(id, out var n) ? n : $"Item #{id}",
+                Count = count,
+                TotalObtained = total,
+            });
+        }
+        stats.Items = stats.Items.OrderByDescending(i => i.TotalObtained).ThenBy(i => i.Id).ToList();
+
+        // Draws: pulls per gacha come from step groups; crystals are estimated by walking the step sequence.
+        var draws = new Dictionary<long, EosDrawStat>();
+        foreach (var group in List(info, "UserGachaStepGroupList"))
+        {
+            var groupId = Long(group, "GachaStepGroupId");
+            if (!m.StepGroupGacha.TryGetValue(groupId, out var gachaId))
+            {
+                stats.Warnings.Add($"Unknown draw step group {groupId} (master data may be out of date).");
+                continue;
+            }
+            var draw = GetDraw(draws, gachaId, m);
+            draw.TotalPulls += Long(group, "TotalDrawCount");
+            var lastPulled = FromMs(Long(group, "LastExecDatetime"));
+            if (lastPulled > draw.LastPulled || draw.LastPulled is null) draw.LastPulled = lastPulled;
+
+            if (m.StepsByGroup.TryGetValue(groupId, out var steps) && steps.Count > 0)
+            {
+                var bySeq = steps.GroupBy(s => s.Seq).ToDictionary(g => g.Key, g => g.First());
+                var seq = steps[0].Seq;
+                var execs = Long(group, "TotalExecCount");
+                for (long i = 0; i < execs; i++)
+                {
+                    var step = bySeq.TryGetValue(seq, out var s) ? s : steps[0];
+                    if (CrystalConsumptionTypes.Contains(step.ConsumptionType))
+                    {
+                        draw.EstimatedCrystalsUsed += step.ConsumptionCount;
+                        draw.CrystalPulls += step.DrawCount;
+                    }
+                    seq = step.NextSeq;
+                }
+            }
+        }
+
+        foreach (var sheet in List(info, "UserGachaStampSheetGroupList"))
+        {
+            var id = Long(sheet, "GachaStampSheetGroupId");
+            var draw = GetDraw(draws, id, m);
+            draw.TotalStampPages += (int)Long(sheet, "CompleteSheetCount");
+            draw.TotalStamps += (int)Long(sheet, "TotalStampCount");
+        }
+
+        stats.Draws = draws.Values.OrderBy(d => d.Id).ToList();
+        stats.TotalPulls = stats.Draws.Sum(d => d.TotalPulls);
+        stats.TotalCrystalPulls = stats.Draws.Sum(d => d.CrystalPulls);
+        stats.TotalFreePulls = stats.TotalPulls - stats.TotalCrystalPulls;
+        stats.EstimatedCrystalsUsedForPulls = stats.Draws.Sum(d => d.EstimatedCrystalsUsed);
+
+        stats.TotalHomeBackgroundsOwned = List(info, "UserHomeBackgroundList").Count();
+        stats.TotalCrystalAdsViewed = List(info, "UserAdvertisementList").Sum(a => Long(a, "TotalViewCount"));
+
+        // Highwind treasure battles: direction type 0 = Cactuar, 1 = Gold Cactuar, 2 = Gold Bomb.
+        foreach (var battle in List(info, "UserHighwindBattleList"))
+        {
+            if (!m.HighwindBattles.TryGetValue(Long(battle, "HighwindBattleId"), out var hb) || hb.Type != 2) continue;
+            var wins = Long(battle, "WinCount");
+            switch (hb.DirectionType)
+            {
+                case 0: stats.TotalHighwindCactuars += wins; break;
+                case 1: stats.TotalHighwindGoldCactuars += wins; break;
+                case 2: stats.TotalHighwindGoldBombs += wins; break;
+            }
+        }
+
+        foreach (var weapon in List(info, "UserWeaponList"))
+        {
+            var id = Long(weapon, "WeaponId");
+            m.Weapons.TryGetValue(id, out var w);
+            stats.Weapons.Add(new EosWeaponStat
+            {
+                Id = id,
+                Name = w?.Name ?? $"Weapon #{id}",
+                Character = w?.Character ?? string.Empty,
+                GachaPulls = (int)Long(weapon, "ObtainCountFromGacha"),
+            });
+        }
+        // Weapons in the game data the player doesn't have.
+        var ownedWeaponIds = stats.Weapons.Select(w => w.Id).ToHashSet();
+        foreach (var (id, w) in m.Weapons.Where(kv => !ownedWeaponIds.Contains(kv.Key) && m.WeaponCharacter.ContainsKey(kv.Key)))
+            stats.Weapons.Add(new EosWeaponStat { Id = id, Name = w.Name, Character = w.Character, Owned = false });
+        stats.Weapons = stats.Weapons.OrderByDescending(w => w.GachaPulls).ThenBy(w => w.Name).ToList();
+
+        var ownedCostumes = List(info, "UserCharacterCostumeList").Select(c => Long(c, "CostumeId")).ToHashSet();
+        stats.Outfits = m.CostumeCharacter
+            .Select(kv => new EosOutfitStat
+            {
+                Name = m.CostumeNames.GetValueOrDefault(kv.Key) is { Length: > 0 } n ? n : $"Outfit #{kv.Key}",
+                Character = CharacterName(m, kv.Value),
+                Owned = ownedCostumes.Contains(kv.Key),
+            })
+            .OrderBy(o => m.Characters.Values.FirstOrDefault(v => v.Name == o.Character).Order).ThenBy(o => o.Name)
+            .ToList();
+
+        foreach (var recipe in List(info, "UserMateriaRecipeList"))
+        {
+            var id = Long(recipe, "MateriaRecipeId");
+            stats.MateriaRecipes.Add(new EosMateriaRecipeStat
+            {
+                Id = id,
+                Name = m.RecipeNames.TryGetValue(id, out var n) ? n : $"Recipe #{id}",
+                TotalCrafted = Long(recipe, "CraftCount"),
+            });
+        }
+        stats.MateriaRecipes = stats.MateriaRecipes.OrderByDescending(r => r.TotalCrafted).ToList();
+
+        string[] quality = { "One", "Two", "Three", "Four", "Five" };
+        foreach (var c in List(info, "UserMateriaCollectionList"))
+        {
+            for (var q = 0; q < 5; q++)
+            {
+                stats.Materia.ObtainedByStar[q] += Long(c, $"Quality{quality[q]}ObtainCount");
+                stats.Materia.CraftedByStar[q] += Long(c, $"Quality{quality[q]}CraftCount");
+            }
+        }
+
+        ParseAccountExtras(info, stats, m);
+        ParseCollections(info, stats, m);
+        if (includePurchases) stats.Purchases = ParsePurchases(info, m);
+
+        stats.Warnings = stats.Warnings.Distinct().Take(10).ToList();
+        return stats;
+    }
+
+    private static DateTime? FromMs(long ms) => ms > 0 ? DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime : null;
+
+    private static void ParseAccountExtras(JsonElement info, EosPlayerStats stats, MasterData m)
+    {
+        // Player rank from total exp; account creation is UserTimeType 1.
+        var status = List(info, "UserStatusList").FirstOrDefault();
+        if (status.ValueKind == JsonValueKind.Object)
+            stats.PlayerRank = MasterData.LevelFor(m.UserRankExp, Long(status, "Exp"));
+        stats.MaxPlayerRank = m.UserRankExp.Count > 0 ? m.UserRankExp[^1].Rank : 0;
+        stats.AccountCreated = FromMs(List(info, "UserTimeList").Where(t => Long(t, "UserTimeType") == 1).Select(t => Long(t, "Datetime")).FirstOrDefault());
+
+        var guildExp = List(info, "SharedGuildExpList").FirstOrDefault();
+        if (guildExp.ValueKind == JsonValueKind.Object && m.GuildLevelExp.Count > 0)
+            stats.GuildLevel = MasterData.LevelFor(m.GuildLevelExp, Long(guildExp, "LevelExp"));
+        stats.GuildJoined = FromMs(List(info, "SharedGuildMemberList").Select(g => Long(g, "JoinDatetime")).FirstOrDefault());
+
+        // Characters: level, costumes and weapons owned vs. what exists.
+        var costumesOwned = List(info, "UserCharacterCostumeList").Select(c => Long(c, "CostumeId")).ToHashSet();
+        var weaponsOwned = List(info, "UserWeaponList").ToDictionary(w => Long(w, "WeaponId"), w => Long(w, "ObtainCountFromGacha"));
+        foreach (var c in List(info, "UserCharacterList"))
+        {
+            var id = Long(c, "CharacterId");
+            m.CharacterLevelExp.TryGetValue(id, out var levels);
+            var costumes = m.CostumeCharacter.Where(kv => kv.Value == id).Select(kv => kv.Key).ToList();
+            var weapons = m.WeaponCharacter.Where(kv => kv.Value == id).Select(kv => kv.Key).ToList();
+            stats.Characters.Add(new EosCharacterStat
+            {
+                Name = m.Characters.TryGetValue(id, out var ch) ? ch.Name : $"Character #{id}",
+                Level = levels is null ? 0 : MasterData.LevelFor(levels, Long(c, "Exp")),
+                MaxLevel = levels is null || levels.Count == 0 ? 0 : levels[^1].Level,
+                CostumesOwned = costumes.Count(costumesOwned.Contains),
+                CostumesTotal = costumes.Count,
+                WeaponsOwned = weapons.Count(weaponsOwned.ContainsKey),
+                WeaponsTotal = weapons.Count,
+                WeaponPulls = weapons.Sum(w => weaponsOwned.GetValueOrDefault(w)),
+            });
+        }
+        stats.Characters = stats.Characters
+            .OrderBy(c => m.Characters.Values.FirstOrDefault(v => v.Name == c.Name).Order)
+            .ToList();
+
+        EosCollectionStat Coll(string name, int owned, int total) => new() { Name = name, Owned = owned, Total = total };
+        stats.Collection = new List<EosCollectionStat>
+        {
+            Coll("Weapons", weaponsOwned.Count, m.WeaponCharacter.Count),
+            Coll("Outfits", costumesOwned.Count, m.CostumeCharacter.Count),
+            Coll("Memoria", List(info, "UserMemoriaList").Count(x => Long(x, "EquipableDatetime") > 0), m.TableCounts.GetValueOrDefault("Memoria")),
+            Coll("Summons", List(info, "UserSummonList").Count(), m.TableCounts.GetValueOrDefault("Summon")),
+            Coll("Home backgrounds", stats.TotalHomeBackgroundsOwned, m.TableCounts.GetValueOrDefault("HomeBackground")),
+            Coll("Titles & profile items", List(info, "UserHonorList").Count(), m.TableCounts.GetValueOrDefault("Honor")),
+        }.Where(c => c.Total > 0).ToList();
+
+        // In-game profile play records, grouped like the profile screen.
+        var records = new Dictionary<long, EosRecordGroup>();
+        foreach (var r in List(info, "UserPlayRecordList")
+                     .Select(r => (Type: Long(r, "PlayRecordType"), Value: Long(r, "IntValue")))
+                     .Where(r => m.ProfileRecords.ContainsKey(r.Type))
+                     .OrderBy(r => m.ProfileRecords[r.Type].Order))
+        {
+            var def = m.ProfileRecords[r.Type];
+            var groupId = def.GroupId;
+            if (groupId == 0)
+            {
+                // Ungrouped record = "Current Max. Power", shown in the header instead.
+                if (r.Type == 4) stats.MaxPower = r.Value;
+                continue;
+            }
+            // Group 5 repeats the Max. Damage Challenge scores, which get their own table on the Challenges tab.
+            if (groupId == 5) continue;
+            if (!records.TryGetValue(groupId, out var group))
+            {
+                records[groupId] = group = new EosRecordGroup
+                {
+                    Name = m.RecordGroups.TryGetValue(groupId, out var g) && g.Name.Length > 0 ? g.Name : "Overview",
+                };
+            }
+            group.Records.Add(new EosNamedCount { Name = def.Name, Value = r.Value });
+        }
+        stats.RecordGroups = records
+            .OrderBy(kv => m.RecordGroups.TryGetValue(kv.Key, out var g) ? g.Order : -1)
+            .Select(kv => kv.Value)
+            .ToList();
+
+        // Crisis Battle and Damage Ranking events share one list; the damage ones are listed in EventDamageRankingBattle.
+        var damageTeams = List(info, "UserEventDamageRankingBattleSoloBattleList")
+            .Where(b => Long(b, "HighScoreCharacterId0") > 0)
+            .GroupBy(b => Long(b, "EventSoloBattleId") / 1000)
+            .ToDictionary(g => g.Key, g =>
+            {
+                var best = g.OrderByDescending(b => Long(b, "LastUpdateHighScoreDatetime")).First();
+                var names = new[] { "HighScoreCharacterId0", "HighScoreCharacterId1", "HighScoreCharacterId2" }
+                    .Select(k => Long(best, k)).Where(id => id > 0)
+                    .Select(id => m.Characters.TryGetValue(id, out var c) ? c.Name : $"#{id}");
+                return string.Join(", ", names);
+            });
+        foreach (var e in List(info, "UserEventCrisisBattleList"))
+        {
+            var id = Long(e, "EventCrisisBattleId");
+            m.CrisisEvents.TryGetValue(id, out var d);
+            var rank = new EosEventRank
+            {
+                Name = string.IsNullOrEmpty(d.Name) ? $"Event #{id}" : d.Name,
+                EventBaseId = d.EventBaseId,
+                EndDate = FromMs(d.EndMs),
+                FinalRank = (int)Long(e, "FinalRank"),
+                Points = Long(e, "TotalPoint"),
+                HighStage = (int)Long(e, "HighStageLevel"),
+            };
+            if (m.DamageRankingEvents.Contains(id))
+            {
+                rank.BestDamage = Long(e, "MaxHighScore");
+                rank.BestTeam = damageTeams.GetValueOrDefault(id);
+                stats.DamageRankings.Add(rank);
+            }
+            else stats.CrisisEvents.Add(rank);
+        }
+        stats.CrisisEvents = stats.CrisisEvents.OrderByDescending(e => e.EndDate).ToList();
+        stats.DamageRankings = stats.DamageRankings.OrderByDescending(e => e.EndDate).ToList();
+
+        // Guild battles: the player's own row carries the rank of the guild they were in at the time;
+        // the shared rows are the current guild's history.
+        var currentGuildRanks = List(info, "SharedGuildEventGuildRankingBaseList")
+            .GroupBy(g => Long(g, "EventBaseId"))
+            .ToDictionary(g => g.Key, g => (int)Long(g.First(), "FinalTotalScoreRank"));
+        var guildBattleNames = new Dictionary<string, int>();
+        stats.GuildBattles = List(info, "UserEventGuildRankingBaseList")
+            .Select(g => (BaseId: Long(g, "EventBaseId"), Rank: (int)Long(g, "FinalTotalScoreRank")))
+            .OrderBy(g => m.GuildBattles.TryGetValue(g.BaseId, out var d) ? d.EndMs : 0)
+            .Select(g =>
+            {
+                m.GuildBattles.TryGetValue(g.BaseId, out var d);
+                var name = string.IsNullOrEmpty(d.Name) ? $"Guild Battle ({g.BaseId})" : d.Name;
+                // Some battles ran twice under one name; number the repeats.
+                guildBattleNames[name] = guildBattleNames.GetValueOrDefault(name) + 1;
+                if (guildBattleNames[name] > 1) name += $" (part {guildBattleNames[name]})";
+                return new EosEventRank
+                {
+                    Name = name,
+                    EventBaseId = g.BaseId,
+                    EndDate = FromMs(d.EndMs),
+                    FinalRank = g.Rank,
+                    CurrentGuildRank = currentGuildRanks.TryGetValue(g.BaseId, out var cr) && cr > 0 ? cr : null,
+                };
+            })
+            .OrderByDescending(g => g.EndDate)
+            .ToList();
+
+        stats.ScoreDungeons = List(info, "UserEventScoreDungeonEntryList").Select(e =>
+        {
+            m.ScoreDungeons.TryGetValue(Long(e, "EventScoreDungeonId"), out var d);
+            return new EosEventRank
+            {
+                Name = string.IsNullOrEmpty(d.Name) ? $"Dungeon #{Long(e, "EventScoreDungeonId")}" : d.Name,
+                EventBaseId = d.EventBaseId,
+                EndDate = FromMs(d.EndMs),
+                FinalRank = (int)Long(e, "FinalRank"),
+            };
+        }).OrderByDescending(e => e.EndDate).ToList();
+
+        // Badges (called "awards" in the data). Ranking badges also list the placements that earned them.
+        var placements = stats.CrisisEvents.Concat(stats.DamageRankings).Concat(stats.ScoreDungeons).Concat(stats.GuildBattles)
+            .Where(p => p.EventBaseId > 0 && p.FinalRank > 0)
+            .GroupBy(p => p.EventBaseId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(p => p.FinalRank).First());
+        var awardCounts = List(info, "UserAwardList").ToDictionary(a => Long(a, "AwardId"), a => Long(a, "AwardCount"));
+        foreach (var (awardId, def) in m.Awards.OrderBy(a => a.Value.Order))
+        {
+            var badge = new EosBadge
+            {
+                Name = def.Name,
+                Description = def.Description,
+                Count = awardCounts.GetValueOrDefault(awardId),
+            };
+            var earned = new List<EosEventRank>();
+            foreach (var (baseId, maxRank) in m.AwardRankings.GetValueOrDefault(awardId) ?? new())
+            {
+                if (!placements.TryGetValue(baseId, out var p) || p.FinalRank > maxRank) continue;
+                p.EarnedBadge = true;
+                earned.Add(p);
+            }
+            badge.EarnedFrom = earned.OrderByDescending(p => p.EndDate).Select(p => $"{p.Name} (#{p.FinalRank})").ToList();
+            if (badge.Count > 0 || badge.EarnedFrom.Count > 0) stats.Badges.Add(badge);
+        }
+
+        stats.Towers = List(info, "UserTowerList").Select(t =>
+        {
+            m.Towers.TryGetValue(Long(t, "TowerId"), out var d);
+            return new EosProgressStat { Name = d.Name ?? $"Tower #{Long(t, "TowerId")}", Cleared = (int)Long(t, "ClearFloorSeq"), Total = d.Floors };
+        }).OrderBy(t => t.Name).ToList();
+
+        stats.DamageChallenges = List(info, "UserDamageChallengeBattleList")
+            .Select(d => (Id: Long(d, "DamageChallengeBattleId"), Score: Long(d, "HighScore"), Tries: Long(d, "TotalEntryCount"), Updated: Long(d, "LastUpdateScoreDatetime")))
+            .OrderBy(d => m.DamageChallenges.TryGetValue(d.Id, out var x) ? x.Order : int.MaxValue)
+            .Select(d => new EosDamageChallengeStat
+            {
+                Name = m.DamageChallenges.TryGetValue(d.Id, out var x) ? x.Name : $"Challenge #{d.Id}",
+                HighScore = d.Score,
+                Attempts = d.Tries,
+                LastImproved = FromMs(d.Updated),
+            }).ToList();
+    }
+
+    // Criterion dungeon rank letters, indexed by RankType (1 = F+ ... 14 = SS; localization ids 213116 + RankType).
+    private static readonly string[] DungeonRanks = { "F", "F+", "E", "E+", "D", "D+", "C", "C+", "B", "B+", "A", "A+", "S", "S+", "SS" };
+
+    private static string CharacterName(MasterData m, long id) =>
+        m.Characters.TryGetValue(id, out var c) ? c.Name : $"#{id}";
+
+    private static void ParseCollections(JsonElement info, EosPlayerStats stats, MasterData m)
+    {
+        // Saved parties: members are keyed PartyId * 10 + slot.
+        var members = List(info, "UserPartyMemberList")
+            .GroupBy(pm => Long(pm, "PartyMemberId") / 10)
+            .ToDictionary(g => g.Key, g => g.OrderBy(pm => Long(pm, "Idx")).ToList());
+        foreach (var p in List(info, "UserPartyList"))
+        {
+            var partyId = Long(p, "PartyId");
+            var party = new EosParty
+            {
+                Name = Str(p, "Name") is { Length: > 0 } name ? name : $"Unnamed party ({partyId})",
+                CombatPower = Long(p, "CombatPower"),
+            };
+            foreach (var pm in members.GetValueOrDefault(partyId) ?? new())
+            {
+                var charId = Long(pm, "CharacterId");
+                if (charId <= 0) continue;
+                party.Members.Add(new EosPartyMember
+                {
+                    Character = CharacterName(m, charId),
+                    MainWeapon = m.Weapons.TryGetValue(Long(pm, "WeaponId0"), out var w) ? w.Name : null,
+                    Outfit = m.CostumeNames.GetValueOrDefault(Long(pm, "CostumeId")),
+                });
+            }
+            // Emptied slots keep a stale combat power, so only list parties that still have members.
+            if (party.Members.Count > 0) stats.Parties.Add(party);
+        }
+        stats.Parties = stats.Parties.OrderByDescending(p => p.CombatPower).ToList();
+
+        // Chocobos: stat weights are out of 10,000.
+        foreach (var c in List(info, "UserChocoboList"))
+        {
+            var weights = new[] { "SpeedWeight", "StaminaWeight", "IntelligenceWeight", "AdaptabilityWeight" }.Select(k => Long(c, k)).ToArray();
+            var sum = Math.Max(1, weights.Sum());
+            stats.Chocobos.Add(new EosChocobo
+            {
+                Rarity = m.ChocoboRarity.GetValueOrDefault(Long(c, "ChocoboId")),
+                Rank = (int)Long(c, "RankType"),
+                RankLimit = (int)Long(c, "LimitRankType"),
+                Balance = weights.Select(v => (int)Math.Round(100.0 * v / sum)).ToArray(),
+                Obtained = FromMs(Long(c, "GetDatetime")),
+                Locked = c.TryGetProperty("IsLock", out var l) && l.ValueKind == JsonValueKind.True,
+            });
+        }
+        stats.Chocobos = stats.Chocobos.OrderByDescending(c => c.Rank).ThenByDescending(c => c.Rarity).ThenBy(c => c.Obtained).ToList();
+        stats.ChocoboExpeditions = List(info, "UserChocoboExpeditionDeckList")
+            .Where(d => Long(d, "ChocoboExpeditionId") > 0)
+            .Select(d => new EosChocoboExpedition
+            {
+                Area = m.ChocoboExpeditions.GetValueOrDefault(Long(d, "ChocoboExpeditionId")) ?? $"Area #{Long(d, "ChocoboExpeditionId")}",
+                Character = Long(d, "CharacterId") > 0 ? CharacterName(m, Long(d, "CharacterId")) : null,
+                Started = FromMs(Long(d, "StartDatetime")),
+            }).ToList();
+
+        // Materia inventory, one row per materia with its rolled sub stats.
+        var statOrder = new Dictionary<string, int>();
+        stats.MateriaOwned = List(info, "UserMateriaList").Select(x =>
+            {
+                var owned = new EosMateriaOwned
+                {
+                    Name = m.MateriaName(Long(x, "MateriaId"), Long(x, "NotesSetId")),
+                    Stars = (int)Long(x, "QualityType"),
+                    Locked = x.TryGetProperty("IsLock", out var l) && l.ValueKind == JsonValueKind.True,
+                    Obtained = Long(x, "GetDatetime") > 0 ? FromMs(Long(x, "GetDatetime")) : null,
+                };
+                var open = (int)Long(x, "ParameterOpenCount");
+                for (var i = 0; i < Math.Min(open, 4); i++)
+                {
+                    var id = Long(x, $"ParameterId{i}");
+                    if (id <= 0) continue;
+                    var value = (decimal)Long(x, $"ParameterValue{i}");
+                    var def = m.MateriaStats.TryGetValue(id, out var d) ? d : (Label: $"Stat #{id}", Percent: false, Order: 999);
+                    // Percent sub stats are stored in tenths of a percent.
+                    if (def.Percent) value /= 10m;
+                    owned.Stats[def.Label] = owned.Stats.GetValueOrDefault(def.Label) + value;
+                    statOrder.TryAdd(def.Label, def.Order);
+                }
+                return owned;
+            })
+            .OrderByDescending(x => x.Stars).ThenBy(x => x.Name).ThenByDescending(x => x.Obtained)
+            .ToList();
+        stats.MateriaStatColumns = statOrder.OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
+
+        // Criterion dungeons ("another dungeons" in the data).
+        stats.CriterionDungeons = List(info, "UserAnotherDungeonList").Select(d =>
+        {
+            m.CriterionDungeons.TryGetValue(Long(d, "AnotherDungeonId"), out var def);
+            var rank = (int)Long(d, "HighRankType");
+            var team = new[] { "UsedCharacterId0", "UsedCharacterId1", "UsedCharacterId2" }
+                .Select(k => Long(d, k)).Where(id => id > 0).Select(id => CharacterName(m, id)).ToList();
+            return new EosDungeonStat
+            {
+                Name = string.IsNullOrEmpty(def.Name) ? $"Dungeon #{Long(d, "AnotherDungeonId")}" : def.Name,
+                Difficulty = def.Difficulty,
+                BestRank = rank > 0 && rank < DungeonRanks.Length ? DungeonRanks[rank] : "–",
+                RankOrder = rank,
+                HighScore = Long(d, "HighScore"),
+                Clears = Long(d, "WinCount"),
+                Team = team.Count > 0 ? string.Join(", ", team) : null,
+                LastImproved = FromMs(Long(d, "LastUpdateScoreDatetime")),
+            };
+        }).OrderByDescending(d => d.LastImproved).ToList();
+
+        stats.EscalationChallenges = List(info, "UserBossChallengeList").Select(b =>
+        {
+            var id = Long(b, "BossChallengeId");
+            m.BossChallenges.TryGetValue(id, out var def);
+            return new EosProgressStat
+            {
+                Name = string.IsNullOrEmpty(def.Name) ? $"Escalation Challenge #{id}" : def.Name,
+                Cleared = (int)Long(b, "ClearLevel"),
+                Total = def.MaxLevel,
+            };
+        }).OrderBy(b => b.Name).ToList();
+
+        // Season passes: one bit per claimed reward on each track.
+        var bought = List(info, "UserShopItemList").Select(s => Long(s, "ShopItemId")).ToHashSet();
+        static int Bits(JsonElement e, string prefix, int count) =>
+            Enumerable.Range(0, count).Sum(i => System.Numerics.BitOperations.PopCount((ulong)(uint)Long(e, prefix + i)));
+        stats.SeasonPasses = List(info, "UserSeasonPassList").Select(sp =>
+        {
+            m.SeasonPasses.TryGetValue(Long(sp, "SeasonPassId"), out var def);
+            var premium = Bits(sp, "ExtraReceivedStepIdxFlags", 4);
+            return new EosSeasonPass
+            {
+                Name = string.IsNullOrEmpty(def.Name) ? $"Season Pass #{Long(sp, "SeasonPassId")}" : def.Name,
+                Ended = FromMs(def.EndMs),
+                Steps = def.Steps,
+                FreeClaimed = Math.Min(def.Steps > 0 ? def.Steps : int.MaxValue, Bits(sp, "ReceivedStepIdxFlags", 2)),
+                PremiumClaimed = premium,
+                HasPremium = premium > 0 || (def.PremiumShopItemId > 0 && bought.Contains(def.PremiumShopItemId)),
+            };
+        }).OrderByDescending(s => s.Ended).ToList();
+
+        // Steam achievements: the game data has no names for them, only unlock dates.
+        var unlocks = List(info, "UserSteamAchievementList").Select(a => FromMs(Long(a, "AchievementDatetime"))).Where(d => d is not null).Select(d => d!.Value).ToList();
+        stats.Achievements = new EosAchievements
+        {
+            Unlocked = List(info, "UserSteamAchievementList").Count(),
+            Total = m.TableCounts.GetValueOrDefault("SteamAchievement"),
+            First = unlocks.Count > 0 ? unlocks.Min() : null,
+            Latest = unlocks.Count > 0 ? unlocks.Max() : null,
+            ByYear = unlocks.GroupBy(d => d.Year).OrderBy(g => g.Key)
+                .Select(g => new EosNamedCount { Name = g.Key.ToString(), Value = g.Count() }).ToList(),
+        };
+    }
+
+    private static EosPurchases ParsePurchases(JsonElement info, MasterData m)
+    {
+        var result = new EosPurchases();
+        var shops = new Dictionary<string, EosShopSummary>();
+        foreach (var s in List(info, "UserShopItemList"))
+        {
+            var count = (int)Long(s, "TotalPurchaseCount");
+            if (count <= 0 || !m.ShopItems.TryGetValue(Long(s, "ShopItemId"), out var item)) continue;
+            var last = FromMs(Long(s, "LastPurchaseDatetime"));
+            var shopName = m.ShopNames.GetValueOrDefault(item.ShopId) ?? "Shop";
+            if (item.StoreGroupId > 0 && m.StoreProducts.TryGetValue(item.StoreGroupId, out var product))
+            {
+                result.Paid.Add(new EosPaidPurchase
+                {
+                    Name = !string.IsNullOrEmpty(item.Name) ? item.Name : !string.IsNullOrEmpty(product.Name) ? product.Name : shopName,
+                    Shop = shopName,
+                    Count = count,
+                    PriceUsd = product.PriceUsd,
+                    Crystals = product.Crystals,
+                    LastPurchased = last,
+                });
+                continue;
+            }
+            if (!shops.TryGetValue(shopName, out var summary)) shops[shopName] = summary = new EosShopSummary { Name = shopName };
+            summary.ItemsBought++;
+            summary.TotalPurchases += count;
+            if (last > summary.LastPurchased || summary.LastPurchased is null) summary.LastPurchased = last;
+        }
+        result.Paid = result.Paid.OrderByDescending(p => p.LastPurchased).ToList();
+        result.Shops = shops.Values.OrderByDescending(s => s.LastPurchased).ToList();
+        return result;
+    }
+
+    private static EosDrawStat GetDraw(Dictionary<long, EosDrawStat> draws, long gachaId, MasterData m)
+    {
+        if (draws.TryGetValue(gachaId, out var draw)) return draw;
+        m.Gachas.TryGetValue(gachaId, out var g);
+        var type = g?.Type ?? -1;
+        draw = new EosDrawStat
+        {
+            Id = gachaId,
+            Type = type,
+            TypeLabel = GachaTypeLabels.TryGetValue(type, out var label) ? label : "Other",
+            Name = g?.Name ?? $"Draw #{gachaId}",
+            FeaturedWeapons = m.FeaturedWeapons.GetValueOrDefault(gachaId),
+        };
+        draws[gachaId] = draw;
+        return draw;
+    }
+
+    internal static string CleanName(string? raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return string.Empty;
+        var text = SpriteRegex.Replace(raw, match => SpriteText.TryGetValue(match.Groups[1].Value, out var t) ? t : string.Empty);
+        text = TagRegex.Replace(text, string.Empty);
+        return SpaceRegex.Replace(text, " ").Trim();
+    }
+
+    private static IEnumerable<JsonElement> List(JsonElement obj, string name) =>
+        obj.TryGetProperty(name, out var arr) && arr.ValueKind == JsonValueKind.Array
+            ? arr.EnumerateArray()
+            : Enumerable.Empty<JsonElement>();
+
+    private static long Long(JsonElement obj, string name) =>
+        obj.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var l) ? l : 0;
+
+    private static string? Str(JsonElement obj, string name) =>
+        obj.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+
+    private sealed record GachaInfo(int Type, string Name);
+    private sealed record StepInfo(int Seq, int NextSeq, int ConsumptionType, long ConsumptionCount, long DrawCount);
+    private sealed record WeaponInfo(string Name, string Character);
+    private sealed record HighwindInfo(int Type, int DirectionType);
+    private sealed record StoreProductInfo(string Name, decimal PriceUsd, long Crystals);
+
+    private sealed class MasterData
+    {
+        public Dictionary<long, GachaInfo> Gachas { get; } = new();
+        public Dictionary<long, long> StepGroupGacha { get; } = new();
+        public Dictionary<long, List<StepInfo>> StepsByGroup { get; } = new();
+        public Dictionary<long, string> ItemNames { get; } = new();
+        public Dictionary<long, WeaponInfo> Weapons { get; } = new();
+        public Dictionary<long, string> FeaturedWeapons { get; } = new();
+        public Dictionary<long, string> RecipeNames { get; } = new();
+        public Dictionary<long, HighwindInfo> HighwindBattles { get; } = new();
+
+        public static MasterData Load(string basePath, ILogger logger)
+        {
+            var data = new MasterData();
+            var master = Path.Combine(basePath, "MasterData", "gl");
+            var loc = LoadLocalization(Path.Combine(basePath, "Localization", "en.json"), logger);
+            string Name(JsonElement e, string field) => CleanName(loc.TryGetValue(Long(e, field), out var s) ? s : null);
+
+            // Time windows (condition type 2) per condition set, used to tell ticket draws apart.
+            var windows = new Dictionary<long, (long Start, long End)>();
+            var conditionWindows = Rows(master, "Condition", logger)
+                .Where(c => Long(c, "ConditionType") == 2)
+                .ToDictionary(c => Long(c, "Id"), c => (Start: Long(c, "StartDatetime"), End: Long(c, "EndDatetime")));
+            foreach (var rel in Rows(master, "ConditionSetRel", logger))
+            {
+                if (!conditionWindows.TryGetValue(Long(rel, "ConditionId"), out var w)) continue;
+                var set = Long(rel, "ConditionSetId");
+                // All conditions in a set must hold, so the window is their overlap.
+                windows[set] = windows.TryGetValue(set, out var cur)
+                    ? (Math.Max(cur.Start, w.Start), cur.End == 0 ? w.End : w.End == 0 ? cur.End : Math.Min(cur.End, w.End))
+                    : w;
+            }
+
+            foreach (var g in Rows(master, "Gacha", logger))
+            {
+                var type = (int)Long(g, "GachaType");
+                var name = Name(g, "NameLanguageId");
+                // Every ticket draw is just called "Ticket Draw"; add the run dates so they can be told apart.
+                if (type == 3 && windows.TryGetValue(Long(g, "DisplayConditionSetId"), out var run) && run.Start > 0)
+                {
+                    var from = DateTimeOffset.FromUnixTimeMilliseconds(run.Start).UtcDateTime.ToString("MMM d, yyyy");
+                    name += run.End > 0
+                        ? $" ({from} – {DateTimeOffset.FromUnixTimeMilliseconds(run.End).UtcDateTime:MMM d, yyyy})"
+                        : $" (from {from})";
+                }
+                data.Gachas[Long(g, "Id")] = new GachaInfo(type, name);
+            }
+
+            foreach (var sg in Rows(master, "GachaStepGroup", logger))
+                data.StepGroupGacha[Long(sg, "Id")] = Long(sg, "GachaId");
+
+            foreach (var s in Rows(master, "GachaStep", logger))
+            {
+                var groupId = Long(s, "GachaStepGroupId");
+                if (!data.StepsByGroup.TryGetValue(groupId, out var list)) data.StepsByGroup[groupId] = list = new();
+                list.Add(new StepInfo((int)Long(s, "Seq"), (int)Long(s, "NextSeq"), (int)Long(s, "GachaConsumptionType"),
+                    Long(s, "ConsumptionCount"), Long(s, "DrawCount")));
+            }
+            foreach (var list in data.StepsByGroup.Values) list.Sort((a, b) => a.Seq.CompareTo(b.Seq));
+
+            foreach (var i in Rows(master, "Item", logger))
+                data.ItemNames[Long(i, "Id")] = Name(i, "NameLanguageId");
+
+            var characters = Rows(master, "Character", logger).ToDictionary(c => Long(c, "Id"), c => Name(c, "NameLanguageId"));
+            foreach (var w in Rows(master, "Weapon", logger))
+            {
+                characters.TryGetValue(Long(w, "CharacterId"), out var ch);
+                data.Weapons[Long(w, "Id")] = new WeaponInfo(Name(w, "NameLanguageId"), ch ?? string.Empty);
+            }
+
+            // Featured weapons per draw: older banners list them in GachaAppeal (GachaAppealId0..9),
+            // newer ones in GachaAppeal2Weapon, whose group id is the gacha id * 100 + n.
+            var appealWeapons = Rows(master, "GachaAppeal", logger).ToDictionary(a => Long(a, "Id"), a => Long(a, "WeaponId"));
+            var featured = new Dictionary<long, List<long>>();
+            void AddFeatured(long gachaId, long weaponId)
+            {
+                if (weaponId <= 0) return;
+                if (!featured.TryGetValue(gachaId, out var list)) featured[gachaId] = list = new();
+                if (!list.Contains(weaponId)) list.Add(weaponId);
+            }
+            foreach (var g in Rows(master, "Gacha", logger))
+                for (var i = 0; i < 10; i++)
+                    AddFeatured(Long(g, "Id"), appealWeapons.GetValueOrDefault(Long(g, $"GachaAppealId{i}")));
+            foreach (var a in Rows(master, "GachaAppeal2Weapon", logger))
+                AddFeatured(Long(a, "GachaAppeal2WeaponGroupId") / 100, Long(a, "WeaponId"));
+            foreach (var (gachaId, weaponIds) in featured)
+                data.FeaturedWeapons[gachaId] = string.Join(", ", weaponIds
+                    .Select(id => data.Weapons.TryGetValue(id, out var w) ? w.Name : null)
+                    .Where(n => !string.IsNullOrEmpty(n)));
+
+            foreach (var r in Rows(master, "MateriaRecipe", logger))
+                data.RecipeNames[Long(r, "Id")] = Name(r, "TitleLanguageId");
+
+            foreach (var h in Rows(master, "HighwindBattle", logger))
+                data.HighwindBattles[Long(h, "Id")] = new HighwindInfo((int)Long(h, "HighwindBattleType"), (int)Long(h, "HighwindBattleReleaseDirectionType"));
+
+            // --- Account / progress extras ---
+            data.UserRankExp = Rows(master, "UserRank", logger).Select(r => ((int)Long(r, "Rank"), Long(r, "RequiredExp"))).OrderBy(r => r.Item1).ToList();
+            data.GuildLevelExp = Rows(master, "GuildLevel", logger).Select(r => ((int)Long(r, "Level"), Long(r, "Exp"))).OrderBy(r => r.Item1).ToList();
+            foreach (var cl in Rows(master, "CharacterLevel", logger))
+            {
+                var id = Long(cl, "CharacterId");
+                if (!data.CharacterLevelExp.TryGetValue(id, out var list)) data.CharacterLevelExp[id] = list = new();
+                list.Add(((int)Long(cl, "Level"), Long(cl, "Exp")));
+            }
+            foreach (var list in data.CharacterLevelExp.Values) list.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+
+            foreach (var c in Rows(master, "Character", logger))
+                data.Characters[Long(c, "Id")] = (Name(c, "NameLanguageId"), (int)Long(c, "OrderNo"));
+            foreach (var c in Rows(master, "CharacterCostume", logger))
+                data.CostumeCharacter[Long(c, "Id")] = Long(c, "CharacterId");
+            // Skip story-only weapons players can't obtain (same list the weapon search uses).
+            foreach (var w in Rows(master, "Weapon", logger).Where(w => !WeaponSearchDataService.ExcludedWeaponIds.Contains((int)Long(w, "Id"))))
+                data.WeaponCharacter[Long(w, "Id")] = Long(w, "CharacterId");
+
+            data.TableCounts["Memoria"] = Rows(master, "Memoria", logger).Count;
+            data.TableCounts["Summon"] = Rows(master, "Summon", logger).Count;
+            data.TableCounts["HomeBackground"] = Rows(master, "HomeBackground", logger).Count;
+            data.TableCounts["Honor"] = Rows(master, "Honor", logger).Count;
+
+            foreach (var g in Rows(master, "ProfilePlayRecordGroup", logger))
+                data.RecordGroups[Long(g, "Id")] = (Name(g, "NameLanguageId"), (int)Long(g, "OrderNo"));
+            foreach (var p in Rows(master, "ProfilePlayRecord", logger))
+                data.ProfileRecords[Long(p, "PlayRecordType")] = (Name(p, "NameLanguageId"), (int)Long(p, "OrderNo"), Long(p, "ProfilePlayRecordGroupId"));
+
+            foreach (var a in Rows(master, "Award", logger))
+            {
+                var name = Name(a, "NameLanguageId");
+                // "Place within the top 20 in the {0} {1} time(s)." -> "Place within the top 20 in the Battle Ranking."
+                var desc = (loc.TryGetValue(Long(a, "DescriptionLanguageId"), out var raw) ? raw : string.Empty)
+                    .Replace(" {1} time(s)", string.Empty).Replace("{0}", name);
+                data.Awards[Long(a, "Id")] = (name, CleanName(desc), (int)Long(a, "OrderNo"));
+            }
+            foreach (var r in Rows(master, "AwardRanking", logger))
+            {
+                var id = Long(r, "AwardId");
+                if (!data.AwardRankings.TryGetValue(id, out var list)) data.AwardRankings[id] = list = new();
+                list.Add((Long(r, "EventBaseId"), (int)Long(r, "Rank")));
+            }
+
+            var eventNames = Rows(master, "EventBase", logger).ToDictionary(e => Long(e, "Id"), e => Name(e, "NameLanguageId"));
+            foreach (var e in Rows(master, "EventCrisisBattle", logger))
+                data.CrisisEvents[Long(e, "Id")] = (eventNames.GetValueOrDefault(Long(e, "EventBaseId")) ?? string.Empty, Long(e, "EventBaseId"), Long(e, "FixRankingDatetime"));
+            foreach (var e in Rows(master, "EventDamageRankingBattle", logger))
+                data.DamageRankingEvents.Add(Long(e, "EventCrisisBattleId"));
+            foreach (var e in Rows(master, "EventGuildRanking", logger))
+                data.GuildBattles[Long(e, "EventBaseId")] = (eventNames.GetValueOrDefault(Long(e, "EventBaseId")) ?? string.Empty, Long(e, "MainBattleEndDatetime"));
+            foreach (var e in Rows(master, "EventScoreDungeon", logger))
+                data.ScoreDungeons[Long(e, "Id")] = (eventNames.GetValueOrDefault(Long(e, "EventBaseId")) ?? string.Empty, Long(e, "EventBaseId"), Long(e, "FixRankingDatetime"));
+
+            foreach (var t in Rows(master, "Tower", logger))
+                data.Towers[Long(t, "Id")] = (Name(t, "NameLanguageId"), (int)Long(t, "FinalFloorSeq"));
+            foreach (var d in Rows(master, "DamageChallengeBattle", logger))
+                data.DamageChallenges[Long(d, "Id")] = (Name(d, "NameLanguageId"), (int)Long(d, "OrderNo"));
+
+            // --- Collections, challenges, passes and shop ---
+            foreach (var c in Rows(master, "CharacterCostume", logger))
+                data.CostumeNames[Long(c, "Id")] = Name(c, "NameLanguageId");
+            foreach (var c in Rows(master, "Chocobo", logger))
+                data.ChocoboRarity[Long(c, "Id")] = (int)Long(c, "ChocoboRarityType");
+            foreach (var e in Rows(master, "ChocoboExpedition", logger))
+                data.ChocoboExpeditions[Long(e, "Id")] = Name(e, "NameLanguageId");
+
+            // Materia names come from recipe titles, e.g. "Ruin (⬤Circle) Recipe".
+            var shapes = new Dictionary<long, string> { [1] = "⬤Circle", [2] = "▲Triangle", [3] = "✖Cross" };
+            foreach (var r in Rows(master, "MateriaRecipe", logger))
+            {
+                var title = Name(r, "TitleLanguageId");
+                title = title.Replace(" Recipe", string.Empty);
+                var notes = Long(r, "NotesSetId");
+                if (notes > 0 && shapes.TryGetValue(notes, out var shape)) title = title.Replace($" ({shape})", string.Empty);
+                data.MateriaBaseNames.TryAdd(Long(r, "MateriaId"), title);
+            }
+            data.MateriaShapes = shapes;
+
+            // Materia sub stats. Type 1 = base stats (detail 1-6 = HP, PATK, MATK, PDEF, MDEF, HEAL);
+            // type 2 = elemental potency (parameter 2/3 = phys./mag., detail 2-7 = Fire..Wind).
+            // Grant value type 2 = percent.
+            var baseStats = new[] { "HP", "PATK", "MATK", "PDEF", "MDEF", "HEAL" };
+            var elements = new[] { "Fire", "Ice", "Lightning", "Earth", "Water", "Wind" };
+            foreach (var p in Rows(master, "MateriaParameter", logger))
+            {
+                var percent = Long(p, "GrantValueType") == 2;
+                var detail = (int)Long(p, "MateriaParameterDetailType");
+                var paramType = (int)Long(p, "ParameterType");
+                string? label = null; int order = 0;
+                if (Long(p, "MateriaParameterType") == 1 && detail is >= 1 and <= 6)
+                {
+                    label = baseStats[detail - 1] + (percent ? " %" : string.Empty);
+                    order = detail * 2 + (percent ? 1 : 0);
+                }
+                else if (Long(p, "MateriaParameterType") == 2 && detail is >= 2 and <= 7 && paramType is 2 or 3)
+                {
+                    label = $"{(paramType == 2 ? "Phys." : "Mag.")} {elements[detail - 2]} Pot. %";
+                    order = 100 + (detail - 2) * 2 + (paramType - 2);
+                    percent = true;
+                }
+                if (label != null) data.MateriaStats[Long(p, "Id")] = (label, percent, order);
+            }
+
+            var areas = Rows(master, "AnotherArea", logger).ToDictionary(a => Long(a, "Id"), a => Name(a, "NameLanguageId"));
+            foreach (var d in Rows(master, "AnotherDungeon", logger))
+                data.CriterionDungeons[Long(d, "Id")] = (areas.GetValueOrDefault(Long(d, "AnotherAreaId")) ?? string.Empty, (int)Long(d, "DifficultyLevel"));
+
+            // Escalation Challenges: names are EventBase-style ids 851000000000000 + id; ids 14014x02 are
+            // stages of the Extreme Escalation Challenge (14014).
+            var levels = Rows(master, "BossChallengeLevel", logger).GroupBy(l => Long(l, "BossChallengeId"))
+                .ToDictionary(g => g.Key, g => g.Max(l => (int)Long(l, "Level")));
+            foreach (var b in Rows(master, "BossChallenge", logger))
+            {
+                var id = Long(b, "Id");
+                string name;
+                if (id > 1_000_000)
+                {
+                    var parent = id / 1000;
+                    var stage = id % 1000 / 100 + 1;
+                    name = $"{CleanName(loc.GetValueOrDefault(851000000000000 + parent))} (stage {stage})";
+                }
+                else name = CleanName(loc.GetValueOrDefault(851000000000000 + id));
+                data.BossChallenges[id] = (name.Trim(), levels.GetValueOrDefault(id));
+            }
+
+            var stepCounts = Rows(master, "SeasonPassStep", logger)
+                .Where(s => Long(s, "SeasonPassRewardType") == 1)
+                .GroupBy(s => Long(s, "SeasonPassStepGroupId")).ToDictionary(g => g.Key, g => g.Count());
+            foreach (var s in Rows(master, "SeasonPass", logger))
+                data.SeasonPasses[Long(s, "Id")] = (Name(s, "TitleLanguageId"), Long(s, "ExpiredSendGiftStartDatetime"),
+                    stepCounts.GetValueOrDefault(Long(s, "SeasonPassStepGroupId")), Long(s, "ExtraShopItemId"));
+            data.TableCounts["SteamAchievement"] = Rows(master, "SteamAchievement", logger).Count;
+
+            // Shop names are often just the currency ("Co-op Medals"), so prefix the shop group ("Medal Exchange").
+            var shopGroups = Rows(master, "ShopGroup", logger).ToDictionary(g => Long(g, "Id"), g => Name(g, "NameLanguageId"));
+            foreach (var s in Rows(master, "Shop", logger))
+            {
+                var shopName = Name(s, "NameLanguageId");
+                var groupName = shopGroups.GetValueOrDefault(Long(s, "ShopGroupId"));
+                data.ShopNames[Long(s, "Id")] = string.IsNullOrEmpty(groupName) || groupName == shopName ? shopName
+                    : string.IsNullOrEmpty(shopName) ? groupName : $"{groupName} · {shopName}";
+            }
+            foreach (var s in Rows(master, "ShopItem", logger))
+                data.ShopItems[Long(s, "Id")] = (Name(s, "NameLanguageId"), Long(s, "ShopId"), Long(s, "StoreProductGroupId"));
+            foreach (var p in Rows(master, "StoreProduct", logger))
+            {
+                var group = Long(p, "StoreProductGroupId");
+                var english = Str(p, "AutoProductDescriptionEn");
+                if (data.StoreProducts.TryGetValue(group, out var existing))
+                {
+                    // One row per store; keep the first price and pick up the English name when a row has it.
+                    if (string.IsNullOrEmpty(existing.Name) && !string.IsNullOrEmpty(english))
+                        data.StoreProducts[group] = existing with { Name = english };
+                    continue;
+                }
+                decimal.TryParse(Str(p, "PriceUsd"), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var usd);
+                data.StoreProducts[group] = new StoreProductInfo(english ?? string.Empty, usd, Long(p, "PaidStoneCount") + Long(p, "FreeStoneCount"));
+            }
+
+            return data;
+        }
+
+        public List<(int Rank, long Exp)> UserRankExp { get; set; } = new();
+        public List<(int Level, long Exp)> GuildLevelExp { get; set; } = new();
+        public Dictionary<long, List<(int Level, long Exp)>> CharacterLevelExp { get; } = new();
+        public Dictionary<long, (string Name, int Order)> Characters { get; } = new();
+        public Dictionary<long, long> CostumeCharacter { get; } = new();
+        public Dictionary<long, long> WeaponCharacter { get; } = new();
+        public Dictionary<string, int> TableCounts { get; } = new();
+        public Dictionary<long, (string Name, int Order)> RecordGroups { get; } = new();
+        public Dictionary<long, (string Name, int Order, long GroupId)> ProfileRecords { get; } = new();
+        public Dictionary<long, (string Name, string Description, int Order)> Awards { get; } = new();
+        public Dictionary<long, List<(long EventBaseId, int Rank)>> AwardRankings { get; } = new();
+        public Dictionary<long, (string Name, long EventBaseId, long EndMs)> CrisisEvents { get; } = new();
+        public HashSet<long> DamageRankingEvents { get; } = new();
+        public Dictionary<long, (string Name, long EndMs)> GuildBattles { get; } = new();
+        public Dictionary<long, (string Name, long EventBaseId, long EndMs)> ScoreDungeons { get; } = new();
+        public Dictionary<long, (string Name, int Floors)> Towers { get; } = new();
+        public Dictionary<long, (string Name, int Order)> DamageChallenges { get; } = new();
+        public Dictionary<long, string> CostumeNames { get; } = new();
+        public Dictionary<long, int> ChocoboRarity { get; } = new();
+        public Dictionary<long, string> ChocoboExpeditions { get; } = new();
+        public Dictionary<long, string> MateriaBaseNames { get; } = new();
+        public Dictionary<long, string> MateriaShapes { get; set; } = new();
+        public Dictionary<long, (string Label, bool Percent, int Order)> MateriaStats { get; } = new();
+        public Dictionary<long, (string Name, int Difficulty)> CriterionDungeons { get; } = new();
+        public Dictionary<long, (string Name, int MaxLevel)> BossChallenges { get; } = new();
+        public Dictionary<long, (string Name, long EndMs, int Steps, long PremiumShopItemId)> SeasonPasses { get; } = new();
+        public Dictionary<long, string> ShopNames { get; } = new();
+        public Dictionary<long, (string Name, long ShopId, long StoreGroupId)> ShopItems { get; } = new();
+        public Dictionary<long, StoreProductInfo> StoreProducts { get; } = new();
+
+        public string MateriaName(long materiaId, long notesSetId)
+        {
+            var name = MateriaBaseNames.TryGetValue(materiaId, out var n) && n.Length > 0 ? n : $"Materia #{materiaId}";
+            return MateriaShapes.TryGetValue(notesSetId, out var shape) ? $"{name} ({shape})" : name;
+        }
+
+        /// <summary>Highest level whose required exp is met, from an ascending (level, exp) table.</summary>
+        public static int LevelFor(List<(int Level, long Exp)> table, long exp) =>
+            table.LastOrDefault(r => r.Exp <= exp).Level;
+
+        private static List<JsonElement> Rows(string dir, string table, ILogger logger)
+        {
+            var path = Path.Combine(dir, table + ".json");
+            if (!File.Exists(path))
+            {
+                logger.LogWarning("EOS stats: master data table missing at {Path}", path);
+                return new();
+            }
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(path));
+            return doc.RootElement.ValueKind == JsonValueKind.Array
+                ? doc.RootElement.EnumerateArray().Select(e => e.Clone()).ToList()
+                : new();
+        }
+
+        private static Dictionary<long, string> LoadLocalization(string path, ILogger logger)
+        {
+            var map = new Dictionary<long, string>();
+            if (!File.Exists(path))
+            {
+                logger.LogWarning("EOS stats: localization file missing at {Path}", path);
+                return map;
+            }
+            var raw = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path)) ?? new();
+            foreach (var kvp in raw)
+                if (long.TryParse(kvp.Key, out var id)) map[id] = kvp.Value;
+            return map;
+        }
+    }
+}

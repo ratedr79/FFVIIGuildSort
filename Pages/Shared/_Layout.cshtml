@@ -10,7 +10,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Blitzball Fantasy League Manager</title>
+    <title>@ViewData["Title"] - FFVIIEC Tools</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" />
@@ -23,7 +23,7 @@
         <nav class="navbar navbar-expand-xl navbar-light bg-white border-bottom box-shadow app-topnav">
             <div class="container-fluid app-topnav-container">
                 <a class="navbar-brand app-topnav-brand" asp-area="" asp-page="/Index">
-                    <i class="fas fa-tools text-primary"></i> SOLDIER Tools
+                    <i class="fas fa-tools text-primary"></i> FFVIIEC Tools
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
@@ -64,6 +64,11 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-page="/PlayerInventoryManagement">
                                 <i class="fas fa-box-open"></i> Player Inventory
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-page="/EosPlayerStats">
+                                <i class="fas fa-chart-bar"></i> EOS Stats
                             </a>
                         </li>
                         <li class="nav-item">
@@ -218,7 +223,7 @@
     @* Footer hidden - was floating over collapsible panels *@
     @* <footer class="footer text-muted">
         <div class="container">
-            &copy; 2026 - Blitzball Fantasy League Manager - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            &copy; 2026 - FFVIIEC Tools - <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer> *@
 

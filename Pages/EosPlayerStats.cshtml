@@ -1,0 +1,788 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.EosPlayerStatsModel
+@{
+    ViewData["Title"] = "EOS Player Stats";
+    var s = Model.Stats;
+    string N(long v) => v.ToString("N0");
+    Microsoft.AspNetCore.Html.IHtmlContent Rank(FFVIIEverCrisisAnalyzer.Models.EosEventRank e) =>
+        new Microsoft.AspNetCore.Html.HtmlString(e.FinalRank > 0
+            ? "#" + N(e.FinalRank) + (e.EarnedBadge ? "<i class=\"fas fa-medal eos-badge-icon\" title=\"Earned a badge\"></i>" : "")
+            : "–");
+    Microsoft.AspNetCore.Html.IHtmlContent RankSummary(List<FFVIIEverCrisisAnalyzer.Models.EosEventRank> list, int top)
+    {
+        var ranked = list.Where(e => e.FinalRank > 0).ToList();
+        if (ranked.Count == 0) return Microsoft.AspNetCore.Html.HtmlString.Empty;
+        return new Microsoft.AspNetCore.Html.HtmlString(
+            $"<p class=\"eos-best\">Best #{N(ranked.Min(e => e.FinalRank))} · {ranked.Count(e => e.FinalRank <= top)} of {ranked.Count} in the top {top}</p>");
+    }
+}
+
+<style>
+    .eos-upload { border: 1px dashed #b9a9d6; border-radius: 0.7rem; background: #faf8fd; padding: 1rem 1.1rem; }
+    .eos-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1rem; margin: 1.2rem 0 0.9rem; }
+    .eos-header h2 { margin: 0; font-weight: 700; color: #332b42; }
+    .eos-header .eos-guild { color: #6b5b8a; font-weight: 600; }
+    .eos-header .eos-message { color: #7a7289; font-style: italic; width: 100%; }
+    .eos-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.8rem; margin-bottom: 1.4rem; }
+    .eos-card { border: 1px solid #ddd3ed; border-radius: 0.7rem; background: #fff; box-shadow: 0 2px 8px rgba(39, 26, 65, 0.08); padding: 0.75rem 0.9rem; }
+    .eos-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b5b8a; margin: 0 0 0.45rem; }
+    .eos-card .eos-big { font-size: 1.55rem; font-weight: 700; color: #332b42; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .eos-card dl { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.8rem; margin: 0.4rem 0 0; font-size: 0.9rem; }
+    .eos-card dt { font-weight: 400; color: #5c566a; }
+    .eos-card dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .eos-tabs .nav-link { color: #4b3f63; }
+    .eos-tabs .nav-link.active { font-weight: 700; }
+    .eos-tab-body { padding-top: 0.8rem; }
+    .eos-table td.num, .eos-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .eos-materia th, .eos-materia td { text-align: right; font-variant-numeric: tabular-nums; }
+    .eos-materia th:first-child, .eos-materia td:first-child { text-align: left; }
+    .eos-filter { max-width: 220px; }
+    .eos-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; width: 100%; }
+    .eos-chip { background: #f1ecf8; border: 1px solid #ddd3ed; border-radius: 999px; padding: 0.15rem 0.65rem; font-size: 0.85rem; color: #332b42; }
+    .eos-chip i { color: #7d5fb3; margin-right: 0.2rem; }
+    .eos-card-wide { grid-column: 1 / -1; }
+    .eos-progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); column-gap: 2rem; }
+    .eos-progress-row { display: grid; grid-template-columns: 11rem 1fr auto; align-items: center; gap: 0.6rem; font-size: 0.88rem; margin: 0.3rem 0; }
+    .eos-bar { height: 0.5rem; background: #ece6f5; border-radius: 999px; overflow: hidden; }
+    .eos-bar > div { height: 100%; background: #7d5fb3; border-radius: 999px; }
+    .eos-progress-num { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 6.5rem; text-align: right; }
+    .eos-section-title { text-transform: uppercase; letter-spacing: 0.05em; color: #6b5b8a; font-weight: 700; }
+    .eos-tabs { flex-wrap: wrap; }
+    .eos-badge-icon { color: #c9971c; margin-left: 0.3rem; }
+    .eos-best { font-size: 0.85rem; color: #6b5b8a; margin: -0.2rem 0 0.4rem; }
+    .eos-badge-card .eos-big small { font-size: 0.9rem; font-weight: 600; color: #6b5b8a; }
+    .eos-badge-card p { font-size: 0.85rem; color: #5c566a; margin: 0.25rem 0 0.4rem; }
+    .eos-badge-card ul { font-size: 0.85rem; margin: 0; padding-left: 1.1rem; columns: 3; column-gap: 1.2rem; }
+    @@media (max-width: 700px) { .eos-badge-card ul { columns: 1; } }
+</style>
+
+<div class="container-fluid">
+    <h1 class="h3 mt-3"><i class="fas fa-chart-bar text-primary"></i> EOS Player Stats</h1>
+    <p class="text-muted mb-3">Upload the account export (.json) from EOS to see your pulls, collection, rankings, badges and more. Purchases are only shown if you tick "Show purchases". The file is read in memory and never saved.</p>
+
+    <form method="post" enctype="multipart/form-data" class="eos-upload">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <input type="file" name="UploadedFile" accept=".json,application/json" class="form-control" style="max-width: 420px;" required />
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="IncludePurchases" name="IncludePurchases" value="true" @(Model.IncludePurchases ? "checked" : "") />
+                <label class="form-check-label small" for="IncludePurchases" title="Adds a Purchases tab with paid packs (list price in USD) and shop exchanges.">Show purchases</label>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Show my stats</button>
+            @if (Model.FileName is not null && s is not null)
+            {
+                <span class="text-muted small">Showing <strong>@Model.FileName</strong></span>
+            }
+        </div>
+    </form>
+
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="alert alert-danger mt-3">@Model.ErrorMessage</div>
+    }
+
+    @if (s is not null)
+    {
+        <div class="eos-header">
+            <h2>@(string.IsNullOrWhiteSpace(s.PlayerName) ? "Unnamed player" : s.PlayerName)</h2>
+            @if (!string.IsNullOrWhiteSpace(s.GuildName))
+            {
+                <span class="eos-guild"><i class="fas fa-shield-halved"></i> @s.GuildName</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(s.ProfileMessage))
+            {
+                <span class="eos-message">"@s.ProfileMessage"</span>
+            }
+            <div class="eos-chips">
+                @if (s.PlayerRank > 0)
+                {
+                    <span class="eos-chip"><i class="fas fa-star"></i> Rank @s.PlayerRank <span class="text-muted">/ @s.MaxPlayerRank</span></span>
+                }
+                @if (s.AccountCreated is DateTime created)
+                {
+                    <span class="eos-chip"><i class="fas fa-calendar"></i> Playing since @created.ToString("MMM d, yyyy") <span class="text-muted">(@N((long)(DateTime.UtcNow - created).TotalDays) days)</span></span>
+                }
+                @if (s.MaxPower is long maxPower)
+                {
+                    <span class="eos-chip"><i class="fas fa-bolt"></i> Max power @N(maxPower)</span>
+                }
+                @if (s.GuildLevel is int guildLevel)
+                {
+                    <span class="eos-chip"><i class="fas fa-shield-halved"></i> Guild Lv @guildLevel@(s.GuildJoined is DateTime joined ? $" · joined {joined:MMM d, yyyy}" : "")</span>
+                }
+            </div>
+        </div>
+
+        @if (s.Warnings.Count > 0)
+        {
+            <div class="alert alert-warning small">
+                Some IDs couldn't be matched to game data, so a few names may show as numbers:
+                <ul class="mb-0">@foreach (var w in s.Warnings) { <li>@w</li> }</ul>
+            </div>
+        }
+
+        <div class="eos-cards">
+            <div class="eos-card">
+                <h3>Draws</h3>
+                <div class="eos-big">@N(s.TotalPulls) pulls</div>
+                <dl>
+                    <dt>Crystal pulls</dt><dd>@N(s.TotalCrystalPulls)</dd>
+                    <dt>Free / ticket pulls</dt><dd>@N(s.TotalFreePulls)</dd>
+                    <dt>Est. crystals spent</dt><dd>@N(s.EstimatedCrystalsUsedForPulls)</dd>
+                </dl>
+            </div>
+            <div class="eos-card">
+                <h3>Gil</h3>
+                <div class="eos-big">@N(s.Gil.Count)</div>
+                <dl>
+                    <dt>Lifetime obtained</dt><dd>@N(s.Gil.TotalObtained)</dd>
+                    <dt>Lifetime spent</dt><dd>@N(s.Gil.TotalObtained - s.Gil.Count)</dd>
+                </dl>
+            </div>
+            <div class="eos-card">
+                <h3>Crystals</h3>
+                <div class="eos-big">@N(s.TotalCrystals)</div>
+                <dl>
+                    <dt>Red crystals</dt><dd>@N(s.RedCrystals)</dd>
+                    <dt>Blue crystals</dt><dd>@N(s.BlueCrystals)</dd>
+                    <dt>Crystal ads watched</dt><dd>@N(s.TotalCrystalAdsViewed)</dd>
+                </dl>
+            </div>
+            <div class="eos-card">
+                <h3>Highwind treasure battles</h3>
+                <div class="eos-big">@N(s.TotalHighwindCactuars + s.TotalHighwindGoldCactuars + s.TotalHighwindGoldBombs) wins</div>
+                <dl>
+                    <dt>Cactuars</dt><dd>@N(s.TotalHighwindCactuars)</dd>
+                    <dt>Gold Cactuars</dt><dd>@N(s.TotalHighwindGoldCactuars)</dd>
+                    <dt>Gold Bombs</dt><dd>@N(s.TotalHighwindGoldBombs)</dd>
+                </dl>
+            </div>
+            <div class="eos-card">
+                <h3>Materia</h3>
+                <div class="eos-big">@N(s.Materia.TotalCrafted) crafted</div>
+                <dl>
+                    <dt>Currently owned</dt><dd>@N(s.MateriaOwned.Count)</dd>
+                    <dt>Total obtained</dt><dd>@N(s.Materia.TotalObtained)</dd>
+                    <dt>5★ crafted</dt><dd>@N(s.Materia.CraftedByStar[4])</dd>
+                    <dt>5★ obtained</dt><dd>@N(s.Materia.ObtainedByStar[4])</dd>
+                </dl>
+            </div>
+            @if (s.Collection.Count > 0)
+            {
+                <div class="eos-card eos-card-wide">
+                    <h3>Collection</h3>
+                    <div class="eos-progress-grid">
+                        @foreach (var c in s.Collection)
+                        {
+                            <div class="eos-progress-row">
+                                <span>@c.Name</span>
+                                <div class="eos-bar" role="progressbar" aria-label="@c.Name" aria-valuenow="@c.Percent" aria-valuemin="0" aria-valuemax="100"><div style="width: @c.Percent%"></div></div>
+                                <span class="eos-progress-num">@N(c.Owned) / @N(c.Total)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <ul class="nav nav-tabs eos-tabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#eos-draws" type="button" role="tab">Draws (@s.Draws.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-characters" type="button" role="tab">Characters (@s.Characters.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-parties" type="button" role="tab">Parties (@s.Parties.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-weapons" type="button" role="tab">Weapons (@s.Weapons.Count(w => w.Owned) / @s.Weapons.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-outfits" type="button" role="tab">Outfits (@s.Outfits.Count(o => o.Owned) / @s.Outfits.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-items" type="button" role="tab">Items (@s.Items.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-materia" type="button" role="tab">Materia (@N(s.MateriaOwned.Count))</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-chocobos" type="button" role="tab">Chocobos (@s.Chocobos.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-records" type="button" role="tab">Play records</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-rankings" type="button" role="tab">Rankings</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-badges" type="button" role="tab">Badges (@s.Badges.Sum(b => b.Count))</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-challenges" type="button" role="tab">Challenges</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-passes" type="button" role="tab">Passes &amp; achievements</button></li>
+            @if (s.Purchases is not null)
+            {
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-purchases" type="button" role="tab">Purchases</button></li>
+            }
+        </ul>
+
+        <div class="tab-content eos-tab-body">
+            <div class="tab-pane fade show active" id="eos-draws" role="tabpanel">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <label for="eos-draw-type" class="small text-muted mb-0">Draw type</label>
+                    <select id="eos-draw-type" class="form-select form-select-sm eos-filter">
+                        <option value="">All</option>
+                        @foreach (var t in s.Draws.Select(d => d.TypeLabel).Distinct().OrderBy(x => x))
+                        {
+                            <option value="@t">@t</option>
+                        }
+                    </select>
+                </div>
+                <table id="eos-draws-table" class="table table-sm table-striped eos-table w-100">
+                    <thead>
+                        <tr><th>Draw</th><th>Type</th><th>Last pulled</th><th class="num">Pulls</th><th class="num">Crystal pulls</th><th class="num">Stamps</th><th class="num">Stamp pages</th><th class="num">Est. crystals</th><th class="num">ID</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in s.Draws)
+                        {
+                            <tr>
+                                <td>@d.Name@if (!string.IsNullOrEmpty(d.FeaturedWeapons)) {<div class="small text-muted">Featured: @d.FeaturedWeapons</div>}</td>
+                                <td>@d.TypeLabel</td>
+                                <td data-order="@(d.LastPulled?.Ticks ?? 0)">@(d.LastPulled?.ToString("MMM d, yyyy") ?? "")</td>
+                                <td class="num">@N(d.TotalPulls)</td>
+                                <td class="num">@N(d.CrystalPulls)</td>
+                                <td class="num">@N(d.TotalStamps)</td>
+                                <td class="num">@N(d.TotalStampPages)</td>
+                                <td class="num">@N(d.EstimatedCrystalsUsed)</td>
+                                <td class="num">@d.Id</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-pane fade" id="eos-weapons" role="tabpanel">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <label for="eos-weapon-status" class="small text-muted mb-0">Show</label>
+                    <select id="eos-weapon-status" class="form-select form-select-sm eos-filter">
+                        <option value="">All</option><option value="Owned">Owned</option><option value="Missing">Missing</option>
+                    </select>
+                </div>
+                <table id="eos-weapons-table" class="table table-sm table-striped eos-table w-100">
+                    <thead><tr><th>Weapon</th><th>Character</th><th>Status</th><th class="num">Times pulled</th></tr></thead>
+                    <tbody>
+                        @foreach (var w in s.Weapons)
+                        {
+                            <tr><td>@w.Name</td><td>@w.Character</td><td>@(w.Owned ? "Owned" : "Missing")</td><td class="num">@N(w.GachaPulls)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-pane fade" id="eos-outfits" role="tabpanel">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <label for="eos-outfit-status" class="small text-muted mb-0">Show</label>
+                    <select id="eos-outfit-status" class="form-select form-select-sm eos-filter">
+                        <option value="">All</option><option value="Owned">Owned</option><option value="Missing">Missing</option>
+                    </select>
+                </div>
+                <table id="eos-outfits-table" class="table table-sm table-striped eos-table w-100">
+                    <thead><tr><th>Outfit</th><th>Character</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var o in s.Outfits)
+                        {
+                            <tr><td>@o.Name</td><td>@o.Character</td><td>@(o.Owned ? "Owned" : "Missing")</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-pane fade" id="eos-items" role="tabpanel">
+                <table id="eos-items-table" class="table table-sm table-striped eos-table w-100">
+                    <thead><tr><th>Item</th><th class="num">Owned</th><th class="num">Lifetime obtained</th></tr></thead>
+                    <tbody>
+                        @foreach (var i in s.Items)
+                        {
+                            <tr><td>@i.Name</td><td class="num">@N(i.Count)</td><td class="num">@N(i.TotalObtained)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-pane fade" id="eos-materia" role="tabpanel">
+                <h2 class="h6 eos-section-title">Materia owned</h2>
+                <p class="text-muted small mb-2">One row per materia. Sub stat columns sort highest first; percent stats are shown to one decimal as in game. Elemental potency names are read from the game data's stat codes.</p>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <label for="eos-materia-stat-filter" class="form-label mb-0 small">Has sub stat</label>
+                    <select id="eos-materia-stat-filter" class="form-select form-select-sm w-auto">
+                        <option value="">Any</option>
+                        @for (var c = 0; c < s.MateriaStatColumns.Count; c++)
+                        {
+                            <option value="@(c + 4)">@s.MateriaStatColumns[c]</option>
+                        }
+                    </select>
+                </div>
+                <table id="eos-owned-materia-table" class="table table-sm table-striped eos-table w-100 mb-4 text-nowrap">
+                    <thead><tr><th>Materia</th><th class="num">Stars</th><th>Locked</th><th>Obtained</th>@foreach (var col in s.MateriaStatColumns){<th class="num">@col</th>}</tr></thead>
+                    <tbody>
+                        @foreach (var x in s.MateriaOwned)
+                        {
+                            <tr>
+                                <td>@x.Name</td>
+                                <td class="num">@x.Stars★</td>
+                                <td>@(x.Locked ? "🔒" : "")</td>
+                                <td data-order="@(x.Obtained?.Ticks ?? 0)">@(x.Obtained?.ToString("MMM d, yyyy") ?? "")</td>
+                                @foreach (var col in s.MateriaStatColumns)
+                                {
+                                    if (x.Stats.TryGetValue(col, out var v))
+                                    {
+                                        <td class="num" data-order="@v.ToString(System.Globalization.CultureInfo.InvariantCulture)">@(col.EndsWith("%") ? v.ToString("0.0") + "%" : N((long)v))</td>
+                                    }
+                                    else
+                                    {
+                                        <td class="num" data-order="-1"></td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <h2 class="h6 eos-section-title">Crafting</h2>
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <table class="table table-sm eos-materia">
+                            <thead><tr><th>Rarity</th><th>Crafted</th><th>Obtained</th></tr></thead>
+                            <tbody>
+                                @for (var q = 4; q >= 0; q--)
+                                {
+                                    <tr><td>@(q + 1)★</td><td>@N(s.Materia.CraftedByStar[q])</td><td>@N(s.Materia.ObtainedByStar[q])</td></tr>
+                                }
+                                <tr class="fw-bold"><td>Total</td><td>@N(s.Materia.TotalCrafted)</td><td>@N(s.Materia.TotalObtained)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-lg-8">
+                        <table id="eos-recipes-table" class="table table-sm table-striped eos-table w-100">
+                            <thead><tr><th>Recipe</th><th class="num">Times crafted</th></tr></thead>
+                            <tbody>
+                                @foreach (var r in s.MateriaRecipes)
+                                {
+                                    <tr><td>@r.Name</td><td class="num">@N(r.TotalCrafted)</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="eos-characters" role="tabpanel">
+                <table class="table table-sm table-striped eos-table">
+                    <thead><tr><th>Character</th><th class="num">Level</th><th class="num">Outfits</th><th class="num">Weapons</th><th class="num">Weapon pulls</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in s.Characters)
+                        {
+                            <tr>
+                                <td>@c.Name</td>
+                                <td class="num">@c.Level <span class="text-muted">/ @c.MaxLevel</span></td>
+                                <td class="num">@c.CostumesOwned <span class="text-muted">/ @c.CostumesTotal</span></td>
+                                <td class="num">@c.WeaponsOwned <span class="text-muted">/ @c.WeaponsTotal</span></td>
+                                <td class="num">@N(c.WeaponPulls)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-pane fade" id="eos-parties" role="tabpanel">
+                <p class="text-muted small">Saved party slots, strongest first. Combat power is the value the game showed for the party.</p>
+                <table id="eos-parties-table" class="table table-sm table-striped eos-table w-100">
+                    <thead><tr><th>Party</th><th class="num">Combat power</th><th>Members (main weapon · outfit)</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in s.Parties)
+                        {
+                            <tr>
+                                <td>@p.Name</td>
+                                <td class="num">@N(p.CombatPower)</td>
+                                <td>
+                                    @foreach (var mbr in p.Members)
+                                    {
+                                        <div><strong>@mbr.Character</strong>@if (mbr.MainWeapon is not null) {<span class="text-muted"> · @mbr.MainWeapon</span>}@if (mbr.Outfit is not null) {<span class="text-muted"> · @mbr.Outfit</span>}</div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tab-pane fade" id="eos-chocobos" role="tabpanel">
+                @if (s.ChocoboExpeditions.Count > 0)
+                {
+                    <div class="eos-cards">
+                        <div class="eos-card eos-card-wide">
+                            <h3>Expeditions in progress</h3>
+                            <dl>
+                                @foreach (var ex in s.ChocoboExpeditions)
+                                {
+                                    <dt>@ex.Area@(ex.Character is null ? "" : " · " + ex.Character)</dt><dd>@(ex.Started?.ToString("MMM d, yyyy") ?? "")</dd>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+                }
+                <table id="eos-chocobos-table" class="table table-sm table-striped eos-table w-100">
+                    <thead><tr><th class="num">Rarity</th><th class="num">Rank</th><th class="num">Rank cap</th><th class="num">Speed</th><th class="num">Stamina</th><th class="num">Intelligence</th><th class="num">Adaptability</th><th>Obtained</th><th>Locked</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in s.Chocobos)
+                        {
+                            <tr>
+                                <td class="num" data-order="@c.Rarity">@(c.Rarity > 0 ? c.Rarity + "★" : "–")</td>
+                                <td class="num">@c.Rank</td>
+                                <td class="num">@c.RankLimit</td>
+                                <td class="num">@c.Balance[0]%</td>
+                                <td class="num">@c.Balance[1]%</td>
+                                <td class="num">@c.Balance[2]%</td>
+                                <td class="num">@c.Balance[3]%</td>
+                                <td data-order="@(c.Obtained?.Ticks ?? 0)">@(c.Obtained?.ToString("MMM d, yyyy") ?? "")</td>
+                                <td>@(c.Locked ? "Yes" : "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <p class="text-muted small">Stat columns show each chocobo's stat balance (how its growth is split), not raw values.</p>
+            </div>
+
+            <div class="tab-pane fade" id="eos-passes" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-xl-8">
+                        <h2 class="h6 eos-section-title">Season passes</h2>
+                        <p class="eos-best">@s.SeasonPasses.Count passes · @s.SeasonPasses.Count(p => p.HasPremium) with the premium track</p>
+                        <table id="eos-passes-table" class="table table-sm table-striped eos-table w-100">
+                            <thead><tr><th>Pass</th><th>Ended</th><th class="num">Free rewards</th><th class="num">Premium rewards</th></tr></thead>
+                            <tbody>
+                                @foreach (var p in s.SeasonPasses)
+                                {
+                                    <tr>
+                                        <td>@p.Name</td>
+                                        <td data-order="@(p.Ended?.Ticks ?? 0)">@(p.Ended?.ToString("MMM d, yyyy") ?? "")</td>
+                                        <td class="num">@p.FreeClaimed <span class="text-muted">/ @p.Steps</span></td>
+                                        <td class="num">@(p.HasPremium ? $"{p.PremiumClaimed} / {p.Steps}" : "Not bought")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-xl-4">
+                        <h2 class="h6 eos-section-title">Steam achievements</h2>
+                        <div class="eos-card">
+                            <div class="eos-big">@s.Achievements.Unlocked <small class="text-muted fs-6">/ @s.Achievements.Total unlocked</small></div>
+                            <dl>
+                                @if (s.Achievements.First is DateTime first) {<dt>First unlocked</dt><dd>@first.ToString("MMM d, yyyy")</dd>}
+                                @if (s.Achievements.Latest is DateTime latest) {<dt>Latest unlocked</dt><dd>@latest.ToString("MMM d, yyyy")</dd>}
+                                @foreach (var y in s.Achievements.ByYear)
+                                {
+                                    <dt>Unlocked in @y.Name</dt><dd>@y.Value</dd>
+                                }
+                            </dl>
+                        </div>
+                        <p class="text-muted small mt-2">The export only has unlock dates; the game data doesn't include achievement names.</p>
+                    </div>
+                </div>
+            </div>
+
+            @if (s.Purchases is { } pur)
+            {
+                <div class="tab-pane fade" id="eos-purchases" role="tabpanel">
+                    <div class="eos-cards">
+                        <div class="eos-card">
+                            <h3>Paid packs</h3>
+                            <div class="eos-big">@N(pur.TotalPacks)</div>
+                            <dl>
+                                <dt>List price (USD)</dt><dd>$@pur.TotalListPriceUsd.ToString("N2")</dd>
+                                <dt>Crystals included</dt><dd>@N(pur.TotalCrystals)</dd>
+                            </dl>
+                        </div>
+                        <div class="eos-card">
+                            <h3>Shop exchanges</h3>
+                            <div class="eos-big">@N(pur.Shops.Sum(x => x.TotalPurchases))</div>
+                            <dl>
+                                <dt>Shops used</dt><dd>@N(pur.Shops.Count)</dd>
+                                <dt>Different items</dt><dd>@N(pur.Shops.Sum(x => x.ItemsBought))</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <p class="text-muted small">Prices are the game's US list prices; what you actually paid can differ by region, store and sales.</p>
+                    <div class="row g-4">
+                        <div class="col-xl-7">
+                            <h2 class="h6 eos-section-title">Paid packs</h2>
+                            <table id="eos-paid-table" class="table table-sm table-striped eos-table w-100">
+                                <thead><tr><th>Pack</th><th>Shop</th><th class="num">Bought</th><th class="num">Price (USD)</th><th class="num">Crystals</th><th>Last bought</th></tr></thead>
+                                <tbody>
+                                    @foreach (var p in pur.Paid)
+                                    {
+                                        <tr>
+                                            <td>@p.Name</td>
+                                            <td>@p.Shop</td>
+                                            <td class="num">@N(p.Count)</td>
+                                            <td class="num">@p.PriceUsd.ToString("N2")</td>
+                                            <td class="num">@N(p.Crystals)</td>
+                                            <td data-order="@(p.LastPurchased?.Ticks ?? 0)">@(p.LastPurchased?.ToString("MMM d, yyyy") ?? "")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-xl-5">
+                            <h2 class="h6 eos-section-title">Shop exchanges</h2>
+                            <table id="eos-shops-table" class="table table-sm table-striped eos-table w-100">
+                                <thead><tr><th>Shop</th><th class="num">Items</th><th class="num">Purchases</th><th>Last</th></tr></thead>
+                                <tbody>
+                                    @foreach (var x in pur.Shops)
+                                    {
+                                        <tr>
+                                            <td>@x.Name</td>
+                                            <td class="num">@N(x.ItemsBought)</td>
+                                            <td class="num">@N(x.TotalPurchases)</td>
+                                            <td data-order="@(x.LastPurchased?.Ticks ?? 0)">@(x.LastPurchased?.ToString("MMM yyyy") ?? "")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="tab-pane fade" id="eos-records" role="tabpanel">
+                <div class="eos-cards">
+                    @foreach (var g in s.RecordGroups)
+                    {
+                        <div class="eos-card">
+                            <h3>@g.Name</h3>
+                            <dl>
+                                @foreach (var r in g.Records)
+                                {
+                                    <dt>@r.Name</dt><dd>@(r.IsMaxed ? "Max" : N(r.Value))</dd>
+                                }
+                            </dl>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="eos-rankings" role="tabpanel">
+                <p class="text-muted small mb-3"><i class="fas fa-medal eos-badge-icon ms-0"></i> marks a placement that earned a badge.</p>
+                <div class="row g-4">
+                    <div class="col-xl-6">
+                        <h2 class="h6 eos-section-title">Battle Rankings (Crisis Events)</h2>
+                        @RankSummary(s.CrisisEvents, 20)
+                        <table class="table table-sm table-striped eos-table" id="eos-crisis-table">
+                            <thead><tr><th>Event</th><th>Ended</th><th class="num">Final rank</th><th class="num">Points</th><th class="num">Best stage</th></tr></thead>
+                            <tbody>
+                                @foreach (var e in s.CrisisEvents)
+                                {
+                                    <tr>
+                                        <td>@e.Name</td>
+                                        <td data-order="@(e.EndDate?.Ticks ?? 0)">@(e.EndDate?.ToString("MMM yyyy") ?? "")</td>
+                                        <td class="num" data-order="@(e.FinalRank > 0 ? e.FinalRank : int.MaxValue)">@Rank(e)</td>
+                                        <td class="num">@N(e.Points)</td>
+                                        <td class="num">@(e.HighStage > 0 ? N(e.HighStage) : "–")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-xl-6">
+                        <h2 class="h6 eos-section-title">Guild Battles</h2>
+                        @RankSummary(s.GuildBattles, 10)
+                        <table class="table table-sm table-striped eos-table" id="eos-guild-table">
+                            <thead><tr><th>Battle</th><th>Ended</th><th class="num">Your guild's rank</th>@if (!string.IsNullOrEmpty(s.GuildName)) {<th class="num">@s.GuildName's rank</th>}</tr></thead>
+                            <tbody>
+                                @foreach (var e in s.GuildBattles)
+                                {
+                                    <tr>
+                                        <td>@e.Name</td>
+                                        <td data-order="@(e.EndDate?.Ticks ?? 0)">@(e.EndDate?.ToString("MMM yyyy") ?? "")</td>
+                                        <td class="num" data-order="@(e.FinalRank > 0 ? e.FinalRank : int.MaxValue)">@Rank(e)</td>
+                                        @if (!string.IsNullOrEmpty(s.GuildName))
+                                        {
+                                            <td class="num" data-order="@(e.CurrentGuildRank ?? int.MaxValue)">@(e.CurrentGuildRank is int cr ? "#" + N(cr) : "–")</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <p class="text-muted small">"Your guild's rank" is the guild you were in for that battle.</p>
+                    </div>
+                    <div class="col-xl-6">
+                        <h2 class="h6 eos-section-title">Damage Rankings</h2>
+                        @RankSummary(s.DamageRankings, 20)
+                        <table class="table table-sm table-striped eos-table">
+                            <thead><tr><th>Event</th><th>Ended</th><th class="num">Final rank</th><th class="num">Best damage</th><th>Latest best team</th></tr></thead>
+                            <tbody>
+                                @foreach (var e in s.DamageRankings)
+                                {
+                                    <tr>
+                                        <td>@e.Name</td>
+                                        <td>@(e.EndDate?.ToString("MMM yyyy") ?? "")</td>
+                                        <td class="num">@Rank(e)</td>
+                                        <td class="num">@(e.BestDamage > 0 ? N(e.BestDamage) : "–")</td>
+                                        <td>@(e.BestTeam ?? "–")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-xl-6">
+                        <h2 class="h6 eos-section-title">Dungeon Rankings</h2>
+                        @RankSummary(s.ScoreDungeons, 20)
+                        <table class="table table-sm table-striped eos-table">
+                            <thead><tr><th>Dungeon</th><th>Ended</th><th class="num">Final rank</th></tr></thead>
+                            <tbody>
+                                @foreach (var e in s.ScoreDungeons)
+                                {
+                                    <tr>
+                                        <td>@e.Name</td>
+                                        <td>@(e.EndDate?.ToString("MMM yyyy") ?? "")</td>
+                                        <td class="num">@Rank(e)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="eos-badges" role="tabpanel">
+                @if (s.Badges.Count == 0)
+                {
+                    <p class="text-muted">No badges in this export.</p>
+                }
+                <div class="eos-cards">
+                    @foreach (var b in s.Badges)
+                    {
+                        <div class="eos-card eos-badge-card @(b.EarnedFrom.Count > 0 ? "eos-card-wide" : "")">
+                            <h3><i class="fas fa-medal eos-badge-icon ms-0 me-1"></i>@b.Name</h3>
+                            <div class="eos-big">@N(b.Count) <small>earned</small></div>
+                            <p>@b.Description</p>
+                            @if (b.EarnedFrom.Count > 0)
+                            {
+                                <ul>
+                                    @foreach (var e in b.EarnedFrom)
+                                    {
+                                        <li>@e</li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="eos-challenges" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-xl-7">
+                        <h2 class="h6 eos-section-title">Max. Damage Challenge</h2>
+                        <table class="table table-sm table-striped eos-table">
+                            <thead><tr><th>Challenge</th><th class="num">High score</th><th class="num">Attempts</th><th>Last improved</th></tr></thead>
+                            <tbody>
+                                @foreach (var d in s.DamageChallenges)
+                                {
+                                    <tr>
+                                        <td>@d.Name</td>
+                                        <td class="num">@N(d.HighScore)@if (d.IsMaxed) {<span class="badge text-bg-warning ms-1">Max</span>}</td>
+                                        <td class="num">@N(d.Attempts)</td>
+                                        <td>@(d.LastImproved?.ToString("MMM d, yyyy") ?? "")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        @if (s.DamageChallenges.Any(d => d.IsMaxed))
+                        {
+                            <p class="text-muted small">Max is the highest score the game can record.</p>
+                        }
+                        @if (s.CriterionDungeons.Count > 0)
+                        {
+                            <h2 class="h6 eos-section-title mt-4">Criterion Dungeons</h2>
+                            <p class="eos-best">@s.CriterionDungeons.Count dungeons cleared · @s.CriterionDungeons.Count(d => d.BestRank == "SS") at SS</p>
+                            <table id="eos-criterion-table" class="table table-sm table-striped eos-table w-100">
+                                <thead><tr><th>Dungeon</th><th class="num">Difficulty</th><th class="num">Best rank</th><th class="num">High score</th><th class="num">Clears</th><th>Team</th><th>Last improved</th></tr></thead>
+                                <tbody>
+                                    @foreach (var d in s.CriterionDungeons)
+                                    {
+                                        <tr>
+                                            <td>@d.Name</td>
+                                            <td class="num">@d.Difficulty</td>
+                                            <td class="num" data-order="@d.RankOrder">@d.BestRank</td>
+                                            <td class="num">@N(d.HighScore)</td>
+                                            <td class="num">@N(d.Clears)</td>
+                                            <td>@(d.Team ?? "–")</td>
+                                            <td data-order="@(d.LastImproved?.Ticks ?? 0)">@(d.LastImproved?.ToString("MMM d, yyyy") ?? "")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                    <div class="col-xl-5">
+                        @if (s.EscalationChallenges.Count > 0)
+                        {
+                            <h2 class="h6 eos-section-title">Escalation Challenges</h2>
+                            @foreach (var t in s.EscalationChallenges)
+                            {
+                                var epct = t.Total > 0 ? (int)(100.0 * Math.Min(t.Cleared, t.Total) / t.Total) : 0;
+                                <div class="eos-progress-row">
+                                    <span>@t.Name</span>
+                                    <div class="eos-bar" role="progressbar" aria-label="@t.Name" aria-valuenow="@epct" aria-valuemin="0" aria-valuemax="100"><div style="width: @epct%"></div></div>
+                                    <span class="eos-progress-num">Lv @t.Cleared@(t.Total > 0 ? " / " + t.Total : "")</span>
+                                </div>
+                            }
+                            <div class="mb-4"></div>
+                        }
+                        <h2 class="h6 eos-section-title">Battle Towers</h2>
+                        @foreach (var t in s.Towers)
+                        {
+                            var pct = t.Total > 0 ? (int)(100.0 * Math.Min(t.Cleared, t.Total) / t.Total) : 0;
+                            <div class="eos-progress-row">
+                                <span>@t.Name</span>
+                                <div class="eos-bar" role="progressbar" aria-label="@t.Name" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100"><div style="width: @pct%"></div></div>
+                                <span class="eos-progress-num">@t.Cleared / @t.Total</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            if (typeof DataTable === 'undefined' || !document.getElementById('eos-draws-table')) return;
+            // Formatted numbers ("1,234") sort as numbers via the num-fmt type.
+            const opts = (order) => ({ pageLength: 25, order: order, columnDefs: [{ targets: 'num', type: 'num-fmt' }] });
+            const draws = new DataTable('#eos-draws-table', opts([[3, 'desc']]));
+            const weapons = new DataTable('#eos-weapons-table', opts([[3, 'desc']]));
+            const outfits = new DataTable('#eos-outfits-table', Object.assign(opts([]), { ordering: true }));
+            const statusFilter = (selId, table) => document.getElementById(selId).addEventListener('change', function () {
+                table.column(2).search(this.value ? '^' + this.value + '$' : '', { regex: true, smart: false }).draw();
+            });
+            statusFilter('eos-weapon-status', weapons);
+            statusFilter('eos-outfit-status', outfits);
+            new DataTable('#eos-items-table', opts([[2, 'desc']]));
+            new DataTable('#eos-recipes-table', opts([[1, 'desc']]));
+            const small = (order) => Object.assign(opts(order), { pageLength: 10, lengthChange: false });
+            new DataTable('#eos-crisis-table', small([[1, 'desc']]));
+            new DataTable('#eos-guild-table', small([[1, 'desc']]));
+            const t = (id, order, o) => { if (document.getElementById(id)) new DataTable('#' + id, Object.assign(opts(order), o || {})); };
+            const matEl = document.getElementById('eos-owned-materia-table');
+            if (matEl) {
+                const mat = new DataTable(matEl, Object.assign(opts([[1, 'desc'], [0, 'asc']]), { scrollX: true, columnDefs: [{ targets: 'num', type: 'num' }] }));
+                const pick = document.getElementById('eos-materia-stat-filter');
+                let statCol = null;
+                DataTable.ext.search.push((settings, data, idx) => {
+                    if (settings.nTable !== matEl || statCol === null) return true;
+                    return mat.cell(idx, statCol).node().getAttribute('data-order') !== '-1';
+                });
+                pick.addEventListener('change', () => {
+                    statCol = pick.value === '' ? null : parseInt(pick.value, 10);
+                    if (statCol !== null) mat.order([statCol, 'desc']);
+                    mat.draw();
+                });
+                // scrollX tables need a resize when their tab becomes visible.
+                document.querySelector('[data-bs-target="#eos-materia"]')?.addEventListener('shown.bs.tab', () => mat.columns.adjust());
+            }
+            t('eos-parties-table', [[1, 'desc']]);
+            t('eos-chocobos-table', [[1, 'desc'], [0, 'desc']]);
+            t('eos-passes-table', [[1, 'desc']], { pageLength: 10, lengthChange: false });
+            t('eos-criterion-table', [[6, 'desc']], { pageLength: 10, lengthChange: false });
+            t('eos-paid-table', [[5, 'desc']]);
+            t('eos-shops-table', [[3, 'desc']]);
+            document.getElementById('eos-draw-type').addEventListener('change', function () {
+                const v = this.value;
+                draws.column(1).search(v ? '^' + v + '$' : '', { regex: true, smart: false }).draw();
+            });
+            // Tables inside hidden tabs need a width recalc once shown.
+            document.querySelectorAll('.eos-tabs button').forEach(b => b.addEventListener('shown.bs.tab', () => DataTable.tables({ visible: true, api: true }).columns.adjust()));
+        })();
+    </script>
+}

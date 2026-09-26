@@ -1,18 +1,32 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "SOLDIER Tools";
+    ViewData["Title"] = "Home";
 }
 
 <div class="container mt-4">
     <div class="row">
         <div class="col-12 mb-4">
-            <h1 class="mb-3"><i class="fas fa-tools"></i> SOLDIER Tools</h1>
+            <h1 class="mb-3"><i class="fas fa-tools"></i> FFVIIEC Tools</h1>
             <p class="text-muted mb-3">Select a tool to get started.</p>
         </div>
     </div>
 
     <div class="row g-4 justify-content-center">
+        <div class="col-md-6 col-lg-3">
+            <a href="/EosPlayerStats" class="text-decoration-none">
+                <div class="card h-100 shadow-sm border-primary position-relative">
+                    <span class="badge position-absolute top-0 end-0 m-2 z-1" style="background-color: var(--brand-primary-strong); color: #fff;">NEW</span>
+                    <div class="card-body text-center">
+                        <div class="mb-3"><i class="fas fa-chart-bar fa-3x text-primary"></i></div>
+                        <h5 class="card-title">EOS Stats</h5>
+                        <p class="card-text text-muted small">
+                            Upload your End of Service account export to see your draws, collection, rankings, badges and play records.
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
         <div class="col-md-6 col-lg-3">
             <a href="/PlayerPowerAnalyzerV2" class="text-decoration-none">
                 <div class="card h-100 shadow-sm border-primary position-relative">

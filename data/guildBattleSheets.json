@@ -1,6 +1,30 @@
 {
   "schemaVersion": 1,
-  "battles": [    
+  "battles": [
+    {
+      "id": "2026-09",
+      "name": "",
+      "month": "September",
+      "year": 2026,
+      "element": "Wind,Fire,Water,Lightning,Ice",
+      "abilityType": "Magical,Physical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
+    {
+      "id": "2026-08",
+      "name": "",
+      "month": "August",
+      "year": 2026,
+      "element": "Water",
+      "abilityType": "Magical",
+      "rank": "SOLDIER",
+      "writeup": "",
+      "topPicks": [],
+      "hiddenWeapons": []
+    },
     {
       "id": "2026-07",
       "name": "",
@@ -87,7 +111,7 @@
     },
     {
       "id": "2025-12",
-      "name":  "",
+      "name": "",
       "month": "December",
       "year": 2025,
       "element": "Lightning",

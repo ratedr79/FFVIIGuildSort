@@ -1,4 +1,4 @@
-﻿# SOLDIER Tools
+﻿# FFVIIEC Tools
 
 A web toolkit for Final Fantasy VII Ever Crisis guild operations: team ranking, guild battle simulations, assignment testing, gear lookup, and enemy data lookup.
 

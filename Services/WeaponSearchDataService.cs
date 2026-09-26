@@ -49,7 +49,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
         // are hand-verified against the live game because the data exposes no general "obtainable" signal.
         //   20002 — a legacy/non-exposed "Buster Sword Origin" (Zack) duplicate; the player-obtainable one is
         //           id 20033 (Boost PDEF / Boost HP + Sigil Boost I). Same name caused import ambiguity.
-        private static readonly HashSet<int> ExcludedWeaponIds = new() { 20002 };
+        internal static readonly HashSet<int> ExcludedWeaponIds = new() { 20002 };
 
         // Lookup data retained for the snapshot API
         private Dictionary<int, WeaponRaw> _weaponsById = new();
