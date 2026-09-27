@@ -532,6 +532,15 @@ public sealed class EosPlayerStatsService
             return new EosProgressStat { Name = d.Name ?? $"Tower #{Long(t, "TowerId")}", Cleared = (int)Long(t, "ClearFloorSeq"), Total = d.Floors };
         }).OrderBy(t => t.Name).ToList();
 
+        // Battle Tower: Singularity events: each floor is an event solo battle (id = event id × 1000 + floor).
+        var soloWins = List(info, "UserEventSoloBattleList").Where(b => Long(b, "TotalWinCount") > 0).Select(b => Long(b, "EventSoloBattleId") / 1000)
+            .GroupBy(e => e).ToDictionary(g => g.Key, g => g.Count());
+        stats.SingularityTowers = m.SingularityTowers
+            .Where(t => soloWins.ContainsKey(t.Key))
+            .OrderBy(t => t.Key)
+            .Select(t => new EosProgressStat { Name = t.Value.Name, Cleared = soloWins[t.Key], Total = t.Value.Floors })
+            .ToList();
+
         stats.DamageChallenges = List(info, "UserDamageChallengeBattleList")
             .Select(d => (Id: Long(d, "DamageChallengeBattleId"), Score: Long(d, "HighScore"), Tries: Long(d, "TotalEntryCount"), Updated: Long(d, "LastUpdateScoreDatetime")))
             .OrderBy(d => m.DamageChallenges.TryGetValue(d.Id, out var x) ? x.Order : int.MaxValue)
@@ -1311,8 +1320,17 @@ public sealed class EosPlayerStatsService
             foreach (var e in Rows(master, "EventScoreDungeon", logger))
                 data.ScoreDungeons[Long(e, "Id")] = (eventNames.GetValueOrDefault(Long(e, "EventBaseId")) ?? string.Empty, Long(e, "EventBaseId"), Long(e, "FixRankingDatetime"));
 
+            // FinalFloorSeq says 100 for the 50-floor Colosseum towers, so count the actual floors.
+            var towerFloors = Rows(master, "TowerFloor", logger).GroupBy(f => Long(f, "TowerId")).ToDictionary(g => g.Key, g => g.Count());
             foreach (var t in Rows(master, "Tower", logger))
-                data.Towers[Long(t, "Id")] = (Name(t, "NameLanguageId"), (int)Long(t, "FinalFloorSeq"));
+                data.Towers[Long(t, "Id")] = (Name(t, "NameLanguageId"), towerFloors.GetValueOrDefault(Long(t, "Id"), (int)Long(t, "FinalFloorSeq")));
+            // Events filed under the "Battle Tower: Singularity" category (localization 868000000000010).
+            var singularity = Rows(master, "EventBase", logger).Where(e => Long(e, "EventTopCategoryLanguageId") == 868000000000010)
+                .ToDictionary(e => Long(e, "Id"), e => Name(e, "EventTopTitleLanguageId").Replace("\\n", " ").Replace("\n", " ").Replace("  ", " ").Trim());
+            var singularityFloors = Rows(master, "EventSoloBattle", logger).Select(b => Long(b, "Id") / 1000).Where(singularity.ContainsKey)
+                .GroupBy(e => e).ToDictionary(g => g.Key, g => g.Count());
+            foreach (var (id, name) in singularity)
+                data.SingularityTowers[id] = (name, singularityFloors.GetValueOrDefault(id));
             foreach (var d in Rows(master, "DamageChallengeBattle", logger))
                 data.DamageChallenges[Long(d, "Id")] = (Name(d, "NameLanguageId"), (int)Long(d, "OrderNo"));
 
@@ -1700,6 +1718,7 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, (string Name, long EndMs)> GuildBattles { get; } = new();
         public Dictionary<long, (string Name, long EventBaseId, long EndMs)> ScoreDungeons { get; } = new();
         public Dictionary<long, (string Name, int Floors)> Towers { get; } = new();
+        public Dictionary<long, (string Name, int Floors)> SingularityTowers { get; } = new();
         public Dictionary<long, (string Name, int Order)> DamageChallenges { get; } = new();
         public Dictionary<long, string> CostumeNames { get; } = new();
         public Dictionary<long, int> ChocoboRarity { get; } = new();

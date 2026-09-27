@@ -1116,6 +1116,20 @@
                                 <span class="eos-progress-num">@t.Cleared / @t.Total</span>
                             </div>
                         }
+                        @if (s.SingularityTowers.Count > 0)
+                        {
+                            <h2 class="h6 eos-section-title mt-4">Battle Tower: Singularity</h2>
+                            @foreach (var t in s.SingularityTowers)
+                            {
+                                var spct = t.Total > 0 ? (int)(100.0 * Math.Min(t.Cleared, t.Total) / t.Total) : 0;
+                                <div class="eos-progress-row">
+                                    <span>@t.Name</span>
+                                    <div class="eos-bar" role="progressbar" aria-label="@t.Name" aria-valuenow="@spct" aria-valuemin="0" aria-valuemax="100"><div style="width: @spct%"></div></div>
+                                    <span class="eos-progress-num">@t.Cleared / @t.Total</span>
+                                </div>
+                            }
+                            <p class="text-muted small">Limited-time towers. Floors cleared are floors the player has won at least once.</p>
+                        }
                     </div>
                 </div>
             </div>

@@ -53,6 +53,8 @@ public sealed class EosPlayerStats
     public List<EosEventRank> GuildBattles { get; set; } = new();
     public List<EosEventRank> ScoreDungeons { get; set; } = new();
     public List<EosProgressStat> Towers { get; set; } = new();
+    /// <summary>Limited "Battle Tower: Singularity" events; floors are event solo battles.</summary>
+    public List<EosProgressStat> SingularityTowers { get; set; } = new();
     public List<EosDamageChallengeStat> DamageChallenges { get; set; } = new();
 
     public List<EosParty> Parties { get; set; } = new();
