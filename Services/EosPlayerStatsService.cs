@@ -99,6 +99,8 @@ public sealed class EosPlayerStatsService
                 Name = m.ItemNames.TryGetValue(id, out var n) ? n : $"Item #{id}",
                 Count = count,
                 TotalObtained = total,
+                FirstObtained = FromMs(Long(item, "GetDatetime")),
+                LastObtained = FromMs(Long(item, "LastGetDatetime")),
             });
         }
         stats.Items = stats.Items.OrderByDescending(i => i.TotalObtained).ThenBy(i => i.Id).ToList();
@@ -166,16 +168,54 @@ public sealed class EosPlayerStatsService
             }
         }
 
+        // Weapon voucher exchanges per weapon, from the voucher shop purchase counts.
+        var voucherBuys = new Dictionary<long, (long Count, long Last)>();
+        foreach (var p in List(info, "UserShopItemList"))
+        {
+            var count = Long(p, "TotalPurchaseCount");
+            if (count <= 0 || !m.VoucherShopItems.TryGetValue(Long(p, "ShopItemId"), out var vw)) continue;
+            foreach (var wid in vw)
+            {
+                var cur = voucherBuys.GetValueOrDefault(wid);
+                voucherBuys[wid] = (cur.Count + count, Math.Max(cur.Last, Long(p, "LastPurchaseDatetime")));
+            }
+        }
         foreach (var weapon in List(info, "UserWeaponList"))
         {
             var id = Long(weapon, "WeaponId");
             m.Weapons.TryGetValue(id, out var w);
+            // Rarity 1/2/3 = 3★/4★/5★, 101 = 6★ ultimate. Upgrade type 1 = overboost 1-10, type 2 = the +1..+20 after OB10.
+            var rarity = (int)Long(weapon, "RarityType");
+            var upgradeType = Long(weapon, "WeaponUpgradeType");
+            var upgrades = Long(weapon, "UpgradeCount");
+            int level = 0, maxLevel = 0;
+            if (m.WeaponGrowth.TryGetValue(id, out var growth))
+            {
+                var levels = m.WeaponLevelExp.GetValueOrDefault(growth.LevelGroup);
+                var limits = m.WeaponLevelLimits.GetValueOrDefault(growth.ReleaseGroup);
+                // Exp needed for a level = ExpCoefficient × BaseExp / 1000.
+                if (levels is not null)
+                    level = levels.LastOrDefault(l => l.Coefficient * growth.BaseExp / 1000 <= Long(weapon, "Exp")).Level;
+                if (limits is not null)
+                {
+                    if (limits.TryGetValue((int)Long(weapon, "ReleaseCount"), out var cap)) level = Math.Min(level, cap);
+                    if (m.WeaponMaxRelease.TryGetValue((growth.RarityGroup, rarity), out var maxRelease) && limits.TryGetValue(maxRelease, out var max)) maxLevel = max;
+                }
+            }
             stats.Weapons.Add(new EosWeaponStat
             {
                 Id = id,
                 Name = w?.Name ?? $"Weapon #{id}",
                 Character = w?.Character ?? string.Empty,
                 GachaPulls = (int)Long(weapon, "ObtainCountFromGacha"),
+                Stars = rarity switch { 1 => 3, 2 => 4, 3 => 5, 101 => 6, _ => 0 },
+                Level = level,
+                MaxLevel = maxLevel,
+                Overboost = upgradeType == 2 ? 10 : upgradeType == 1 ? (int)upgrades : 0,
+                OverboostPlus = upgradeType == 2 ? (int)upgrades : 0,
+                FirstObtained = FromMs(Long(weapon, "GetDatetime")),
+                VoucherExchanges = voucherBuys.GetValueOrDefault(id).Count,
+                LastVoucherExchange = FromMs(voucherBuys.GetValueOrDefault(id).Last),
             });
         }
         // Weapons in the game data the player doesn't have.
@@ -565,6 +605,8 @@ public sealed class EosPlayerStatsService
         {
             var has = userMemoria.TryGetValue(kv.Key, out var um);
             var equipable = has ? Long(um, "EquipableDatetime") : 0;
+            var levels = m.MemoriaLevels.GetValueOrDefault(m.MemoriaLevelGroup.GetValueOrDefault(kv.Key)) ?? new();
+            var points = has ? Long(um, "AnalysisPoint") : 0;
             return new EosMemoriaStat
             {
                 Name = kv.Value.Name,
@@ -574,6 +616,8 @@ public sealed class EosPlayerStatsService
                 Fragments = has ? (int)Long(um, "FragmentCount") : 0,
                 FragmentsNeeded = kv.Value.Fragments,
                 Obtained = FromMs(equipable),
+                Level = equipable > 0 && levels.Count > 0 ? levels.Where(l => l.Threshold <= points).Select(l => l.Level).DefaultIfEmpty(1).Max() : null,
+                MaxLevel = levels.Count > 0 ? levels.Max(l => l.Level) : 0,
             };
         }).OrderByDescending(x => x.Owned).ThenByDescending(x => x.Stars).ThenBy(x => x.Name).ToList();
 
@@ -603,6 +647,167 @@ public sealed class EosPlayerStatsService
             .OrderBy(x => x.Category).ThenBy(x => x.Mission).ToList();
 
         ParseBattles(info, stats, m);
+        ParseGrowthAndShops(info, stats, m);
+    }
+
+    private static void ParseGrowthAndShops(JsonElement info, EosPlayerStats stats, MasterData m)
+    {
+        // Growth boards: GroupIdxFlags0 holds node idx 0-63 as a 64-bit mask, GroupIdxFlags1 idx 64+.
+        static ulong Mask(JsonElement e, string key) =>
+            e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number
+                ? (v.TryGetUInt64(out var u) ? u : v.TryGetInt64(out var l) ? unchecked((ulong)l) : 0UL) : 0UL;
+        var unlocked = new Dictionary<long, (ulong F0, ulong F1)>();
+        foreach (var g in List(info, "UserGrowthBoardGroupList"))
+            unlocked[Long(g, "GrowthBoardGroupId")] = (Mask(g, "GroupIdxFlags0"), Mask(g, "GroupIdxFlags1"));
+        var boards = new Dictionary<(int Type, long Target), EosGrowthBoard>();
+        foreach (var (groupId, def) in m.GrowthGroups)
+        {
+            if (!m.GrowthNodes.TryGetValue(groupId, out var nodes)) continue;
+            var key = (def.Type, def.Target);
+            if (!boards.TryGetValue(key, out var b))
+            {
+                var (label, name) = def.Type switch
+                {
+                    1 => ("Character", m.Characters.TryGetValue(def.Target, out var c) ? c.Name : null),
+                    5 => ("Character overaccel", m.Characters.TryGetValue(def.Target, out var c2) ? c2.Name : null),
+                    4 => ("Summon", m.SummonNames.GetValueOrDefault(def.Target)),
+                    6 => ("Enemy ability", m.AbilityEnemyNames.GetValueOrDefault(def.Target)),
+                    _ => ("Other", null),
+                };
+                boards[key] = b = new EosGrowthBoard { Type = label, Name = string.IsNullOrWhiteSpace(name) ? $"#{def.Target}" : name };
+            }
+            b.Boards++;
+            var flags = unlocked.GetValueOrDefault(groupId);
+            foreach (var n in nodes)
+            {
+                b.NodesTotal++;
+                var on = n.Idx < 64 ? (flags.F0 >> n.Idx & 1) == 1 : n.Idx < 128 && (flags.F1 >> (n.Idx - 64) & 1) == 1;
+                if (!on) continue;
+                b.NodesUnlocked++;
+                if (n.Flat)
+                {
+                    b.Hp += n.Hp; b.PhysicalAttack += n.PAtk; b.MagicalAttack += n.MAtk;
+                    b.PhysicalDefense += n.PDef; b.MagicalDefense += n.MDef; b.Healing += n.Heal;
+                }
+            }
+        }
+        stats.GrowthBoards = boards.Values.Where(b => b.NodesUnlocked > 0 || b.Type is "Character" or "Summon")
+            .OrderBy(b => b.Type).ThenByDescending(b => b.NodesUnlocked).ThenBy(b => b.Name).ToList();
+
+        // Shop exchanges, excluding real-money packs (those stay behind the "Show purchases" option).
+        foreach (var s in List(info, "UserShopItemList"))
+        {
+            var count = Long(s, "TotalPurchaseCount");
+            if (count <= 0 || !m.ShopItems.TryGetValue(Long(s, "ShopItemId"), out var item) || item.StoreGroupId > 0) continue;
+            var shop = m.ShopNames.GetValueOrDefault(item.ShopId) ?? "Shop";
+            stats.ShopExchanges.Add(new EosShopExchange
+            {
+                Name = string.IsNullOrWhiteSpace(item.Name) ? $"Shop item #{Long(s, "ShopItemId")}" : item.Name,
+                Shop = shop,
+                Count = count,
+                LastPurchased = FromMs(Long(s, "LastPurchaseDatetime")),
+            });
+        }
+        stats.ShopExchanges = stats.ShopExchanges.OrderByDescending(x => x.LastPurchased).ToList();
+
+        // Wishlists: each saved choice is a (slot, weapon) on a GachaWish shared by one or more draws.
+        var pulls = stats.Draws.ToDictionary(d => d.Id, d => d.LastPulled);
+        var wishes = new Dictionary<long, EosWishlist>();
+        foreach (var c in List(info, "UserGachaWishChoiceList"))
+        {
+            if (!m.WishChoices.TryGetValue(Long(c, "GachaWishChoiceId"), out var choice)) continue;
+            if (!wishes.TryGetValue(choice.WishId, out var w))
+            {
+                var gachas = m.WishGachas.GetValueOrDefault(choice.WishId) ?? new List<long>();
+                wishes[choice.WishId] = w = new EosWishlist
+                {
+                    Id = choice.WishId,
+                    Banners = string.Join(" / ", gachas.Select(g => m.Gachas.TryGetValue(g, out var gi) ? gi.Name.Replace("\n", " ") : null)
+                        .Where(n => !string.IsNullOrWhiteSpace(n)).Distinct()),
+                    LastPulled = gachas.Select(g => pulls.GetValueOrDefault(g)).Where(d => d is not null).DefaultIfEmpty(null).Max(),
+                };
+            }
+            var weaponId = Long(c, "WeaponId");
+            var weapon = m.Weapons.GetValueOrDefault(weaponId);
+            w.Picks.Add(new EosWishPick
+            {
+                Slot = choice.Order,
+                Weapon = weapon?.Name ?? $"Weapon #{weaponId}",
+                Character = weapon?.Character ?? string.Empty,
+                Changed = weaponId != choice.DefaultWeapon,
+            });
+        }
+        foreach (var w in wishes.Values) w.Picks = w.Picks.OrderBy(p => p.Slot).ToList();
+        stats.Wishlists = wishes.Values.OrderByDescending(w => w.LastPulled).ThenByDescending(w => w.Id).ToList();
+
+        // Event box draws ("Victory Draw"): tickets used / cost per draw = draws; each box reset = a box emptied.
+        var itemUse = List(info, "UserItemList").ToDictionary(i => Long(i, "ItemId"), i => (Used: Long(i, "TotalConsumptionCount"), Last: Long(i, "LastGetDatetime")));
+        foreach (var u in List(info, "UserBoxGachaList"))
+        {
+            if (!m.BoxGachas.TryGetValue(Long(u, "BoxGachaId"), out var box)) continue;
+            var eventId = m.BoxGroupEvent.GetValueOrDefault(box.GroupId);
+            var use = itemUse.GetValueOrDefault(box.CostItem);
+            stats.BoxDraws.Add(new EosBoxDraw
+            {
+                EventId = eventId,
+                Event = m.EventNames.GetValueOrDefault(eventId) ?? $"Event #{eventId}",
+                Box = box.Name,
+                BoxesReset = Long(u, "TotalRewardGroupUpdateCount"),
+                Draws = box.CostCount > 0 ? use.Used / box.CostCount : 0,
+                Ticket = m.ItemNames.GetValueOrDefault(box.CostItem) ?? $"Item #{box.CostItem}",
+                TicketsUsed = use.Used,
+                LastTicket = FromMs(use.Last),
+            });
+        }
+        stats.BoxDraws = stats.BoxDraws.OrderByDescending(b => b.EventId).ThenBy(b => b.Box).ToList();
+
+        // Logins: LoginBonusType 1 = the regular daily bonus (one track per year); other types are limited campaigns.
+        foreach (var lb in List(info, "UserLoginBonusList"))
+        {
+            var total = Long(lb, "TotalLoginCount");
+            if (total <= 0) continue;
+            if (m.LoginBonusTypes.GetValueOrDefault(Long(lb, "LoginBonusId")) == 1)
+            {
+                stats.Logins.DaysLoggedIn += total;
+                var last = FromMs(Long(lb, "LastGetDate"));
+                if (last > stats.Logins.LastLogin || stats.Logins.LastLogin is null) stats.Logins.LastLogin = last;
+            }
+            else
+            {
+                stats.Logins.Campaigns++;
+                stats.Logins.CampaignLogins += total;
+            }
+        }
+        if (stats.AccountCreated is DateTime created && stats.Logins.LastLogin is DateTime lastLogin)
+            stats.Logins.DaysAvailable = (long)(lastLogin.Date - created.Date).TotalDays + 1;
+
+        var meet = List(info, "UserFirstMeetingList").FirstOrDefault();
+        if (meet.ValueKind == JsonValueKind.Object) stats.CoopPlayersMet = Long(meet, "Count");
+
+        // Limited-time offers: LimitedRelease rows unlock a shop item (priced in red crystals) for a few hours.
+        var purchases = List(info, "UserShopItemList").ToDictionary(s => Long(s, "ShopItemId"), s => Long(s, "TotalPurchaseCount"));
+        stats.LimitedOffers = List(info, "UserLimitedReleaseList")
+            .Select(u => (Item: m.LimitedReleaseShopItem.GetValueOrDefault(Long(u, "LimitedReleaseId")), At: FromMs(Long(u, "ReleaseStartDatetime")),
+                Name: m.LimitedReleaseNames.GetValueOrDefault(Long(u, "LimitedReleaseId"))))
+            .Where(x => x.Item > 0)
+            .GroupBy(x => x.Item)
+            .Select(g => new EosLimitedOffer
+            {
+                // The offer's own name is filled in more often than the shop item's.
+                Name = (g.Select(x => x.Name).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))
+                    ?? (m.ShopItems.TryGetValue(g.Key, out var si) && !string.IsNullOrWhiteSpace(si.Name) ? si.Name : $"Pack #{g.Key}")).Replace("\n", " "),
+                FirstOffered = g.Min(x => x.At),
+                LastOffered = g.Max(x => x.At),
+                TimesOffered = g.Count(),
+                PriceCrystals = m.ShopItemCrystalPrice.GetValueOrDefault(g.Key),
+                Bought = purchases.GetValueOrDefault(g.Key),
+            })
+            .OrderByDescending(o => o.FirstOffered).ToList();
+
+        // Paint Cans (Highwind currency) are a "big item": significand × 10^exponent.
+        foreach (var bi in List(info, "UserBigItemList"))
+            if (Long(bi, "BigItemId") == 18001)
+                stats.PaintCans = Long(bi, "CountSignificand") * (long)Math.Pow(10, Long(bi, "CountExponent"));
     }
 
     private static void ParseBattles(JsonElement info, EosPlayerStats stats, MasterData m)
@@ -935,6 +1140,7 @@ public sealed class EosPlayerStatsService
     private sealed record GachaInfo(int Type, string Name);
     private sealed record StepInfo(int Seq, int NextSeq, int ConsumptionType, long ConsumptionCount, long DrawCount);
     private sealed record WeaponInfo(string Name, string Character);
+    private sealed record GrowthNode(int Idx, bool Flat, long Hp, long PAtk, long MAtk, long PDef, long MDef, long Heal);
     private sealed record HighwindInfo(int Type, int DirectionType);
     private sealed record MissionInfo(string Text, long Goal, long GroupType, string Category);
     private sealed record StoreProductInfo(string Name, decimal PriceUsd, long Crystals);
@@ -1007,7 +1213,23 @@ public sealed class EosPlayerStatsService
             {
                 characters.TryGetValue(Long(w, "CharacterId"), out var ch);
                 data.Weapons[Long(w, "Id")] = new WeaponInfo(Name(w, "NameLanguageId"), ch ?? string.Empty);
+                data.WeaponGrowth[Long(w, "Id")] = (Long(w, "BaseExp"), Long(w, "WeaponLevelGroupId"), Long(w, "WeaponReleaseSettingGroupId"), Long(w, "WeaponRaritySettingGroupId"));
             }
+            foreach (var l in Rows(master, "WeaponLevel", logger))
+            {
+                var g = Long(l, "WeaponLevelGroupId");
+                if (!data.WeaponLevelExp.TryGetValue(g, out var list)) data.WeaponLevelExp[g] = list = new List<(int, long)>();
+                list.Add(((int)Long(l, "Level"), Long(l, "ExpCoefficient")));
+            }
+            foreach (var list in data.WeaponLevelExp.Values) list.Sort((a, b) => a.Level.CompareTo(b.Level));
+            foreach (var r in Rows(master, "WeaponReleaseSetting", logger))
+            {
+                var g = Long(r, "WeaponReleaseSettingGroupId");
+                if (!data.WeaponLevelLimits.TryGetValue(g, out var caps)) data.WeaponLevelLimits[g] = caps = new Dictionary<int, int>();
+                caps[(int)Long(r, "ReleaseCount")] = (int)Long(r, "LevelLimit");
+            }
+            foreach (var r in Rows(master, "WeaponRaritySetting", logger))
+                data.WeaponMaxRelease[(Long(r, "WeaponRaritySettingGroupId"), (int)Long(r, "RarityType"))] = (int)Long(r, "MaxReleaseCount");
 
             // Featured weapons per draw: older banners list them in GachaAppeal (GachaAppealId0..9),
             // newer ones in GachaAppeal2Weapon, whose group id is the gacha id * 100 + n.
@@ -1195,6 +1417,68 @@ public sealed class EosPlayerStatsService
                 data.StoreProducts[group] = new StoreProductInfo(english ?? string.Empty, usd, Long(p, "PaidStoneCount") + Long(p, "FreeStoneCount"));
             }
 
+            // Weapon voucher shops: shop items paid with a "Weapon Voucher" item that reward a weapon (Reward type 5).
+            var voucherItems = Rows(master, "Item", logger)
+                .Where(i => { var n = Name(i, "NameLanguageId"); return n.Contains("Weapon Voucher") && !n.Contains("Parts"); })
+                .Select(i => Long(i, "Id")).ToHashSet();
+            var rewards = Rows(master, "Reward", logger).ToDictionary(r => Long(r, "Id"), r => (Type: Long(r, "RewardType"), Target: Long(r, "TargetId")));
+            var voucherSets = Rows(master, "ConsumptionSetConsumptionRel", logger)
+                .Where(c => rewards.TryGetValue(Long(c, "RewardId"), out var rw) && rw.Type == 1 && voucherItems.Contains(rw.Target))
+                .Select(c => Long(c, "ConsumptionSetId")).ToHashSet();
+            var setWeapons = Rows(master, "RewardSetRewardRel", logger)
+                .Where(r => rewards.TryGetValue(Long(r, "RewardId"), out var rw) && rw.Type == 5)
+                .GroupBy(r => Long(r, "RewardSetId"))
+                .ToDictionary(g => g.Key, g => g.Select(r => rewards[Long(r, "RewardId")].Target).ToList());
+            foreach (var si in Rows(master, "ShopItem", logger))
+                if (voucherSets.Contains(Long(si, "ConsumptionSetId")) && setWeapons.TryGetValue(Long(si, "RewardSetId"), out var vw))
+                    data.VoucherShopItems[Long(si, "Id")] = vw;
+
+            // Growth boards (1 = character, 5 = character overaccel, 4 = summon, 6 = enemy ability).
+            foreach (var g in Rows(master, "GrowthBoardGroup", logger))
+                data.GrowthGroups[Long(g, "Id")] = ((int)Long(g, "GrowthBoardType"), Long(g, "TargetId"));
+            foreach (var n in Rows(master, "GrowthBoardNode", logger))
+            {
+                var gid = Long(n, "GrowthBoardGroupId");
+                if (!data.GrowthNodes.TryGetValue(gid, out var list)) data.GrowthNodes[gid] = list = new List<GrowthNode>();
+                list.Add(new GrowthNode((int)Long(n, "GrowthBoardGroupIdx"), Long(n, "GrantValueType") == 1,
+                    Long(n, "HpNodeStatusValue"), Long(n, "PhysicalAttackNodeStatusValue"), Long(n, "MagicalAttackNodeStatusValue"),
+                    Long(n, "PhysicalDefenseNodeStatusValue"), Long(n, "MagicalDefenseNodeStatusValue"), Long(n, "HealingPowerNodeStatusValue")));
+            }
+            foreach (var x in Rows(master, "Summon", logger)) data.SummonNames[Long(x, "Id")] = Name(x, "NameLanguageId");
+            foreach (var x in Rows(master, "AbilityEnemy", logger)) data.AbilityEnemyNames[Long(x, "Id")] = Name(x, "NameLanguageId");
+
+            // Wishlists: GachaWishChoice rows belong to a GachaWish, which draws reference via Gacha.GachaWishId.
+            foreach (var c in Rows(master, "GachaWishChoice", logger))
+                data.WishChoices[Long(c, "Id")] = (Long(c, "GachaWishId"), (int)Long(c, "OrderNo"), Long(c, "DefaultWeaponId"));
+            foreach (var g in Rows(master, "Gacha", logger))
+            {
+                var wish = Long(g, "GachaWishId");
+                if (wish <= 0) continue;
+                if (!data.WishGachas.TryGetValue(wish, out var gl)) data.WishGachas[wish] = gl = new List<long>();
+                gl.Add(Long(g, "Id"));
+            }
+
+            foreach (var lb in Rows(master, "LoginBonus", logger)) data.LoginBonusTypes[Long(lb, "Id")] = (int)Long(lb, "LoginBonusType");
+            // LimitedReleaseTargetType 1 = a shop item.
+            foreach (var lr in Rows(master, "LimitedRelease", logger))
+                if (Long(lr, "LimitedReleaseTargetType") == 1)
+                {
+                    data.LimitedReleaseShopItem[Long(lr, "Id")] = Long(lr, "TargetId");
+                    data.LimitedReleaseNames[Long(lr, "Id")] = Name(lr, "NameLanguageId");
+                }
+            // Red-crystal price of shop items (Reward type 10 = crystal, target 1 = red).
+            var redCrystalCost = Rows(master, "ConsumptionSetConsumptionRel", logger)
+                .Where(c => rewards.TryGetValue(Long(c, "RewardId"), out var rw) && rw.Type == 10 && rw.Target == 1)
+                .GroupBy(c => Long(c, "ConsumptionSetId")).ToDictionary(g => g.Key, g => g.Sum(c => Long(c, "ConsumptionCount")));
+            foreach (var si in Rows(master, "ShopItem", logger))
+                if (redCrystalCost.TryGetValue(Long(si, "ConsumptionSetId"), out var price)) data.ShopItemCrystalPrice[Long(si, "Id")] = price;
+
+            // Event box draws belong to an event through EventBase.BoxGachaGroupId.
+            foreach (var b in Rows(master, "BoxGacha", logger))
+                data.BoxGachas[Long(b, "Id")] = (Name(b, "NameLanguageId"), Long(b, "BoxGachaGroupId"), Long(b, "ConsumptionItemId"), Long(b, "ConsumptionItemCount"));
+            foreach (var e in Rows(master, "EventBase", logger))
+                if (Long(e, "BoxGachaGroupId") > 0) data.BoxGroupEvent[Long(e, "BoxGachaGroupId")] = Long(e, "Id");
+
             // Battle names for solo/co-op event battles (Crash battles, Crisis and Damage Ranking stages).
             foreach (var b in Rows(master, "EventSoloBattle", logger)) data.SoloBattleNames[Long(b, "Id")] = Name(b, "NameLanguageId");
             foreach (var b in Rows(master, "EventMultiBattle", logger))
@@ -1301,7 +1585,11 @@ public sealed class EosPlayerStatsService
             {
                 var source = Name(mm, "SourceInformationLanguageId");
                 data.Memoria[Long(mm, "Id")] = (Name(mm, "NameLanguageId"), (int)Long(mm, "RarityType"), string.IsNullOrEmpty(source) ? null : source, (int)Long(mm, "RequiredFragmentCount"));
+                data.MemoriaLevelGroup[Long(mm, "Id")] = Long(mm, "MemoriaParameterAnalysisPointGroupId");
             }
+            // Memoria level thresholds: the level is the highest AnalysisLevel whose threshold the player's AnalysisPoint has reached.
+            foreach (var g in Rows(master, "MemoriaParameterAnalysisPoint", logger).GroupBy(r => Long(r, "MemoriaParameterAnalysisPointGroupId")))
+                data.MemoriaLevels[g.Key] = g.Select(r => ((int)Long(r, "AnalysisLevel"), Long(r, "ThresholdAnalysisPoint"))).OrderBy(x => x.Item1).ToList();
 
             // Special skills: type 1 = limit break (ContentId = character), 2 = summon skill (ContentId = summon).
             var summonNames = Rows(master, "Summon", logger).ToDictionary(x => Long(x, "Id"), x => Name(x, "NameLanguageId"));
@@ -1357,6 +1645,23 @@ public sealed class EosPlayerStatsService
         }
 
         public Dictionary<long, string> SoloBattleNames { get; } = new();
+        public Dictionary<long, List<long>> VoucherShopItems { get; } = new();
+        public Dictionary<long, (long BaseExp, long LevelGroup, long ReleaseGroup, long RarityGroup)> WeaponGrowth { get; } = new();
+        public Dictionary<long, List<(int Level, long Coefficient)>> WeaponLevelExp { get; } = new();
+        public Dictionary<long, Dictionary<int, int>> WeaponLevelLimits { get; } = new();
+        public Dictionary<(long Group, int Rarity), int> WeaponMaxRelease { get; } = new();
+        public Dictionary<long, (int Type, long Target)> GrowthGroups { get; } = new();
+        public Dictionary<long, List<GrowthNode>> GrowthNodes { get; } = new();
+        public Dictionary<long, string> SummonNames { get; } = new();
+        public Dictionary<long, string> AbilityEnemyNames { get; } = new();
+        public Dictionary<long, (long WishId, int Order, long DefaultWeapon)> WishChoices { get; } = new();
+        public Dictionary<long, List<long>> WishGachas { get; } = new();
+        public Dictionary<long, (string Name, long GroupId, long CostItem, long CostCount)> BoxGachas { get; } = new();
+        public Dictionary<long, long> BoxGroupEvent { get; } = new();
+        public Dictionary<long, int> LoginBonusTypes { get; } = new();
+        public Dictionary<long, long> LimitedReleaseShopItem { get; } = new();
+        public Dictionary<long, string> LimitedReleaseNames { get; } = new();
+        public Dictionary<long, long> ShopItemCrystalPrice { get; } = new();
         public Dictionary<long, string> MultiBattleNames { get; } = new();
         public Dictionary<long, long> SoloBattleEvent { get; } = new();
         public Dictionary<long, long> MultiBattleEvent { get; } = new();
@@ -1370,6 +1675,8 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, (string? Name, int MaxLevel, int Order)> GuildBonuses { get; } = new();
         public Dictionary<long, (string? Text, long Goal, int Order)> GuildAchievements { get; } = new();
         public SortedDictionary<long, (string Name, int Rarity, string? Source, int Fragments)> Memoria { get; } = new();
+        public Dictionary<long, long> MemoriaLevelGroup { get; } = new();
+        public Dictionary<long, List<(int Level, long Threshold)>> MemoriaLevels { get; } = new();
         public SortedDictionary<long, (string Name, string Type, string For)> SpecialSkills { get; } = new();
         public SortedDictionary<long, (string Name, string For)> OveraccelSkills { get; } = new();
         public Dictionary<long, MissionInfo> Missions { get; } = new();

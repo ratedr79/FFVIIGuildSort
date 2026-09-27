@@ -187,6 +187,7 @@
                         <dt>Solo</dt><dd>@N(s.Battles.SoloWins)</dd>
                         <dt>Co-op</dt><dd>@N(s.Battles.CoopWins)</dd>
                         <dt>Story battles cleared</dt><dd>@N(s.Battles.StoryBattlesCleared)</dd>
+                        @if (s.CoopPlayersMet is long met) { <dt>Co-op players met</dt><dd>@N(met)</dd> }
                     </dl>
                 </div>
             }
@@ -234,6 +235,11 @@
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-weapons" type="button" role="tab">Weapons (@s.Weapons.Count(w => w.Owned) / @s.Weapons.Count)</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-outfits" type="button" role="tab">Outfits (@s.Outfits.Count(o => o.Owned) / @s.Outfits.Count)</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-items" type="button" role="tab">Items (@s.Items.Count)</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-shop" type="button" role="tab">Shop (@N(s.ShopExchanges.Sum(x => x.Count)))</button></li>
+            @if (s.LimitedOffers.Count > 0)
+            {
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-offers" type="button" role="tab">Limited offers (@s.LimitedOffers.Count)</button></li>
+            }
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-materia" type="button" role="tab">Materia (@N(s.MateriaOwned.Count))</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-memoria" type="button" role="tab">Memoria (@s.Memoria.Count(x => x.Owned) / @s.Memoria.Count)</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-skills" type="button" role="tab">Skills (@s.Skills.Count(x => x.Owned) / @s.Skills.Count)</button></li>
@@ -285,6 +291,41 @@
                         }
                     </tbody>
                 </table>
+
+                @if (s.Wishlists.Count > 0)
+                {
+                    <h2 class="h6 eos-section-title mt-4">Wishlist picks (@s.Wishlists.Count lists, @N(s.Wishlists.Sum(w => w.Changed)) slots changed from the default)</h2>
+                    <table id="eos-wish-table" class="table table-sm table-striped eos-table w-100">
+                        <thead><tr><th>Draws</th><th>Last pulled</th><th>Picks</th><th class="num">Changed</th></tr></thead>
+                        <tbody>
+                            @foreach (var w in s.Wishlists)
+                            {
+                                <tr>
+                                    <td>@w.Banners</td>
+                                    <td data-order="@(w.LastPulled?.Ticks ?? 0)">@(w.LastPulled?.ToString("MMM d, yyyy") ?? "")</td>
+                                    <td>@for (var pi = 0; pi < w.Picks.Count; pi++) { var p = w.Picks[pi]; if (pi > 0) { <text> · </text> } if (p.Changed) { <strong title="Changed from the default pick">@p.Weapon</strong> } else { <span class="text-muted">@p.Weapon</span> } }</td>
+                                    <td class="num">@w.Changed</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <p class="text-muted small">Bold weapons are ones the player picked instead of the game's default. The export doesn't date the wishlist itself, so lists are ordered by the last time the player pulled on those draws; lists for draws never pulled have no date.</p>
+                }
+
+                @if (s.BoxDraws.Count > 0)
+                {
+                    <h2 class="h6 eos-section-title mt-4">Event box draws (@N(s.BoxDraws.Sum(b => b.Draws)) draws, @N(s.BoxDraws.Sum(b => b.BoxesReset)) boxes reset)</h2>
+                    <table id="eos-box-table" class="table table-sm table-striped eos-table w-100">
+                        <thead><tr><th>Event</th><th>Box</th><th class="num">Draws</th><th class="num">Boxes reset</th><th>Ticket</th><th class="num">Tickets used</th><th>Last ticket earned</th></tr></thead>
+                        <tbody>
+                            @foreach (var b in s.BoxDraws)
+                            {
+                                <tr><td>@b.Event</td><td>@b.Box</td><td class="num">@N(b.Draws)</td><td class="num">@N(b.BoxesReset)</td><td>@b.Ticket</td><td class="num">@N(b.TicketsUsed)</td><td data-order="@(b.LastTicket?.Ticks ?? 0)">@(b.LastTicket?.ToString("MMM d, yyyy") ?? "")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                    <p class="text-muted small">Event boxes (Victory Draw / Silver Victory Draw) were prize boxes during events: tickets earned from event battles were spent to draw from a box with a fixed set of prizes, and the box could be reset once its main prize was taken. Draws = tickets used ÷ tickets per draw.</p>
+                }
             </div>
 
             <div class="tab-pane fade" id="eos-weapons" role="tabpanel">
@@ -295,11 +336,11 @@
                     </select>
                 </div>
                 <table id="eos-weapons-table" class="table table-sm table-striped eos-table w-100">
-                    <thead><tr><th>Weapon</th><th>Character</th><th>Status</th><th class="num">Times pulled</th></tr></thead>
+                    <thead><tr><th>Weapon</th><th>Character</th><th>Status</th><th>Rarity</th><th class="num">Level</th><th>Overboost</th><th class="num">Times pulled</th><th>First obtained</th><th class="num">Voucher exchanges</th><th>Last voucher exchange</th></tr></thead>
                     <tbody>
                         @foreach (var w in s.Weapons)
                         {
-                            <tr><td>@w.Name</td><td>@w.Character</td><td>@(w.Owned ? "Owned" : "Missing")</td><td class="num">@N(w.GachaPulls)</td></tr>
+                            <tr><td>@w.Name</td><td>@w.Character</td><td>@(w.Owned ? "Owned" : "Missing")</td><td data-order="@w.Stars">@(w.Stars > 0 ? w.Stars + "★" + (w.Stars == 6 ? " Ultimate" : "") : "")</td><td class="num" data-order="@w.Level">@(w.Owned && w.Level > 0 ? (w.MaxLevel > 0 ? $"{w.Level} / {w.MaxLevel}" : w.Level.ToString()) : "")</td><td data-order="@w.OverboostOrder">@w.OverboostLabel</td><td class="num">@N(w.GachaPulls)</td><td data-order="@(w.FirstObtained?.Ticks ?? 0)">@(w.FirstObtained?.ToString("MMM d, yyyy") ?? "")</td><td class="num">@(w.VoucherExchanges > 0 ? N(w.VoucherExchanges) : "")</td><td data-order="@(w.LastVoucherExchange?.Ticks ?? 0)">@(w.LastVoucherExchange?.ToString("MMM d, yyyy") ?? "")</td></tr>
                         }
                     </tbody>
                 </table>
@@ -325,15 +366,53 @@
 
             <div class="tab-pane fade" id="eos-items" role="tabpanel">
                 <table id="eos-items-table" class="table table-sm table-striped eos-table w-100">
-                    <thead><tr><th>Item</th><th class="num">Owned</th><th class="num">Lifetime obtained</th></tr></thead>
+                    <thead><tr><th>Item</th><th class="num">Owned</th><th class="num">Lifetime obtained</th><th>First obtained</th><th>Last obtained</th></tr></thead>
                     <tbody>
                         @foreach (var i in s.Items)
                         {
-                            <tr><td>@i.Name</td><td class="num">@N(i.Count)</td><td class="num">@N(i.TotalObtained)</td></tr>
+                            <tr><td>@i.Name</td><td class="num">@N(i.Count)</td><td class="num">@N(i.TotalObtained)</td><td data-order="@(i.FirstObtained?.Ticks ?? 0)">@(i.FirstObtained?.ToString("MMM d, yyyy") ?? "")</td><td data-order="@(i.LastObtained?.Ticks ?? 0)">@(i.LastObtained?.ToString("MMM d, yyyy") ?? "")</td></tr>
                         }
                     </tbody>
                 </table>
             </div>
+
+            <div class="tab-pane fade" id="eos-shop" role="tabpanel">
+                <div class="d-flex gap-2">
+                    <select id="eos-shop-filter" class="form-select form-select-sm w-auto mb-2" aria-label="Shop"><option value="">All shops</option>
+                        @foreach (var sh in s.ShopExchanges.Select(x => x.Shop).Distinct().OrderBy(x => x))
+                        {
+                            <option value="@sh">@sh</option>
+                        }
+                    </select>
+                </div>
+                <table id="eos-shop-table" class="table table-sm table-striped eos-table w-100">
+                    <thead><tr><th>Item</th><th>Shop</th><th class="num">Times bought</th><th>Last bought</th></tr></thead>
+                    <tbody>
+                        @foreach (var x in s.ShopExchanges)
+                        {
+                            <tr><td>@x.Name</td><td>@x.Shop</td><td class="num">@N(x.Count)</td><td data-order="@(x.LastPurchased?.Ticks ?? 0)">@(x.LastPurchased?.ToString("MMM d, yyyy") ?? "")</td></tr>
+                        }
+                    </tbody>
+                </table>
+                <p class="text-muted small">Exchanges in in-game shops (medals, event currency, vouchers…). The game keeps only the latest purchase date for each item, not every purchase. Real-money packs are only shown under Purchases when "Show purchases" is ticked.</p>
+            </div>
+
+            @if (s.LimitedOffers.Count > 0)
+            {
+                <div class="tab-pane fade" id="eos-offers" role="tabpanel">
+                    <p class="eos-best">@N(s.LimitedOffers.Sum(o => o.TimesOffered)) limited-time offers · @s.LimitedOffers.Count(o => o.Bought > 0) bought · @N(s.LimitedOffers.Sum(o => o.CrystalsSpent)) red crystals spent</p>
+                    <table id="eos-offers-table" class="table table-sm table-striped eos-table w-100">
+                        <thead><tr><th>Pack</th><th>First offered</th><th>Last offered</th><th class="num">Times offered</th><th class="num">Price (red crystals)</th><th class="num">Times bought</th><th class="num">Crystals spent</th></tr></thead>
+                        <tbody>
+                            @foreach (var o in s.LimitedOffers)
+                            {
+                                <tr><td>@o.Name</td><td data-order="@(o.FirstOffered?.Ticks ?? 0)">@(o.FirstOffered?.ToString("MMM d, yyyy") ?? "")</td><td data-order="@(o.LastOffered?.Ticks ?? 0)">@(o.LastOffered?.ToString("MMM d, yyyy") ?? "")</td><td class="num">@o.TimesOffered</td><td class="num">@(o.PriceCrystals > 0 ? N(o.PriceCrystals) : "")</td><td class="num">@(o.Bought > 0 ? N(o.Bought) : "")</td><td class="num">@(o.CrystalsSpent > 0 ? N(o.CrystalsSpent) : "")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                    <p class="text-muted small">These pop-up packs unlocked for a limited time after something happened in game, such as finishing an event, pulling a weapon or watching a character stream. The export records when each offer appeared. "Times bought" counts every purchase of that pack, including from other offers of the same pack.</p>
+                </div>
+            }
 
             <div class="tab-pane fade" id="eos-materia" role="tabpanel">
                 <h2 class="h6 eos-section-title">Materia owned</h2>
@@ -444,7 +523,7 @@
             <div class="tab-pane fade" id="eos-memoria" role="tabpanel">
                 <select id="eos-memoria-status" class="form-select form-select-sm w-auto mb-2" aria-label="Status"><option value="">All memoria</option><option value="Owned">Owned</option><option value="Collecting">Collecting</option><option value="Missing">Missing</option></select>
                 <table id="eos-memoria-table" class="table table-sm table-striped eos-table w-100">
-                    <thead><tr><th>Memoria</th><th class="num">Rarity</th><th>Status</th><th class="num">Fragments</th><th>Obtained</th><th>From</th></tr></thead>
+                    <thead><tr><th>Memoria</th><th class="num">Rarity</th><th>Status</th><th class="num">Level</th><th class="num">Fragments</th><th>Obtained</th><th>From</th></tr></thead>
                     <tbody>
                         @foreach (var x in s.Memoria)
                         {
@@ -452,6 +531,7 @@
                                 <td>@x.Name</td>
                                 <td class="num" data-order="@x.Stars">@(new string('★', Math.Max(x.Stars, 0)))</td>
                                 <td>@(x.Owned ? "Owned" : x.Fragments > 0 ? "Collecting" : "Missing")</td>
+                                <td class="num" data-order="@(x.Level ?? 0)">@(x.Level is int ml ? $"{ml} / {x.MaxLevel}" : "–")</td>
                                 <td class="num" data-order="@x.Fragments">@x.Fragments / @x.FragmentsNeeded</td>
                                 <td data-order="@(x.Obtained?.Ticks ?? 0)">@(x.Obtained?.ToString("MMM d, yyyy") ?? "")</td>
                                 <td>@(x.Source ?? "")</td>
@@ -463,6 +543,30 @@
             </div>
 
             <div class="tab-pane fade" id="eos-skills" role="tabpanel">
+                @if (s.GrowthBoards.Count > 0)
+                {
+                    <h2 class="h6 eos-section-title">Growth boards</h2>
+                    <div class="d-flex gap-2">
+                        <select id="eos-growth-type" class="form-select form-select-sm w-auto mb-2" aria-label="Board type"><option value="">All boards</option>
+                            @foreach (var gt in s.GrowthBoards.Select(g => g.Type).Distinct().OrderBy(x => x))
+                            {
+                                <option value="@gt">@gt</option>
+                            }
+                        </select>
+                    </div>
+                    <table id="eos-growth-table" class="table table-sm table-striped eos-table w-100">
+                        <thead><tr><th>Character / summon</th><th>Board</th><th class="num">Panels</th><th class="num">Nodes</th><th class="num">HP</th><th class="num">PATK</th><th class="num">MATK</th><th class="num">PDEF</th><th class="num">MDEF</th><th class="num">Heal</th></tr></thead>
+                        <tbody>
+                            @foreach (var g in s.GrowthBoards)
+                            {
+                                var gpct = g.NodesTotal > 0 ? g.NodesUnlocked * 100 / g.NodesTotal : 0;
+                                <tr><td>@g.Name</td><td>@g.Type</td><td class="num">@g.Boards</td><td class="num" data-order="@g.NodesUnlocked">@N(g.NodesUnlocked) / @N(g.NodesTotal) (@gpct%)</td><td class="num">@(g.Hp > 0 ? N(g.Hp) : "")</td><td class="num">@(g.PhysicalAttack > 0 ? N(g.PhysicalAttack) : "")</td><td class="num">@(g.MagicalAttack > 0 ? N(g.MagicalAttack) : "")</td><td class="num">@(g.PhysicalDefense > 0 ? N(g.PhysicalDefense) : "")</td><td class="num">@(g.MagicalDefense > 0 ? N(g.MagicalDefense) : "")</td><td class="num">@(g.Healing > 0 ? N(g.Healing) : "")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                    <p class="text-muted small">Stat columns add up the flat stat nodes unlocked on each board. Summon and enemy-ability boards raise their skill's power and lower its cost instead, so they only show node counts.</p>
+                    <h2 class="h6 eos-section-title mt-4">Skills</h2>
+                }
                 <div class="d-flex gap-2">
                     <select id="eos-skill-type" class="form-select form-select-sm w-auto mb-2" aria-label="Status"><option value="">All types</option><option value="Limit Break">Limit Breaks</option><option value="Summon">Summon skills</option><option value="Overaccel">Overaccel</option><option value="Other">Other</option></select>
                     <select id="eos-skill-status" class="form-select form-select-sm w-auto mb-2" aria-label="Status"><option value="">Owned and missing</option><option value="Owned">Owned</option><option value="Missing">Missing</option></select>
@@ -482,7 +586,7 @@
                 <div class="row g-4">
                     <div class="col-xl-6">
                         <h2 class="h6 eos-section-title">Highwind</h2>
-                        <p class="eos-best">@N(s.Highwind.IdleCollections) idle collections · @s.Highwind.KeyItems.Count / @s.Highwind.KeyItemsTotal key items · @N(s.TotalHighwindCactuars + s.TotalHighwindGoldCactuars + s.TotalHighwindGoldBombs) treasure battle wins</p>
+                        <p class="eos-best">@N(s.Highwind.IdleCollections) idle collections · @s.Highwind.KeyItems.Count / @s.Highwind.KeyItemsTotal key items · @N(s.TotalHighwindCactuars + s.TotalHighwindGoldCactuars + s.TotalHighwindGoldBombs) treasure battle wins@(s.PaintCans is long pc ? $" · {N(pc)} Paint Cans left" : "")</p>
                         @foreach (var p in s.Highwind.Parts)
                         {
                             var hpct = (int)Math.Min(100, p.Value * 100 / 120);
@@ -633,6 +737,18 @@
                         </table>
                     </div>
                     <div class="col-xl-4">
+                        @if (s.Logins.DaysLoggedIn > 0)
+                        {
+                            <h2 class="h6 eos-section-title">Logins</h2>
+                            <div class="eos-card mb-4">
+                                <div class="eos-big">@N(s.Logins.DaysLoggedIn) <small class="text-muted fs-6">days logged in</small></div>
+                                <dl>
+                                    @if (s.Logins.DaysAvailable > 0) {<dt>Days since account created</dt><dd>@N(s.Logins.DaysAvailable) (@(s.Logins.DaysLoggedIn * 100 / s.Logins.DaysAvailable)%)</dd><dt>Days missed</dt><dd>@N(Math.Max(0, s.Logins.DaysAvailable - s.Logins.DaysLoggedIn))</dd>}
+                                    @if (s.Logins.LastLogin is DateTime ll) {<dt>Last daily login</dt><dd>@ll.ToString("MMM d, yyyy")</dd>}
+                                    <dt>Login campaigns</dt><dd>@N(s.Logins.Campaigns) (@N(s.Logins.CampaignLogins) claims)</dd>
+                                </dl>
+                            </div>
+                        }
                         <h2 class="h6 eos-section-title">Steam achievements</h2>
                         <div class="eos-card">
                             <div class="eos-big">@s.Achievements.Unlocked <small class="text-muted fs-6">/ @s.Achievements.Total unlocked</small></div>
@@ -1029,7 +1145,7 @@
             // Formatted numbers ("1,234") sort as numbers via the num-fmt type.
             const opts = (order) => ({ pageLength: 25, order: order, columnDefs: [{ targets: 'num', type: 'num-fmt' }] });
             const draws = new DataTable('#eos-draws-table', opts([[3, 'desc']]));
-            const weapons = new DataTable('#eos-weapons-table', opts([[3, 'desc']]));
+            const weapons = new DataTable('#eos-weapons-table', opts([[6, 'desc']]));
             const outfits = new DataTable('#eos-outfits-table', Object.assign(opts([]), { ordering: true }));
             const statusFilter = (selId, table) => document.getElementById(selId).addEventListener('change', function () {
                 table.column(2).search(this.value ? '^' + this.value + '$' : '', { regex: true, smart: false }).draw();
@@ -1037,6 +1153,7 @@
             statusFilter('eos-weapon-status', weapons);
             statusFilter('eos-outfit-status', outfits);
             new DataTable('#eos-items-table', opts([[2, 'desc']]));
+            const shopTable = document.getElementById('eos-shop-table') ? new DataTable('#eos-shop-table', opts([[3, 'desc']])) : null;
             new DataTable('#eos-recipes-table', opts([[1, 'desc']]));
             const small = (order) => Object.assign(opts(order), { pageLength: 10, lengthChange: false });
             new DataTable('#eos-crisis-table', small([[1, 'desc']]));
@@ -1067,11 +1184,17 @@
             const filterOn = (table, selId, col) => document.getElementById(selId)?.addEventListener('change', function () {
                 table.column(col).search(this.value ? '^' + DataTable.util.escapeRegex(this.value) + '$' : '', { regex: true, smart: false }).draw();
             });
+            t('eos-offers-table', [[1, 'desc']]);
+            t('eos-wish-table', [[1, 'desc']], { pageLength: 10, lengthChange: false });
+            t('eos-box-table', [[2, 'desc']], { pageLength: 10, lengthChange: false });
             t('eos-topbattles-table', [[3, 'desc']], { pageLength: 25, lengthChange: false, paging: false, searching: false });
             t('eos-eventwins-table', [[3, 'desc']], { pageLength: 15, lengthChange: false });
             t('eos-areawins-table', [[3, 'desc']], { pageLength: 15, lengthChange: false });
             const memoria = new DataTable('#eos-memoria-table', opts([[2, 'desc'], [1, 'desc']]));
             filterOn(memoria, 'eos-memoria-status', 2);
+            const growthEl = document.getElementById('eos-growth-table');
+            if (growthEl) filterOn(new DataTable(growthEl, Object.assign(opts([[1, 'asc'], [3, 'desc']]), { pageLength: 10 })), 'eos-growth-type', 1);
+            if (shopTable) filterOn(shopTable, 'eos-shop-filter', 1);
             const skills = new DataTable('#eos-skills-table', Object.assign(opts([]), { ordering: true }));
             filterOn(skills, 'eos-skill-type', 1);
             filterOn(skills, 'eos-skill-status', 3);

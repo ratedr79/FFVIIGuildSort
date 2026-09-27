@@ -78,6 +78,18 @@ public sealed class EosPlayerStats
     public List<EosMissionStat> Missions { get; set; } = new();
 
     public EosBattleStats Battles { get; set; } = new();
+    public List<EosGrowthBoard> GrowthBoards { get; set; } = new();
+    /// <summary>Shop exchanges (not real-money packs), one row per shop item bought.</summary>
+    public List<EosShopExchange> ShopExchanges { get; set; } = new();
+    public List<EosWishlist> Wishlists { get; set; } = new();
+    public List<EosBoxDraw> BoxDraws { get; set; } = new();
+    public EosLogins Logins { get; set; } = new();
+    /// <summary>Different players met for the first time in co-op.</summary>
+    public long? CoopPlayersMet { get; set; }
+    /// <summary>Limited-time shop packs the game offered the player, one row per pack.</summary>
+    public List<EosLimitedOffer> LimitedOffers { get; set; } = new();
+    /// <summary>Highwind Paint Cans held (a "big item" stored as significand × 10^exponent).</summary>
+    public long? PaintCans { get; set; }
 
     /// <summary>Only filled when the player opts in to showing purchases.</summary>
     public EosPurchases? Purchases { get; set; }
@@ -339,6 +351,8 @@ public sealed class EosItemStat
     public string Name { get; set; } = string.Empty;
     public long Count { get; set; }
     public long TotalObtained { get; set; }
+    public DateTime? FirstObtained { get; set; }
+    public DateTime? LastObtained { get; set; }
 }
 
 public sealed class EosWeaponStat
@@ -348,6 +362,21 @@ public sealed class EosWeaponStat
     public string Character { get; set; } = string.Empty;
     public int GachaPulls { get; set; }
     public bool Owned { get; set; } = true;
+    /// <summary>Stars: 3-5 for standard weapons, 6 for ultimate weapons (RarityType 101).</summary>
+    public int Stars { get; set; }
+    public int Level { get; set; }
+    public int MaxLevel { get; set; }
+    /// <summary>Overboost level 0-10 (WeaponUpgradeType 1).</summary>
+    public int Overboost { get; set; }
+    /// <summary>The extra +1..+20 after OB10 (WeaponUpgradeType 2).</summary>
+    public int OverboostPlus { get; set; }
+    public string OverboostLabel => Stars == 6 ? "" : OverboostPlus > 0 ? $"OB10 +{OverboostPlus}" : Overboost > 0 ? $"OB{Overboost}" : "";
+    /// <summary>Sort key: OB level then the +N stage.</summary>
+    public int OverboostOrder => Overboost * 100 + OverboostPlus;
+    public DateTime? FirstObtained { get; set; }
+    /// <summary>Times this weapon was taken from a weapon voucher exchange shop.</summary>
+    public long VoucherExchanges { get; set; }
+    public DateTime? LastVoucherExchange { get; set; }
 }
 
 public sealed class EosOutfitStat
@@ -415,6 +444,87 @@ public sealed class EosMemoriaStat
     public int Fragments { get; set; }
     public int FragmentsNeeded { get; set; }
     public DateTime? Obtained { get; set; }
+    /// <summary>Analysis level from AnalysisPoint; null when not owned.</summary>
+    public int? Level { get; set; }
+    public int MaxLevel { get; set; }
+}
+
+public sealed class EosGrowthBoard
+{
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public int Boards { get; set; }
+    public int NodesUnlocked { get; set; }
+    public int NodesTotal { get; set; }
+    public long Hp { get; set; }
+    public long PhysicalAttack { get; set; }
+    public long MagicalAttack { get; set; }
+    public long PhysicalDefense { get; set; }
+    public long MagicalDefense { get; set; }
+    public long Healing { get; set; }
+}
+
+public sealed class EosLogins
+{
+    /// <summary>Days the daily login bonus was claimed.</summary>
+    public long DaysLoggedIn { get; set; }
+    /// <summary>Days from account creation to the last daily login.</summary>
+    public long DaysAvailable { get; set; }
+    public DateTime? LastLogin { get; set; }
+    /// <summary>Limited login bonus campaigns with at least one claim.</summary>
+    public int Campaigns { get; set; }
+    public long CampaignLogins { get; set; }
+}
+
+public sealed class EosLimitedOffer
+{
+    public string Name { get; set; } = string.Empty;
+    public DateTime? FirstOffered { get; set; }
+    public DateTime? LastOffered { get; set; }
+    public int TimesOffered { get; set; }
+    public long PriceCrystals { get; set; }
+    public long Bought { get; set; }
+    public long CrystalsSpent => PriceCrystals * Bought;
+}
+
+public sealed class EosShopExchange
+{
+    public string Name { get; set; } = string.Empty;
+    public string Shop { get; set; } = string.Empty;
+    public long Count { get; set; }
+    public DateTime? LastPurchased { get; set; }
+}
+
+public sealed class EosWishlist
+{
+    public long Id { get; set; }
+    /// <summary>Draws that used this wishlist.</summary>
+    public string Banners { get; set; } = string.Empty;
+    /// <summary>Latest pull on any of those draws; the export has no date for the choice itself.</summary>
+    public DateTime? LastPulled { get; set; }
+    public List<EosWishPick> Picks { get; set; } = new();
+    public int Changed => Picks.Count(p => p.Changed);
+}
+
+public sealed class EosWishPick
+{
+    public int Slot { get; set; }
+    public string Weapon { get; set; } = string.Empty;
+    public string Character { get; set; } = string.Empty;
+    /// <summary>True when the player replaced the game's default pick for this slot.</summary>
+    public bool Changed { get; set; }
+}
+
+public sealed class EosBoxDraw
+{
+    public string Event { get; set; } = string.Empty;
+    public string Box { get; set; } = string.Empty;
+    public long EventId { get; set; }
+    public long BoxesReset { get; set; }
+    public long Draws { get; set; }
+    public string Ticket { get; set; } = string.Empty;
+    public long TicketsUsed { get; set; }
+    public DateTime? LastTicket { get; set; }
 }
 
 public sealed class EosSkillStat
