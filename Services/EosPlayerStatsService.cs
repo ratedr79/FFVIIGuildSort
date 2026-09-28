@@ -223,6 +223,10 @@ public sealed class EosPlayerStatsService
         foreach (var (id, w) in m.Weapons.Where(kv => !ownedWeaponIds.Contains(kv.Key) && m.WeaponCharacter.ContainsKey(kv.Key)))
             stats.Weapons.Add(new EosWeaponStat { Id = id, Name = w.Name, Character = w.Character, Owned = false });
         stats.Weapons = stats.Weapons.OrderByDescending(w => w.GachaPulls).ThenBy(w => w.Name).ToList();
+        // Weapon parts: each weapon has its own "<name> Parts" item (Weapon.WeaponMedalItemId).
+        var itemCounts = stats.Items.GroupBy(i => i.Id).ToDictionary(g => g.Key, g => (Count: g.Sum(i => i.Count), Obtained: g.Sum(i => i.TotalObtained)));
+        foreach (var w in stats.Weapons)
+            if (m.WeaponParts.TryGetValue(w.Id, out var partsItem)) { w.Parts = itemCounts.GetValueOrDefault(partsItem).Count; w.PartsObtained = itemCounts.GetValueOrDefault(partsItem).Obtained; }
 
         var ownedCostumes = List(info, "UserCharacterCostumeList").Select(c => Long(c, "CostumeId")).ToHashSet();
         stats.Outfits = m.CostumeCharacter
@@ -1222,6 +1226,7 @@ public sealed class EosPlayerStatsService
             {
                 characters.TryGetValue(Long(w, "CharacterId"), out var ch);
                 data.Weapons[Long(w, "Id")] = new WeaponInfo(Name(w, "NameLanguageId"), ch ?? string.Empty);
+                if (Long(w, "WeaponMedalItemId") > 0) data.WeaponParts[Long(w, "Id")] = Long(w, "WeaponMedalItemId");
                 data.WeaponGrowth[Long(w, "Id")] = (Long(w, "BaseExp"), Long(w, "WeaponLevelGroupId"), Long(w, "WeaponReleaseSettingGroupId"), Long(w, "WeaponRaritySettingGroupId"));
             }
             foreach (var l in Rows(master, "WeaponLevel", logger))
@@ -1665,6 +1670,7 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, string> SoloBattleNames { get; } = new();
         public Dictionary<long, List<long>> VoucherShopItems { get; } = new();
         public Dictionary<long, (long BaseExp, long LevelGroup, long ReleaseGroup, long RarityGroup)> WeaponGrowth { get; } = new();
+        public Dictionary<long, long> WeaponParts { get; } = new();
         public Dictionary<long, List<(int Level, long Coefficient)>> WeaponLevelExp { get; } = new();
         public Dictionary<long, Dictionary<int, int>> WeaponLevelLimits { get; } = new();
         public Dictionary<(long Group, int Rarity), int> WeaponMaxRelease { get; } = new();

@@ -372,6 +372,9 @@ public sealed class EosWeaponStat
     public int Overboost { get; set; }
     /// <summary>The extra +1..+20 after OB10 (WeaponUpgradeType 2).</summary>
     public int OverboostPlus { get; set; }
+    /// <summary>This weapon's own "Parts" item (Weapon.WeaponMedalItemId) currently held; null if the weapon has none.</summary>
+    public long? Parts { get; set; }
+    public long PartsObtained { get; set; }
     public string OverboostLabel => Stars == 6 ? "" : OverboostPlus > 0 ? $"OB10 +{OverboostPlus}" : Overboost > 0 ? $"OB{Overboost}" : "";
     /// <summary>Sort key: OB level then the +N stage.</summary>
     public int OverboostOrder => Overboost * 100 + OverboostPlus;

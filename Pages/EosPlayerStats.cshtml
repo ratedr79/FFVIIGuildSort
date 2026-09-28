@@ -54,7 +54,7 @@
     .eos-cards-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     @@media (max-width: 1399.98px) { .eos-cards-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @@media (max-width: 767.98px) { .eos-cards-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @@media (max-width: 479.98px) { .eos-cards-summary { grid-template-columns: 1fr; } }
+    @@media (max-width: 479.98px) { .eos-cards-summary { grid-template-columns: minmax(0, 1fr); } }
     .eos-card { border: 1px solid #ddd3ed; border-radius: 0.7rem; background: #fff; box-shadow: 0 2px 8px rgba(39, 26, 65, 0.08); padding: 0.75rem 0.9rem; }
     .eos-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b5b8a; margin: 0 0 0.45rem; }
     .eos-card .eos-big { font-size: 1.55rem; font-weight: 700; color: #332b42; line-height: 1.15; font-variant-numeric: tabular-nums; }
@@ -72,7 +72,7 @@
     .eos-chip { background: #f1ecf8; border: 1px solid #ddd3ed; border-radius: 999px; padding: 0.15rem 0.65rem; font-size: 0.85rem; color: #332b42; }
     .eos-chip i { color: #7d5fb3; margin-right: 0.2rem; }
     .eos-card-wide { grid-column: 1 / -1; }
-    .eos-progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); column-gap: 2rem; }
+    .eos-progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); column-gap: 2rem; }
     .eos-progress-row { display: grid; grid-template-columns: 11rem 1fr auto; align-items: center; gap: 0.6rem; font-size: 0.88rem; margin: 0.3rem 0; }
     .eos-bar { height: 0.5rem; background: #ece6f5; border-radius: 999px; overflow: hidden; }
     .eos-bar > div { height: 100%; background: #7d5fb3; border-radius: 999px; }
@@ -85,9 +85,35 @@
     .eos-badge-card p { font-size: 0.85rem; color: #5c566a; margin: 0.25rem 0 0.4rem; }
     .eos-badge-card ul { font-size: 0.85rem; margin: 0; padding-left: 1.1rem; columns: 3; column-gap: 1.2rem; }
     @@media (max-width: 700px) { .eos-badge-card ul { columns: 1; } }
+    /* Mobile: cards and wide tables must never push the page sideways. */
+    .eos-card { min-width: 0; overflow-wrap: anywhere; }
+    .eos-tab-body .dt-layout-table > .dt-layout-cell, .eos-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .eos-tab-body .form-select { max-width: 100%; }
+    .eos-tab-body .d-flex { flex-wrap: wrap; }
+    .eos-tab-select { display: none; }
+    @@media (max-width: 767.98px) {
+        /* The site layout adds ~40px padding per side; give the data that room back on phones. */
+        .container:has(> main .eos-page) { padding-left: 0.4rem; padding-right: 0.4rem; }
+        .eos-page { padding-left: 0.2rem; padding-right: 0.2rem; }
+        .eos-page .row { --bs-gutter-x: 1rem; }
+        .eos-tabs { display: none; }
+        .eos-tab-select { display: block; font-weight: 600; }
+        .eos-table { font-size: 0.82rem; }
+        .eos-table td, .eos-table th { white-space: nowrap; }
+        .eos-table td:first-child { white-space: normal; min-width: 9rem; }
+        .eos-progress-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 0.15rem; }
+        .eos-progress-row > span:first-child { grid-column: 1 / -1; }
+        .eos-progress-num { min-width: 0; }
+        /* Keep the page-size and search controls on one compact row. */
+        .eos-tab-body .dt-container > .dt-layout-row:not(.dt-layout-table) { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.4rem; margin: 0.3rem 0; }
+        .eos-tab-body .dt-container > .dt-layout-row:not(.dt-layout-table) > .dt-layout-cell { display: flex; margin: 0; padding: 0; }
+        .eos-tab-body div.dt-container .dt-search { display: flex; align-items: center; gap: 0.3rem; }
+        .eos-tab-body div.dt-container .dt-search input { width: 9.5rem; margin-left: 0; }
+        .eos-tab-body div.dt-container .dt-info { font-size: 0.8rem; }
+    }
 </style>
 
-<div class="container-fluid">
+<div class="container-fluid eos-page">
     <h1 class="h3 mt-3"><i class="fas fa-chart-bar text-primary"></i> EOS Player Stats</h1>
     <p class="text-muted mb-3">Upload the account export (.json) from EOS to see your pulls, collection, rankings, badges and more. Purchases are only shown if you tick "Show purchases". The file is read in memory and never saved.</p>
 
@@ -113,6 +139,56 @@
 
     @if (s is not null)
     {
+        // Shareable summary: the headline numbers, rendered client-side as text and as an image.
+        var bestRank = s.CrisisEvents.Concat(s.DamageRankings).Where(e => e.FinalRank > 0).OrderBy(e => e.FinalRank).FirstOrDefault();
+        var ownedWeapons = s.Weapons.Where(w => w.Owned).ToList();
+        var ultimates = ownedWeapons.Count(w => w.Stars == 6);
+        var allTowers = s.Towers.Concat(s.SingularityTowers).ToList();
+        var shareTiles = new List<object>();
+        void Tile(string label, string value, string? sub = null) => shareTiles.Add(new { label, value, sub });
+        Tile("Pulls", N(s.TotalPulls), $"{N(s.TotalCrystalPulls)} with crystals");
+        if (s.Battles.TotalWins > 0) Tile("Battles won", N(s.Battles.TotalWins), $"{N(s.Battles.CoopWins)} in co-op");
+        if (s.Logins.DaysLoggedIn > 0) Tile("Days logged in", N(s.Logins.DaysLoggedIn), s.Logins.DaysAvailable > 0 ? $"{s.Logins.DaysLoggedIn * 100 / s.Logins.DaysAvailable}% of days" : null);
+        if (s.MaxPower is long shareMaxPower) Tile("Max power", N(shareMaxPower));
+        Tile("Weapons", $"{N(ownedWeapons.Count)} / {N(s.Weapons.Count)}", ultimates > 0 ? $"{ultimates} ultimate" : null);
+        Tile("Outfits", $"{N(s.Outfits.Count(o => o.Owned))} / {N(s.Outfits.Count)}");
+        if (s.Memoria.Count > 0) Tile("Memoria", $"{N(s.Memoria.Count(x => x.Owned))} / {N(s.Memoria.Count)}");
+        if (s.Badges.Count > 0) Tile("Badges", N(s.Badges.Sum(b => b.Count)));
+        if (bestRank is not null) Tile("Best event rank", "#" + N(bestRank.FinalRank), s.DamageRankings.Contains(bestRank) ? bestRank.Name + " damage ranking" : bestRank.Name);
+        if (allTowers.Sum(t => t.Total) > 0) Tile("Tower floors", $"{N(allTowers.Sum(t => Math.Min(t.Cleared, t.Total)))} / {N(allTowers.Sum(t => t.Total))}");
+        if (s.DamageChallenges.Count > 0) Tile("Damage challenges maxed", $"{s.DamageChallenges.Count(x => x.IsMaxed)} / {s.DamageChallenges.Count}");
+        Tile("Materia crafted", N(s.Materia.TotalCrafted));
+        var share = new
+        {
+            name = string.IsNullOrWhiteSpace(s.PlayerName) ? "Unnamed player" : s.PlayerName,
+            guild = s.GuildName,
+            rank = s.PlayerRank,
+            since = s.AccountCreated?.ToString("MMM d, yyyy"),
+            days = s.AccountCreated is DateTime shareCreated ? (long)(DateTime.UtcNow - shareCreated).TotalDays : (long?)null,
+            tiles = shareTiles.Take(12).ToList(),
+        };
+        <script type="application/json" id="eos-share-data">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(share))</script>
+        <div class="modal fade" id="eos-share-modal" tabindex="-1" aria-labelledby="eos-share-title" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title h6" id="eos-share-title">Share your summary</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <img id="eos-share-img" class="img-fluid rounded border mb-3" alt="Summary image of your EOS stats" />
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <button type="button" class="btn btn-primary btn-sm" id="eos-share-native" hidden><i class="fas fa-share-nodes"></i> Share…</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="eos-share-copyimg"><i class="fas fa-image"></i> Copy image</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="eos-share-download"><i class="fas fa-download"></i> Save image</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="eos-share-copytext"><i class="fas fa-copy"></i> Copy as text</button>
+                            <span class="small text-muted align-self-center" id="eos-share-status" role="status"></span>
+                        </div>
+                        <p class="small text-muted mb-0">The image and text are made in your browser from the file you uploaded; nothing is sent anywhere. Purchases are never included.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="eos-header">
             <h2>@(string.IsNullOrWhiteSpace(s.PlayerName) ? "Unnamed player" : s.PlayerName)</h2>
             @if (!string.IsNullOrWhiteSpace(s.GuildName))
@@ -141,6 +217,7 @@
                     <span class="eos-chip"><i class="fas fa-shield-halved"></i> Guild Lv @guildLevel@(s.GuildJoined is DateTime joined ? $" · joined {joined:MMM d, yyyy}" : "")</span>
                 }
             </div>
+            <button type="button" class="btn btn-primary btn-sm" id="eos-share-btn"><i class="fas fa-share-nodes"></i> Share summary</button>
         </div>
 
         @if (s.Warnings.Count > 0)
@@ -228,6 +305,7 @@
             }
         </div>
 
+        <select class="form-select eos-tab-select mb-2" aria-label="Section"></select>
         <ul class="nav nav-tabs eos-tabs" role="tablist">
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#eos-draws" type="button" role="tab">Draws (@s.Draws.Count)</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-characters" type="button" role="tab">Characters (@s.Characters.Count)</button></li>
@@ -336,11 +414,11 @@
                     </select>
                 </div>
                 <table id="eos-weapons-table" class="table table-sm table-striped eos-table w-100">
-                    <thead><tr><th>Weapon</th><th>Character</th><th>Status</th><th>Rarity</th><th class="num">Level</th><th>Overboost</th><th class="num">Times pulled</th><th>First obtained</th><th class="num">Voucher exchanges</th><th>Last voucher exchange</th></tr></thead>
+                    <thead><tr><th>Weapon</th><th>Character</th><th>Status</th><th>Rarity</th><th class="num">Level</th><th>Overboost</th><th class="num" title="This weapon's own Parts item held (200 parts = one rarity or overboost step)">Parts</th><th class="num">Times pulled</th><th>First obtained</th><th class="num">Voucher exchanges</th><th>Last voucher exchange</th></tr></thead>
                     <tbody>
                         @foreach (var w in s.Weapons)
                         {
-                            <tr><td>@w.Name</td><td>@w.Character</td><td>@(w.Owned ? "Owned" : "Missing")</td><td data-order="@w.Stars">@(w.Stars > 0 ? w.Stars + "★" + (w.Stars == 6 ? " Ultimate" : "") : "")</td><td class="num" data-order="@w.Level">@(w.Owned && w.Level > 0 ? (w.MaxLevel > 0 ? $"{w.Level} / {w.MaxLevel}" : w.Level.ToString()) : "")</td><td data-order="@w.OverboostOrder">@w.OverboostLabel</td><td class="num">@N(w.GachaPulls)</td><td data-order="@(w.FirstObtained?.Ticks ?? 0)">@(w.FirstObtained?.ToString("MMM d, yyyy") ?? "")</td><td class="num">@(w.VoucherExchanges > 0 ? N(w.VoucherExchanges) : "")</td><td data-order="@(w.LastVoucherExchange?.Ticks ?? 0)">@(w.LastVoucherExchange?.ToString("MMM d, yyyy") ?? "")</td></tr>
+                            <tr><td>@w.Name</td><td>@w.Character</td><td>@(w.Owned ? "Owned" : "Missing")</td><td data-order="@w.Stars">@(w.Stars > 0 ? w.Stars + "★" + (w.Stars == 6 ? " Ultimate" : "") : "")</td><td class="num" data-order="@w.Level">@(w.Owned && w.Level > 0 ? (w.MaxLevel > 0 ? $"{w.Level} / {w.MaxLevel}" : w.Level.ToString()) : "")</td><td data-order="@w.OverboostOrder">@w.OverboostLabel</td><td class="num" data-order="@(w.Parts ?? -1)" title="@(w.PartsObtained > 0 ? N(w.PartsObtained) + " obtained in total" : "")">@(w.Parts is long wp ? N(wp) : "")</td><td class="num">@N(w.GachaPulls)</td><td data-order="@(w.FirstObtained?.Ticks ?? 0)">@(w.FirstObtained?.ToString("MMM d, yyyy") ?? "")</td><td class="num">@(w.VoucherExchanges > 0 ? N(w.VoucherExchanges) : "")</td><td data-order="@(w.LastVoucherExchange?.Ticks ?? 0)">@(w.LastVoucherExchange?.ToString("MMM d, yyyy") ?? "")</td></tr>
                         }
                     </tbody>
                 </table>
@@ -1159,7 +1237,7 @@
             // Formatted numbers ("1,234") sort as numbers via the num-fmt type.
             const opts = (order) => ({ pageLength: 25, order: order, columnDefs: [{ targets: 'num', type: 'num-fmt' }] });
             const draws = new DataTable('#eos-draws-table', opts([[3, 'desc']]));
-            const weapons = new DataTable('#eos-weapons-table', opts([[6, 'desc']]));
+            const weapons = new DataTable('#eos-weapons-table', opts([[7, 'desc']]));
             const outfits = new DataTable('#eos-outfits-table', Object.assign(opts([]), { ordering: true }));
             const statusFilter = (selId, table) => document.getElementById(selId).addEventListener('change', function () {
                 table.column(2).search(this.value ? '^' + this.value + '$' : '', { regex: true, smart: false }).draw();
@@ -1243,8 +1321,94 @@
                 const v = this.value;
                 draws.column(1).search(v ? '^' + v + '$' : '', { regex: true, smart: false }).draw();
             });
+            // Phones: plain (non-DataTables) tables scroll inside their own box instead of widening the page.
+            document.querySelectorAll('.eos-tab-body table:not(.dataTable)').forEach(tb => {
+                if (tb.closest('.table-responsive, .eos-scroll, .dt-container')) return;
+                const wrap = document.createElement('div');
+                wrap.className = 'eos-scroll';
+                tb.parentNode.insertBefore(wrap, tb);
+                wrap.appendChild(tb);
+            });
+            // Phones: a dropdown replaces the 20-tab strip.
+            const tabSelect = document.querySelector('.eos-tab-select');
+            const tabButtons = [...document.querySelectorAll('.eos-tabs button')];
+            tabButtons.forEach((b, i) => tabSelect.add(new Option(b.textContent.trim(), i, false, b.classList.contains('active'))));
+            tabSelect.addEventListener('change', () => bootstrap.Tab.getOrCreateInstance(tabButtons[tabSelect.value]).show());
+            tabButtons.forEach((b, i) => b.addEventListener('shown.bs.tab', () => { tabSelect.value = i; }));
             // Tables inside hidden tabs need a width recalc once shown.
             document.querySelectorAll('.eos-tabs button').forEach(b => b.addEventListener('shown.bs.tab', () => DataTable.tables({ visible: true, api: true }).columns.adjust()));
+        })();
+
+        // Shareable summary (image drawn on a canvas + Discord-friendly text).
+        (function () {
+            const dataEl = document.getElementById('eos-share-data');
+            const btn = document.getElementById('eos-share-btn');
+            if (!dataEl || !btn) return;
+            const d = JSON.parse(dataEl.textContent);
+            const status = document.getElementById('eos-share-status');
+            const say = (m) => { status.textContent = m; setTimeout(() => { if (status.textContent === m) status.textContent = ''; }, 3000); };
+            const fileName = 'eos-stats-' + (d.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'player') + '.png';
+
+            const text = () => {
+                const head = [
+                    '**' + d.name + '**' + (d.guild ? ' · ' + d.guild : '') + (d.rank ? ' · Rank ' + d.rank : ''),
+                    d.since ? 'Playing since ' + d.since + (d.days != null ? ' (' + d.days.toLocaleString() + ' days)' : '') : null,
+                ].filter(Boolean);
+                const lines = d.tiles.map(t => '• ' + t.label + ': **' + t.value + '**' + (t.sub ? ' (' + t.sub + ')' : ''));
+                return head.concat('', lines, '', '_FFVII Ever Crisis · EOS Player Stats_').join('\n');
+            };
+
+            const draw = () => {
+                const W = 1200, H = 675, S = 2;
+                const c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
+                const g = c.getContext('2d'); g.scale(S, S);
+                const font = (w, px) => w + ' ' + px + 'px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+                const fit = (txt, px, weight, max) => { let p = px; g.font = font(weight, p); while (g.measureText(txt).width > max && p > 10) { p--; g.font = font(weight, p); } };
+                const box = (x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); g.fill(); };
+                const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#2a1f44'); bg.addColorStop(1, '#5a3f96');
+                g.fillStyle = bg; g.fillRect(0, 0, W, H);
+                // Header
+                g.fillStyle = '#ffffff'; fit(d.name, 46, 700, 760); g.fillText(d.name, 48, 84);
+                const meta = [d.guild, d.rank ? 'Rank ' + d.rank : null, d.since ? 'Playing since ' + d.since + (d.days != null ? ' · ' + d.days.toLocaleString() + ' days' : '') : null].filter(Boolean).join('   ·   ');
+                g.fillStyle = '#d9cdf2'; fit(meta, 22, 500, W - 96); g.fillText(meta, 48, 122);
+                g.fillStyle = '#b9a9d6'; g.font = font(700, 16); g.textAlign = 'right'; g.fillText('FFVII EVER CRISIS', W - 48, 60); g.textAlign = 'left';
+                // Tiles: 4 columns x 3 rows
+                const cols = 4, gap = 16, x0 = 48, y0 = 160, tw = (W - 96 - gap * (cols - 1)) / cols, th = 140;
+                d.tiles.forEach((t, i) => {
+                    const x = x0 + (i % cols) * (tw + gap), y = y0 + Math.floor(i / cols) * (th + gap);
+                    g.fillStyle = 'rgba(255,255,255,0.09)'; box(x, y, tw, th, 14);
+                    const label = t.label.toUpperCase();
+                    g.fillStyle = '#cbbbe8'; fit(label, 15, 700, tw - 36); g.fillText(label, x + 18, y + 34);
+                    g.fillStyle = '#ffffff'; fit(t.value, 40, 700, tw - 36); g.fillText(t.value, x + 18, y + 84);
+                    if (t.sub) { g.fillStyle = '#b9a9d6'; fit(t.sub, 16, 500, tw - 36); g.fillText(t.sub, x + 18, y + 116); }
+                });
+                g.fillStyle = '#9c8cc0'; g.font = font(500, 15); g.fillText('EOS Player Stats · FFVIIEC Tools', 48, H - 28);
+                return c;
+            };
+
+            let canvas = null;
+            const blob = () => new Promise(r => canvas.toBlob(r, 'image/png'));
+            btn.addEventListener('click', () => {
+                canvas = draw();
+                document.getElementById('eos-share-img').src = canvas.toDataURL('image/png');
+                const probe = new File([''], fileName, { type: 'image/png' });
+                document.getElementById('eos-share-native').hidden = !(navigator.canShare && navigator.canShare({ files: [probe] }));
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('eos-share-modal')).show();
+            });
+            document.getElementById('eos-share-copytext').addEventListener('click', async () => {
+                try { await navigator.clipboard.writeText(text()); say('Text copied'); } catch { say('Copy failed'); }
+            });
+            document.getElementById('eos-share-copyimg').addEventListener('click', async () => {
+                try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob() })]); say('Image copied'); }
+                catch { say('This browser can’t copy images; use Save image'); }
+            });
+            document.getElementById('eos-share-download').addEventListener('click', async () => {
+                const a = document.createElement('a'); a.href = URL.createObjectURL(await blob()); a.download = fileName; a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            });
+            document.getElementById('eos-share-native').addEventListener('click', async () => {
+                try { await navigator.share({ files: [new File([await blob()], fileName, { type: 'image/png' })], text: text() }); } catch { }
+            });
         })();
     </script>
 }
