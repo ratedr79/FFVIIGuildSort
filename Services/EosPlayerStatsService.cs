@@ -216,12 +216,13 @@ public sealed class EosPlayerStatsService
                 FirstObtained = FromMs(Long(weapon, "GetDatetime")),
                 VoucherExchanges = voucherBuys.GetValueOrDefault(id).Count,
                 LastVoucherExchange = FromMs(voucherBuys.GetValueOrDefault(id).Last),
+                Customizations = Customizations(m, id, Long(weapon, "EvolveFlags0"), Long(weapon, "WeaponEvolveType")),
             });
         }
         // Weapons in the game data the player doesn't have.
         var ownedWeaponIds = stats.Weapons.Select(w => w.Id).ToHashSet();
         foreach (var (id, w) in m.Weapons.Where(kv => !ownedWeaponIds.Contains(kv.Key) && m.WeaponCharacter.ContainsKey(kv.Key)))
-            stats.Weapons.Add(new EosWeaponStat { Id = id, Name = w.Name, Character = w.Character, Owned = false });
+            stats.Weapons.Add(new EosWeaponStat { Id = id, Name = w.Name, Character = w.Character, Owned = false, Customizations = Customizations(m, id, 0, 0) });
         stats.Weapons = stats.Weapons.OrderByDescending(w => w.GachaPulls).ThenBy(w => w.Name).ToList();
         // Weapon parts: each weapon has its own "<name> Parts" item (Weapon.WeaponMedalItemId).
         var itemCounts = stats.Items.GroupBy(i => i.Id).ToDictionary(g => g.Key, g => (Count: g.Sum(i => i.Count), Obtained: g.Sum(i => i.TotalObtained)));
@@ -559,6 +560,20 @@ public sealed class EosPlayerStatsService
 
     // Criterion dungeon rank letters, indexed by RankType (1 = F+ ... 14 = SS; localization ids 213116 + RankType).
     private static readonly string[] DungeonRanks = { "F", "F+", "E", "E+", "D", "D+", "C", "C+", "B", "B+", "A", "A+", "S", "S+", "SS" };
+
+    // Weapon customization (WeaponEvolve): EvolveFlags0 has bit (1 << type) set for each unlocked type; WeaponEvolveType is the active one.
+    private static List<EosWeaponCustomization> Customizations(MasterData m, long weaponId, long flags, long active) =>
+        m.WeaponCustomizations.TryGetValue(weaponId, out var list)
+            ? list.OrderBy(c => c.Type).Select(c => new EosWeaponCustomization
+            {
+                Type = c.Type,
+                Name = c.Type switch { 1 => "Heart", 2 => "Spade", 3 => "Diamond", _ => "Special" },
+                Symbol = c.Type switch { 1 => "\u2665", 2 => "\u2660", 3 => "\u2666", _ => "\u2605" },
+                Effect = c.Effect,
+                Unlocked = (flags & (1L << c.Type)) != 0,
+                Active = active == c.Type,
+            }).ToList()
+            : new();
 
     private static string CharacterName(MasterData m, long id) =>
         m.Characters.TryGetValue(id, out var c) ? c.Name : $"#{id}";
@@ -1229,6 +1244,37 @@ public sealed class EosPlayerStatsService
                 if (Long(w, "WeaponMedalItemId") > 0) data.WeaponParts[Long(w, "Id")] = Long(w, "WeaponMedalItemId");
                 data.WeaponGrowth[Long(w, "Id")] = (Long(w, "BaseExp"), Long(w, "WeaponLevelGroupId"), Long(w, "WeaponReleaseSettingGroupId"), Long(w, "WeaponRaritySettingGroupId"));
             }
+            // Weapon customizations: evolve group -> types and what each one changes.
+            {
+                var skillBaseName = Rows(master, "SkillBase", logger).ToDictionary(s => Long(s, "Id"), s => Name(s, "NameLanguageId"));
+                var activeBase = Rows(master, "SkillActive", logger).ToDictionary(s => Long(s, "Id"), s => Long(s, "SkillBaseId"));
+                var weaponSkillActive = Rows(master, "SkillWeapon", logger).ToDictionary(s => Long(s, "Id"), s => Long(s, "SkillActiveId"));
+                var evolveSkill = Rows(master, "WeaponEvolveWeaponSkill", logger).Where(s => Long(s, "UpgradeCount") == 0)
+                    .GroupBy(s => Long(s, "WeaponEvolveWeaponSkillGroupId")).ToDictionary(g => g.Key, g => Long(g.First(), "WeaponSkillId"));
+                var passiveName = Rows(master, "SkillPassive", logger).ToDictionary(s => Long(s, "Id"), s => Name(s, "NameLanguageId"));
+                var effects = Rows(master, "WeaponEvolveEffect", logger).GroupBy(e => Long(e, "WeaponEvolveId")).ToDictionary(g => g.Key, g => g.ToList());
+                var evolveByGroup = Rows(master, "WeaponEvolve", logger).GroupBy(e => Long(e, "WeaponEvolveGroupId")).ToDictionary(g => g.Key, g => g.ToList());
+                string Describe(JsonElement ev)
+                {
+                    var parts = new List<string>();
+                    foreach (var e in effects.GetValueOrDefault(Long(ev, "Id")) ?? new())
+                    {
+                        var target = Long(e, "TargetId");
+                        switch (Long(e, "WeaponEvolveEffectType"))
+                        {
+                            case 1 when evolveSkill.TryGetValue(target, out var ws) && weaponSkillActive.TryGetValue(ws, out var act)
+                                        && activeBase.TryGetValue(act, out var sb) && skillBaseName.TryGetValue(sb, out var nm) && nm.Length > 0:
+                                parts.Add("New ability: " + nm); break;
+                            case 3 when passiveName.TryGetValue(target, out var pn) && pn.Length > 0:
+                                parts.Add("Adds passive: " + pn); break;
+                        }
+                    }
+                    return string.Join("; ", parts);
+                }
+                foreach (var w in Rows(master, "Weapon", logger))
+                    if (evolveByGroup.TryGetValue(Long(w, "WeaponEvolveGroupId"), out var evs))
+                        data.WeaponCustomizations[Long(w, "Id")] = evs.Select(ev => ((int)Long(ev, "WeaponEvolveType"), Describe(ev))).ToList();
+            }
             foreach (var l in Rows(master, "WeaponLevel", logger))
             {
                 var g = Long(l, "WeaponLevelGroupId");
@@ -1671,6 +1717,7 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, List<long>> VoucherShopItems { get; } = new();
         public Dictionary<long, (long BaseExp, long LevelGroup, long ReleaseGroup, long RarityGroup)> WeaponGrowth { get; } = new();
         public Dictionary<long, long> WeaponParts { get; } = new();
+        public Dictionary<long, List<(int Type, string Effect)>> WeaponCustomizations { get; } = new();
         public Dictionary<long, List<(int Level, long Coefficient)>> WeaponLevelExp { get; } = new();
         public Dictionary<long, Dictionary<int, int>> WeaponLevelLimits { get; } = new();
         public Dictionary<(long Group, int Rarity), int> WeaponMaxRelease { get; } = new();

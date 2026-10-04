@@ -33,6 +33,7 @@ builder.Services.AddSingleton<SupportTeamBuilderService>();
 builder.Services.AddSingleton<SupportTeamPresetCatalog>();
 builder.Services.AddScoped<DamageCalcService>();
 builder.Services.AddSingleton<EosPlayerStatsService>();
+builder.Services.AddSingleton<UnusedContentService>();
 // Async job runner for long analyses (keeps every HTTP request sub-second; avoids Cloudflare's 100s 524 timeout).
 builder.Services.AddSingleton<AnalysisJobService>();
 builder.Services.AddHostedService<AnalysisJobWorker>();

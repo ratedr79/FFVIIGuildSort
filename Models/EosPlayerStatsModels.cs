@@ -382,6 +382,20 @@ public sealed class EosWeaponStat
     /// <summary>Times this weapon was taken from a weapon voucher exchange shop.</summary>
     public long VoucherExchanges { get; set; }
     public DateTime? LastVoucherExchange { get; set; }
+    /// <summary>Customizations this weapon can have (Heart/Spade/Diamond), with which are unlocked and which is active.</summary>
+    public List<EosWeaponCustomization> Customizations { get; set; } = new();
+}
+
+public sealed class EosWeaponCustomization
+{
+    /// <summary>WeaponEvolveType: 1 Heart, 2 Spade, 3 Diamond, 4 special.</summary>
+    public int Type { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    /// <summary>What it changes, e.g. "New ability: Thunderstrike" or "Adds passive: …".</summary>
+    public string Effect { get; set; } = string.Empty;
+    public bool Unlocked { get; set; }
+    public bool Active { get; set; }
 }
 
 public sealed class EosOutfitStat

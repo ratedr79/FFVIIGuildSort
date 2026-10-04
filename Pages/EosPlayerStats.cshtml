@@ -87,6 +87,10 @@
     @@media (max-width: 700px) { .eos-badge-card ul { columns: 1; } }
     /* Mobile: cards and wide tables must never push the page sideways. */
     .eos-card { min-width: 0; overflow-wrap: anywhere; }
+    .eos-cust { display: inline-block; font-size: 1.05rem; line-height: 1; margin-right: 0.3rem; cursor: help; }
+    .eos-cust-on { color: #7a3fc4; }
+    .eos-cust-off { color: #c9c2d6; }
+    .eos-cust-active { border-bottom: 2px solid #7a3fc4; }
     .eos-tab-body .dt-layout-table > .dt-layout-cell, .eos-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .eos-tab-body .form-select { max-width: 100%; }
     .eos-tab-body .d-flex { flex-wrap: wrap; }
@@ -412,13 +416,20 @@
                     <select id="eos-weapon-status" class="form-select form-select-sm eos-filter">
                         <option value="">All</option><option value="Owned">Owned</option><option value="Missing">Missing</option>
                     </select>
+                    <label for="eos-weapon-cust" class="small text-muted mb-0 ms-2">Customization</label>
+                    <select id="eos-weapon-cust" class="form-select form-select-sm eos-filter">
+                        <option value="">Any</option><option value="cust-some">Some unlocked</option><option value="cust-locked">Still has locked ones</option><option value="cust-all">All unlocked</option><option value="cust-none">Can't be customized</option>
+                    </select>
                 </div>
                 <table id="eos-weapons-table" class="table table-sm table-striped eos-table w-100">
-                    <thead><tr><th>Weapon</th><th>Character</th><th>Status</th><th>Rarity</th><th class="num">Level</th><th>Overboost</th><th class="num" title="This weapon's own Parts item held (200 parts = one rarity or overboost step)">Parts</th><th class="num">Times pulled</th><th>First obtained</th><th class="num">Voucher exchanges</th><th>Last voucher exchange</th></tr></thead>
+                    <thead><tr><th>Weapon</th><th>Character</th><th>Status</th><th>Rarity</th><th class="num">Level</th><th>Overboost</th><th class="num" title="This weapon's own Parts item held (200 parts = one rarity or overboost step)">Parts</th><th title="Heart / Spade / Diamond customizations. Filled = unlocked, underlined = in use, faded = not unlocked yet. Hover for what each one does.">Customization</th><th class="num">Times pulled</th><th>First obtained</th><th class="num">Voucher exchanges</th><th>Last voucher exchange</th></tr></thead>
                     <tbody>
                         @foreach (var w in s.Weapons)
                         {
-                            <tr><td>@w.Name</td><td>@w.Character</td><td>@(w.Owned ? "Owned" : "Missing")</td><td data-order="@w.Stars">@(w.Stars > 0 ? w.Stars + "★" + (w.Stars == 6 ? " Ultimate" : "") : "")</td><td class="num" data-order="@w.Level">@(w.Owned && w.Level > 0 ? (w.MaxLevel > 0 ? $"{w.Level} / {w.MaxLevel}" : w.Level.ToString()) : "")</td><td data-order="@w.OverboostOrder">@w.OverboostLabel</td><td class="num" data-order="@(w.Parts ?? -1)" title="@(w.PartsObtained > 0 ? N(w.PartsObtained) + " obtained in total" : "")">@(w.Parts is long wp ? N(wp) : "")</td><td class="num">@N(w.GachaPulls)</td><td data-order="@(w.FirstObtained?.Ticks ?? 0)">@(w.FirstObtained?.ToString("MMM d, yyyy") ?? "")</td><td class="num">@(w.VoucherExchanges > 0 ? N(w.VoucherExchanges) : "")</td><td data-order="@(w.LastVoucherExchange?.Ticks ?? 0)">@(w.LastVoucherExchange?.ToString("MMM d, yyyy") ?? "")</td></tr>
+                            <tr><td>@w.Name</td><td>@w.Character</td><td>@(w.Owned ? "Owned" : "Missing")</td><td data-order="@w.Stars">@(w.Stars > 0 ? w.Stars + "★" + (w.Stars == 6 ? " Ultimate" : "") : "")</td><td class="num" data-order="@w.Level">@(w.Owned && w.Level > 0 ? (w.MaxLevel > 0 ? $"{w.Level} / {w.MaxLevel}" : w.Level.ToString()) : "")</td><td data-order="@w.OverboostOrder">@w.OverboostLabel</td><td class="num" data-order="@(w.Parts ?? -1)" title="@(w.PartsObtained > 0 ? N(w.PartsObtained) + " obtained in total" : "")">@(w.Parts is long wp ? N(wp) : "")</td><td data-order="@(w.Customizations.Count(c => c.Unlocked) * 10 + w.Customizations.Count)" data-search="@(w.Customizations.Count == 0 ? "cust-none" : (w.Customizations.Any(c => c.Unlocked) ? "cust-some " : "") + (w.Customizations.Any(c => !c.Unlocked) ? "cust-locked" : "cust-all"))">@foreach (var c in w.Customizations)
+                                {
+                                    <span class="eos-cust @(c.Unlocked ? "eos-cust-on" : "eos-cust-off") @(c.Active ? "eos-cust-active" : "")" title="@c.Name customization: @(c.Unlocked ? (c.Active ? "unlocked, in use" : "unlocked") : "not unlocked")@(c.Effect.Length > 0 ? " \u2014 " + c.Effect : "")">@c.Symbol</span>
+                                }</td><td class="num">@N(w.GachaPulls)</td><td data-order="@(w.FirstObtained?.Ticks ?? 0)">@(w.FirstObtained?.ToString("MMM d, yyyy") ?? "")</td><td class="num">@(w.VoucherExchanges > 0 ? N(w.VoucherExchanges) : "")</td><td data-order="@(w.LastVoucherExchange?.Ticks ?? 0)">@(w.LastVoucherExchange?.ToString("MMM d, yyyy") ?? "")</td></tr>
                         }
                     </tbody>
                 </table>
@@ -1237,12 +1248,15 @@
             // Formatted numbers ("1,234") sort as numbers via the num-fmt type.
             const opts = (order) => ({ pageLength: 25, order: order, columnDefs: [{ targets: 'num', type: 'num-fmt' }] });
             const draws = new DataTable('#eos-draws-table', opts([[3, 'desc']]));
-            const weapons = new DataTable('#eos-weapons-table', opts([[7, 'desc']]));
+            const weapons = new DataTable('#eos-weapons-table', opts([[8, 'desc']]));
             const outfits = new DataTable('#eos-outfits-table', Object.assign(opts([]), { ordering: true }));
             const statusFilter = (selId, table) => document.getElementById(selId).addEventListener('change', function () {
                 table.column(2).search(this.value ? '^' + this.value + '$' : '', { regex: true, smart: false }).draw();
             });
             statusFilter('eos-weapon-status', weapons);
+            document.getElementById('eos-weapon-cust').addEventListener('change', function () {
+                weapons.column(7).search(this.value, { regex: false, smart: false }).draw();
+            });
             statusFilter('eos-outfit-status', outfits);
             new DataTable('#eos-items-table', opts([[2, 'desc']]));
             const shopTable = document.getElementById('eos-shop-table') ? new DataTable('#eos-shop-table', opts([[3, 'desc']])) : null;

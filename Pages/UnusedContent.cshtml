@@ -1,0 +1,234 @@
+@page
+@model FFVIIEverCrisisAnalyzer.Pages.UnusedContentModel
+@{
+    ViewData["Title"] = "Cut & Unused Content";
+    var r = Model.Report;
+    int Size(string t) => r.TableSizes.TryGetValue(t, out var n) ? n : -1;
+    string Rows(string t) => Size(t) switch { -1 => "missing", 0 => "empty", var n => n.ToString("N0") + " rows" };
+
+    // Empty tables that look like planned systems, grouped with a plain-language description.
+    var planned = new (string Title, string Text, string[] Tables)[]
+    {
+        ("Weapon evolution growth", "Weapon evolution exists, but the tables for extra stat growth and passive points gained through evolution were never filled in.", new[] { "WeaponEvolveParameter", "WeaponEvolvePassivePoint" }),
+        ("Choose-your-reward season pass", "A season pass variant where you pick your own reward from a list.", new[] { "SeasonPassSelectReward", "SeasonPassSelectRewardGroup" }),
+        ("Chocobo feeding", "An item type for feeding chocobos, alongside the expedition and farm systems that did ship.", new[] { "ItemChocoboFeed" }),
+        ("Score battle restrictions", "Options for score battles that ban specific skills or characters.", new[] { "ScoreOptionBanSkill", "ScoreOptionCharacter" }),
+        ("“Request” skill mechanic", "A skill system built around requests with success conditions and their own text groups. The gimmick version for enemies is empty too.", new[] { "SkillRequestSkillGroup", "SkillRequestSuccessCondition", "SkillRequestSuccessConditionGroup", "SkillRequestSuccessConditionRel", "SkillRequestSuccessLanguageGroup", "SkillGimmickRequest" }),
+        ("Transformation skills", "A skill effect that transforms the user.", new[] { "SkillTransformationEffect" }),
+        ("Skill trigger effects", "One trigger-condition effect type (other trigger conditions, like HP thresholds, did ship), and enemy gimmicks that react to specific elements.", new[] { "SkillTriggerConditionEffect", "SkillGimmickReactiveElementType", "SkillGimmickReactiveElementTypeGroup" }),
+        ("Event story levels and choices", "Story levels tied to events, and dialogue choices inside event stories (main story and dungeon choices did ship).", new[] { "EventStoryLevel", "EventStoryLevelGroup", "EventDramaSelection", "EventDramaSelectionChoice" }),
+        ("Daily rewards", "A daily reward system separate from login bonuses.", new[] { "DailyReward", "DailyRewardGroup" }),
+        ("Campaign extras", "Extra campaign rewards and special daily-quest rewards during campaigns.", new[] { "CampaignAdditionalReward", "CampaignAdditionalRewardGroup", "CampaignDailyQuestRewardCount", "CampaignDailyQuestSpecialReward" }),
+        ("Shop extras", "Shop purchase bonuses, alternate costs and pickup items.", new[] { "ShopItemBonus", "ShopItemConsumptionReplace", "ShopPickupItem" }),
+    };
+    var described = new HashSet<string>(planned.SelectMany(p => p.Tables).Concat(new[] { "Accessory", "AccessoryDurationLot", "AccessoryIngredient", "AccessoryPassivePointLot", "AccessoryRecipe", "AccessoryRecipeQuality", "AccessorySale", "RewardAccessory" }));
+    var accessoryTables = new[] { "Accessory", "AccessoryRecipe", "AccessoryRecipeQuality", "AccessoryIngredient", "AccessoryPassivePointLot", "AccessoryDurationLot", "AccessorySale", "RewardAccessory" };
+    var withGaps = r.Characters.Where(c => c.Outfits.Count + c.Weapons.Count > 0).ToList();
+    var evidence = r.Characters.SelectMany(c => c.Outfits.Where(g => g.Note is not null).Select(g => (c.Name, g, Kind: "outfit"))
+        .Concat(c.Weapons.Where(g => g.Note is not null).Select(g => (c.Name, g, Kind: "weapon")))).ToList();
+}
+
+<style>
+    .uc-page { max-width: 1100px; }
+    .uc-card { border: 1px solid #ddd3ed; border-radius: 0.7rem; background: #fff; box-shadow: 0 2px 8px rgba(39, 26, 65, 0.08); padding: 1rem 1.1rem; margin-bottom: 1rem; min-width: 0; overflow-wrap: anywhere; }
+    .uc-card h2 { font-size: 1.1rem; color: #332b42; margin-bottom: 0.5rem; }
+    .uc-card h2 i { color: #6b5b8a; width: 1.4rem; }
+    .uc-confidence { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-radius: 1rem; padding: 0.1rem 0.55rem; margin-left: 0.4rem; vertical-align: middle; }
+    .uc-strong { background: #e3f4e7; color: #1d6b34; }
+    .uc-likely { background: #fff3d6; color: #8a5a00; }
+    .uc-maybe { background: #eef0f3; color: #555; }
+    .uc-evidence { font-size: 0.88rem; color: #555; margin-bottom: 0; }
+    .uc-evidence li { margin-bottom: 0.15rem; }
+    .uc-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .uc-table { font-size: 0.88rem; }
+    .uc-table td, .uc-table th { white-space: nowrap; }
+    .uc-table td.uc-wrap { white-space: normal; min-width: 14rem; }
+    .uc-gap { display: inline-block; background: #f3effa; border-radius: 0.3rem; padding: 0 0.35rem; margin: 0.1rem 0.15rem 0.1rem 0; font-variant-numeric: tabular-nums; }
+    .uc-gap.uc-hit { background: #ffe3a3; font-weight: 600; }
+    .uc-toc a { margin-right: 0.9rem; white-space: nowrap; }
+    code { color: #6b3fa0; }
+    @@media (max-width: 767.98px) {
+        .uc-card { padding: 0.8rem; }
+        .uc-toc a { display: inline-block; margin-bottom: 0.25rem; }
+    }
+</style>
+
+<div class="container-fluid uc-page">
+    <h1 class="h3 mt-3"><i class="fas fa-box-archive text-primary"></i> Cut &amp; Unused Content</h1>
+    <p class="text-muted">
+        Things that exist in Ever Crisis's game data but never made it into the game. Everything here is read from the
+        UnknownX7 data files (@r.TableCount tables and the English text) when the page loads, so the numbers stay current.
+        Some of it is clearly a cut feature; some is just a gap in the numbering. Each section says how sure we can be.
+    </p>
+
+    @if (r.Error is not null)
+    {
+        <div class="alert alert-warning">@r.Error</div>
+    }
+    else
+    {
+        <p class="uc-toc small">
+            <a href="#accessories">Accessories</a>
+            <a href="#light-dark">Light &amp; Dark</a>
+            <a href="#sigils">Fifth sigil</a>
+            <a href="#numbering">Skipped outfits &amp; weapons</a>
+            <a href="#systems">Other unfinished systems</a>
+            <a href="#summons">Summons</a>
+            <a href="#all-empty">All empty tables</a>
+        </p>
+        <p class="small">
+            <span class="uc-confidence uc-strong ms-0">Strong</span> clear evidence it was planned
+            <span class="uc-confidence uc-likely">Likely</span> good evidence, some guessing
+            <span class="uc-confidence uc-maybe">Maybe</span> just a gap; could mean nothing
+        </p>
+
+        <section class="uc-card" id="accessories">
+            <h2><i class="fas fa-ring"></i> Accessories <span class="uc-confidence uc-strong">Strong</span></h2>
+            <p>
+                A full accessory system was built and then left empty. There are tables for accessories themselves,
+                crafting recipes, recipe quality, ingredients, passive points, durations and selling, plus a reward type for
+                handing out accessories. Every one of them has no entries. The menu text is already written, and every
+                account export carries four accessory lists (owned, collection, crafting and recipes) that are always empty.
+            </p>
+            <ul class="uc-evidence">
+                <li>Tables: @string.Join(", ", accessoryTables.Select(t => $"{t} ({Rows(t)})"))</li>
+                @if (r.AccessoryStrings.Count > 0)
+                {
+                    <li>Game text: @string.Join(" · ", r.AccessoryStrings.Select(s => "“" + s + "”"))</li>
+                }
+                <li>Account export: <code>UserAccessoryList</code>, <code>UserAccessoryCollectionList</code>, <code>UserAccessoryCraftList</code>, <code>UserAccessoryRecipeList</code> are all null.</li>
+            </ul>
+        </section>
+
+        <section class="uc-card" id="light-dark">
+            <h2><i class="fas fa-circle-half-stroke"></i> Light &amp; Dark elements <span class="uc-confidence uc-strong">Strong</span></h2>
+            <p>
+                The game has six elements in use: Fire, Ice, Lightning, Earth, Water and Wind. Two more, Light and Dark, are
+                defined right after them with complete text for resistance, potency, damage up and down, a "weakness"
+                ailment, and wave/battle-start buffs. Enemies even carry a Light and a Dark resistance value, but every one
+                is set to zero, and no skill deals either element.
+            </p>
+            <ul class="uc-evidence">
+                <li>Enemy Light/Dark resistance entries: @r.LightDarkResistRows.ToString("N0"), of which @r.LightDarkResistNonZero.ToString("N0") are non-zero.</li>
+                <li>Skills that deal Light or Dark damage: @r.LightDarkSkillRows.ToString("N0").</li>
+                <li>Damage challenges cover @r.DamageChallengeElements element slots (the six elements plus non-elemental), none for Light or Dark.</li>
+                <li>About @r.LightDarkStrings Light/Dark resistance, potency, damage and weakness text entries are already written.</li>
+            </ul>
+        </section>
+
+        <section class="uc-card" id="sigils">
+            <h2><i class="fas fa-shapes"></i> A fifth sigil (likely the Square) <span class="uc-confidence uc-likely">Likely</span></h2>
+            <p>
+                Enemy sigils come in five types in the data. The first three are named in recipe text as Circle, Triangle and
+                Cross. The fourth is used by enemies but never named in text (probably the Diamond). The fifth has its own icon,
+                its own sigil-resistance up/down text and its own "resistance buff when battle begins" text, but no enemy
+                ever uses it. That matches the square sigil artwork in the game files. The data doesn't name the shape, so
+                the Diamond and Square labels are inferred.
+            </p>
+            <div class="uc-scroll">
+                <table class="table table-sm uc-table mb-0">
+                    <thead><tr><th>Type</th><th>Sigil</th><th class="text-end">Defined patterns</th><th class="text-end">Used in enemy sigil sets</th></tr></thead>
+                    <tbody>
+                        @foreach (var sg in r.Sigils)
+                        {
+                            <tr class="@(sg.BattleUses == 0 ? "table-warning" : "")">
+                                <td>@sg.Type</td><td>@sg.Name</td><td class="text-end">@sg.Definitions</td><td class="text-end">@sg.BattleUses.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="uc-card" id="numbering">
+            <h2><i class="fas fa-list-ol"></i> Skipped outfit &amp; weapon numbers</h2>
+            <p>
+                Outfits and weapons are numbered per character in order (Cloud's are 1001, 1002, 1003…). When a number is
+                skipped, something was planned for that slot and didn't ship, was replaced, or was held back.
+                Most gaps leave no other trace <span class="uc-confidence uc-maybe">Maybe</span>, but a few do
+                <span class="uc-confidence uc-strong">Strong</span>, highlighted below.
+            </p>
+            @if (evidence.Count > 0)
+            {
+                <ul class="uc-evidence mb-3">
+                    @foreach (var (name, g, kind) in evidence)
+                    {
+                        <li><strong>@name #@g.Id</strong>: @g.Note, but there is no @kind with that number.</li>
+                    }
+                </ul>
+            }
+            <div class="uc-scroll">
+                <table class="table table-sm uc-table align-top mb-0">
+                    <thead><tr><th>Character</th><th>Outfits</th><th>Skipped outfit numbers</th><th>Weapons</th><th>Skipped weapon numbers</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in r.Characters)
+                        {
+                            <tr>
+                                <td>@c.Name</td>
+                                <td>@c.OutfitCount of @c.OutfitMax</td>
+                                <td class="uc-wrap">
+                                    @if (c.Outfits.Count == 0) { <span class="text-muted">none</span> }
+                                    @foreach (var g in c.Outfits) { <span class="uc-gap @(g.Note is null ? "" : "uc-hit")" title="@(g.Note ?? "")">@g.Id</span> }
+                                </td>
+                                <td>@c.WeaponCount of @c.WeaponMax</td>
+                                <td class="uc-wrap">
+                                    @if (c.Weapons.Count == 0) { <span class="text-muted">none</span> }
+                                    @foreach (var g in c.Weapons) { <span class="uc-gap @(g.Note is null ? "" : "uc-hit")" title="@(g.Note ?? "")">@g.Id</span> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p class="small text-muted mt-2 mb-0">
+                @withGaps.Count of @r.Characters.Count characters have at least one gap. Numbers below each character's
+                highest number are counted; numbers past the last released item aren't, since those may simply be future releases.
+            </p>
+        </section>
+
+        <section class="uc-card" id="systems">
+            <h2><i class="fas fa-gears"></i> Other unfinished systems <span class="uc-confidence uc-likely">Likely</span></h2>
+            <p>
+                These tables are defined, and the game client knows how to read them, but they hold no data. Each looks like a
+                feature that was designed and not switched on.
+            </p>
+            <div class="uc-scroll">
+                <table class="table table-sm uc-table mb-0">
+                    <thead><tr><th>Feature</th><th>What it seems to be</th><th>Tables</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in planned)
+                        {
+                            <tr>
+                                <td><strong>@p.Title</strong></td>
+                                <td class="uc-wrap">@p.Text</td>
+                                <td class="uc-wrap small">@string.Join(", ", p.Tables.Select(t => $"{t} ({Rows(t)})"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="uc-card" id="summons">
+            <h2><i class="fas fa-dragon"></i> Summon numbering <span class="uc-confidence uc-maybe">Maybe</span></h2>
+            <p>
+                Released summons: @string.Join(", ", r.Summons).
+                @if (r.SummonGaps.Count > 0)
+                {
+                    <text>Numbers @string.Join(", ", r.SummonGaps) are skipped. They could be slots reserved for summons that never came, but nothing else in the data refers to them.</text>
+                }
+            </p>
+        </section>
+
+        <section class="uc-card" id="all-empty">
+            <h2><i class="fas fa-table"></i> All empty tables (@r.EmptyTables.Count of @r.TableCount)</h2>
+            <p class="small">The full list, including small technical tables that probably don't represent a feature. Ones not covered above are marked.</p>
+            <p class="small mb-0">
+                @foreach (var t in r.EmptyTables)
+                {
+                    <span class="uc-gap @(described.Contains(t) ? "" : "uc-hit")" title="@(described.Contains(t) ? "Covered above" : "Not covered above")">@t</span>
+                }
+            </p>
+        </section>
+    }
+</div>
