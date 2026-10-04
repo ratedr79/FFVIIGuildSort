@@ -43,6 +43,8 @@ public sealed class EosPlayerStats
     public long? MaxPower { get; set; }
     public int? GuildLevel { get; set; }
     public DateTime? GuildJoined { get; set; }
+    /// <summary>Friends, guildmates, watched guilds and the block list (top-level lists in newer exports).</summary>
+    public EosSocial Social { get; set; } = new();
 
     public List<EosCharacterStat> Characters { get; set; } = new();
     public List<EosCollectionStat> Collection { get; set; } = new();
@@ -384,6 +386,52 @@ public sealed class EosWeaponStat
     public DateTime? LastVoucherExchange { get; set; }
     /// <summary>Customizations this weapon can have (Heart/Spade/Diamond), with which are unlocked and which is active.</summary>
     public List<EosWeaponCustomization> Customizations { get; set; } = new();
+}
+
+public sealed class EosSocial
+{
+    /// <summary>False for older exports that don't have the friend/guild lists at all.</summary>
+    public bool Available { get; set; }
+    public List<EosPlayerCard> Friends { get; set; } = new();
+    public List<EosPlayerCard> GuildMembers { get; set; } = new();
+    public List<EosPlayerCard> Blocked { get; set; } = new();
+    public List<EosPlayerCard> RequestsReceived { get; set; } = new();
+    public List<EosPlayerCard> RequestsSent { get; set; } = new();
+    public List<EosWatchedGuild> WatchedGuilds { get; set; } = new();
+}
+
+public sealed class EosPlayerCard
+{
+    public string PlayerId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Rank { get; set; }
+    public long Power { get; set; }
+    public DateTime? LastLogin { get; set; }
+    /// <summary>Profile title: top word + bottom word, e.g. "I Am The Chosen One".</summary>
+    public string Title { get; set; } = string.Empty;
+    public string Background { get; set; } = string.Empty;
+    public string Emblem { get; set; } = string.Empty;
+    public long BadgeTotal { get; set; }
+    public List<string> Badges { get; set; } = new();
+    public bool IsYou { get; set; }
+    public bool IsFriend { get; set; }
+    public bool InGuild { get; set; }
+    // Guild members only.
+    public int? Role { get; set; }
+    public string RoleName => Role switch { 2 => "Leader", 1 => "Sub-leader", 0 => "Member", null => "", _ => "Role " + Role };
+    public long GuildExp { get; set; }
+    public long GuildBonusExp { get; set; }
+}
+
+public sealed class EosWatchedGuild
+{
+    public string GuildId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public int Members { get; set; }
+    public bool ManualApproval { get; set; }
+    public bool RequestedJoin { get; set; }
+    public string Introduction { get; set; } = string.Empty;
 }
 
 public sealed class EosWeaponCustomization

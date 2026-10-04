@@ -265,6 +265,7 @@ public sealed class EosPlayerStatsService
         ParseAccountExtras(info, stats, m);
         ParseCollections(info, stats, m);
         ParseProgress(info, stats, m);
+        stats.Social = Social(m, root, stats.PlayerName);
         if (includePurchases) stats.Purchases = ParsePurchases(info, m);
 
         stats.Warnings = stats.Warnings.Distinct().Take(10).ToList();
@@ -574,6 +575,68 @@ public sealed class EosPlayerStatsService
                 Active = active == c.Type,
             }).ToList()
             : new();
+
+    // Friends, guildmates, watched guilds and blocks: top-level lists next to AccountInfo (added to exports in Oct 2026).
+    private static EosSocial Social(MasterData m, JsonElement root, string playerName)
+    {
+        var social = new EosSocial
+        {
+            Available = new[] { "FriendList", "GuildMemberList", "BlockList", "GuildWatchList" }.Any(k => root.TryGetProperty(k, out _)),
+        };
+        EosPlayerCard Card(JsonElement e)
+        {
+            var u = e.TryGetProperty("UserListInfo", out var inner) && inner.ValueKind == JsonValueKind.Object ? inner : e;
+            var badges = List(u, "AwardInfoList")
+                .Select(a => (Order: m.Awards.TryGetValue(Long(a, "AwardId"), out var d) ? d.Order : int.MaxValue,
+                              Name: d.Name ?? "Badge " + Long(a, "AwardId"), Count: Long(a, "AwardCount")))
+                .Where(a => a.Count > 0).OrderBy(a => a.Order).ToList();
+            string Honor(string f) => m.Honors.GetValueOrDefault(Long(u, f)) ?? string.Empty;
+            return new EosPlayerCard
+            {
+                PlayerId = Str(u, "DisplayUserId") ?? string.Empty,
+                Name = Str(u, "PlayerName") ?? string.Empty,
+                Rank = (int)Long(u, "UserRank"),
+                Power = Long(u, "CombatPower"),
+                LastLogin = FromMs(Long(u, "LastAccessDatetime")),
+                Title = (Honor("TopHonorId") + " " + Honor("BottomHonorId")).Trim(),
+                Background = Honor("BackgroundHonorId"),
+                Emblem = Honor("IconHonorId"),
+                BadgeTotal = badges.Sum(b => b.Count),
+                Badges = badges.Select(b => $"{b.Name}: {b.Count:N0}").ToList(),
+            };
+        }
+        social.Friends = List(root, "FriendList").Select(Card).ToList();
+        social.Blocked = List(root, "BlockList").Select(Card).ToList();
+        social.RequestsReceived = List(root, "FriendReceiveList").Select(Card).ToList();
+        social.RequestsSent = List(root, "FriendRequestList").Select(Card).ToList();
+        social.GuildMembers = List(root, "GuildMemberList").Select(e =>
+        {
+            var c = Card(e);
+            c.Role = (int)Long(e, "GuildRoleType");
+            c.GuildExp = Long(e, "ProvideLevelExp");
+            c.GuildBonusExp = Long(e, "ProvideBonusLevelExp");
+            return c;
+        }).ToList();
+        var friendIds = social.Friends.Select(f => f.PlayerId).ToHashSet();
+        var guildIds = social.GuildMembers.Select(g => g.PlayerId).ToHashSet();
+        foreach (var f in social.Friends) f.InGuild = guildIds.Contains(f.PlayerId);
+        foreach (var g in social.GuildMembers)
+        {
+            g.IsFriend = friendIds.Contains(g.PlayerId);
+            g.IsYou = playerName.Length > 0 && g.Name == playerName;
+        }
+        social.WatchedGuilds = List(root, "GuildWatchList").Select(g => new EosWatchedGuild
+        {
+            GuildId = Str(g, "DisplayGuildId") ?? string.Empty,
+            Name = Str(g, "GuildName") ?? string.Empty,
+            Level = (int)Long(g, "GuildLevel"),
+            Members = (int)Long(g, "MemberCount"),
+            ManualApproval = g.TryGetProperty("IsManualApproval", out var ma) && ma.ValueKind == JsonValueKind.True,
+            RequestedJoin = g.TryGetProperty("IsRequestedJoin", out var rj) && rj.ValueKind == JsonValueKind.True,
+            Introduction = Str(g, "Introduction") ?? string.Empty,
+        }).ToList();
+        return social;
+    }
 
     private static string CharacterName(MasterData m, long id) =>
         m.Characters.TryGetValue(id, out var c) ? c.Name : $"#{id}";
@@ -1354,6 +1417,8 @@ public sealed class EosPlayerStatsService
                     .Replace(" {1} time(s)", string.Empty).Replace("{0}", name);
                 data.Awards[Long(a, "Id")] = (name, CleanName(desc), (int)Long(a, "OrderNo"));
             }
+            foreach (var h in Rows(master, "Honor", logger))
+                data.Honors[Long(h, "Id")] = Name(h, "NameLanguageId");
             foreach (var r in Rows(master, "AwardRanking", logger))
             {
                 var id = Long(r, "AwardId");
@@ -1765,6 +1830,7 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, (string Name, int Order)> RecordGroups { get; } = new();
         public Dictionary<long, (string Name, int Order, long GroupId)> ProfileRecords { get; } = new();
         public Dictionary<long, (string Name, string Description, int Order)> Awards { get; } = new();
+        public Dictionary<long, string> Honors { get; } = new();
         public Dictionary<long, List<(long EventBaseId, int Rank)>> AwardRankings { get; } = new();
         public Dictionary<long, (string Name, long EventBaseId, long EndMs)> CrisisEvents { get; } = new();
         public HashSet<long> DamageRankingEvents { get; } = new();

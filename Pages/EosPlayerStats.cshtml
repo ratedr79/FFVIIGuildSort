@@ -4,6 +4,14 @@
     ViewData["Title"] = "EOS Player Stats";
     var s = Model.Stats;
     string N(long v) => v.ToString("N0");
+    string Ago(DateTime utc)
+    {
+        var d = DateTime.UtcNow - utc;
+        if (d.TotalHours < 1) return "within the hour";
+        if (d.TotalDays < 1) return $"{(int)d.TotalHours}h ago";
+        if (d.TotalDays < 60) return $"{(int)d.TotalDays} day{((int)d.TotalDays == 1 ? "" : "s")} ago";
+        return utc.ToString("MMM d, yyyy");
+    }
     Microsoft.AspNetCore.Html.IHtmlContent Rank(FFVIIEverCrisisAnalyzer.Models.EosEventRank e) =>
         new Microsoft.AspNetCore.Html.HtmlString(e.FinalRank > 0
             ? "#" + N(e.FinalRank) + (e.EarnedBadge ? "<i class=\"fas fa-medal eos-badge-icon\" title=\"Earned a badge\"></i>" : "")
@@ -87,6 +95,7 @@
     @@media (max-width: 700px) { .eos-badge-card ul { columns: 1; } }
     /* Mobile: cards and wide tables must never push the page sideways. */
     .eos-card { min-width: 0; overflow-wrap: anywhere; }
+    tr.eos-you > td { font-weight: 600; }
     .eos-cust { display: inline-block; font-size: 1.05rem; line-height: 1; margin-right: 0.3rem; cursor: help; }
     .eos-cust-on { color: #7a3fc4; }
     .eos-cust-off { color: #c9c2d6; }
@@ -327,6 +336,7 @@
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-skills" type="button" role="tab">Skills (@s.Skills.Count(x => x.Owned) / @s.Skills.Count)</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-chocobos" type="button" role="tab">Chocobos (@s.Chocobos.Count)</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-highwind" type="button" role="tab">Highwind &amp; Guild</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-social" type="button" role="tab">Friends &amp; Guild (@(s.Social.Friends.Count + s.Social.GuildMembers.Count(p => !p.IsYou)))</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-battles" type="button" role="tab">Battles (@N(s.Battles.TotalWins) wins)</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-records" type="button" role="tab">Play records</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#eos-rankings" type="button" role="tab">Rankings</button></li>
@@ -743,6 +753,98 @@
                         }
                     </div>
                 </div>
+            </div>
+
+<div class="tab-pane fade" id="eos-social" role="tabpanel">
+                @if (!s.Social.Available)
+                {
+                    <p class="text-muted">This export doesn't include friends or guild members. Exports made from October 2026 onward do.</p>
+                }
+                else
+                {
+                    <p class="text-muted small">From your export: other players' profiles as they were when you exported. Last login is shown relative to now; hover for the exact time. Hover a badge count for the breakdown.</p>
+                    <h3 class="h5 mt-2">Friends (@s.Social.Friends.Count)</h3>
+                    @if (s.Social.Friends.Count == 0) { <p class="text-muted">No friends in this export.</p> }
+                    else
+                    {
+                        <div class="table-responsive"><table id="eos-friends-table" class="table table-sm table-striped eos-table">
+                            <thead><tr><th>Player</th><th>Player ID</th><th class="num">Rank</th><th class="num">Power</th><th>Last login</th><th>Title</th><th class="num">Badges</th><th>In your guild</th></tr></thead>
+                            <tbody>
+                            @foreach (var p in s.Social.Friends)
+                            {
+                                <tr class="@(p.IsYou ? "eos-you" : "")">
+                                    <td>@p.Name@(p.IsYou ? " (you)" : "")</td>
+                                    <td><code>@p.PlayerId</code></td>
+                                    <td class="num">@p.Rank</td>
+                                    <td class="num" data-order="@p.Power">@N(p.Power)</td>
+                                    <td data-order="@(p.LastLogin?.Ticks ?? 0)" title="@(p.LastLogin?.ToString("MMM d, yyyy HH:mm") + " UTC")">@(p.LastLogin is DateTime ll ? Ago(ll) : "")</td>
+                                    <td title="@(p.Background.Length > 0 ? "Background: " + p.Background : "")@(p.Emblem.Length > 0 ? " · Emblem: " + p.Emblem : "")">@p.Title</td>
+                                    <td class="num" data-order="@p.BadgeTotal" title="@string.Join(", ", p.Badges)">@N(p.BadgeTotal)</td>
+                                    <td>@(p.InGuild ? "Yes" : "")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table></div>
+                    }
+
+                    <h3 class="h5 mt-4">Guild members (@s.Social.GuildMembers.Count)@(s.GuildName is string gn ? " · " + gn : "")</h3>
+                    @if (s.Social.GuildMembers.Count == 0) { <p class="text-muted">No guild members in this export.</p> }
+                    else
+                    {
+                        <div class="table-responsive"><table id="eos-guildmembers-table" class="table table-sm table-striped eos-table">
+                            <thead><tr><th>Player</th><th>Player ID</th><th title="Leader / Sub-leader / Member. The role numbers in the export are interpreted, not labelled.">Role</th><th class="num">Rank</th><th class="num">Power</th><th>Last login</th><th>Title</th><th class="num">Badges</th><th class="num" title="Guild EXP this member has contributed">Guild EXP</th><th class="num" title="Bonus guild EXP this member has contributed">Bonus EXP</th><th>Friend</th></tr></thead>
+                            <tbody>
+                            @foreach (var p in s.Social.GuildMembers)
+                            {
+                                <tr class="@(p.IsYou ? "eos-you" : "")">
+                                    <td>@p.Name@(p.IsYou ? " (you)" : "")</td>
+                                    <td><code>@p.PlayerId</code></td>
+                                    <td data-order="@(p.Role ?? -1)">@p.RoleName</td>
+                                    <td class="num">@p.Rank</td>
+                                    <td class="num" data-order="@p.Power">@N(p.Power)</td>
+                                    <td data-order="@(p.LastLogin?.Ticks ?? 0)" title="@(p.LastLogin?.ToString("MMM d, yyyy HH:mm") + " UTC")">@(p.LastLogin is DateTime ll ? Ago(ll) : "")</td>
+                                    <td title="@(p.Background.Length > 0 ? "Background: " + p.Background : "")@(p.Emblem.Length > 0 ? " · Emblem: " + p.Emblem : "")">@p.Title</td>
+                                    <td class="num" data-order="@p.BadgeTotal" title="@string.Join(", ", p.Badges)">@N(p.BadgeTotal)</td>
+                                    <td class="num" data-order="@p.GuildExp">@N(p.GuildExp)</td>
+                                    <td class="num" data-order="@p.GuildBonusExp">@N(p.GuildBonusExp)</td>
+                                    <td>@(p.IsFriend ? "Yes" : "")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table></div>
+                    }
+
+                    <h3 class="h5 mt-4">Guilds you're watching (@s.Social.WatchedGuilds.Count)</h3>
+                    @if (s.Social.WatchedGuilds.Count == 0) { <p class="text-muted">You aren't watching any guilds.</p> }
+                    else
+                    {
+                        <div class="eos-cards">
+                            @foreach (var g in s.Social.WatchedGuilds)
+                            {
+                                <div class="eos-card">
+                                    <h3>@g.Name</h3>
+                                    <p class="mb-1"><code>@g.GuildId</code> · Lv @g.Level · @g.Members member@(g.Members == 1 ? "" : "s")</p>
+                                    <p class="mb-1 small text-muted">@(g.ManualApproval ? "Joining needs approval" : "Anyone can join")@(g.RequestedJoin ? " · You've asked to join" : "")</p>
+                                    @if (g.Introduction.Length > 0) { <p class="mb-0">@g.Introduction</p> }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <h3 class="h5 mt-4">Blocks and friend requests</h3>
+                    @if (s.Social.Blocked.Count + s.Social.RequestsReceived.Count + s.Social.RequestsSent.Count == 0)
+                    {
+                        <p class="text-muted">Nobody blocked and no pending friend requests.</p>
+                    }
+                    else
+                    {
+                        foreach (var (label, list) in new[] { ("Blocked", s.Social.Blocked), ("Friend requests received", s.Social.RequestsReceived), ("Friend requests sent", s.Social.RequestsSent) })
+                        {
+                            if (list.Count == 0) { continue; }
+                            <p class="mb-1"><strong>@label (@list.Count):</strong> @string.Join(", ", list.Select(p => p.Name + (p.PlayerId.Length > 0 ? " (" + p.PlayerId + ")" : "")))</p>
+                        }
+                    }
+                }
             </div>
 
             <div class="tab-pane fade" id="eos-missions" role="tabpanel">
@@ -1305,6 +1407,8 @@
             filterOn(skills, 'eos-skill-type', 1);
             filterOn(skills, 'eos-skill-status', 3);
             t('eos-keyitems-table', [[2, 'asc']], { pageLength: 10, lengthChange: false });
+            t('eos-friends-table', [[4, 'desc']]);
+            t('eos-guildmembers-table', [[2, 'desc'], [8, 'desc']]);
             const missions = new DataTable('#eos-missions-table', opts([[0, 'asc']]));
             filterOn(missions, 'eos-mission-category', 0);
             filterOn(missions, 'eos-mission-status', 3);
