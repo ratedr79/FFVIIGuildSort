@@ -667,3 +667,22 @@ public enum GearType { Outfit, Weapon }
 public sealed record GearOption(GearType Type, long Id, string Name, string Character, int RarityType, int CharacterOrder);
 
 public sealed record EscalationOption(long Id, string Name, int MaxLevel);
+
+/// <summary>One stat a Highwind collection item can boost, with its steps (effect index + value in tenths of a percent).</summary>
+public sealed record HighwindBonusOption(int Type, string Name, IReadOnlyList<int> Indices, IReadOnlyList<int> Values)
+{
+    public decimal MaxPercent => Values.Sum() / 10m;
+}
+
+// A Highwind upgrade mission: each progress milestone grants one or more bonus steps (effect indices).
+public sealed record HighwindMissionMilestone(int Progress, IReadOnlyList<int> Indices);
+public sealed record HighwindMissionOption(long Id, IReadOnlyList<HighwindMissionMilestone> Milestones);
+public sealed record HighwindItemOption(long Id, string Name, long EffectGroupId, int MaxUpgrade, IReadOnlyList<HighwindBonusOption> Bonuses,
+    long MissionGroupId, IReadOnlyList<HighwindMissionOption> Missions);
+
+// A memoria and the analysis points needed for each level (index 0 = level 1).
+public sealed record MemoriaOption(long Id, string Name, int Stars, int Fragments, IReadOnlyList<long> LevelPoints)
+{
+    public int MaxLevel => LevelPoints.Count;
+}
+

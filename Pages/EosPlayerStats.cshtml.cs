@@ -156,19 +156,155 @@ public class EosPlayerStatsModel : PageModel
         return Page();
     }
 
+    public IReadOnlyList<HighwindItemOption> HighwindItems => _service.HighwindCatalog();
+
+    [BindProperty]
+    public IFormFile? HighwindAccountFile { get; set; }
+
+    // Collection item ids ticked as owned.
+    [BindProperty]
+    public List<long> HighwindOwn { get; set; } = new();
+
+    // Item id -> overboost count; blank = unchanged.
+    public Dictionary<long, int?> HighwindUpgrade { get; private set; } = new();
+
+    // "<item id>_<bonus type>" -> steps received; blank = unchanged.
+    public Dictionary<string, int?> HighwindBonus { get; private set; } = new();
+
+    public string? HighwindErrorMessage { get; private set; }
+
+    public IActionResult OnPostSetHighwind()
+    {
+        HighwindUpgrade = FormNumbers("HighwindUpgrade").Where(kv => long.TryParse(kv.Key, out _)).ToDictionary(kv => long.Parse(kv.Key), kv => kv.Value);
+        HighwindBonus = FormNumbers("HighwindBonus");
+        if (HighwindAccountFile is null || HighwindAccountFile.Length == 0)
+        {
+            HighwindErrorMessage = "Choose the account.json from your NeverCrisis server's data folder.";
+            return Page();
+        }
+
+        var requests = new List<NeverCrisisAccountConverter.HighwindRequest>();
+        foreach (var item in HighwindItems)
+        {
+            int? upgrade = HighwindUpgrade.GetValueOrDefault(item.Id);
+            if (upgrade is < 0 || upgrade > item.MaxUpgrade)
+            {
+                HighwindErrorMessage = $"{item.Name} overboosts from 0 to {item.MaxUpgrade}.";
+                return Page();
+            }
+            var steps = new Dictionary<int, int>();
+            foreach (var bonus in item.Bonuses)
+            {
+                if (HighwindBonus.GetValueOrDefault($"{item.Id}_{bonus.Type}") is not int count) continue;
+                if (count < 0 || count > bonus.Indices.Count)
+                {
+                    HighwindErrorMessage = $"{item.Name}: {bonus.Name} has {bonus.Indices.Count} steps; enter 0 to {bonus.Indices.Count}.";
+                    return Page();
+                }
+                steps[bonus.Type] = count;
+            }
+            requests.Add(new(item, HighwindOwn.Contains(item.Id), upgrade, steps));
+        }
+
+        try
+        {
+            using var account = HighwindAccountFile.OpenReadStream();
+            var result = NeverCrisisAccountConverter.SetHighwind(account, requests);
+            if (result.Changed.Count == 0)
+            {
+                HighwindErrorMessage = "Nothing to change: the account already matches what you entered. No file was built.";
+                return Page();
+            }
+            _logger.LogInformation("NeverCrisis Highwind: updated {Count} collection items", result.Changed.Count);
+            return File(result.Json, "application/json", "account.json");
+        }
+        catch (InvalidDataException ex)
+        {
+            HighwindErrorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Setting Highwind items in a NeverCrisis account failed");
+            HighwindErrorMessage = "Something went wrong updating the account file.";
+        }
+        return Page();
+    }
+
+    public IReadOnlyList<MemoriaOption> MemoriaOptions => _service.MemoriaCatalog();
+
+    [BindProperty]
+    public IFormFile? MemoriaAccountFile { get; set; }
+
+    // Memoria id -> level to own it at; blank = unchanged.
+    public Dictionary<long, int?> MemoriaLevels { get; private set; } = new();
+
+    public string? MemoriaErrorMessage { get; private set; }
+
+    public IActionResult OnPostSetMemoria()
+    {
+        MemoriaLevels = FormNumbers("MemoriaLevels").Where(kv => long.TryParse(kv.Key, out _)).ToDictionary(kv => long.Parse(kv.Key), kv => kv.Value);
+        if (MemoriaAccountFile is null || MemoriaAccountFile.Length == 0)
+        {
+            MemoriaErrorMessage = "Choose the account.json from your NeverCrisis server's data folder.";
+            return Page();
+        }
+        var lookup = MemoriaOptions.ToDictionary(m => m.Id);
+        var selected = new List<(MemoriaOption, int)>();
+        foreach (var (id, level) in MemoriaLevels)
+        {
+            if (level is null || !lookup.TryGetValue(id, out var memoria)) continue;
+            if (level < 1 || level > memoria.MaxLevel)
+            {
+                MemoriaErrorMessage = memoria.MaxLevel == 1
+                    ? $"{memoria.Name} only has level 1."
+                    : $"{memoria.Name} goes from level 1 to {memoria.MaxLevel}.";
+                return Page();
+            }
+            selected.Add((memoria, level.Value));
+        }
+        if (selected.Count == 0)
+        {
+            MemoriaErrorMessage = "Enter a level for at least one memoria.";
+            return Page();
+        }
+
+        try
+        {
+            using var account = MemoriaAccountFile.OpenReadStream();
+            var result = NeverCrisisAccountConverter.SetMemoria(account, selected);
+            if (result.Changed.Count == 0)
+            {
+                MemoriaErrorMessage = "That account already has those memoria at those levels. No file was built.";
+                return Page();
+            }
+            _logger.LogInformation("NeverCrisis memoria: updated {Count} memoria", result.Changed.Count);
+            return File(result.Json, "application/json", "account.json");
+        }
+        catch (InvalidDataException ex)
+        {
+            MemoriaErrorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Setting memoria in a NeverCrisis account failed");
+            MemoriaErrorMessage = "Something went wrong updating the account file.";
+        }
+        return Page();
+    }
+
     public IReadOnlyList<EscalationOption> Escalations => _service.EscalationCatalog();
 
     [BindProperty]
     public IFormFile? EscalationAccountFile { get; set; }
 
     // Challenge id -> highest cleared stage; blank entries are left unchanged.
-    [BindProperty]
-    public Dictionary<long, int?> EscalationLevels { get; set; } = new();
+    public Dictionary<long, int?> EscalationLevels { get; private set; } = new();
 
     public string? EscalationErrorMessage { get; private set; }
 
     public IActionResult OnPostSetEscalation()
     {
+        EscalationLevels = FormNumbers("EscalationLevels").Where(kv => long.TryParse(kv.Key, out _)).ToDictionary(kv => long.Parse(kv.Key), kv => kv.Value);
         if (EscalationAccountFile is null || EscalationAccountFile.Length == 0)
         {
             EscalationErrorMessage = "Choose the account.json from your NeverCrisis server's data folder.";
@@ -214,5 +350,19 @@ public class EosPlayerStatsModel : PageModel
             EscalationErrorMessage = "Something went wrong updating the account file.";
         }
         return Page();
+    }
+
+    // Reads "<prefix>[key]" number fields from the posted form. These are read by hand rather than
+    // model-bound: a bound dictionary with no matching keys falls back to binding every form field.
+    private Dictionary<string, int?> FormNumbers(string prefix)
+    {
+        var result = new Dictionary<string, int?>();
+        foreach (var (key, value) in Request.Form)
+        {
+            if (!key.StartsWith(prefix + "[", StringComparison.Ordinal) || !key.EndsWith(']')) continue;
+            var raw = value.ToString().Trim();
+            result[key[(prefix.Length + 1)..^1]] = int.TryParse(raw, out var n) ? n : raw.Length == 0 ? null : -1;
+        }
+        return result;
     }
 }

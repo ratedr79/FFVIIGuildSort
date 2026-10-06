@@ -283,6 +283,141 @@
         </div>
     </details>
 
+    <details class="mt-2" id="eos-highwind" @(Model.HighwindErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-plane"></i> Edit Highwind collection items in a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 760px;">
+            <p class="small mb-2">
+                For when Highwind collection missions don't progress on the offline server. Upload the server's <code>data\account.json</code>;
+                the table fills in with what the account has now. Tick items to own them, set the overboost level,
+                and set how many steps of each bonus are unlocked (Boost HP, Boost MDEF and so on), then download the updated file.
+            </p>
+            <p class="small text-muted mb-2">
+                Bonus percentages are the total once every step is unlocked. Missions behind each step stay as they are, and no materials are spent or refunded.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetHighwind">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="HighwindAccountFile">Server's account.json</label>
+                    <input type="file" id="HighwindAccountFile" name="HighwindAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-hw-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" id="eos-hw-filter" class="form-control form-control-sm" style="max-width: 260px;" placeholder="Search item or bonus…" />
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-hw-max-owned">Max every owned item</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-hw-max-all">Own and max everything</button>
+                </div>
+                <div class="border rounded" style="max-height: 420px; overflow-y: auto;">
+                    <table class="table table-sm small mb-0 align-middle">
+                        <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th>Item / bonus</th>
+                                <th style="width: 6rem;">Owned</th>
+                                <th style="width: 10rem;">Overboost / steps</th>
+                                <th class="text-end" style="width: 6rem;">Max bonus</th>
+                            </tr>
+                        </thead>
+                        @foreach (var item in Model.HighwindItems)
+                        {
+                            <tbody class="eos-hw-item" data-item="@item.Id" data-group="@item.EffectGroupId" data-search="@(item.Name + " " + string.Join(" ", item.Bonuses.Select(b => b.Name))).ToLowerInvariant()">
+                                <tr class="table-light">
+                                    <td><strong>@item.Name</strong> <button type="button" class="btn btn-link btn-sm p-0 ms-1 eos-hw-max-one">max</button></td>
+                                    <td><input type="checkbox" class="form-check-input eos-hw-own" name="HighwindOwn" value="@item.Id" @(Model.HighwindOwn.Contains(item.Id) ? "checked" : "") /></td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" min="0" max="@item.MaxUpgrade" class="form-control eos-hw-upgrade" name="HighwindUpgrade[@item.Id]" data-max="@item.MaxUpgrade" value="@Model.HighwindUpgrade.GetValueOrDefault(item.Id)" />
+                                            <span class="input-group-text">/ @item.MaxUpgrade</span>
+                                        </div>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                @foreach (var b in item.Bonuses)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-muted">@b.Name</td>
+                                        <td></td>
+                                        <td>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="@b.Indices.Count" class="form-control eos-hw-bonus" name="HighwindBonus[@(item.Id)_@(b.Type)]" data-max="@b.Indices.Count" data-indices="@string.Join(",", b.Indices)" value="@Model.HighwindBonus.GetValueOrDefault($"{item.Id}_{b.Type}")" />
+                                                <span class="input-group-text">/ @b.Indices.Count</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-end text-muted">+@b.MaxPercent.ToString("0.#")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        }
+                    </table>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Update and download</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="eos-hw-max-download"><i class="fas fa-angles-up"></i> Set all items and levels to max and download</button>
+                </div>
+            </form>
+            @if (Model.HighwindErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.HighwindErrorMessage</div>
+            }
+        </div>
+    </details>
+
+    <details class="mt-2" id="eos-memoria-edit" @(Model.MemoriaErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-gem"></i> Add memoria to a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 760px;">
+            <p class="small mb-2">
+                For memoria you can't get on the offline server (for example Memoria of Final Conflict). Upload the server's <code>data\account.json</code>;
+                the table fills in with the memoria the account owns and their levels. Enter a level to add a memoria or change its level, then download the updated file.
+                Skill levels follow the memoria's level.
+            </p>
+            <p class="small text-muted mb-2">
+                Leave a memoria blank to keep it as it is. No materials are spent or refunded.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetMemoria">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="MemoriaAccountFile">Server's account.json</label>
+                    <input type="file" id="MemoriaAccountFile" name="MemoriaAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-mem-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" id="eos-mem-filter" class="form-control form-control-sm" style="max-width: 260px;" placeholder="Search memoria…" />
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-mem-max-all">Max every memoria</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-mem-clear">Clear the form</button>
+                </div>
+                <div class="border rounded" style="max-height: 360px; overflow-y: auto;">
+                    <table class="table table-sm table-hover small mb-0 align-middle">
+                        <thead class="table-light" style="position: sticky; top: 0;">
+                            <tr>
+                                <th>Memoria</th>
+                                <th style="width: 7rem;">Now</th>
+                                <th style="width: 10rem;">Set level</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in Model.MemoriaOptions)
+                            {
+                                <tr class="eos-mem-row" data-id="@m.Id" data-search="@m.Name.ToLowerInvariant()" data-points="@string.Join(",", m.LevelPoints)">
+                                    <td><label for="mem-@m.Id" class="mb-0">@m.Name</label> <button type="button" class="btn btn-link btn-sm p-0 ms-1 eos-mem-max-one">max</button></td>
+                                    <td class="text-muted eos-mem-now"></td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" min="1" max="@m.MaxLevel" step="1" class="form-control eos-mem-level" id="mem-@m.Id" name="MemoriaLevels[@m.Id]" data-max="@m.MaxLevel" value="@Model.MemoriaLevels.GetValueOrDefault(m.Id)" />
+                                            <span class="input-group-text">/ @m.MaxLevel</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-sm btn-success mt-2"><i class="fas fa-download"></i> Update and download</button>
+            </form>
+            @if (Model.MemoriaErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.MemoriaErrorMessage</div>
+            }
+        </div>
+    </details>
+
     @if (s is not null)
     {
         // Shareable summary: the headline numbers, rendered client-side as text and as an image.
@@ -1509,6 +1644,126 @@
             const inputs = [...document.querySelectorAll('.eos-esc-level')];
             document.getElementById('eos-esc-all-max')?.addEventListener('click', () => inputs.forEach(i => i.value = i.dataset.max));
             document.getElementById('eos-esc-clear')?.addEventListener('click', () => inputs.forEach(i => i.value = ''));
+        })();
+
+        // NeverCrisis account.json rows are hex-encoded protobuf messages of varints; decode one to {field: BigInt}.
+        function ncDecodeRow(hex) {
+            const bytes = hex.match(/../g)?.map(h => parseInt(h, 16)) ?? [];
+            const fields = {};
+            let i = 0;
+            const read = () => { let v = 0n, s = 0n, b; do { b = bytes[i++]; v |= BigInt(b & 0x7f) << s; s += 7n; } while (b & 0x80); return v; };
+            while (i < bytes.length) { const tag = read(); fields[Number(tag >> 3n)] = read(); }
+            return fields;
+        }
+        // Reads the chosen account.json in the browser (nothing is uploaded) and hands its tables to fill().
+        function ncPrefill(fileInput, status, fill) {
+            fileInput?.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+                file.text().then(text => {
+                    const tables = JSON.parse(text).tables;
+                    if (!tables) throw new Error('no tables');
+                    status.className = 'small mt-1 text-success';
+                    status.textContent = fill(tables);
+                }).catch(() => {
+                    status.className = 'small mt-1 text-danger';
+                    status.textContent = "Couldn't read that file. Make sure it's the server's data\\account.json.";
+                });
+            });
+        }
+
+        // Escalation: show the account's current cleared stages.
+        ncPrefill(document.getElementById('EscalationAccountFile'), (() => {
+            const el = document.createElement('div');
+            document.getElementById('EscalationAccountFile')?.after(el);
+            return el;
+        })(), tables => {
+            const levels = {};
+            for (const hex of Object.values(tables['11493779'] ?? {})) { const f = ncDecodeRow(hex); levels[f[2] ?? 0n] = Number(f[3] ?? 0n); }
+            let n = 0;
+            document.querySelectorAll('.eos-esc-level').forEach(i => {
+                const lvl = levels[BigInt(i.id.replace('esc-', ''))];
+                i.value = lvl ?? '';
+                if (lvl) n++;
+            });
+            return `Loaded: ${n} challenge(s) have clears. Change the numbers you want, then download.`;
+        });
+
+        // Highwind collection: show the account's current items, overboosts and unlocked bonus steps.
+        (function () {
+            const box = document.getElementById('eos-highwind');
+            if (!box) return;
+            const items = [...box.querySelectorAll('.eos-hw-item')];
+            function maxItem(tb, own) {
+                if (own) tb.querySelector('.eos-hw-own').checked = true;
+                if (!tb.querySelector('.eos-hw-own').checked) return;
+                tb.querySelectorAll('.eos-hw-upgrade, .eos-hw-bonus').forEach(i => i.value = i.dataset.max);
+            }
+            document.getElementById('eos-hw-max-owned').addEventListener('click', () => items.forEach(tb => maxItem(tb, false)));
+            document.getElementById('eos-hw-max-all').addEventListener('click', () => items.forEach(tb => maxItem(tb, true)));
+            box.addEventListener('click', e => { if (e.target.classList.contains('eos-hw-max-one')) maxItem(e.target.closest('tbody'), true); });
+            // One click: own every item, max every level and bonus, and submit (the browser asks for the file if none is chosen).
+            document.getElementById('eos-hw-max-download').addEventListener('click', e => {
+                items.forEach(tb => maxItem(tb, true));
+                e.target.closest('form').requestSubmit();
+            });
+            const filter = document.getElementById('eos-hw-filter');
+            filter.addEventListener('input', () => {
+                const q = filter.value.trim().toLowerCase();
+                items.forEach(tb => tb.hidden = q && !tb.dataset.search.includes(q));
+            });
+            ncPrefill(document.getElementById('HighwindAccountFile'), document.getElementById('eos-hw-status'), tables => {
+                const owned = {}, groups = {};
+                for (const hex of Object.values(tables['142506250'] ?? {})) { const f = ncDecodeRow(hex); owned[f[2] ?? 0n] = Number(f[5] ?? 0n); }
+                for (const hex of Object.values(tables['367244463'] ?? {})) { const f = ncDecodeRow(hex); groups[f[2] ?? 0n] = f; }
+                let n = 0;
+                items.forEach(tb => {
+                    const id = BigInt(tb.dataset.item);
+                    const has = id in owned;
+                    if (has) n++;
+                    tb.querySelector('.eos-hw-own').checked = has;
+                    tb.querySelector('.eos-hw-upgrade').value = has ? owned[id] : '';
+                    const g = groups[BigInt(tb.dataset.group)] ?? {};
+                    tb.querySelectorAll('.eos-hw-bonus').forEach(i => {
+                        const got = i.dataset.indices.split(',').filter(x => ((g[3 + Math.floor(x / 64)] ?? 0n) >> BigInt(x % 64)) & 1n).length;
+                        i.value = has || got ? got : '';
+                    });
+                });
+                return `Loaded: the account has ${n} of ${items.length} collection items. Change what you want, then download.`;
+            });
+        })();
+
+        // Memoria: show what the account owns and at what level; entered levels add or change memoria.
+        (function () {
+            const box = document.getElementById('eos-memoria-edit');
+            if (!box) return;
+            const rows = [...box.querySelectorAll('.eos-mem-row')];
+            const level = r => r.querySelector('.eos-mem-level');
+            box.addEventListener('click', e => { if (e.target.classList.contains('eos-mem-max-one')) { const i = level(e.target.closest('tr')); i.value = i.dataset.max; } });
+            document.getElementById('eos-mem-max-all').addEventListener('click', () => rows.forEach(r => level(r).value = level(r).dataset.max));
+            document.getElementById('eos-mem-clear').addEventListener('click', () => rows.forEach(r => level(r).value = ''));
+            const filter = document.getElementById('eos-mem-filter');
+            filter.addEventListener('input', () => {
+                const q = filter.value.trim().toLowerCase();
+                rows.forEach(r => r.hidden = q && !r.dataset.search.includes(q));
+            });
+            ncPrefill(document.getElementById('MemoriaAccountFile'), document.getElementById('eos-mem-status'), tables => {
+                const owned = {};
+                for (const hex of Object.values(tables['25430143'] ?? {})) {
+                    const f = ncDecodeRow(hex);
+                    if (f[6]) owned[f[2] ?? 0n] = f[4] ?? 0n;
+                }
+                let n = 0;
+                rows.forEach(r => {
+                    const pts = owned[BigInt(r.dataset.id)];
+                    const cell = r.querySelector('.eos-mem-now');
+                    if (pts === undefined) { cell.textContent = 'Not owned'; return; }
+                    n++;
+                    const lvl = r.dataset.points.split(',').filter(p => BigInt(p) <= pts).length;
+                    cell.textContent = `Level ${lvl} / ${level(r).dataset.max}`;
+                });
+                return `Loaded: the account owns ${n} of ${rows.length} memoria. Enter levels for the ones to add or change, then download.`;
+            });
         })();
 
         (function () {

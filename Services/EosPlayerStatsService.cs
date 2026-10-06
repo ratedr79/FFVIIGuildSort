@@ -59,6 +59,22 @@ public sealed class EosPlayerStatsService
         .OrderBy(b => b.Id)
         .ToList();
 
+    /// <summary>Every Highwind collection item with its overboost tiers and bonus steps.</summary>
+    public IReadOnlyList<HighwindItemOption> HighwindCatalog() => _master.Value.HighwindItems;
+
+    private IReadOnlyList<MemoriaOption>? _memoriaCatalog;
+
+    public IReadOnlyList<MemoriaOption> MemoriaCatalog() => _memoriaCatalog ??= _master.Value.Memoria
+        .Select(kv =>
+        {
+            var m = _master.Value;
+            var levels = m.MemoriaLevels.GetValueOrDefault(m.MemoriaLevelGroup.GetValueOrDefault(kv.Key)) ?? new();
+            var points = levels.Count > 0 ? levels.OrderBy(l => l.Level).Select(l => l.Threshold).ToList() : new List<long> { 0 };
+            return new MemoriaOption(kv.Key, kv.Value.Name, kv.Value.Rarity, kv.Value.Fragments, points);
+        })
+        .OrderByDescending(x => x.Stars).ThenBy(x => x.Name)
+        .ToList();
+
     private static IReadOnlyList<GearOption> BuildGearCatalog(MasterData m)
     {
         string CharName(long id) => m.Characters.TryGetValue(id, out var c) ? c.Name : string.Empty;
@@ -1555,6 +1571,50 @@ public sealed class EosPlayerStatsService
                 data.BossChallenges[id] = (name.Trim(), levels.GetValueOrDefault(id));
             }
 
+            // Highwind collection items: each effect group holds numbered steps (HighwindKeyItemEffectGroupIdx);
+            // the account keeps one received bit per step. Overboost tiers come from HighwindKeyItemRankUpgrade.
+            var bonusNames = new Dictionary<int, string>
+            {
+                [101] = "Boost HP", [102] = "Boost PATK", [103] = "Boost MATK", [104] = "Boost PDEF", [105] = "Boost MDEF", [106] = "Boost HEAL",
+                [201] = "Boost Wpn. C. Ability Pot.", [202] = "Boost Limit Ability Pot.", [203] = "Boost Mat. C. Ability Pot.",
+            };
+            var keyItemEffects = Rows(master, "HighwindKeyItemEffect", logger).ToLookup(e => Long(e, "HighwindKeyItemEffectGroupId"));
+            var keyItemUpgrades = Rows(master, "HighwindKeyItemRankUpgrade", logger)
+                .GroupBy(u => Long(u, "HighwindKeyItemRankUpgradeGroupId"))
+                .ToDictionary(g => g.Key, g => g.Max(u => (int)Long(u, "UpgradeCount")));
+            // Bonus steps are rewards of the item's upgrade missions: mission progress milestone -> reward set -> effect id.
+            var effectIdx = Rows(master, "HighwindKeyItemEffect", logger).ToDictionary(e => Long(e, "Id"), e => (int)Long(e, "HighwindKeyItemEffectGroupIdx"));
+            var effectRewards = Rows(master, "Reward", logger).Where(r => Long(r, "RewardType") == 30)
+                .ToDictionary(r => Long(r, "Id"), r => Long(r, "TargetId"));
+            var setEffects = Rows(master, "RewardSetRewardRel", logger)
+                .Where(r => effectRewards.ContainsKey(Long(r, "RewardId")))
+                .ToLookup(r => Long(r, "RewardSetId"), r => effectIdx.GetValueOrDefault(effectRewards[Long(r, "RewardId")]));
+            var missionSetGroup = Rows(master, "MissionSet", logger).ToDictionary(x => Long(x, "Id"), x => Long(x, "MissionGroupId"));
+            var missionMilestones = Rows(master, "MissionProgress", logger).ToLookup(p => Long(p, "MissionId"));
+            var groupMissions = Rows(master, "Mission", logger)
+                .Where(mi => missionSetGroup.ContainsKey(Long(mi, "MissionSetId")))
+                .ToLookup(mi => missionSetGroup[Long(mi, "MissionSetId")], mi => new HighwindMissionOption(Long(mi, "Id"),
+                    missionMilestones[Long(mi, "Id")].OrderBy(p => Long(p, "ProgressCount"))
+                        .Select(p => new HighwindMissionMilestone((int)Long(p, "ProgressCount"), setEffects[Long(p, "RewardSetId")].Where(i => i > 0).ToList()))
+                        .ToList()));
+            foreach (var k in Rows(master, "HighwindKeyItem", logger))
+            {
+                var group = Long(k, "HighwindKeyItemEffectGroupId");
+                var bonuses = keyItemEffects[group]
+                    .OrderBy(e => Long(e, "HighwindKeyItemEffectGroupIdx"))
+                    .GroupBy(e => (int)Long(e, "HighwindKeyItemEffectType"))
+                    .OrderBy(g => g.Key)
+                    .Select(g => new HighwindBonusOption(g.Key, bonusNames.GetValueOrDefault(g.Key, $"Bonus type {g.Key}"),
+                        g.Select(e => (int)Long(e, "HighwindKeyItemEffectGroupIdx")).ToList(),
+                        g.Select(e => (int)Long(e, "EffectValue")).ToList()))
+                    .ToList();
+                var id = Long(k, "Id");
+                var name = Name(k, "LanguageId");
+                data.HighwindItems.Add(new HighwindItemOption(id, string.IsNullOrEmpty(name) ? $"Collection item #{id}" : name, group,
+                    keyItemUpgrades.GetValueOrDefault(Long(k, "HighwindKeyItemRankUpgradeGroupId")), bonuses,
+                    Long(k, "UpgradeMissionGroupId"), groupMissions[Long(k, "UpgradeMissionGroupId")].OrderBy(mi => mi.Id).ToList()));
+            }
+
             var stepCounts = Rows(master, "SeasonPassStep", logger)
                 .Where(s => Long(s, "SeasonPassRewardType") == 1)
                 .GroupBy(s => Long(s, "SeasonPassStepGroupId")).ToDictionary(g => g.Key, g => g.Count());
@@ -1885,6 +1945,7 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, (string Label, bool Percent, int Order)> MateriaStats { get; } = new();
         public Dictionary<long, (string Name, int Difficulty)> CriterionDungeons { get; } = new();
         public Dictionary<long, (string Name, int MaxLevel)> BossChallenges { get; } = new();
+        public List<HighwindItemOption> HighwindItems { get; } = new();
         public Dictionary<long, (string Name, long EndMs, int Steps, long PremiumShopItemId)> SeasonPasses { get; } = new();
         public Dictionary<long, string> ShopNames { get; } = new();
         public Dictionary<long, (string Name, long ShopId, long StoreGroupId)> ShopItems { get; } = new();

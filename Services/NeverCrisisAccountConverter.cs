@@ -289,6 +289,227 @@ public static class NeverCrisisAccountConverter
         return new EscalationResult(Encoding.UTF8.GetBytes(json), changed);
     }
 
+    /// <summary>Requested state for one Highwind collection item; null fields are left unchanged.</summary>
+    public sealed record HighwindRequest(HighwindItemOption Item, bool Own, int? Upgrade, IReadOnlyDictionary<int, int> BonusSteps);
+
+    public sealed record HighwindResult(byte[] Json, List<string> Changed);
+
+    // Sets Highwind collection items in a NeverCrisis account.json:
+    //   UserHighwindKeyItemList            UserId(1), HighwindKeyItemId(2), GetDatetime(3), RankUpgradeType(4), UpgradeCount(5)
+    //   UserHighwindKeyItemEffectGroupList UserId(1), HighwindKeyItemEffectGroupId(2), ReceivedHighwindKeyItemEffectGroupIdxFlags0..19(3..22)
+    // A bonus step is received when bit <step index> is set (flags word = index / 64, bit = index % 64).
+    public static HighwindResult SetHighwind(Stream accountStream, IEnumerable<HighwindRequest> requests)
+    {
+        const int FlagWords = 20;
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        JsonObject Table(string name)
+        {
+            var tid = TableIds[name].ToString();
+            if (tables[tid] is not JsonObject rows) tables[tid] = rows = new JsonObject();
+            return rows;
+        }
+        static Dictionary<long, (string Key, Dictionary<int, ulong> Fields)> Index(JsonObject rows)
+        {
+            var map = new Dictionary<long, (string, Dictionary<int, ulong>)>();
+            foreach (var (key, value) in rows)
+                if (value is JsonValue v && v.TryGetValue(out string? hex))
+                {
+                    var f = DecodeVarints(System.Convert.FromHexString(hex));
+                    map[(long)f.GetValueOrDefault(2)] = (key, f);
+                }
+            return map;
+        }
+        static string Encode(IEnumerable<(int No, ulong Value)> fields)
+        {
+            var buf = new List<byte>();
+            foreach (var (no, v) in fields)
+                if (v != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, v); }
+            return System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+        }
+
+        var itemRows = Table("UserHighwindKeyItemList");
+        var groupRows = Table("UserHighwindKeyItemEffectGroupList");
+        var items = Index(itemRows);
+        var groups = Index(groupRows);
+        // UserMissionList: UserId(1), MissionId(2), ProgressCount(3), ReceivedProgressCount(4), NotifiedProgressCount(5)
+        // UserMissionGroupList: UserId(1), MissionGroupId(2), ..., LastResetDatetime(10)
+        var missionRows = Table("UserMissionList");
+        var missionGroupRows = Table("UserMissionGroupList");
+        var missions = Index(missionRows);
+        var missionGroups = Index(missionGroupRows);
+        var now = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var changed = new List<string>();
+
+        foreach (var r in requests.DistinctBy(r => r.Item.Id))
+        {
+            var item = r.Item;
+            var notes = new List<string>();
+            var owned = items.TryGetValue(item.Id, out var row);
+            var wantsChange = r.Own || r.Upgrade is not null || r.BonusSteps.Count > 0;
+            if (!wantsChange) continue;
+
+            // Collection item row: add it if missing, then apply the overboost count.
+            var fields = owned ? row.Fields : new Dictionary<int, ulong> { [1] = (ulong)uid, [2] = (ulong)item.Id, [3] = now, [4] = 1 };
+            var oldUpgrade = (int)fields.GetValueOrDefault(5);
+            if (r.Upgrade is int up) fields[5] = (ulong)up;
+            if (!owned) notes.Add("added");
+            if ((int)fields.GetValueOrDefault(5) != oldUpgrade) notes.Add($"overboost {oldUpgrade} → {fields[5]}");
+            if (!owned || notes.Count > 0)
+            {
+                fields[1] = (ulong)uid;
+                itemRows[owned ? row.Key : $"1:{uid}|2:{item.Id}"] =
+                    Encode(Enumerable.Range(1, 5).Select(n => (n, fields.GetValueOrDefault(n))));
+            }
+
+            // Bonus steps: for each stat, mark the first N steps received and clear the rest.
+            var hasGroup = groups.TryGetValue(item.EffectGroupId, out var g);
+            var flags = new ulong[FlagWords];
+            if (hasGroup)
+                for (var w = 0; w < FlagWords; w++) flags[w] = g.Fields.GetValueOrDefault(3 + w);
+            var before = (ulong[])flags.Clone();
+            foreach (var bonus in item.Bonuses)
+            {
+                if (!r.BonusSteps.TryGetValue(bonus.Type, out var count)) continue;
+                var was = bonus.Indices.Count(i => (flags[i / 64] >> (i % 64) & 1) != 0);
+                if (was == Math.Min(count, bonus.Indices.Count)) continue;
+                for (var n = 0; n < bonus.Indices.Count; n++)
+                {
+                    var i = bonus.Indices[n];
+                    if (n < count) flags[i / 64] |= 1UL << (i % 64);
+                    else flags[i / 64] &= ~(1UL << (i % 64));
+                }
+                notes.Add($"{bonus.Name} {was} → {count}/{bonus.Indices.Count}");
+            }
+            if (!flags.SequenceEqual(before) || (!hasGroup && !owned))
+            {
+                groupRows[hasGroup ? g.Key : $"1:{uid}|2:{item.EffectGroupId}"] =
+                    Encode(new[] { (1, (ulong)uid), (2, (ulong)item.EffectGroupId) }.Concat(flags.Select((f, w) => (3 + w, f))));
+            }
+
+            // Each bonus step is a reward of the item's upgrade missions. Keep those missions in step with the
+            // received bits: a milestone counts as claimed when it and every milestone before it are received.
+            bool Received(int i) => (flags[i / 64] >> (i % 64) & 1) != 0;
+            var missionsSynced = 0;
+            foreach (var mission in item.Missions)
+            {
+                var claimed = 0;
+                foreach (var stone in mission.Milestones)
+                {
+                    if (!stone.Indices.All(Received)) break;
+                    claimed = stone.Progress;
+                }
+                var has = missions.TryGetValue(mission.Id, out var mrow);
+                var mf = has ? mrow.Fields : new Dictionary<int, ulong>();
+                var progress = Math.Max((int)mf.GetValueOrDefault(3), claimed);
+                if (has ? (int)mf.GetValueOrDefault(4) == claimed && (int)mf.GetValueOrDefault(3) == progress : claimed == 0) continue;
+                mf[1] = (ulong)uid;
+                mf[2] = (ulong)mission.Id;
+                mf[3] = (ulong)progress;
+                mf[4] = (ulong)claimed;
+                missionRows[has ? mrow.Key : $"1:{uid}|2:{mission.Id}"] = Encode(mf.OrderBy(kv => kv.Key).Select(kv => (kv.Key, kv.Value)));
+                missionsSynced++;
+            }
+            if (missionsSynced > 0 && item.MissionGroupId != 0 && !missionGroups.ContainsKey(item.MissionGroupId))
+            {
+                missionGroupRows[$"1:{uid}|2:{item.MissionGroupId}"] = Encode(new[] { (1, (ulong)uid), (2, (ulong)item.MissionGroupId), (10, now) });
+                missionGroups[item.MissionGroupId] = ($"1:{uid}|2:{item.MissionGroupId}", new());
+            }
+            if (missionsSynced > 0) notes.Add($"{missionsSynced} upgrade mission(s) set to match");
+
+            if (notes.Count > 0) changed.Add($"{item.Name}: {string.Join(", ", notes)}");
+        }
+
+        // The Highwind opens at player rank 20 (UserRank: 36,200 exp, 135 stamina max). Raise lower accounts to it.
+        const ulong Rank20Exp = 36200, Rank20Stamina = 135;
+        if (changed.Count > 0)
+        {
+            var statusRows = Table("UserStatusList");
+            var statusKey = $"1:{uid}";
+            var sf = statusRows[statusKey] is JsonValue sv && sv.TryGetValue(out string? shex)
+                ? DecodeVarints(System.Convert.FromHexString(shex))
+                : new Dictionary<int, ulong>();
+            if (sf.GetValueOrDefault(2) < Rank20Exp)
+            {
+                sf[1] = (ulong)uid;
+                sf[2] = Rank20Exp;
+                sf[3] = Math.Max(sf.GetValueOrDefault(3), Rank20Stamina);
+                if (sf.GetValueOrDefault(4) == 0) sf[4] = now;
+                statusRows[statusKey] = Encode(sf.OrderBy(kv => kv.Key).Select(kv => (kv.Key, kv.Value)));
+                changed.Add("Player rank raised to 20 so the Highwind can be opened");
+            }
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new HighwindResult(Encoding.UTF8.GetBytes(json), changed);
+    }
+
+    public sealed record MemoriaResult(byte[] Json, List<string> Changed);
+
+    // Adds memoria to a NeverCrisis account.json, or sets the level of ones already owned.
+    // UserMemoriaList: UserId(1), MemoriaId(2), FragmentCount(3), AnalysisPoint(4), FragmentFirstGetDatetime(5), EquipableDatetime(6).
+    // A memoria is owned once EquipableDatetime is set; its level (and skill levels) follow from AnalysisPoint.
+    public static MemoriaResult SetMemoria(Stream accountStream, IEnumerable<(MemoriaOption Memoria, int Level)> levels)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var tid = TableIds["UserMemoriaList"].ToString();
+        if (tables[tid] is not JsonObject rows)
+            tables[tid] = rows = new JsonObject();
+        var current = new Dictionary<long, (string Key, Dictionary<int, ulong> Fields)>();
+        foreach (var (key, value) in rows)
+            if (value is JsonValue v && v.TryGetValue(out string? hex))
+            {
+                var f = DecodeVarints(System.Convert.FromHexString(hex));
+                current[(long)f.GetValueOrDefault(2)] = (key, f);
+            }
+
+        static int LevelOf(MemoriaOption m, ulong points) => m.LevelPoints.Count(p => (ulong)p <= points);
+
+        var now = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var changed = new List<string>();
+        foreach (var (memoria, level) in levels.DistinctBy(l => l.Memoria.Id))
+        {
+            var has = current.TryGetValue(memoria.Id, out var row);
+            var fields = has ? row.Fields : new Dictionary<int, ulong>();
+            var owned = fields.GetValueOrDefault(6) != 0;
+            var oldLevel = owned ? LevelOf(memoria, fields.GetValueOrDefault(4)) : 0;
+            if (owned && oldLevel == level) continue;
+
+            fields[1] = (ulong)uid;
+            fields[2] = (ulong)memoria.Id;
+            fields[3] = Math.Max(fields.GetValueOrDefault(3), (ulong)memoria.Fragments);
+            fields[4] = (ulong)memoria.LevelPoints[level - 1];
+            if (fields.GetValueOrDefault(5) == 0) fields[5] = now;
+            if (fields.GetValueOrDefault(6) == 0) fields[6] = now;
+
+            var buf = new List<byte>();
+            foreach (var (no, v) in fields.OrderBy(kv => kv.Key))
+                if (v != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, v); }
+            rows[has ? row.Key : $"1:{uid}|2:{memoria.Id}"] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed.Add(owned ? $"{memoria.Name}: level {oldLevel} → {level}" : $"{memoria.Name}: added at level {level}");
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new MemoriaResult(Encoding.UTF8.GetBytes(json), changed);
+    }
+
     // Decodes a protobuf message whose fields are all varints (field number -> value).
     private static Dictionary<int, ulong> DecodeVarints(byte[] data)
     {
@@ -307,7 +528,7 @@ public static class NeverCrisisAccountConverter
         while (i < data.Length)
         {
             var tag = Read();
-            if ((tag & 7) != 0) throw new InvalidDataException("An Escalation Challenge row in account.json has an unexpected format.");
+            if ((tag & 7) != 0) throw new InvalidDataException("A row in account.json has an unexpected format.");
             fields[(int)(tag >> 3)] = Read();
         }
         return fields;
