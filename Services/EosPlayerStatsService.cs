@@ -37,10 +37,12 @@ public sealed class EosPlayerStatsService
 
     private readonly ILogger<EosPlayerStatsService> _logger;
     private readonly Lazy<MasterData> _master;
+    private readonly string _contentRoot;
 
     public EosPlayerStatsService(ILogger<EosPlayerStatsService> logger, IWebHostEnvironment environment)
     {
         _logger = logger;
+        _contentRoot = environment.ContentRootPath;
         var basePath = Path.Combine(environment.ContentRootPath, "external", "UnknownX7", "FF7EC-Data");
         _master = new Lazy<MasterData>(() => MasterData.Load(basePath, _logger));
     }
@@ -49,6 +51,81 @@ public sealed class EosPlayerStatsService
 
     /// <summary>Every obtainable outfit and weapon, for adding gear to a NeverCrisis account.</summary>
     public IReadOnlyList<GearOption> GearCatalog() => _gear ??= BuildGearCatalog(_master.Value);
+
+    /// <summary>Every branding stone with the stats and ranges it can brand onto a weapon.</summary>
+    public IReadOnlyList<BrandStoneOption> BrandStoneCatalog() => _master.Value.BrandStones;
+
+    /// <summary>True when the game knows this brand effect id.</summary>
+    public bool IsBrandEffect(long id) => _master.Value.BrandEffects.ContainsKey(id);
+
+    /// <summary>Player ranks with the exp each needs and its stamina cap.</summary>
+    public IReadOnlyList<PlayerRankOption> PlayerRanks() => _master.Value.UserRankExp
+        .Select(r => new PlayerRankOption(r.Rank, r.Exp, _master.Value.UserRankStamina.GetValueOrDefault(r.Rank))).ToList();
+
+    /// <summary>Items an account can hold, grouped by the game's inventory tabs.</summary>
+    public IReadOnlyList<ItemOption> ItemCatalog() => _master.Value.ItemOptions;
+
+    public IReadOnlyList<ChocoboOption> ChocoboCatalog() => _master.Value.ChocoboOptions;
+
+    /// <summary>Main story chapters and character story sections, each with the episodes and battles a clear writes.</summary>
+    public IReadOnlyList<StoryChapterOption> StoryCatalog() => _master.Value.StoryChapters;
+
+    /// <summary>Each tutorial step type with its last step, for marking every tutorial finished.</summary>
+    public IReadOnlyDictionary<int, int> TutorialLastSteps() => _master.Value.TutorialLastSteps;
+
+    public long MateriaSaleGil(long materiaId, int quality, int evolve, long exp) => _master.Value.MateriaSaleGil(materiaId, quality, evolve, exp);
+
+    private MateriaListCatalog? _materiaList;
+
+    /// <summary>What the page needs to show owned materia: names, level steps and sale Gil, and sub stat labels.</summary>
+    public MateriaListCatalog MateriaListCatalog() => _materiaList ??= BuildMateriaListCatalog(_master.Value);
+
+    private static MateriaListCatalog BuildMateriaListCatalog(MasterData m)
+    {
+        var materia = new Dictionary<long, MateriaListEntry>();
+        foreach (var (id, info) in m.MateriaInfo)
+        {
+            var steps = new Dictionary<string, List<long[]>>();
+            for (var q = 1; q <= 5; q++)
+                for (var e = 0; e < info.Caps.Count; e++)
+                {
+                    if (!m.MateriaBaseCoef.TryGetValue((info.CoefGroup, q, e), out var b)) continue;
+                    // One [exp needed, sale Gil] pair per level, from level 1 to the step's cap.
+                    steps[$"{q}_{e}"] = Enumerable.Range(1, info.Caps[e]).Select(l => new[]
+                    {
+                        b.Exp * m.MateriaLevelCoef.GetValueOrDefault((info.LevelGroup, l)) / 1000,
+                        b.SaleGil * m.MateriaLevelSaleCoef.GetValueOrDefault((info.LevelGroup, l), 1000) / 1000,
+                    }).ToList();
+                }
+            materia[id] = new MateriaListEntry(m.MateriaBaseNames.TryGetValue(id, out var n) && n.Length > 0 ? n : $"Materia #{id}", steps);
+        }
+        var stats = m.MateriaStats.ToDictionary(kv => kv.Key, kv => new MateriaStatLabel(kv.Value.Label, kv.Value.Percent, kv.Value.Order));
+        var gil = m.ItemOptions.FirstOrDefault(i => i.Type == 1);
+        return new MateriaListCatalog(materia, stats, gil?.Id ?? 0, gil?.MaxCapacity ?? 0);
+    }
+
+    private IReadOnlyDictionary<long, WeaponProgressOption>? _weaponProgress;
+
+    /// <summary>For every weapon: its rarities, level caps, overboost range and level exp.</summary>
+    public IReadOnlyDictionary<long, WeaponProgressOption> WeaponProgressCatalog() => _weaponProgress ??= BuildWeaponProgress(_master.Value);
+
+    private static Dictionary<long, WeaponProgressOption> BuildWeaponProgress(MasterData m)
+    {
+        var map = new Dictionary<long, WeaponProgressOption>();
+        foreach (var (id, g) in m.WeaponGrowth)
+        {
+            var maxRelease = m.WeaponMaxRelease.Where(kv => kv.Key.Group == g.RarityGroup).ToDictionary(kv => kv.Key.Rarity, kv => kv.Value);
+            var caps = m.WeaponLevelLimits.GetValueOrDefault(g.ReleaseGroup);
+            var levels = m.WeaponLevelExp.GetValueOrDefault(g.LevelGroup);
+            if (maxRelease.Count == 0 || caps is null || levels is null) continue;
+            var upgrades = m.WeaponUpgradeMax.GetValueOrDefault(m.WeaponUpgradeGroup.GetValueOrDefault(id)) ?? new Dictionary<int, int>();
+            // Exp needed for a level = ExpCoefficient x BaseExp / 1000.
+            map[id] = new WeaponProgressOption(id, maxRelease, caps,
+                upgrades.GetValueOrDefault(1), upgrades.GetValueOrDefault(2),
+                levels.Select(l => l.Coefficient * g.BaseExp / 1000).ToList());
+        }
+        return map;
+    }
 
     private IReadOnlyList<EscalationOption>? _escalation;
 
@@ -74,6 +151,73 @@ public sealed class EosPlayerStatsService
         })
         .OrderByDescending(x => x.Stars).ThenBy(x => x.Name)
         .ToList();
+
+    private IReadOnlyList<MateriaAddOption>? _materiaAdd;
+
+    /// <summary>Every 5★ materia recipe that can be added to a NeverCrisis account, with its stat ranges.</summary>
+    public IReadOnlyList<MateriaAddOption> MateriaAddCatalog() => _materiaAdd ??= BuildMateriaAddCatalog(_master.Value);
+
+    private IReadOnlyList<MateriaAddOption> BuildMateriaAddCatalog(MasterData m)
+    {
+        // Which sub stats each recipe rolls isn't in the client data; it comes from real exports (data/materiaStatPools.json).
+        var path = new[] { _contentRoot, AppContext.BaseDirectory }
+            .Select(d => Path.Combine(d, "data", "materiaStatPools.json")).FirstOrDefault(File.Exists);
+        if (path == null)
+        {
+            _logger.LogWarning("EOS stats: data/materiaStatPools.json is missing; the materia adder is unavailable.");
+            return Array.Empty<MateriaAddOption>();
+        }
+        using var doc = JsonDocument.Parse(File.ReadAllBytes(path));
+        var options = new List<MateriaAddOption>();
+        foreach (var recipe in doc.RootElement.GetProperty("recipes").EnumerateObject())
+        {
+            var parts = recipe.Name.Split(':');
+            if (parts.Length != 2 || !long.TryParse(parts[0], out var materiaId) || !int.TryParse(parts[1], out var notes)) continue;
+            if (!m.MateriaInfo.TryGetValue(materiaId, out var info) || info.Caps.Count == 0) continue;
+            var v = recipe.Value;
+            var refined = v.TryGetProperty("refined", out var rf) && rf.ValueKind == JsonValueKind.True;
+            var estimated = v.TryGetProperty("estimatedFrom", out _);
+            var stats = v.GetProperty("stats").EnumerateArray().Select(s => s.GetInt64())
+                .Where(id => m.MateriaParams5.ContainsKey(id))
+                .Select(id =>
+                {
+                    var (label, percent, _) = m.MateriaStats.TryGetValue(id, out var d) ? d : ($"Stat #{id}", false, 999);
+                    var r = m.MateriaParams5[id];
+                    return new MateriaStatOption(id, label, percent, r.InitMin, r.InitMax, r.EnhMin, r.EnhMax);
+                })
+                .ToList();
+            if (refined)
+                stats = stats.Select(s => s with { InitMin = s.InitMax, EnhMin = 0, EnhMax = 0 }).ToList();
+            else
+                stats = stats.OrderBy(s => m.MateriaStats.TryGetValue(s.Id, out var d) ? d.Order : 999).ToList();
+
+            var maxLevel = info.Caps[^1];
+            // Group 2 lists a boost at level 1, but it never applies in game.
+            var boostLevels = (m.MateriaEnhanceLevels.GetValueOrDefault(info.EnhanceGroup) ?? new())
+                .Where(l => l > 1 && l <= maxLevel && !refined).OrderBy(l => l).ToList();
+            var exp = Enumerable.Range(1, maxLevel).Select(level =>
+            {
+                var evolve = 0;
+                while (evolve < info.Caps.Count - 1 && level > info.Caps[evolve]) evolve++;
+                return m.MateriaBaseExp5.GetValueOrDefault((info.CoefGroup, evolve), 200) * m.MateriaLevelCoef.GetValueOrDefault((info.LevelGroup, level)) / 1000;
+            }).ToList();
+            var evolveIds = Enumerable.Range(0, info.Caps.Count)
+                .Select(e => m.MateriaEvolves.TryGetValue((materiaId, e), out var ev) ? ev.Id : materiaId * 10 + e + 1).ToList();
+            var skill = m.MateriaEvolves.TryGetValue((materiaId, info.Caps.Count - 1), out var last) ? last.Skill : string.Empty;
+            var sigils = refined ? new List<int> { 1, 2, 3 } : new List<int> { notes };
+            var name = refined
+                ? $"{(skill.StartsWith("Refined ") ? skill : "Refined " + skill)} – {(stats.FirstOrDefault(s => s.Label.EndsWith("Pot. %"))?.InitMax ?? 0) / 10.0:0.0}% potency, HP {stats.FirstOrDefault(s => s.Label == "HP")?.InitMax}"
+                : m.MateriaName(materiaId, notes);
+            if (estimated && v.GetProperty("estimatedFrom").GetString()?.Contains("crossover") == true) name += " (FFVI crossover)";
+            options.Add(new MateriaAddOption(recipe.Name, materiaId, notes, name, skill, maxLevel, info.Caps, boostLevels, exp,
+                evolveIds, refined, estimated, sigils, stats));
+        }
+        // Some materia share a recipe title (e.g. a second Blizzard from a story recipe); tell them apart.
+        options = options.GroupBy(o => o.Name)
+            .SelectMany(g => g.OrderBy(o => o.MateriaId).Select((o, i) => i == 0 ? o : o with { Name = $"{o.Name} (variant {i + 1})" }))
+            .ToList();
+        return options.OrderBy(o => o.Refined).ThenBy(o => o.Name).ToList();
+    }
 
     private static IReadOnlyList<GearOption> BuildGearCatalog(MasterData m)
     {
@@ -1296,6 +1440,10 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, long> StepGroupGacha { get; } = new();
         public Dictionary<long, List<StepInfo>> StepsByGroup { get; } = new();
         public Dictionary<long, string> ItemNames { get; } = new();
+        public List<ItemOption> ItemOptions { get; } = new();
+        public List<ChocoboOption> ChocoboOptions { get; } = new();
+        public List<StoryChapterOption> StoryChapters { get; } = new();
+        public Dictionary<int, int> TutorialLastSteps { get; } = new();
         public Dictionary<long, WeaponInfo> Weapons { get; } = new();
         public Dictionary<long, string> FeaturedWeapons { get; } = new();
         public Dictionary<long, string> RecipeNames { get; } = new();
@@ -1353,6 +1501,24 @@ public sealed class EosPlayerStatsService
             foreach (var i in Rows(master, "Item", logger))
                 data.ItemNames[Long(i, "Id")] = Name(i, "NameLanguageId");
 
+            // Item types sit in the inventory tabs (ItemTypeGroup); types outside every tab go under "Other".
+            var tabs = Rows(master, "ItemTypeGroup", logger)
+                .ToDictionary(g => Long(g, "Id"), g => (Name: Name(g, "NameLanguageId"), Order: (int)Long(g, "OrderNo")));
+            var typeTab = new Dictionary<long, (string Name, int Order)>();
+            foreach (var r in Rows(master, "ItemTypeGroupRel", logger))
+                if (tabs.TryGetValue(Long(r, "ItemTypeGroupId"), out var tab) && !string.IsNullOrEmpty(tab.Name))
+                    typeTab.TryAdd(Long(r, "ItemType"), tab);
+            (string Name, int Order) other = tabs.Values.FirstOrDefault(t => t.Item1 == "Other", ("Other", 1000));
+            foreach (var i in Rows(master, "Item", logger))
+            {
+                long id = Long(i, "Id"), type = Long(i, "ItemType"), cap = Long(i, "MaxCapacity");
+                var name = data.ItemNames.GetValueOrDefault(id);
+                // Crystals and unlock flags (type 99) aren't items; a capacity of 0 can't be held.
+                if (string.IsNullOrEmpty(name) || type == 99 || cap <= 0) continue;
+                var (category, order) = type == 1 ? ("Gil", 0) : typeTab.GetValueOrDefault(type, other);
+                data.ItemOptions.Add(new ItemOption(id, name, (int)type, category, order, cap));
+            }
+
             var characters = Rows(master, "Character", logger).ToDictionary(c => Long(c, "Id"), c => Name(c, "NameLanguageId"));
             foreach (var w in Rows(master, "Weapon", logger))
             {
@@ -1360,6 +1526,7 @@ public sealed class EosPlayerStatsService
                 data.Weapons[Long(w, "Id")] = new WeaponInfo(Name(w, "NameLanguageId"), ch ?? string.Empty);
                 if (Long(w, "WeaponMedalItemId") > 0) data.WeaponParts[Long(w, "Id")] = Long(w, "WeaponMedalItemId");
                 data.WeaponGrowth[Long(w, "Id")] = (Long(w, "BaseExp"), Long(w, "WeaponLevelGroupId"), Long(w, "WeaponReleaseSettingGroupId"), Long(w, "WeaponRaritySettingGroupId"));
+                data.WeaponUpgradeGroup[Long(w, "Id")] = Long(w, "WeaponUpgradeConsumptionGroupId");
             }
             // Weapon customizations: evolve group -> types and what each one changes.
             {
@@ -1407,6 +1574,14 @@ public sealed class EosPlayerStatsService
             }
             foreach (var r in Rows(master, "WeaponRaritySetting", logger))
                 data.WeaponMaxRelease[(Long(r, "WeaponRaritySettingGroupId"), (int)Long(r, "RarityType"))] = (int)Long(r, "MaxReleaseCount");
+            // Overboost: upgrade type 1 runs 1-10, type 2 the further +1..+20 after OB10.
+            foreach (var r in Rows(master, "WeaponUpgradeConsumption", logger))
+            {
+                var g = Long(r, "WeaponUpgradeConsumptionGroupId");
+                if (!data.WeaponUpgradeMax.TryGetValue(g, out var maxes)) data.WeaponUpgradeMax[g] = maxes = new Dictionary<int, int>();
+                var type = (int)Long(r, "WeaponUpgradeType");
+                maxes[type] = Math.Max(maxes.GetValueOrDefault(type), (int)Long(r, "UpgradeCount"));
+            }
 
             // Featured weapons per draw: older banners list them in GachaAppeal (GachaAppealId0..9),
             // newer ones in GachaAppeal2Weapon, whose group id is the gacha id * 100 + n.
@@ -1436,6 +1611,8 @@ public sealed class EosPlayerStatsService
 
             // --- Account / progress extras ---
             data.UserRankExp = Rows(master, "UserRank", logger).Select(r => ((int)Long(r, "Rank"), Long(r, "RequiredExp"))).OrderBy(r => r.Item1).ToList();
+            foreach (var r in Rows(master, "UserRank", logger))
+                data.UserRankStamina[(int)Long(r, "Rank")] = (int)Long(r, "StaminaCountMax");
             data.GuildLevelExp = Rows(master, "GuildLevel", logger).Select(r => ((int)Long(r, "Level"), Long(r, "Exp"))).OrderBy(r => r.Item1).ToList();
             foreach (var cl in Rows(master, "CharacterLevel", logger))
             {
@@ -1509,8 +1686,80 @@ public sealed class EosPlayerStatsService
                 data.CostumeNames[Long(c, "Id")] = Name(c, "NameLanguageId");
             foreach (var c in Rows(master, "Chocobo", logger))
                 data.ChocoboRarity[Long(c, "Id")] = (int)Long(c, "ChocoboRarityType");
+
+            // What the chocobo adder needs: each catalog chocobo's area, colour (art id 2320CC0101), rank range and stat weights.
+            {
+                var colour = Rows(master, "ChocoboAreaTypeGroup", logger).ToDictionary(r => Long(r, "Id"), r => (int)(Long(r, "NormalResourceId") / 10000 % 100));
+                var area = Rows(master, "ChocoboAreaTypeGroupRel", logger).GroupBy(r => Long(r, "ChocoboAreaTypeGroupId"))
+                    .ToDictionary(g => g.Key, g => g.Aggregate(0, (f, r) => f | (int)Long(r, "AreaType")));
+                var potential = Rows(master, "ChocoboRankPotential", logger).ToDictionary(r => Long(r, "Id"), r => ((int)Long(r, "InitialRankType"), (int)Long(r, "LimitRankType")));
+                var ratio = Rows(master, "ChocoboParameterRatio", logger).ToDictionary(r => Long(r, "Id"),
+                    r => new[] { (int)Long(r, "SpeedWeight"), (int)Long(r, "StaminaWeight"), (int)Long(r, "IntelligenceWeight"), (int)Long(r, "AdaptabilityWeight") });
+                var spread = Rows(master, "ChocoboParameterDifference", logger).GroupBy(r => Long(r, "ChocoboParameterDifferenceGroupId"))
+                    .ToDictionary(g => g.Key, g => g.Max(r => (int)Long(r, "ParameterDifferenceRangeValueBp")));
+                foreach (var c in Rows(master, "Chocobo", logger))
+                {
+                    var groupId = Long(c, "ChocoboAreaTypeGroupId");
+                    if (!potential.TryGetValue(Long(c, "ChocoboRankPotentialId"), out var rank)) continue;
+                    var name = Long(c, "DefaultNameLanguageId") > 0 ? Name(c, "DefaultNameLanguageId") : string.Empty;
+                    data.ChocoboOptions.Add(new ChocoboOption(Long(c, "Id"), (int)Long(c, "ChocoboRarityType"), area.GetValueOrDefault(groupId),
+                        (int)Long(c, "SexType"), colour.GetValueOrDefault(groupId), rank.Item1, rank.Item2,
+                        (ratio.GetValueOrDefault(Long(c, "ChocoboParameterRatioId")) ?? new[] { 25, 25, 25, 25 }).Select(w => w * 100).ToArray(),
+                        spread.GetValueOrDefault(Long(c, "ChocoboParameterDifferenceGroupId")),
+                        (int)Long(c, "ChocoboType"), (int)Long(c, "ChocoboRankGroupId"), (int)Long(c, "ChocoboExpeditionParameterGroupId"),
+                        name == "Chocobo" ? string.Empty : name));
+                }
+            }
             foreach (var e in Rows(master, "ChocoboExpedition", logger))
                 data.ChocoboExpeditions[Long(e, "Id")] = Name(e, "NameLanguageId");
+
+            foreach (var t in Rows(master, "Tutorial", logger))
+            {
+                var type = (int)Long(t, "TutorialStepType");
+                data.TutorialLastSteps[type] = Math.Max(data.TutorialLastSteps.GetValueOrDefault(type), (int)Long(t, "Step"));
+            }
+
+            // Story chapters for the story progress editor. Main story: StoryTitle > StoryChapter > StorySection > StoryEpisode;
+            // a cleared episode also records its battles (DungeonStoryBattleRel for the episode's dungeon, plus StoryBattleId).
+            // Character stories: CharacterStory > CharacterStorySection > CharacterStoryEpisode (BattleId on battle episodes).
+            {
+                var dungeonBattles = Rows(master, "DungeonStoryBattleRel", logger).GroupBy(r => Long(r, "DungeonId"))
+                    .ToDictionary(g => g.Key, g => g.Select(r => Long(r, "StoryBattleId")).ToList());
+                var titles = Rows(master, "StoryTitle", logger).ToDictionary(t => Long(t, "Id"), t => (Order: Long(t, "OrderNo"), Name: Name(t, "NameLanguageId")));
+                var sections = Rows(master, "StorySection", logger).ToDictionary(r => Long(r, "Id"), r => (Chapter: Long(r, "StoryChapterId"), Order: Long(r, "OrderNo")));
+                var episodes = Rows(master, "StoryEpisode", logger)
+                    .Where(e => sections.ContainsKey(Long(e, "StorySectionId")))
+                    .GroupBy(e => sections[Long(e, "StorySectionId")].Chapter)
+                    .ToDictionary(g => g.Key, g => g.OrderBy(e => sections[Long(e, "StorySectionId")].Order).ThenBy(e => Long(e, "OrderNo")).ToList());
+                foreach (var c in Rows(master, "StoryChapter", logger)
+                    .Where(c => titles.ContainsKey(Long(c, "StoryTitleId")))
+                    .OrderBy(c => titles[Long(c, "StoryTitleId")].Order).ThenBy(c => Long(c, "OrderNo")))
+                {
+                    var eps = episodes.GetValueOrDefault(Long(c, "Id")) ?? new();
+                    if (eps.Count == 0) continue;
+                    data.StoryChapters.Add(new StoryChapterOption($"m{Long(c, "Id")}", titles[Long(c, "StoryTitleId")].Name,
+                        $"Chapter {Long(c, "OrderNo")}: {Name(c, "NameLanguageId")}", 1,
+                        eps.Select(e => Long(e, "Id")).ToArray(),
+                        eps.Select(e => (dungeonBattles.GetValueOrDefault(Long(e, "DungeonId")) ?? new())
+                            .Append(Long(e, "StoryBattleId")).Where(b => b > 0).Distinct().ToArray()).ToArray()));
+                }
+
+                var stories = Rows(master, "CharacterStory", logger).ToDictionary(r => Long(r, "Id"), r => (Order: Long(r, "OrderNo"), Character: Long(r, "CharacterId")));
+                var charEpisodes = Rows(master, "CharacterStoryEpisode", logger).GroupBy(e => Long(e, "CharacterStorySectionId"))
+                    .ToDictionary(g => g.Key, g => g.OrderBy(e => Long(e, "OrderNo")).ToList());
+                foreach (var sct in Rows(master, "CharacterStorySection", logger)
+                    .Where(r => stories.ContainsKey(Long(r, "CharacterStoryId")))
+                    .OrderBy(r => stories[Long(r, "CharacterStoryId")].Order).ThenBy(r => Long(r, "OrderNo")))
+                {
+                    var eps = charEpisodes.GetValueOrDefault(Long(sct, "Id")) ?? new();
+                    if (eps.Count == 0) continue;
+                    var who = characters.GetValueOrDefault(stories[Long(sct, "CharacterStoryId")].Character) ?? "Character";
+                    data.StoryChapters.Add(new StoryChapterOption($"c{Long(sct, "Id")}", "Character stories",
+                        $"{who}: {Name(sct, "NameLanguageId")}", 2,
+                        eps.Select(e => Long(e, "Id")).ToArray(),
+                        eps.Select(e => Long(e, "BattleId") > 0 ? new[] { Long(e, "BattleId") } : Array.Empty<long>()).ToArray()));
+                }
+            }
 
             // Materia names come from recipe titles, e.g. "Ruin (⬤Circle) Recipe".
             var shapes = new Dictionary<long, string> { [1] = "⬤Circle", [2] = "▲Triangle", [3] = "✖Cross" };
@@ -1518,8 +1767,8 @@ public sealed class EosPlayerStatsService
             {
                 var title = Name(r, "TitleLanguageId");
                 title = title.Replace(" Recipe", string.Empty);
-                var notes = Long(r, "NotesSetId");
-                if (notes > 0 && shapes.TryGetValue(notes, out var shape)) title = title.Replace($" ({shape})", string.Empty);
+                // Some recipe titles name a different sigil than the recipe's own, so strip any of them.
+                foreach (var shape in shapes.Values) title = title.Replace($" ({shape})", string.Empty);
                 data.MateriaBaseNames.TryAdd(Long(r, "MateriaId"), title);
             }
             data.MateriaShapes = shapes;
@@ -1547,6 +1796,73 @@ public sealed class EosPlayerStatsService
                     percent = true;
                 }
                 if (label != null) data.MateriaStats[Long(p, "Id")] = (label, percent, order);
+                data.MateriaParams5[Long(p, "Id")] = ((int)Long(p, "QualityFiveMinInitialValue"), (int)Long(p, "QualityFiveMaxInitialValue"),
+                    (int)Long(p, "QualityFiveMinEnhanceValue"), (int)Long(p, "QualityFiveMaxEnhanceValue"));
+            }
+
+            // What the materia adder needs: level caps per evolve step, which levels boost a stat, exp per level,
+            // and the skill each evolve step casts (e.g. Fire → Fira).
+            var evolveCaps = Rows(master, "MateriaEvolveSetting", logger).GroupBy(r => Long(r, "MateriaEvolveSettingGroupId"))
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => Long(r, "EvolveCount")).Select(r => (int)Long(r, "LevelLimit")).ToList());
+            foreach (var mm in Rows(master, "Materia", logger))
+                data.MateriaInfo[Long(mm, "Id")] = ((int)Long(mm, "MateriaEnhanceGroupId"), (int)Long(mm, "MateriaLevelGroupId"),
+                    (int)Long(mm, "MateriaBaseCoefficientGroupId"), evolveCaps.GetValueOrDefault(Long(mm, "MateriaEvolveSettingGroupId")) ?? new() { 1 });
+            foreach (var e in Rows(master, "MateriaEnhance", logger))
+                if (e.TryGetProperty("EnhanceParameter", out var ep) && ep.ValueKind == JsonValueKind.True)
+                {
+                    var g = (int)Long(e, "MateriaEnhanceGroupId");
+                    if (!data.MateriaEnhanceLevels.TryGetValue(g, out var list)) data.MateriaEnhanceLevels[g] = list = new();
+                    list.Add((int)Long(e, "Level"));
+                }
+            foreach (var l in Rows(master, "MateriaLevel", logger))
+            {
+                data.MateriaLevelCoef[((int)Long(l, "MateriaLevelGroupId"), (int)Long(l, "Level"))] = Long(l, "ExpCoefficient");
+                data.MateriaLevelSaleCoef[((int)Long(l, "MateriaLevelGroupId"), (int)Long(l, "Level"))] = Long(l, "SaleGilCoefficient");
+            }
+            foreach (var b in Rows(master, "MateriaBaseCoefficient", logger))
+                data.MateriaBaseCoef[((int)Long(b, "MateriaBaseCoefficientGroupId"), (int)Long(b, "QualityType"), (int)Long(b, "EvolveCount"))] =
+                    (Long(b, "BaseExp"), Long(b, "BaseSaleGil"));
+            foreach (var b in Rows(master, "MateriaBaseCoefficient", logger))
+                if (Long(b, "QualityType") == 5)
+                    data.MateriaBaseExp5[((int)Long(b, "MateriaBaseCoefficientGroupId"), (int)Long(b, "EvolveCount"))] = Long(b, "BaseExp");
+            var materiaSkillNames = Rows(master, "SkillBase", logger).ToDictionary(s => Long(s, "Id"), s => Name(s, "NameLanguageId"));
+            var materiaSkillBase = Rows(master, "SkillActive", logger).ToDictionary(s => Long(s, "Id"), s => Long(s, "SkillBaseId"));
+            foreach (var ev in Rows(master, "MateriaEvolve", logger))
+                data.MateriaEvolves[(Long(ev, "MateriaId"), (int)Long(ev, "EvolveCount"))] = (Long(ev, "Id"),
+                    materiaSkillNames.GetValueOrDefault(materiaSkillBase.GetValueOrDefault(Long(ev, "ActiveSkillId"))) ?? string.Empty);
+            foreach (var r in Rows(master, "MateriaRecipe", logger))
+                data.MateriaRecipes.Add((Long(r, "MateriaId"), (int)Long(r, "NotesSetId")));
+
+            // Weapon branding. Each stone has a lot group; its brand effects are ids
+            // lot * 100000 + code * 1000 + value, where the code is the stat's slot within that lot.
+            var brandNames = Rows(master, "WeaponAttachmentEffectSetting", logger)
+                .ToDictionary(r => (int)Long(r, "WeaponAttachmentEffectType"), r => Name(r, "NameLanguageId"));
+            var brandCodes = new Dictionary<(long Lot, int Type), int>();
+            foreach (var e in Rows(master, "WeaponAttachmentEffect", logger))
+            {
+                var id = Long(e, "Id");
+                data.BrandEffects[id] = ((int)Long(e, "WeaponAttachmentEffectType"), (int)Long(e, "Value"));
+                brandCodes[(id / 100000, (int)Long(e, "WeaponAttachmentEffectType"))] = (int)(id / 1000 % 100);
+            }
+            var brandRanges = Rows(master, "AutoWeaponAttachmentEffectProbability", logger)
+                .GroupBy(r => Long(r, "WeaponAttachmentEffectLotGroupId"))
+                .ToDictionary(g => g.Key, g => g.OrderBy(r => Long(r, "Seq")).ToList());
+            var brandCounts = Rows(master, "WeaponAttachmentEffectCountLot", logger)
+                .GroupBy(r => Long(r, "WeaponAttachmentEffectCountLotGroupId"))
+                .ToDictionary(g => g.Key, g => g.Max(r => (int)Long(r, "WeaponAttachmentEffectCount")));
+            foreach (var r in Rows(master, "ItemWeaponAttachment", logger))
+            {
+                var itemId = Long(r, "ItemId");
+                var lot = Long(r, "WeaponAttachmentEffectLotGroupId");
+                var stats = (brandRanges.GetValueOrDefault(lot) ?? new())
+                    .Select(x => (Type: (int)Long(x, "WeaponAttachmentEffectType"), Min: (int)Long(x, "MinValue"), Max: (int)Long(x, "MaxValue"), Weight: (int)Long(x, "ProbabilityPermil")))
+                    .Where(x => brandCodes.ContainsKey((lot, x.Type)))
+                    .OrderBy(x => x.Type)
+                    .Select(x => new BrandStatOption(x.Type, brandNames.GetValueOrDefault(x.Type) ?? $"Brand {x.Type}", brandCodes[(lot, x.Type)], x.Min, x.Max, x.Type == 7, x.Weight))
+                    .ToList();
+                if (stats.Count == 0) continue;
+                data.BrandStones.Add(new BrandStoneOption(itemId, data.ItemNames.GetValueOrDefault(itemId) ?? $"Branding Stone #{itemId}",
+                    Name(r, "DescriptionLanguageId"), lot, brandCounts.GetValueOrDefault(Long(r, "WeaponAttachmentEffectCountLotGroupId"), 3), stats));
             }
 
             var areas = Rows(master, "AnotherArea", logger).ToDictionary(a => Long(a, "Id"), a => Name(a, "NameLanguageId"));
@@ -1873,6 +2189,24 @@ public sealed class EosPlayerStatsService
             foreach (var g in Rows(master, "EventGuildRankingBattle", logger))
                 data.GuildFights[Long(g, "Id")] = (Long(g, "EventBaseId"), (int)Long(g, "EnemyLevel"), Enemies(Long(g, "BattleId")));
 
+            // Item names repeat: each weapon has its own parts item (some all named "Buster Sword Parts"), and event
+            // items come back for every rerun. Name parts after their weapon and event items after their start date.
+            var partsWeapon = data.WeaponParts.GroupBy(kv => kv.Value).ToDictionary(g => g.Key, g => g.Min(kv => kv.Key));
+            var itemStart = Rows(master, "Item", logger).ToDictionary(i => Long(i, "Id"), i => Long(i, "StartDatetime"));
+            foreach (var dup in data.ItemOptions.Select((o, i) => (o, i)).GroupBy(x => x.o.Name).Where(g => g.Count() > 1))
+                foreach (var (o, i) in dup)
+                {
+                    var name = o.Name;
+                    if (partsWeapon.TryGetValue(o.Id, out var wid) && data.Weapons.TryGetValue(wid, out var w) && !string.IsNullOrEmpty(w.Name))
+                        name = string.IsNullOrEmpty(w.Character) ? $"{w.Name} Parts" : $"{w.Name} Parts ({w.Character})";
+                    else if (itemStart.GetValueOrDefault(o.Id) > 0)
+                        name = $"{o.Name} ({DateTimeOffset.FromUnixTimeMilliseconds(itemStart[o.Id]).UtcDateTime:d MMM yyyy})";
+                    data.ItemOptions[i] = o with { Name = name };
+                }
+            foreach (var dup in data.ItemOptions.Select((o, i) => (o, i)).GroupBy(x => x.o.Name).Where(g => g.Count() > 1))
+                foreach (var (o, i) in dup.Skip(1))
+                    data.ItemOptions[i] = o with { Name = $"{o.Name} #{o.Id}" };
+
             return data;
         }
 
@@ -1919,6 +2253,9 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, (long EventBaseId, int Stars, string Boss)> GuildFights { get; } = new();
 
         public List<(int Rank, long Exp)> UserRankExp { get; set; } = new();
+        public Dictionary<int, int> UserRankStamina { get; } = new();
+        public Dictionary<long, long> WeaponUpgradeGroup { get; } = new();
+        public Dictionary<long, Dictionary<int, int>> WeaponUpgradeMax { get; } = new();
         public List<(int Level, long Exp)> GuildLevelExp { get; set; } = new();
         public Dictionary<long, List<(int Level, long Exp)>> CharacterLevelExp { get; } = new();
         public Dictionary<long, (string Name, int Order)> Characters { get; } = new();
@@ -1943,6 +2280,38 @@ public sealed class EosPlayerStatsService
         public Dictionary<long, string> MateriaBaseNames { get; } = new();
         public Dictionary<long, string> MateriaShapes { get; set; } = new();
         public Dictionary<long, (string Label, bool Percent, int Order)> MateriaStats { get; } = new();
+        public Dictionary<long, (int InitMin, int InitMax, int EnhMin, int EnhMax)> MateriaParams5 { get; } = new();
+        public Dictionary<long, (int EnhanceGroup, int LevelGroup, int CoefGroup, List<int> Caps)> MateriaInfo { get; } = new();
+        public Dictionary<int, List<int>> MateriaEnhanceLevels { get; } = new();
+        public Dictionary<(int Group, int Level), long> MateriaLevelCoef { get; } = new();
+        public Dictionary<(int Group, int Evolve), long> MateriaBaseExp5 { get; } = new();
+        public Dictionary<(int Group, int Level), long> MateriaLevelSaleCoef { get; } = new();
+        public Dictionary<(int Group, int Quality, int Evolve), (long Exp, long SaleGil)> MateriaBaseCoef { get; } = new();
+
+        /// <summary>A materia's level from its quality, evolve step and exp.</summary>
+        public int MateriaLevel(long materiaId, int quality, int evolve, long exp)
+        {
+            if (!MateriaInfo.TryGetValue(materiaId, out var info) || info.Caps.Count == 0) return 1;
+            var cap = info.Caps[Math.Clamp(evolve, 0, info.Caps.Count - 1)];
+            var baseExp = MateriaBaseCoef.TryGetValue((info.CoefGroup, quality, evolve), out var b) ? b.Exp : 0;
+            var level = 1;
+            for (var l = 1; l <= cap; l++)
+                if (MateriaLevelCoef.TryGetValue((info.LevelGroup, l), out var coef) && baseExp * coef / 1000 <= exp) level = l;
+            return level;
+        }
+
+        /// <summary>Gil the game pays for selling a materia.</summary>
+        public long MateriaSaleGil(long materiaId, int quality, int evolve, long exp)
+        {
+            if (!MateriaInfo.TryGetValue(materiaId, out var info)) return 0;
+            var baseGil = MateriaBaseCoef.TryGetValue((info.CoefGroup, quality, evolve), out var b) ? b.SaleGil : 0;
+            var coef = MateriaLevelSaleCoef.GetValueOrDefault((info.LevelGroup, MateriaLevel(materiaId, quality, evolve, exp)), 1000);
+            return baseGil * coef / 1000;
+        }
+        public Dictionary<(long MateriaId, int Evolve), (long Id, string Skill)> MateriaEvolves { get; } = new();
+        public HashSet<(long MateriaId, int Notes)> MateriaRecipes { get; } = new();
+        public Dictionary<long, (int Type, int Value)> BrandEffects { get; } = new();
+        public List<BrandStoneOption> BrandStones { get; } = new();
         public Dictionary<long, (string Name, int Difficulty)> CriterionDungeons { get; } = new();
         public Dictionary<long, (string Name, int MaxLevel)> BossChallenges { get; } = new();
         public List<HighwindItemOption> HighwindItems { get; } = new();

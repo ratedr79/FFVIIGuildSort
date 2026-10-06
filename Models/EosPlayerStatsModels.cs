@@ -686,3 +686,71 @@ public sealed record MemoriaOption(long Id, string Name, int Stars, int Fragment
     public int MaxLevel => LevelPoints.Count;
 }
 
+
+// One sub stat a 5★ materia can roll, in the game's raw units (percent stats are tenths: 21 = 2.1%).
+// A stat boosted n times lands between InitMin + n*EnhMin and InitMax + n*EnhMax.
+public sealed record MateriaStatOption(long Id, string Label, bool Percent, int InitMin, int InitMax, int EnhMin, int EnhMax)
+{
+    public int Min(int boosts) => InitMin + boosts * EnhMin;
+    public int Max(int boosts) => InitMax + boosts * EnhMax;
+}
+
+// A 5★ materia recipe (materia + sigil) and everything needed to write one into an account.
+// Refined materia have four fixed stats and no levels; Sigils lists the sigils it may carry.
+public sealed record MateriaAddOption(string Key, long MateriaId, int Notes, string Name, string Skill, int MaxLevel,
+    IReadOnlyList<int> Caps, IReadOnlyList<int> BoostLevels, IReadOnlyList<long> ExpByLevel, IReadOnlyList<long> EvolveIds,
+    bool Refined, bool Estimated, IReadOnlyList<int> Sigils, IReadOnlyList<MateriaStatOption> Stats)
+{
+    public int BoostsAt(int level) => BoostLevels.Count(l => l <= level);
+    public int EvolveAt(int level) { for (var i = 0; i < Caps.Count; i++) if (level <= Caps[i]) return i; return Caps.Count - 1; }
+}
+
+// One materia to add: level, sigil and the four stats as (parameter id, value, times boosted).
+public sealed record MateriaAddRequest(MateriaAddOption Materia, int Level, int Notes, IReadOnlyList<(long Id, int Value, int Boosts)> Stats);
+
+// One stat a branding stone can put on a weapon. Values are raw: flat for HP..HEAL, tenths of a percent for the
+// C. & U. C. ability effect. A brand's effect id is LotGroupId * 100000 + Code * 1000 + value.
+public sealed record BrandStatOption(int Type, string Label, int Code, int Min, int Max, bool Percent, int Weight);
+
+// A branding stone. Each brand line on a weapon comes from one stone; a weapon has up to three lines.
+public sealed record BrandStoneOption(long ItemId, string Name, string Description, long LotGroupId, int MaxLines, IReadOnlyList<BrandStatOption> Stats)
+{
+    public long EffectId(BrandStatOption stat, int value) => LotGroupId * 100000 + stat.Code * 1000 + value;
+}
+
+// Brand lines to write on an owned weapon (effect ids, at most three; empty removes its brands).
+public sealed record WeaponBrandRequest(long WeaponId, string WeaponName, IReadOnlyList<long> EffectIds);
+
+/// <summary>A player rank: the exp it needs and its stamina cap.</summary>
+public sealed record PlayerRankOption(int Rank, long RequiredExp, int StaminaMax);
+
+/// <summary>
+/// How far a weapon can be raised. MaxRelease maps rarity (1-3 = 3-5★, 101 = 6★ ultimate) to its most level cap raises (game: ReleaseCount);
+/// LevelLimits maps the raise count to the level cap; overboost is upgrade type 1 (1..Overboost1) then type 2 (+1..Overboost2).
+/// LevelExp[level - 1] is the exp that level needs.
+/// </summary>
+public sealed record WeaponProgressOption(long WeaponId, IReadOnlyDictionary<int, int> MaxRelease, IReadOnlyDictionary<int, int> LevelLimits,
+    int Overboost1, int Overboost2, IReadOnlyList<long> LevelExp)
+{
+    public int MaxLevel(int releaseCount) => LevelLimits.GetValueOrDefault(releaseCount);
+}
+
+/// <summary>New rarity, level cap raises, exp and overboost (upgrade type and count) for an owned weapon.</summary>
+public sealed record WeaponProgressRequest(long WeaponId, string WeaponName, int Rarity, int ReleaseCount, long Exp, int UpgradeType, int UpgradeCount);
+
+public sealed record ItemOption(long Id, string Name, int Type, string Category, int CategoryOrder, long MaxCapacity);
+public sealed record ItemCountRequest(long ItemId, string Name, long Count);
+/// <summary>A catalog chocobo. Area is a flag (1 Land, 2 River, 4 Mountain, 8 Ocean); Colour is the art number (1-30 normal, 31+ special).
+/// Weights are Speed, Stamina, Intellect, Adaptability in basis points of 10000; Spread is how far a roll can move each pair.</summary>
+public sealed record ChocoboOption(long Id, int Rarity, int Area, int Sex, int Colour, int Rank, int LimitRank, int[] Weights, int Spread,
+    int Type, int RankGroup, int ExpeditionGroup, string Name);
+public sealed record ChocoboAddRequest(ChocoboOption Chocobo, int[] Weights);
+
+/// <summary>
+/// A main story chapter (Kind 1) or character story section (Kind 2). Episodes are in play order; Battles[i] are the
+/// story battles episode i records when cleared.
+/// </summary>
+public sealed record StoryChapterOption(string Key, string Group, string Name, int Kind, long[] Episodes, long[][] Battles);
+public sealed record MateriaListEntry(string Name, Dictionary<string, List<long[]>> Steps);
+public sealed record MateriaStatLabel(string Label, bool Percent, int Order);
+public sealed record MateriaListCatalog(Dictionary<long, MateriaListEntry> Materia, Dictionary<long, MateriaStatLabel> Stats, long GilItemId, long GilMax);

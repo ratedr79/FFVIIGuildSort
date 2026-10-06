@@ -184,6 +184,43 @@
         </div>
     </details>
 
+    <details class="mt-2" id="eos-rank-edit" @(Model.RankErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-ranking-star"></i> Set the player rank in a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 760px;">
+            <p class="small mb-2">
+                Upload the server's <code>data\account.json</code>, pick a rank and download the updated file. The account is set to the start of that rank
+                (the exp the rank needs), so it can go up or down. Stop the server and back up <code>account.json</code> before replacing it.
+                The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetRank" id="eos-rank-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="RankAccountFile">Server's account.json</label>
+                    <input type="file" id="RankAccountFile" name="RankAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-rank-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <label class="small mb-0" for="RankTarget">Rank</label>
+                    <input type="number" id="RankTarget" name="RankTarget" class="form-control form-control-sm" style="width: 6rem;"
+                           min="1" max="@(Model.PlayerRanks.Count > 0 ? Model.PlayerRanks[^1].Rank : 1)" value="@(Model.RankTarget ?? (Model.PlayerRanks.Count > 0 ? Model.PlayerRanks[^1].Rank : 1))" required />
+                    <button type="button" class="btn btn-link btn-sm p-0" id="eos-rank-max">Max</button>
+                    <span class="small text-muted" id="eos-rank-info"></span>
+                </div>
+                <div class="form-check small mb-2">
+                    <input class="form-check-input" type="checkbox" id="RankFillStamina" name="RankFillStamina" value="true" @(Model.RankFillStamina ? "checked" : "") />
+                    <label class="form-check-label" for="RankFillStamina">Fill stamina to the new rank's maximum</label>
+                    <input type="hidden" name="RankFillStamina" value="false" />
+                </div>
+                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Set rank and download</button>
+            </form>
+            @if (Model.RankErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.RankErrorMessage</div>
+            }
+        </div>
+    </details>
+    <script id="eos-rank-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.PlayerRanks.Select(r => new[] { r.Rank, r.RequiredExp, r.StaminaMax })))</script>
+
     <details class="mt-2" id="eos-gear" @(Model.GearErrorMessage is not null ? "open" : "")>
         <summary class="small"><i class="fas fa-shirt"></i> Add outfits &amp; weapons to a NeverCrisis account</summary>
         <div class="card card-body mt-2" style="max-width: 760px;">
@@ -417,6 +454,482 @@
             }
         </div>
     </details>
+
+    <details class="mt-2" id="eos-materia-edit" @(Model.MateriaErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-circle"></i> Add 5★ materia to a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 860px;">
+            <p class="small mb-2">
+                Build a list of 5★ materia with the sub stats you want, then download the updated <code>data\account.json</code>.
+                <strong>Add maxed</strong> gives the top level with every stat at its best crafted roll and all level-up boosts (each at its highest) on the first stat.
+                Refined materia have four fixed stats and stay at level 1.
+            </p>
+            <p class="small text-muted mb-2">
+                Each stat works like crafting then leveling: the <em>crafted roll</em> is the stat when the materia is made, each level-up <em>boost</em> adds the amount per boost,
+                and the result after "=" is the value you'll see in game.
+                Which stats a recipe can roll comes from real accounts; recipes marked "estimated" copy a close recipe and may be off.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetMateria" id="eos-mat-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="MateriaAccountFile">Server's account.json</label>
+                    <input type="file" id="MateriaAccountFile" name="MateriaAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-mat-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" id="eos-mat-filter" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Filter, e.g. blizzara" />
+                    <select id="eos-mat-pick" class="form-select form-select-sm" style="max-width: 320px;">
+                        <optgroup label="Materia">
+                            @foreach (var m in Model.MateriaAddOptions.Where(o => !o.Refined))
+                            {
+                                <option value="@m.Key">@m.Name@(string.IsNullOrEmpty(m.Skill) ? "" : $" – {m.Skill}")@(m.Estimated ? " (estimated)" : "")</option>
+                            }
+                        </optgroup>
+                        <optgroup label="Refined (Materia Hunt rewards, fixed stats)">
+                            @foreach (var m in Model.MateriaAddOptions.Where(o => o.Refined))
+                            {
+                                <option value="@m.Key">@m.Name</option>
+                            }
+                        </optgroup>
+                    </select>
+                    <input type="number" id="eos-mat-count" class="form-control form-control-sm" style="width: 4.5rem;" min="1" max="50" value="1" title="How many copies" />
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-mat-add-max">Add maxed</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-mat-add">Add to customize</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-mat-clear">Clear the list</button>
+                </div>
+                <div class="form-check small mb-2">
+                    <input class="form-check-input" type="checkbox" id="MateriaIgnoreBoostCap" name="MateriaIgnoreBoostCap" value="true" @(Model.MateriaIgnoreBoostCap ? "checked" : "") />
+                    <label class="form-check-label" for="MateriaIgnoreBoostCap">
+                        Let every stat use all the level's boosts (e.g. 6.4% MATK and 16% potency on one materia; the game's rolls can't give this)
+                    </label>
+                </div>
+                <div id="eos-mat-list" class="d-flex flex-column gap-2"></div>
+                <div class="small text-muted" id="eos-mat-empty">No materia in the list yet.</div>
+                <input type="hidden" name="MateriaRequestsJson" id="eos-mat-json" value="@Model.MateriaRequestsJson" />
+                <button type="submit" class="btn btn-sm btn-success mt-2"><i class="fas fa-download"></i> Add and download</button>
+            </form>
+            @if (Model.MateriaErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.MateriaErrorMessage</div>
+            }
+        </div>
+    </details>
+    <script id="eos-mat-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MateriaAddOptions.Select(m => new
+    {
+        key = m.Key, name = m.Name, skill = m.Skill, max = m.MaxLevel, boosts = m.BoostLevels, refined = m.Refined, notes = m.Notes, sigils = m.Sigils,
+        stats = m.Stats.Select(s => new { id = s.Id, label = s.Label, pct = s.Percent, i0 = s.InitMin, i1 = s.InitMax, e0 = s.EnhMin, e1 = s.EnhMax }),
+    }), new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+
+    <details class="mt-2" id="eos-brand-edit" @(Model.BrandErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-fire"></i> Brand weapons in a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 860px;">
+            <p class="small mb-2">
+                For when branding doesn't work on the offline server. Upload the server's <code>data\account.json</code> to list the weapons it owns with their current brands,
+                add the weapons you want, pick a branding stone and set up to three brand lines, then download the updated file.
+                A weapon's brands all come from one stone, like in game. <strong>Max</strong> fills all three lines at the stone's highest value.
+            </p>
+            <p class="small text-muted mb-2">
+                HP, PATK, MATK, PDEF, MDEF and HEAL brands add flat points; the C. &amp; U. C. ability effect is a percentage.
+                Picking "no stone" clears a weapon's brands. Only weapons the account already owns can be branded.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetBrands" id="eos-brand-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="BrandAccountFile">Server's account.json</label>
+                    <input type="file" id="BrandAccountFile" name="BrandAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-brand-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" id="eos-brand-filter" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Filter weapon or character" />
+                    <select id="eos-brand-pick" class="form-select form-select-sm" style="max-width: 340px;" disabled>
+                        <option value="">Choose the account file first</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-brand-add" disabled>Add</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-brand-add-shown" disabled>Add all shown</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-brand-clear">Clear the list</button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <label class="small mb-0" for="eos-brand-bulk-stone">Every weapon in the list:</label>
+                    <select id="eos-brand-bulk-stone" class="form-select form-select-sm" style="max-width: 280px;">
+                        @foreach (var b in Model.BrandStones)
+                        {
+                            <option value="@b.ItemId">@b.Name</option>
+                        }
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-brand-bulk-max">Max with this stone</button>
+                </div>
+                <div id="eos-brand-list" class="d-flex flex-column gap-2"></div>
+                <div class="small text-muted" id="eos-brand-empty">No weapons in the list yet.</div>
+                <input type="hidden" name="BrandRequestsJson" id="eos-brand-json" value="@Model.BrandRequestsJson" />
+                <button type="submit" class="btn btn-sm btn-success mt-2"><i class="fas fa-download"></i> Brand and download</button>
+            </form>
+            @if (Model.BrandErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.BrandErrorMessage</div>
+            }
+        </div>
+    </details>
+    <script id="eos-brand-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        stones = Model.BrandStones.Select(b => new
+        {
+            id = b.ItemId, name = b.Name, desc = b.Description, lot = b.LotGroupId, lines = b.MaxLines,
+            stats = b.Stats.Select(x => new { type = x.Type, label = x.Label, code = x.Code, min = x.Min, max = x.Max, pct = x.Percent, weight = x.Weight }),
+        }),
+        weapons = Model.BrandWeaponNames,
+    }, new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+
+    <details class="mt-2" id="eos-wlevel-edit" @(Model.WeaponLevelErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-arrow-up-right-dots"></i> Set weapon level, rarity &amp; overboost in a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 860px;">
+            <p class="small mb-2">
+                Upload the server's <code>data\account.json</code> to list the weapons it owns, add the ones you want and set each one's rarity,
+                level cap, level and overboost, then download the updated file. <strong>Max</strong> sets the top rarity, a level cap of 140,
+                the level cap and full overboost.
+            </p>
+            <p class="small text-muted mb-2">
+                Rarity sets the stars (3★, 4★, 5★); 6★ ultimate weapons stay 6★. The level cap is what the game raises in steps of 10 (20 up to 140) by spending steel or mythril ores and gil; 3★ weapons can reach 50 and 4★ weapons 70.
+                Overboost runs 1-10, then +1 to +20 past OB10, and needs the weapon at 5★. Only weapons the account already owns can be changed.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetWeaponLevels" id="eos-wlevel-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="WeaponLevelAccountFile">Server's account.json</label>
+                    <input type="file" id="WeaponLevelAccountFile" name="WeaponLevelAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-wlevel-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" id="eos-wlevel-filter" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Filter weapon or character" />
+                    <select id="eos-wlevel-pick" class="form-select form-select-sm" style="max-width: 360px;" disabled>
+                        <option value="">Choose the account file first</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-wlevel-add" disabled>Add</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-wlevel-add-shown" disabled>Add all shown</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-wlevel-clear">Clear the list</button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="small">Every weapon in the list:</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-wlevel-bulk-max">Max everything</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-wlevel-bulk-level">Max level cap &amp; level only</button>
+                </div>
+                <div id="eos-wlevel-list" class="d-flex flex-column gap-2"></div>
+                <div class="small text-muted" id="eos-wlevel-empty">No weapons in the list yet.</div>
+                <input type="hidden" name="WeaponLevelRequestsJson" id="eos-wlevel-json" value="@Model.WeaponLevelRequestsJson" />
+                <button type="submit" class="btn btn-sm btn-success mt-2"><i class="fas fa-download"></i> Update and download</button>
+            </form>
+            @if (Model.WeaponLevelErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.WeaponLevelErrorMessage</div>
+            }
+        </div>
+    </details>
+    @{
+        // Weapons share a handful of progression profiles; send each profile once.
+        var wlProfiles = Model.WeaponProgress.Values
+            .GroupBy(p => string.Join(",", p.MaxRelease.OrderBy(k => k.Key).Select(k => $"{k.Key}:{k.Value}")) + "#"
+                + string.Join(",", p.LevelLimits.OrderBy(k => k.Key).Select(k => $"{k.Key}:{k.Value}")) + "#"
+                + p.Overboost1 + "," + p.Overboost2 + "#" + string.Join(",", p.LevelExp))
+            .ToList();
+    }
+    <script id="eos-wlevel-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        profiles = wlProfiles.Select(g =>
+        {
+            var p = g.First();
+            return new { rel = p.MaxRelease.OrderBy(k => k.Key).Select(k => new[] { k.Key, k.Value }), cap = p.LevelLimits, ob1 = p.Overboost1, ob2 = p.Overboost2, exp = p.LevelExp };
+        }),
+        weaponProfile = wlProfiles.SelectMany((g, i) => g.Select(p => (p.WeaponId, i))).ToDictionary(x => x.WeaponId, x => x.i),
+        weapons = Model.BrandWeaponNames,
+    }, new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+
+    <details class="mt-2" id="eos-items-edit" @(Model.ItemErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-boxes-stacked"></i> Set items, vouchers &amp; materials in a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 980px;">
+            <p class="small mb-2">
+                Upload the server's <code>data\account.json</code> to see how many of each item it has, change the counts you want, then download the
+                updated file. Items are grouped by the game's inventory tabs; search by name to find one quickly.
+            </p>
+            <p class="small text-muted mb-2">
+                Only the counts you change are written. Setting a count to 0 empties that item. Each item's count is limited to what the game allows.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetItems" id="eos-items-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="ItemAccountFile">Server's account.json</label>
+                    <input type="file" id="ItemAccountFile" name="ItemAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-items-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <select id="eos-items-cat" class="form-select form-select-sm" style="max-width: 220px;"></select>
+                    <input type="search" id="eos-items-filter" class="form-control form-control-sm" style="max-width: 240px;" placeholder="Search items" />
+                    <div class="form-check small mb-0">
+                        <input class="form-check-input" type="checkbox" id="eos-items-owned" />
+                        <label class="form-check-label" for="eos-items-owned">Only items the account has</label>
+                    </div>
+                    <div class="form-check small mb-0">
+                        <input class="form-check-input" type="checkbox" id="eos-items-changed" />
+                        <label class="form-check-label" for="eos-items-changed">Only changed</label>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="small">Items shown (<span id="eos-items-shown">0</span>):</span>
+                    <input type="number" id="eos-items-bulk-n" class="form-control form-control-sm" style="width: 8rem;" min="0" placeholder="Count" />
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-items-bulk-set">Set to count</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-items-bulk-add">Add count</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-items-bulk-max">Max</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-items-bulk-reset">Undo changes</button>
+                </div>
+                <div class="border rounded" style="max-height: 460px; overflow-y: auto;">
+                    <table class="table table-sm table-hover small mb-0">
+                        <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                            <tr><th>Item</th><th>Tab</th><th class="text-end">Has</th><th style="width: 11rem;">New count</th><th></th></tr>
+                        </thead>
+                        <tbody id="eos-items-rows"></tbody>
+                    </table>
+                </div>
+                <div class="small text-muted mt-1" id="eos-items-more" hidden></div>
+                <input type="hidden" name="ItemRequestsJson" id="eos-items-json" value="@Model.ItemRequestsJson" />
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Update and download</button>
+                    <span class="small" id="eos-items-summary">No changes yet.</span>
+                </div>
+            </form>
+            @if (Model.ItemErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.ItemErrorMessage</div>
+            }
+        </div>
+    </details>
+    @{
+        var itemCats = Model.ItemOptions.GroupBy(i => (i.Category, i.CategoryOrder)).OrderBy(g => g.Key.CategoryOrder).ThenBy(g => g.Key.Category).Select(g => g.Key.Category).ToList();
+    }
+    <script id="eos-items-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        cats = itemCats,
+        items = Model.ItemOptions.Select(i => new object[] { i.Id, i.Name, itemCats.IndexOf(i.Category), i.MaxCapacity }),
+    }, new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+
+    <details class="mt-2" id="eos-matdel-edit" @(Model.MateriaDeleteErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-trash-can"></i> Delete materia from a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 1100px;">
+            <p class="small mb-2">
+                Upload the server's <code>data\account.json</code> to list every materia it holds with its level and sub stats. Tick the ones you
+                don't want, then download the updated file. Use "Only names held more than once" to compare copies of the same materia, such as several Thunder Blows.
+            </p>
+            <p class="small text-muted mb-2">
+                Locked materia and materia equipped in a party can't be ticked; unlock or unequip them in game first. The materia list (collection) is kept.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="DeleteMateria" id="eos-matdel-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="MateriaDeleteAccountFile">Server's account.json</label>
+                    <input type="file" id="MateriaDeleteAccountFile" name="MateriaDeleteAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-matdel-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" id="eos-matdel-filter" class="form-control form-control-sm" style="max-width: 240px;" placeholder="Search materia" />
+                    <select id="eos-matdel-stars" class="form-select form-select-sm" style="max-width: 130px;">
+                        <option value="0">All ★</option>
+                        <option value="5">5★</option><option value="4">4★</option><option value="3">3★</option><option value="2">2★</option><option value="1">1★</option>
+                    </select>
+                    <div class="form-check small mb-0">
+                        <input class="form-check-input" type="checkbox" id="eos-matdel-dupes" />
+                        <label class="form-check-label" for="eos-matdel-dupes">Only names held more than once</label>
+                    </div>
+                    <div class="form-check small mb-0">
+                        <input class="form-check-input" type="checkbox" id="eos-matdel-free" />
+                        <label class="form-check-label" for="eos-matdel-free">Hide locked &amp; equipped</label>
+                    </div>
+                    <div class="form-check small mb-0">
+                        <input class="form-check-input" type="checkbox" id="eos-matdel-ticked" />
+                        <label class="form-check-label" for="eos-matdel-ticked">Only ticked</label>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <span class="small">Materia shown (<span id="eos-matdel-shown">0</span>):</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-matdel-tick">Tick shown</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-matdel-untick">Untick shown</button>
+                </div>
+                <div class="border rounded" style="max-height: 520px; overflow-y: auto;">
+                    <table class="table table-sm table-hover small mb-0">
+                        <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                            <tr><th style="width: 2rem;"></th><th>Materia</th><th>★</th><th class="text-end">Lv</th><th>Sub stats</th><th>Obtained</th><th></th><th class="text-end">Sells for</th></tr>
+                        </thead>
+                        <tbody id="eos-matdel-rows"><tr><td colspan="8" class="text-muted">Upload an account.json to list its materia.</td></tr></tbody>
+                    </table>
+                </div>
+                <input type="hidden" name="MateriaDeleteJson" id="eos-matdel-json" value="@Model.MateriaDeleteJson" />
+                <div class="form-check small mt-2">
+                    <input class="form-check-input" type="checkbox" name="MateriaDeleteSell" value="true" id="eos-matdel-sell" @(Model.MateriaDeleteSell ? "checked" : "") />
+                    <label class="form-check-label" for="eos-matdel-sell">Add the Gil the game pays for selling them</label>
+                </div>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-download"></i> Delete ticked and download</button>
+                    <span class="small" id="eos-matdel-summary">Nothing ticked yet.</span>
+                </div>
+            </form>
+            @if (Model.MateriaDeleteErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.MateriaDeleteErrorMessage</div>
+            }
+        </div>
+    </details>
+    <script id="eos-matdel-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        materia = Model.MateriaList.Materia.ToDictionary(kv => kv.Key.ToString(), kv => new object[] { kv.Value.Name, kv.Value.Steps }),
+        stats = Model.MateriaList.Stats.ToDictionary(kv => kv.Key.ToString(), kv => new object[] { kv.Value.Label, kv.Value.Percent, kv.Value.Order }),
+    }, new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+
+    <details class="mt-2" id="eos-choco-edit" @(Model.ChocoboErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-feather"></i> Add chocobos to a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 1100px;">
+            <p class="small mb-2">
+                Pick a chocobo by field, rarity, rank, gender and colour (or one of the special chocobos), set its stats, and add it to the list.
+                Upload the server's <code>data\account.json</code> to see the chocobos it already has, then download the updated file.
+            </p>
+            <p class="small text-muted mb-2">
+                Stats come in two pairs: Speed + Stamina and Intellect + Adaptability always add up to the same total, so raising one lowers the other.
+                "Roll like the game" picks a random split for each chocobo. Colour names are approximate.
+                If the chocobo farm screen never finishes loading in game, download with an empty list: that sets up the farm
+                records an account started on the offline server can be missing. Stop the server and back up
+                <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="AddChocobos" id="eos-choco-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="ChocoboAccountFile">Server's account.json</label>
+                    <input type="file" id="ChocoboAccountFile" name="ChocoboAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-choco-status"></div>
+                </div>
+                <div class="border rounded p-2 mb-2">
+                    <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+                        <div>
+                            <label class="form-label small mb-1" for="eos-choco-kind">Chocobo</label>
+                            <select id="eos-choco-kind" class="form-select form-select-sm" style="min-width: 200px;"></select>
+                        </div>
+                        <div class="eos-choco-normal">
+                            <label class="form-label small mb-1" for="eos-choco-area">Field</label>
+                            <select id="eos-choco-area" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="eos-choco-normal">
+                            <label class="form-label small mb-1" for="eos-choco-rarity">Rarity</label>
+                            <select id="eos-choco-rarity" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="eos-choco-normal">
+                            <label class="form-label small mb-1" for="eos-choco-rank">Rank</label>
+                            <select id="eos-choco-rank" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="eos-choco-normal">
+                            <label class="form-label small mb-1" for="eos-choco-sex">Gender</label>
+                            <select id="eos-choco-sex" class="form-select form-select-sm"><option value="1">Male</option><option value="2">Female</option></select>
+                        </div>
+                    </div>
+                    <div class="eos-choco-normal mb-2">
+                        <div class="small mb-1">Colour: <strong id="eos-choco-colour-name"></strong></div>
+                        <div class="d-flex flex-wrap gap-1" id="eos-choco-colours"></div>
+                    </div>
+                    <div class="small mb-2" id="eos-choco-picked"></div>
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                        <div class="form-check small mb-0">
+                            <input class="form-check-input" type="radio" name="eos-choco-statmode" id="eos-choco-roll" value="roll" checked />
+                            <label class="form-check-label" for="eos-choco-roll">Roll like the game</label>
+                        </div>
+                        <div class="form-check small mb-0">
+                            <input class="form-check-input" type="radio" name="eos-choco-statmode" id="eos-choco-set" value="set" />
+                            <label class="form-check-label" for="eos-choco-set">Set the split</label>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2 small" id="eos-choco-sliders">
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between"><span>Speed <strong id="eos-choco-spd-v"></strong></span><span>Stamina <strong id="eos-choco-sta-v"></strong></span></div>
+                            <input type="range" class="form-range" id="eos-choco-spd" step="1" />
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between"><span>Intellect <strong id="eos-choco-int-v"></strong></span><span>Adaptability <strong id="eos-choco-ada-v"></strong></span></div>
+                            <input type="range" class="form-range" id="eos-choco-int" step="1" />
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <label class="small" for="eos-choco-count">How many</label>
+                        <input type="number" id="eos-choco-count" class="form-control form-control-sm" style="width: 5rem;" min="1" max="50" value="1" />
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="eos-choco-add"><i class="fas fa-plus"></i> Add to list</button>
+                    </div>
+                </div>
+                <table class="table table-sm small mb-2">
+                    <thead><tr><th>To add</th><th>Field</th><th>Rank</th><th>Stats</th><th class="text-end">Count</th><th></th></tr></thead>
+                    <tbody id="eos-choco-queue"></tbody>
+                </table>
+                <div class="form-check small mb-2">
+                    <input class="form-check-input" type="checkbox" id="ChocoboCompleteTutorials" name="ChocoboCompleteTutorials" value="true" @(Model.ChocoboCompleteTutorials ? "checked" : "") />
+                    <input type="hidden" name="ChocoboCompleteTutorials" value="false" />
+                    <label class="form-check-label" for="ChocoboCompleteTutorials">Also mark all the game's tutorials as finished (an account started on the offline server only has the ones it played, and an unplayed one can stop a screen such as the chocobo farm from loading)</label>
+                </div>
+                <input type="hidden" name="ChocoboRequestsJson" id="eos-choco-json" value="@Model.ChocoboRequestsJson" />
+                <div class="d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Add and download</button>
+                    <span class="small" id="eos-choco-summary">Nothing added yet.</span>
+                </div>
+            </form>
+            @if (Model.ChocoboErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.ChocoboErrorMessage</div>
+            }
+            <div class="mt-3" id="eos-choco-owned-wrap" hidden>
+                <div class="small fw-semibold mb-1">Chocobos in the uploaded file (<span id="eos-choco-owned-count">0</span>)</div>
+                <div class="border rounded" style="max-height: 320px; overflow-y: auto;">
+                    <table class="table table-sm small mb-0">
+                        <thead class="table-light" style="position: sticky; top: 0;"><tr><th>Chocobo</th><th>Field</th><th>Rank</th><th>Speed / Stamina</th><th>Intellect / Adaptability</th><th></th></tr></thead>
+                        <tbody id="eos-choco-owned"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </details>
+    <script id="eos-choco-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.ChocoboOptions.Select(c => new object[] { c.Id, c.Rarity, c.Area, c.Sex, c.Colour, c.Rank, c.LimitRank, c.Weights, c.Spread, c.Name }),
+        new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+
+    <details class="mt-2" id="eos-story-edit" @(Model.StoryErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-book-open"></i> Mark story chapters complete on a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 1100px;">
+            <p class="small mb-2">
+                Tick the main story chapters and character stories to mark as cleared, then download the updated file.
+                Upload the server's <code>data\account.json</code> first to see how far the account has got.
+            </p>
+            <p class="small text-muted mb-2">
+                Ticking a main story chapter also ticks the earlier chapters of that story, since the game expects them to be done first.
+                Episodes already cleared are left as they are. First-clear rewards are not given. Stop the server and back up
+                <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetStory" id="eos-story-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="StoryAccountFile">Server's account.json</label>
+                    <input type="file" id="StoryAccountFile" name="StoryAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-story-status"></div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-story-all">Tick everything</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-story-none">Untick everything</button>
+                </div>
+                <div class="row g-2 mb-2" id="eos-story-groups"></div>
+                <div class="form-check small mb-2">
+                    <input class="form-check-input" type="checkbox" id="StoryCompleteTutorials" name="StoryCompleteTutorials" value="true" @(Model.StoryCompleteTutorials ? "checked" : "") />
+                    <input type="hidden" name="StoryCompleteTutorials" value="false" />
+                    <label class="form-check-label" for="StoryCompleteTutorials">Also mark all the game's tutorials as finished (an account started on the offline server only has the ones it played, and an unplayed one can stop a screen such as the chocobo farm from loading)</label>
+                </div>
+                <input type="hidden" name="StoryChaptersJson" id="eos-story-json" value="@Model.StoryChaptersJson" />
+                <div class="d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Mark complete and download</button>
+                    <span class="small" id="eos-story-summary">Nothing ticked yet.</span>
+                </div>
+            </form>
+            @if (Model.StoryErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.StoryErrorMessage</div>
+            }
+        </div>
+    </details>
+    <script id="eos-story-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.StoryChapters.Select(c => new object[] { c.Key, c.Group, c.Name, c.Kind, c.Episodes }),
+        new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
 
     @if (s is not null)
     {
@@ -1672,6 +2185,867 @@
             });
         }
 
+        // Player rank: show the current rank from the uploaded file and the stamina cap of the picked rank.
+        (function () {
+            const catEl = document.getElementById('eos-rank-catalog');
+            if (!catEl) return;
+            const ranks = JSON.parse(catEl.textContent); // [rank, exp, stamina]
+            const input = document.getElementById('RankTarget');
+            const info = document.getElementById('eos-rank-info');
+            const rankFor = exp => ranks.filter(r => r[1] <= exp).pop()?.[0] ?? 1;
+            const update = () => {
+                const r = ranks.find(x => x[0] === Number(input.value));
+                info.textContent = r ? `needs ${r[1].toLocaleString()} exp, stamina up to ${r[2]}` : `pick 1 to ${ranks.at(-1)[0]}`;
+            };
+            input.addEventListener('input', update);
+            document.getElementById('eos-rank-max').addEventListener('click', () => { input.value = ranks.at(-1)[0]; update(); });
+            update();
+            ncPrefill(document.getElementById('RankAccountFile'), document.getElementById('eos-rank-status'), tables => {
+                const row = Object.values(tables['259686066'] ?? {})[0];
+                if (!row) return 'Loaded. The account has no status row yet; one will be added.';
+                const f = ncDecodeRow(row);
+                const exp = Number(f[2] ?? 0n);
+                return `Loaded: rank ${rankFor(exp)} (${exp.toLocaleString()} exp), stamina ${Number(f[3] ?? 0n)}.`;
+            });
+        })();
+
+        // Weapon level, rarity and overboost: cards for owned weapons.
+        (function () {
+            const catEl = document.getElementById('eos-wlevel-catalog');
+            if (!catEl) return;
+            const cat = JSON.parse(catEl.textContent);
+            const weapons = cat.weapons; // id -> [name, character]
+            const list = document.getElementById('eos-wlevel-list');
+            const empty = document.getElementById('eos-wlevel-empty');
+            const pick = document.getElementById('eos-wlevel-pick');
+            const filter = document.getElementById('eos-wlevel-filter');
+            let owned = {}; // weapon id -> { rarity, release, level, overboost }
+            const rarityLabel = r => ({ 1: '3★', 2: '4★', 3: '5★', 101: '6★ ultimate' })[r] ?? `rarity ${r}`;
+            const wName = id => weapons[id] ? `${weapons[id][0]}${weapons[id][1] ? ' (' + weapons[id][1] + ')' : ''}` : `Weapon #${id}`;
+            const prof = id => cat.profiles[cat.weaponProfile[id]];
+            const maxRelease = (p, rarity) => p.rel.find(x => x[0] === rarity)?.[1] ?? 0;
+            const topRarity = p => Math.max(...p.rel.map(x => x[0]));
+            const cap = (p, release) => Math.min(p.cap[release] ?? 1, p.exp.length);
+            const maxOb = (p, rarity) => rarity === topRarity(p) ? p.ob1 + p.ob2 : 0;
+            const obLabel = (p, n) => n === 0 ? 'none' : n <= p.ob1 ? `OB${n}` : `OB${p.ob1} +${n - p.ob1}`;
+            const describe = (p, s) => `${rarityLabel(s.rarity)}, level ${s.level} of ${cap(p, s.release)}, overboost ${obLabel(p, s.overboost)}`;
+            // Current state from a UserWeaponList row.
+            function decode(id, f) {
+                const p = prof(id);
+                if (!p) return null;
+                const rarity = Number(f[3] ?? 0n), release = Number(f[6] ?? 0n), exp = Number(f[7] ?? 0n);
+                const type = Number(f[4] ?? 1n), count = Number(f[5] ?? 0n);
+                let level = 1;
+                p.exp.forEach((e, i) => { if (e <= exp) level = i + 1; });
+                return { rarity, release, level: Math.min(level, cap(p, release)), overboost: type === 2 ? p.ob1 + count : count };
+            }
+
+            function sel(cls, width) { return `<select class="form-select form-select-sm ${cls}" style="width: ${width};"></select>`; }
+            // Rebuilds the dropdowns and level range for the card's rarity and level cap, clamping values.
+            function refresh(el) {
+                const p = prof(el.dataset.weapon);
+                const r = el.querySelector('.eos-wl-rarity'), rel = el.querySelector('.eos-wl-release');
+                const lvl = el.querySelector('.eos-wl-level'), ob = el.querySelector('.eos-wl-ob');
+                const rarity = Number(r.value);
+                const mr = maxRelease(p, rarity), keepRel = Math.min(Number(rel.value) || 0, mr);
+                rel.innerHTML = Array.from({ length: mr + 1 }, (_, i) => `<option value="${i}">${cap(p, i)}</option>`).join('');
+                rel.value = keepRel;
+                const c = cap(p, keepRel);
+                lvl.min = 1; lvl.max = c;
+                const v = parseInt(lvl.value);
+                lvl.value = Number.isNaN(v) ? c : Math.max(1, Math.min(v, c));
+                el.querySelector('.eos-wl-cap').textContent = `(1–${c})`;
+                const mo = maxOb(p, rarity), keepOb = Math.min(Number(ob.value) || 0, mo);
+                ob.innerHTML = Array.from({ length: mo + 1 }, (_, i) => `<option value="${i}">${obLabel(p, i)}</option>`).join('');
+                ob.value = keepOb;
+                ob.disabled = mo === 0;
+                empty.hidden = list.children.length > 0;
+            }
+            function set(el, s) {
+                el.querySelector('.eos-wl-rarity').value = s.rarity;
+                el.querySelector('.eos-wl-release').innerHTML = `<option value="${s.release}">${s.release}</option>`;
+                el.querySelector('.eos-wl-release').value = s.release;
+                el.querySelector('.eos-wl-level').value = s.level;
+                el.querySelector('.eos-wl-ob').innerHTML = `<option value="${s.overboost}"></option>`;
+                el.querySelector('.eos-wl-ob').value = s.overboost;
+                refresh(el);
+            }
+            function maxCard(el, levelOnly) {
+                const p = prof(el.dataset.weapon);
+                const rarity = levelOnly ? Number(el.querySelector('.eos-wl-rarity').value) : topRarity(p);
+                const release = maxRelease(p, rarity);
+                set(el, {
+                    rarity, release, level: cap(p, release),
+                    overboost: levelOnly ? Number(el.querySelector('.eos-wl-ob').value) || 0 : maxOb(p, rarity),
+                });
+            }
+            function card(weaponId, init) {
+                const p = prof(weaponId);
+                if (!p || list.querySelector(`[data-weapon="${weaponId}"]`)) return null;
+                const el = document.createElement('div');
+                el.className = 'border rounded p-2 small eos-wl-card';
+                el.dataset.weapon = weaponId;
+                const now = owned[weaponId];
+                el.innerHTML = `<div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <strong>${wName(weaponId)}</strong>
+                        <span class="text-muted eos-wl-now">${now ? 'now: ' + describe(p, now) : ''}</span>
+                        <span class="ms-auto"></span>
+                        <button type="button" class="btn btn-link btn-sm p-0 eos-wl-max">Max</button>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-danger eos-wl-remove">Remove</button>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <label class="mb-0">Rarity</label>
+                        <select class="form-select form-select-sm eos-wl-rarity" style="width: 9rem;">
+                            ${p.rel.map(x => `<option value="${x[0]}">${rarityLabel(x[0])}</option>`).join('')}
+                        </select>
+                        <label class="mb-0">Level cap</label> ${sel('eos-wl-release', '5.5rem')}
+                        <label class="mb-0">Level</label>
+                        <input type="number" class="form-control form-control-sm eos-wl-level" style="width: 5.5rem;" />
+                        <span class="text-muted eos-wl-cap"></span>
+                        <label class="mb-0">Overboost</label> ${sel('eos-wl-ob', '8rem')}
+                    </div>`;
+                list.append(el);
+                if (init) set(el, init);
+                else if (now) set(el, now);
+                else maxCard(el);
+                return el;
+            }
+            function collect() {
+                return [...list.querySelectorAll('.eos-wl-card')].map(el => ({
+                    weaponId: Number(el.dataset.weapon),
+                    rarity: Number(el.querySelector('.eos-wl-rarity').value),
+                    release: Number(el.querySelector('.eos-wl-release').value),
+                    level: parseInt(el.querySelector('.eos-wl-level').value) || 1,
+                    overboost: Number(el.querySelector('.eos-wl-ob').value) || 0,
+                }));
+            }
+
+            list.addEventListener('click', e => {
+                const el = e.target.closest('.eos-wl-card');
+                if (!el) return;
+                if (e.target.classList.contains('eos-wl-remove')) { el.remove(); empty.hidden = list.children.length > 0; }
+                if (e.target.classList.contains('eos-wl-max')) maxCard(el);
+            });
+            list.addEventListener('change', e => {
+                const el = e.target.closest('.eos-wl-card');
+                if (!el) return;
+                // Raising the level cap raises the level with it when the level was at the old cap.
+                if (e.target.classList.contains('eos-wl-release')) {
+                    const lvl = el.querySelector('.eos-wl-level');
+                    if (Number(lvl.value) >= Number(lvl.max)) lvl.value = '';
+                }
+                refresh(el);
+            });
+            document.getElementById('eos-wlevel-add').addEventListener('click', () => { if (pick.value) card(Number(pick.value)); });
+            document.getElementById('eos-wlevel-add-shown').addEventListener('click', () => {
+                [...pick.options].filter(o => o.value && !o.hidden).forEach(o => card(Number(o.value)));
+            });
+            document.getElementById('eos-wlevel-clear').addEventListener('click', () => { list.innerHTML = ''; empty.hidden = false; });
+            document.getElementById('eos-wlevel-bulk-max').addEventListener('click', () => list.querySelectorAll('.eos-wl-card').forEach(el => maxCard(el)));
+            document.getElementById('eos-wlevel-bulk-level').addEventListener('click', () => list.querySelectorAll('.eos-wl-card').forEach(el => maxCard(el, true)));
+            filter.addEventListener('input', () => {
+                const q = filter.value.trim().toLowerCase();
+                let first = null;
+                [...pick.options].forEach(o => { o.hidden = !!q && !o.textContent.toLowerCase().includes(q); if (!o.hidden && !first) first = o; });
+                if (first && pick.selectedOptions[0]?.hidden) pick.value = first.value;
+            });
+            document.getElementById('eos-wlevel-form').addEventListener('submit', () => {
+                document.getElementById('eos-wlevel-json').value = JSON.stringify(collect());
+            });
+            // After an error, rebuild the list that was sent.
+            try { JSON.parse(document.getElementById('eos-wlevel-json').value || '[]').forEach(r => card(r.weaponId, r)); } catch { }
+            empty.hidden = list.children.length > 0;
+
+            ncPrefill(document.getElementById('WeaponLevelAccountFile'), document.getElementById('eos-wlevel-status'), tables => {
+                owned = {};
+                for (const hex of Object.values(tables['231622239'] ?? {})) {
+                    const f = ncDecodeRow(hex), id = Number(f[2] ?? 0n);
+                    const s = decode(id, f);
+                    if (s) owned[id] = s;
+                }
+                const ids = Object.keys(owned).map(Number).sort((a, b) => wName(a).localeCompare(wName(b)));
+                pick.innerHTML = ids.map(id => {
+                    const s = owned[id], p = prof(id);
+                    const maxed = s.rarity === topRarity(p) && s.release === maxRelease(p, s.rarity) && s.level >= cap(p, s.release) && s.overboost >= maxOb(p, s.rarity);
+                    return `<option value="${id}">${wName(id)} – ${rarityLabel(s.rarity)} Lv${s.level}${s.overboost ? ' ' + obLabel(p, s.overboost) : ''}${maxed ? ' (maxed)' : ''}</option>`;
+                }).join('');
+                pick.disabled = false;
+                document.getElementById('eos-wlevel-add').disabled = document.getElementById('eos-wlevel-add-shown').disabled = false;
+                list.querySelectorAll('.eos-wl-card').forEach(el => {
+                    const now = owned[el.dataset.weapon];
+                    el.querySelector('.eos-wl-now').textContent = now ? 'now: ' + describe(prof(el.dataset.weapon), now) : 'not owned by this account';
+                });
+                return `Loaded: ${ids.length} weapons. Weapons already at max are marked (maxed). Add weapons and set them, then download.`;
+            });
+        })();
+
+        // Items: a filterable table of every item, showing the account's counts; only changed counts are sent.
+        (function () {
+            const catEl = document.getElementById('eos-items-catalog');
+            if (!catEl) return;
+            const cat = JSON.parse(catEl.textContent); // { cats, items: [id, name, catIndex, max] }
+            const tbody = document.getElementById('eos-items-rows');
+            const catSel = document.getElementById('eos-items-cat');
+            const filter = document.getElementById('eos-items-filter');
+            const onlyOwned = document.getElementById('eos-items-owned');
+            const onlyChanged = document.getElementById('eos-items-changed');
+            const shownEl = document.getElementById('eos-items-shown');
+            const summary = document.getElementById('eos-items-summary');
+            const more = document.getElementById('eos-items-more');
+            const bulkN = document.getElementById('eos-items-bulk-n');
+            const LIMIT = 400; // rows drawn at once; narrow the filter to see the rest
+            let owned = new Map();    // item id -> count in the uploaded file
+            const target = new Map(); // item id -> new count (changed items only)
+            const items = cat.items.map(([id, name, c, max]) => ({ id, name, c, max, lower: name.toLowerCase() }));
+            items.sort((a, b) => a.c - b.c || a.name.localeCompare(b.name));
+            const byId = new Map(items.map(i => [i.id, i]));
+            catSel.innerHTML = `<option value="-1">All tabs (${items.length})</option>` + cat.cats.map((n, i) =>
+                `<option value="${i}">${n.replace(/[<>&"]/g, '')} (${items.filter(x => x.c === i).length})</option>`).join('');
+
+            const has = id => owned.get(id) ?? 0;
+            const value = id => target.has(id) ? target.get(id) : has(id);
+            function setCount(id, n) {
+                const it = byId.get(id);
+                n = Math.max(0, Math.min(it.max, Math.floor(Number(n) || 0)));
+                if (n === has(id)) target.delete(id); else target.set(id, n);
+            }
+            function matches() {
+                const q = filter.value.trim().toLowerCase(), c = Number(catSel.value);
+                return items.filter(i => (c < 0 || i.c === c) && (!q || i.lower.includes(q))
+                    && (!onlyOwned.checked || has(i.id) > 0) && (!onlyChanged.checked || target.has(i.id)));
+            }
+            function updateSummary() {
+                summary.textContent = target.size ? `${target.size} item${target.size === 1 ? '' : 's'} changed.` : 'No changes yet.';
+            }
+            function draw() {
+                const list = matches();
+                shownEl.textContent = list.length;
+                more.hidden = list.length <= LIMIT;
+                more.textContent = `Showing the first ${LIMIT} of ${list.length}. Search or pick a tab to narrow the list; the bulk buttons still apply to all ${list.length}.`;
+                const frag = document.createDocumentFragment();
+                for (const it of list.slice(0, LIMIT)) {
+                    const tr = document.createElement('tr');
+                    tr.dataset.id = it.id;
+                    if (target.has(it.id)) tr.className = 'table-warning';
+                    const name = document.createElement('td'); name.textContent = it.name;
+                    const tab = document.createElement('td'); tab.className = 'text-muted'; tab.textContent = cat.cats[it.c];
+                    const h = document.createElement('td'); h.className = 'text-end'; h.textContent = has(it.id).toLocaleString();
+                    const inp = document.createElement('td');
+                    inp.innerHTML = `<input type="number" class="form-control form-control-sm eos-item-n" min="0" max="${it.max}" value="${value(it.id)}" />`;
+                    const btn = document.createElement('td');
+                    btn.innerHTML = `<button type="button" class="btn btn-link btn-sm p-0 eos-item-max" title="Max ${it.max.toLocaleString()}">Max</button>`;
+                    tr.append(name, tab, h, inp, btn);
+                    frag.append(tr);
+                }
+                tbody.replaceChildren(frag);
+                updateSummary();
+            }
+            function refreshRow(tr) {
+                const id = Number(tr.dataset.id);
+                tr.querySelector('.eos-item-n').value = value(id);
+                tr.className = target.has(id) ? 'table-warning' : '';
+                updateSummary();
+            }
+            tbody.addEventListener('change', e => {
+                const tr = e.target.closest('tr');
+                if (!tr || !e.target.classList.contains('eos-item-n')) return;
+                setCount(Number(tr.dataset.id), e.target.value);
+                refreshRow(tr);
+            });
+            tbody.addEventListener('click', e => {
+                if (!e.target.classList.contains('eos-item-max')) return;
+                const tr = e.target.closest('tr'), id = Number(tr.dataset.id);
+                setCount(id, byId.get(id).max);
+                refreshRow(tr);
+            });
+            const bulk = fn => { matches().forEach(fn); draw(); };
+            document.getElementById('eos-items-bulk-set').addEventListener('click', () => {
+                if (bulkN.value === '') return bulkN.focus();
+                bulk(i => setCount(i.id, bulkN.value));
+            });
+            document.getElementById('eos-items-bulk-add').addEventListener('click', () => {
+                if (bulkN.value === '') return bulkN.focus();
+                bulk(i => setCount(i.id, value(i.id) + Number(bulkN.value)));
+            });
+            document.getElementById('eos-items-bulk-max').addEventListener('click', () => bulk(i => setCount(i.id, i.max)));
+            document.getElementById('eos-items-bulk-reset').addEventListener('click', () => bulk(i => target.delete(i.id)));
+            [catSel, onlyOwned, onlyChanged].forEach(el => el.addEventListener('change', draw));
+            let timer;
+            filter.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(draw, 150); });
+            document.getElementById('eos-items-form').addEventListener('submit', () => {
+                document.getElementById('eos-items-json').value = JSON.stringify([...target].map(([itemId, count]) => ({ itemId, count })));
+            });
+            // After an error, restore the changes that were sent.
+            try { JSON.parse(document.getElementById('eos-items-json').value || '[]').forEach(r => { if (byId.has(r.itemId)) target.set(r.itemId, r.count); }); } catch { }
+            draw();
+
+            ncPrefill(document.getElementById('ItemAccountFile'), document.getElementById('eos-items-status'), tables => {
+                owned = new Map();
+                for (const hex of Object.values(tables['331261873'] ?? {})) {
+                    const f = ncDecodeRow(hex);
+                    owned.set(Number(f[2] ?? 0n), Number(f[3] ?? 0n));
+                }
+                // Pending changes that now match the file are no longer changes.
+                for (const [id, n] of [...target]) if (n === has(id)) target.delete(id);
+                draw();
+                const held = [...owned.values()].filter(n => n > 0).length;
+                return `Loaded: the account holds ${held} kinds of items.`;
+            });
+        })();
+
+        // Delete materia: list the account's materia with level and sub stats; only the ticked ids are sent.
+        (function () {
+            const catEl = document.getElementById('eos-matdel-catalog');
+            if (!catEl) return;
+            const cat = JSON.parse(catEl.textContent); // { materia: {id: [name, {"q_e": [[exp, gil], ...]}]}, stats: {id: [label, percent, order]} }
+            const tbody = document.getElementById('eos-matdel-rows');
+            const filter = document.getElementById('eos-matdel-filter');
+            const starsSel = document.getElementById('eos-matdel-stars');
+            const onlyDupes = document.getElementById('eos-matdel-dupes');
+            const hideBlocked = document.getElementById('eos-matdel-free');
+            const onlyTicked = document.getElementById('eos-matdel-ticked');
+            const sell = document.getElementById('eos-matdel-sell');
+            const shownEl = document.getElementById('eos-matdel-shown');
+            const summary = document.getElementById('eos-matdel-summary');
+            const sigils = { 1: ' ⬤', 2: ' ▲', 3: ' ✖' };
+            let list = [];             // owned materia, decoded from the file
+            const ticked = new Set();  // UserMateriaIds (strings)
+            const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+
+            function decode(tables) {
+                const equipped = new Set();
+                for (const hex of Object.values(tables['17062056'] ?? {})) {
+                    const f = ncDecodeRow(hex);
+                    for (const no of [7, 8, 9]) if (f[no]) equipped.add(String(f[no]));
+                }
+                const out = [];
+                for (const hex of Object.values(tables['19548514'] ?? {})) {
+                    const f = ncDecodeRow(hex);
+                    const id = String(f[2] ?? 0n), mid = String(f[3] ?? 0n);
+                    const q = Number(f[4] ?? 0n), e = Number(f[5] ?? 0n), exp = Number(f[7] ?? 0n);
+                    const def = cat.materia[mid];
+                    const steps = def?.[1]?.[`${q}_${e}`] ?? [];
+                    let level = 1, gil = 0;
+                    steps.forEach(([need, g], i) => { if (need <= exp) { level = i + 1; gil = g; } });
+                    const stats = [];
+                    const open = Math.min(Number(f[10] ?? 0n), 4);
+                    for (let i = 0; i < open; i++) {
+                        const sid = String(f[11 + i] ?? 0n);
+                        if (sid === '0') continue;
+                        const [label, pct, order] = cat.stats[sid] ?? [`Stat #${sid}`, false, 999];
+                        const v = Number(f[15 + i] ?? 0n);
+                        stats.push({ order, text: pct ? `${label.replace(/ %$/, '')} ${(v / 10).toLocaleString()}%` : `${label} ${v.toLocaleString()}` });
+                    }
+                    stats.sort((a, b) => a.order - b.order);
+                    const name = (def?.[0] ?? `Materia #${mid}`) + (sigils[Number(f[6] ?? 0n)] ?? '');
+                    const got = Number(f[9] ?? 0n);
+                    out.push({
+                        id, name, lower: name.toLowerCase(), q, level, gil, stats: stats.map(s => s.text).join(' · '),
+                        got: got ? new Date(got).toLocaleDateString() : '', gotMs: got,
+                        locked: (f[8] ?? 0n) !== 0n, equipped: equipped.has(id),
+                    });
+                }
+                const counts = new Map();
+                out.forEach(m => counts.set(m.name, (counts.get(m.name) ?? 0) + 1));
+                out.forEach(m => m.copies = counts.get(m.name));
+                out.sort((a, b) => a.name.localeCompare(b.name) || b.q - a.q || b.level - a.level || a.gotMs - b.gotMs);
+                return out;
+            }
+            const blocked = m => m.locked || m.equipped;
+            function matches() {
+                const q = filter.value.trim().toLowerCase(), stars = Number(starsSel.value);
+                return list.filter(m => (!q || m.lower.includes(q) || m.stats.toLowerCase().includes(q)) && (!stars || m.q === stars)
+                    && (!onlyDupes.checked || m.copies > 1) && (!hideBlocked.checked || !blocked(m)) && (!onlyTicked.checked || ticked.has(m.id)));
+            }
+            function updateSummary() {
+                const picked = list.filter(m => ticked.has(m.id));
+                const gil = picked.reduce((s, m) => s + m.gil, 0);
+                summary.textContent = picked.length
+                    ? `${picked.length} materia ticked to delete` + (sell.checked ? `, selling for about ${gil.toLocaleString()} Gil.` : '.')
+                    : 'Nothing ticked yet.';
+            }
+            function draw() {
+                if (!list.length) { updateSummary(); return; }
+                const shown = matches();
+                shownEl.textContent = shown.length;
+                tbody.innerHTML = shown.map(m => {
+                    const why = m.locked ? 'Locked' : m.equipped ? 'Equipped' : '';
+                    return `<tr data-id="${m.id}" class="${ticked.has(m.id) ? 'table-danger' : ''}">
+                        <td><input type="checkbox" class="form-check-input eos-matdel-pick" ${ticked.has(m.id) ? 'checked' : ''} ${why ? 'disabled' : ''} /></td>
+                        <td>${esc(m.name)}${m.copies > 1 ? ` <span class="text-muted">(×${m.copies})</span>` : ''}</td>
+                        <td>${m.q}★</td><td class="text-end">${m.level}</td><td>${esc(m.stats)}</td>
+                        <td class="text-muted">${esc(m.got)}</td>
+                        <td>${why ? `<span class="badge bg-secondary">${why}</span>` : ''}</td>
+                        <td class="text-end">${m.gil.toLocaleString()}</td></tr>`;
+                }).join('') || '<tr><td colspan="8" class="text-muted">No materia match.</td></tr>';
+                updateSummary();
+            }
+            tbody.addEventListener('change', e => {
+                if (!e.target.classList.contains('eos-matdel-pick')) return;
+                const tr = e.target.closest('tr');
+                if (e.target.checked) ticked.add(tr.dataset.id); else ticked.delete(tr.dataset.id);
+                tr.className = e.target.checked ? 'table-danger' : '';
+                updateSummary();
+            });
+            document.getElementById('eos-matdel-tick').addEventListener('click', () => { matches().filter(m => !blocked(m)).forEach(m => ticked.add(m.id)); draw(); });
+            document.getElementById('eos-matdel-untick').addEventListener('click', () => { matches().forEach(m => ticked.delete(m.id)); draw(); });
+            [starsSel, onlyDupes, hideBlocked, onlyTicked].forEach(el => el.addEventListener('change', draw));
+            sell.addEventListener('change', updateSummary);
+            let timer;
+            filter.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(draw, 150); });
+            document.getElementById('eos-matdel-form').addEventListener('submit', () => {
+                document.getElementById('eos-matdel-json').value = JSON.stringify([...ticked]);
+            });
+            try { JSON.parse(document.getElementById('eos-matdel-json').value || '[]').forEach(id => ticked.add(String(id))); } catch { }
+
+            ncPrefill(document.getElementById('MateriaDeleteAccountFile'), document.getElementById('eos-matdel-status'), tables => {
+                list = decode(tables);
+                const ids = new Set(list.filter(m => !blocked(m)).map(m => m.id));
+                for (const id of [...ticked]) if (!ids.has(id)) ticked.delete(id);
+                draw();
+                const dupes = new Set(list.filter(m => m.copies > 1).map(m => m.name)).size;
+                return `Loaded: ${list.length} materia (${list.filter(blocked).length} locked or equipped); ${dupes} names are held more than once.`;
+            });
+        })();
+
+        // Chocobos: pick from the catalog by field, rarity, rank, gender and colour; owned chocobos are read from the file.
+        (function () {
+            const catEl = document.getElementById('eos-choco-catalog');
+            if (!catEl) return;
+            // [id, rarity, area flag, sex, colour, rank, limit rank, [weights], spread, name]
+            const all = JSON.parse(catEl.textContent).map(([id, rarity, area, sex, colour, rank, limit, w, spread, name]) =>
+                ({ id, rarity, area, sex, colour, rank, limit, w, spread, name }));
+            const byId = new Map(all.map(c => [c.id, c]));
+            const AREAS = { 1: 'Land', 2: 'River', 4: 'Mountain', 8: 'Ocean' };
+            const RANKS = ['H', 'H+', 'G', 'G+', 'F', 'F+', 'E', 'E+', 'D', 'D+', 'C', 'C+', 'B', 'B+', 'A', 'A+', 'S', 'S+'];
+            // Colour names and swatches sampled from the in-game thumbnails (art 2320CC0101); 31+ belong to special chocobos.
+            const COLOURS = {
+                1: ['Yellow', '#d8c074'], 2: ['Periwinkle', '#6c8bd3'], 3: ['Lavender', '#d8d0fd'], 4: ['Purple', '#a57ae0'], 5: ['Peach', '#fddbcc'],
+                6: ['Pink', '#e17dd4'], 7: ['Rose', '#ab3d76'], 8: ['Light Pink', '#fdc4eb'], 9: ['Salmon', '#da7c77'], 10: ['Plum', '#562344'],
+                11: ['Cream', '#d5ecb0'], 12: ['Lime', '#90be26'], 13: ['Mustard', '#946f1e'], 14: ['Mint', '#6ac272'], 15: ['Pale Mint', '#b5f8d7'],
+                16: ['Teal', '#146353'], 17: ['Sky Blue', '#7dc6ce'], 18: ['Orange', '#b85f23'], 19: ['Red', '#b12936'], 20: ['Crimson', '#851010'],
+                21: ['Brown', '#61462e'], 22: ['Chestnut', '#4d2f30'], 23: ['Navy', '#244547'], 24: ['Violet', '#5b346e'], 25: ['Blue', '#2f4e66'],
+                26: ['Forest Green', '#263f31'], 27: ['Olive', '#66683c'], 28: ['Grey', '#676767'], 29: ['White', '#d2e0f8'], 30: ['Black', '#292929'],
+            };
+            const colourName = n => COLOURS[n]?.[0] ?? `Special art ${n}`;
+            const swatch = n => `<span class="d-inline-block rounded-circle border align-middle" style="width:.9rem;height:.9rem;background:${COLOURS[n]?.[1] ?? 'repeating-linear-gradient(45deg,#ccc 0 3px,#888 3px 6px)'}"></span>`;
+            const rankText = r => `${RANKS[r - 1] ?? r}`;
+            const stars = r => `${r}★`;
+            const label = c => c.spread === 0
+                ? (c.name || `Story chocobo #${c.id}`)
+                : `${colourName(c.colour)} ${c.sex === 2 ? '♀' : '♂'} ${stars(c.rarity)}`;
+
+            const kind = document.getElementById('eos-choco-kind');
+            const areaSel = document.getElementById('eos-choco-area');
+            const raritySel = document.getElementById('eos-choco-rarity');
+            const rankSel = document.getElementById('eos-choco-rank');
+            const sexSel = document.getElementById('eos-choco-sex');
+            const colourBox = document.getElementById('eos-choco-colours');
+            const colourName_ = document.getElementById('eos-choco-colour-name');
+            const picked = document.getElementById('eos-choco-picked');
+            const spd = document.getElementById('eos-choco-spd'), intl = document.getElementById('eos-choco-int');
+            const setMode = document.getElementById('eos-choco-set');
+            const queueEl = document.getElementById('eos-choco-queue');
+            const summary = document.getElementById('eos-choco-summary');
+            let colour = 1;
+            let queue = []; // { id, speed, intellect, count } (speed/intellect null = roll)
+
+            const specials = all.filter(c => c.spread === 0).sort((a, b) => b.rarity - a.rarity || a.id - b.id);
+            kind.innerHTML = '<option value="0">Regular chocobo</option>' + specials.map(c =>
+                `<option value="${c.id}">${label(c).replace(/[<>&"]/g, '')} (${stars(c.rarity)}, ${AREAS[c.area] ?? '?'})</option>`).join('');
+            areaSel.innerHTML = Object.entries(AREAS).map(([v, n]) => `<option value="${v}">${n}</option>`).join('');
+            const normals = all.filter(c => c.spread > 0);
+            raritySel.innerHTML = [...new Set(normals.map(c => c.rarity))].sort((a, b) => b - a).map(r => `<option value="${r}">${stars(r)}</option>`).join('');
+
+            function fillRanks() {
+                const r = Number(raritySel.value), keep = rankSel.value;
+                const ranks = [...new Set(normals.filter(c => c.rarity === r).map(c => `${c.rank}-${c.limit}`))].sort((a, b) => parseInt(b) - parseInt(a));
+                rankSel.innerHTML = ranks.map(k => { const [a, b] = k.split('-').map(Number); return `<option value="${k}">${rankText(a)} (grows to ${rankText(b)})</option>`; }).join('');
+                if (ranks.includes(keep)) rankSel.value = keep;
+            }
+            function candidates() {
+                const [rank, limit] = rankSel.value.split('-').map(Number);
+                return normals.filter(c => c.area === Number(areaSel.value) && c.rarity === Number(raritySel.value)
+                    && c.rank === rank && c.limit === limit && c.sex === Number(sexSel.value));
+            }
+            function current() {
+                if (kind.value !== '0') return byId.get(Number(kind.value));
+                return candidates().find(c => c.colour === colour);
+            }
+            function fillColours() {
+                const list = candidates();
+                const have = [...new Set(list.map(c => c.colour))].sort((a, b) => a - b);
+                if (!have.includes(colour)) colour = have[0] ?? 0;
+                colourBox.innerHTML = have.map(n => `<button type="button" class="btn btn-sm p-1 ${n === colour ? 'btn-primary' : 'btn-outline-secondary'}" data-colour="${n}" title="${colourName(n)}">${swatch(n)}</button>`).join('')
+                    || '<span class="small text-muted">No chocobo matches.</span>';
+                colourName_.textContent = have.length ? colourName(colour) : '';
+            }
+            function fillStats() {
+                const c = current();
+                document.querySelectorAll('.eos-choco-normal').forEach(el => el.hidden = kind.value !== '0');
+                if (!c) { picked.textContent = ''; return; }
+                picked.innerHTML = `${swatch(c.colour)} <strong>${label(c).replace(/[<>&"]/g, '')}</strong> · ${AREAS[c.area] ?? '?'} · rank ${rankText(c.rank)} (grows to ${rankText(c.limit)})`
+                    + (c.spread === 0 ? ' · fixed stats' : '');
+                for (const [el, a, b] of [[spd, c.w[0], c.w[1]], [intl, c.w[2], c.w[3]]]) {
+                    el.min = Math.max(0, a - c.spread); el.max = Math.min(a + b, a + c.spread);
+                    if (Number(el.value) < el.min || Number(el.value) > el.max || el.dataset.for !== String(c.id)) el.value = a;
+                    el.dataset.for = c.id;
+                    el.disabled = !setMode.checked || c.spread === 0;
+                }
+                showSplit();
+            }
+            function showSplit() {
+                const c = current(); if (!c) return;
+                const sp = Number(spd.value), it = Number(intl.value);
+                const shown = setMode.checked || c.spread === 0;
+                const pct = (v, total) => shown ? Math.round(v * 100 / total) + '%' : 'random';
+                document.getElementById('eos-choco-spd-v').textContent = pct(sp, c.w[0] + c.w[1]);
+                document.getElementById('eos-choco-sta-v').textContent = pct(c.w[0] + c.w[1] - sp, c.w[0] + c.w[1]);
+                document.getElementById('eos-choco-int-v').textContent = pct(it, c.w[2] + c.w[3]);
+                document.getElementById('eos-choco-ada-v').textContent = pct(c.w[2] + c.w[3] - it, c.w[2] + c.w[3]);
+            }
+            function refresh() { fillColours(); fillStats(); }
+            raritySel.addEventListener('change', () => { fillRanks(); refresh(); });
+            [areaSel, rankSel, sexSel, kind].forEach(el => el.addEventListener('change', refresh));
+            document.querySelectorAll('input[name="eos-choco-statmode"]').forEach(el => el.addEventListener('change', fillStats));
+            [spd, intl].forEach(el => el.addEventListener('input', showSplit));
+            colourBox.addEventListener('click', e => {
+                const b = e.target.closest('[data-colour]'); if (!b) return;
+                colour = Number(b.dataset.colour); refresh();
+            });
+
+            const split = (a, total) => { const p = Math.round(a * 100 / total); return `${p}/${100 - p}`; };
+            const statText = q => {
+                const c = byId.get(q.id);
+                if (q.speed == null) return c.spread ? 'Random roll' : 'Fixed';
+                return `Speed/Stamina ${split(q.speed, c.w[0] + c.w[1])}, Intellect/Adaptability ${split(q.intellect, c.w[2] + c.w[3])}`;
+            };
+            function drawQueue() {
+                queueEl.innerHTML = queue.map((q, i) => {
+                    const c = byId.get(q.id);
+                    return `<tr><td>${swatch(c.colour)} ${label(c).replace(/[<>&"]/g, '')}</td><td>${AREAS[c.area] ?? '?'}</td><td>${rankText(c.rank)} → ${rankText(c.limit)}</td>
+                        <td>${statText(q)}</td><td class="text-end">${q.count}</td>
+                        <td><button type="button" class="btn btn-link btn-sm p-0 text-danger" data-remove="${i}">Remove</button></td></tr>`;
+                }).join('') || '<tr><td colspan="6" class="text-muted">Nothing added yet.</td></tr>';
+                const n = queue.reduce((s, q) => s + q.count, 0);
+                summary.textContent = n ? `${n} chocobo${n === 1 ? '' : 's'} to add.` : 'Nothing added yet (downloading now only sets up the farm).';
+            }
+            queueEl.addEventListener('click', e => {
+                const b = e.target.closest('[data-remove]'); if (!b) return;
+                queue.splice(Number(b.dataset.remove), 1); drawQueue();
+            });
+            document.getElementById('eos-choco-add').addEventListener('click', () => {
+                const c = current(); if (!c) return;
+                const count = Math.max(1, Math.min(50, Math.floor(Number(document.getElementById('eos-choco-count').value) || 1)));
+                const fixed = setMode.checked || c.spread === 0;
+                queue.push({ id: c.id, speed: fixed ? Number(spd.value) : null, intellect: fixed ? Number(intl.value) : null, count });
+                drawQueue();
+            });
+            document.getElementById('eos-choco-form').addEventListener('submit', e => {
+                // An empty list only sets up the farm, which is easy to do by accident (picking a bird without "Add to list").
+                if (!queue.length && !confirm('The "To add" list is empty, so no chocobos will be added. Click "Add to list" first to add the chocobo you picked.\n\nDownload anyway with only the farm set up?')) {
+                    e.preventDefault(); e.stopImmediatePropagation(); return;
+                }
+                document.getElementById('eos-choco-json').value = JSON.stringify(queue);
+            });
+            try { queue = JSON.parse(document.getElementById('eos-choco-json').value || '[]').filter(q => byId.has(q.id)); } catch { queue = []; }
+
+            fillRanks(); refresh(); drawQueue();
+
+            ncPrefill(document.getElementById('ChocoboAccountFile'), document.getElementById('eos-choco-status'), tables => {
+                const rows = Object.values(tables['199517602'] ?? {}).map(ncDecodeRow).map(f => ({
+                    c: byId.get(Number(f[3] ?? 0n)), id: Number(f[3] ?? 0n), rank: Number(f[6] ?? 0n), limit: Number(f[7] ?? 0n),
+                    area: Number(f[8] ?? 0n), w: [12, 13, 14, 15].map(n => Number(f[n] ?? 0n)), locked: (f[31] ?? 0n) !== 0n,
+                }));
+                rows.sort((a, b) => (b.c?.rarity ?? 0) - (a.c?.rarity ?? 0) || b.rank - a.rank);
+                document.getElementById('eos-choco-owned-wrap').hidden = false;
+                document.getElementById('eos-choco-owned-count').textContent = rows.length;
+                document.getElementById('eos-choco-owned').innerHTML = rows.map(r => `<tr>
+                    <td>${r.c ? `${swatch(r.c.colour)} ${label(r.c).replace(/[<>&"]/g, '')}` : `Chocobo #${r.id}`}</td>
+                    <td>${AREAS[r.area] ?? '?'}</td><td>${rankText(r.rank)} → ${rankText(r.limit)}</td>
+                    <td>${split(r.w[0], r.w[0] + r.w[1] || 1)}</td><td>${split(r.w[2], r.w[2] + r.w[3] || 1)}</td>
+                    <td>${r.locked ? '<span class="badge bg-secondary">Favourite</span>' : ''}</td></tr>`).join('')
+                    || '<tr><td colspan="6" class="text-muted">No chocobos yet.</td></tr>';
+                return `Loaded: the account has ${rows.length} chocobo${rows.length === 1 ? '' : 's'}.`;
+            });
+        })();
+
+        // Story progress: tick main story chapters / character stories to mark cleared; progress is read from the uploaded file.
+        (function () {
+            const catEl = document.getElementById('eos-story-catalog');
+            if (!catEl) return;
+            // [key, story, chapter name, kind (1 main, 2 character), [episode ids]]
+            const all = JSON.parse(catEl.textContent).map(([key, group, name, kind, eps]) => ({ key, group, name, kind, eps }));
+            const groupsEl = document.getElementById('eos-story-groups');
+            const summary = document.getElementById('eos-story-summary');
+            const esc = t => String(t).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
+            const groups = [...new Set(all.map(c => c.group))];
+            let cleared = null; // Set of cleared episode ids ("m123" / "c123") once a file is loaded
+
+            groupsEl.innerHTML = groups.map((g, gi) => `
+                <div class="col-md-6 col-xl-4"><div class="border rounded p-2 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong class="small">${esc(g)}</strong>
+                        <button type="button" class="btn btn-link btn-sm p-0" data-group="${gi}">Tick all</button>
+                    </div>
+                    ${all.filter(c => c.group === g).map(c => `
+                        <div class="form-check small mb-0">
+                            <input class="form-check-input" type="checkbox" id="eos-story-${c.key}" data-key="${c.key}" />
+                            <label class="form-check-label" for="eos-story-${c.key}">${esc(c.name)}
+                                <span class="text-muted" data-progress="${c.key}">(${c.eps.length} episode${c.eps.length === 1 ? '' : 's'})</span></label>
+                        </div>`).join('')}
+                </div></div>`).join('');
+            const boxes = [...groupsEl.querySelectorAll('[data-key]')];
+            const byKey = new Map(all.map(c => [c.key, c]));
+
+            function update() {
+                const ticked = boxes.filter(b => b.checked).map(b => byKey.get(b.dataset.key));
+                const eps = ticked.reduce((n, c) => n + c.eps.filter(e => !cleared?.has(c.key[0] + e)).length, 0);
+                summary.textContent = ticked.length
+                    ? `${ticked.length} chapter${ticked.length === 1 ? '' : 's'} ticked` + (cleared ? `, ${eps} episode${eps === 1 ? '' : 's'} to clear.` : '.')
+                    : 'Nothing ticked yet.';
+            }
+            groupsEl.addEventListener('change', e => {
+                const box = e.target.closest('[data-key]'); if (!box) return;
+                const c = byKey.get(box.dataset.key);
+                if (box.checked && c.kind === 1) {
+                    // Earlier chapters of the same story come first in the catalog.
+                    for (const b of boxes) {
+                        if (b === box) break;
+                        if (byKey.get(b.dataset.key).group === c.group) b.checked = true;
+                    }
+                }
+                update();
+            });
+            groupsEl.addEventListener('click', e => {
+                const b = e.target.closest('[data-group]'); if (!b) return;
+                const g = groups[Number(b.dataset.group)];
+                const mine = boxes.filter(x => byKey.get(x.dataset.key).group === g);
+                const on = !mine.every(x => x.checked);
+                mine.forEach(x => x.checked = on);
+                update();
+            });
+            document.getElementById('eos-story-all').addEventListener('click', () => { boxes.forEach(b => b.checked = true); update(); });
+            document.getElementById('eos-story-none').addEventListener('click', () => { boxes.forEach(b => b.checked = false); update(); });
+            document.getElementById('eos-story-form').addEventListener('submit', () => {
+                document.getElementById('eos-story-json').value = JSON.stringify(boxes.filter(b => b.checked).map(b => b.dataset.key));
+            });
+            try {
+                const keep = new Set(JSON.parse(document.getElementById('eos-story-json').value || '[]'));
+                boxes.forEach(b => b.checked = keep.has(b.dataset.key));
+            } catch { }
+            update();
+
+            ncPrefill(document.getElementById('StoryAccountFile'), document.getElementById('eos-story-status'), tables => {
+                cleared = new Set();
+                for (const [table, prefix] of [['453866343', 'm'], ['70311223', 'c']])
+                    for (const hex of Object.values(tables[table] ?? {})) cleared.add(prefix + Number(ncDecodeRow(hex)[2] ?? 0n));
+                let done = 0;
+                for (const c of all) {
+                    const n = c.eps.filter(e => cleared.has(c.key[0] + e)).length;
+                    const el = groupsEl.querySelector(`[data-progress="${c.key}"]`);
+                    if (n === c.eps.length) { done++; el.innerHTML = '<span class="badge bg-success">Done</span>'; }
+                    else el.textContent = n ? `(${n} of ${c.eps.length} episodes done)` : `(${c.eps.length} episode${c.eps.length === 1 ? '' : 's'})`;
+                }
+                update();
+                return `Loaded: ${done} of ${all.length} chapters are already complete.`;
+            });
+        })();
+
+        // Weapon branding: list the account's weapons and current brands; cards set a stone and up to three lines.
+        (function () {
+            const catEl = document.getElementById('eos-brand-catalog');
+            if (!catEl) return;
+            const cat = JSON.parse(catEl.textContent);
+            const stones = Object.fromEntries(cat.stones.map(b => [b.id, b]));
+            const byLot = Object.fromEntries(cat.stones.map(b => [b.lot, b]));
+            const weapons = cat.weapons; // id -> [name, character]
+            const list = document.getElementById('eos-brand-list');
+            const empty = document.getElementById('eos-brand-empty');
+            const pick = document.getElementById('eos-brand-pick');
+            const filter = document.getElementById('eos-brand-filter');
+            let owned = {}; // weapon id -> current effect ids (strings)
+            const show = (st, v) => st.pct ? (v / 10).toFixed(1) + '%' : String(v);
+            const wName = id => weapons[id] ? `${weapons[id][0]}${weapons[id][1] ? ' (' + weapons[id][1] + ')' : ''}` : `Weapon #${id}`;
+            // Effect id -> { stone, stat, value }.
+            function decode(id) {
+                const n = BigInt(id), b = byLot[Number(n / 100000n)];
+                const st = b?.stats.find(x => x.code === Number(n / 1000n % 100n));
+                return st ? { stone: b, stat: st, value: Number(n % 1000n) } : null;
+            }
+            function describe(ids) {
+                if (!ids.length) return 'no brands';
+                const d = ids.map(decode);
+                return d.map(x => x ? `${x.stat.label} +${show(x.stat, x.value)}` : '?').join(', ') + (d[0] ? ` (${d[0].stone.name})` : '');
+            }
+
+            function lineRow() {
+                const row = document.createElement('div');
+                row.className = 'd-flex flex-wrap align-items-center gap-2 mb-1 eos-brand-line';
+                row.innerHTML = `<select class="form-select form-select-sm eos-brand-stat" style="max-width: 240px;"></select>
+                    <input type="number" class="form-control form-control-sm eos-brand-val" style="width: 6rem;" />
+                    <span class="text-muted eos-brand-range"></span>`;
+                return row;
+            }
+            function stoneOf(el) { return stones[el.querySelector('.eos-brand-stone').value]; }
+            // Rebuilds each line's stat choices for the card's stone, keeping picks the stone still offers.
+            function fillStats(el) {
+                const b = stoneOf(el);
+                el.querySelectorAll('.eos-brand-line').forEach((row, i) => {
+                    const sel = row.querySelector('.eos-brand-stat'), keep = sel.value;
+                    sel.innerHTML = '<option value="">(no brand)</option>' + (b ? b.stats.map(x => `<option value="${x.type}">${x.label}</option>`).join('') : '');
+                    sel.value = b && b.stats.some(x => String(x.type) === keep) ? keep : '';
+                    row.hidden = !b || i >= b.lines;
+                });
+            }
+            function setLine(row, st, v) {
+                row.querySelector('.eos-brand-stat').value = st ? st.type : '';
+                row.querySelector('.eos-brand-val').value = st ? (st.pct ? (v / 10).toFixed(1) : v) : '';
+            }
+            // The line's stat and raw value, or null when the line has no brand.
+            function lineStat(el, row) {
+                const b = stoneOf(el);
+                if (!b || row.hidden) return null;
+                const st = b.stats.find(x => String(x.type) === row.querySelector('.eos-brand-stat').value);
+                if (!st) return null;
+                const raw = row.querySelector('.eos-brand-val').value;
+                const v = st.pct ? Math.round(parseFloat(raw) * 10) : parseInt(raw);
+                return { st, value: Number.isNaN(v) ? st.max : v };
+            }
+            function refresh(el) {
+                el.querySelectorAll('.eos-brand-line').forEach(row => {
+                    const x = lineStat(el, row);
+                    const val = row.querySelector('.eos-brand-val');
+                    val.disabled = !x;
+                    if (!x) { val.value = ''; row.querySelector('.eos-brand-range').textContent = ''; val.classList.remove('is-invalid'); return; }
+                    val.step = x.st.pct ? '0.1' : '1';
+                    val.min = x.st.pct ? x.st.min / 10 : x.st.min;
+                    val.max = x.st.pct ? x.st.max / 10 : x.st.max;
+                    if (val.value === '') setLine(row, x.st, x.st.max);
+                    row.querySelector('.eos-brand-range').textContent = `(${show(x.st, x.st.min)}–${show(x.st, x.st.max)})`;
+                    val.classList.toggle('is-invalid', x.value < x.st.min || x.value > x.st.max);
+                });
+                empty.hidden = list.children.length > 0;
+            }
+            // Fills every line at its stat's top value; empty lines take the first chosen stat
+            // (or, with none chosen, the stat the stone is most likely to give).
+            function maxCard(el, stoneId) {
+                if (stoneId) { el.querySelector('.eos-brand-stone').value = stoneId; fillStats(el); }
+                const b = stoneOf(el);
+                if (!b) return;
+                const rows = [...el.querySelectorAll('.eos-brand-line')].filter(r => !r.hidden);
+                const first = rows.map(r => lineStat(el, r)?.st).find(Boolean)
+                    ?? b.stats.reduce((a, x) => x.weight > a.weight ? x : a, b.stats[0]);
+                rows.forEach(r => { const st = lineStat(el, r)?.st ?? first; setLine(r, st, st.max); });
+                refresh(el);
+            }
+            function card(weaponId, init) {
+                if (list.querySelector(`[data-weapon="${weaponId}"]`)) return null;
+                const el = document.createElement('div');
+                el.className = 'border rounded p-2 small eos-brand-card';
+                el.dataset.weapon = weaponId;
+                const now = owned[weaponId];
+                el.innerHTML = `<div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <strong>${wName(weaponId)}</strong>
+                        <span class="text-muted eos-brand-now">${now ? 'now: ' + describe(now) : ''}</span>
+                        <span class="ms-auto"></span>
+                        <button type="button" class="btn btn-link btn-sm p-0 eos-brand-max">Max</button>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-danger eos-brand-remove">Remove</button>
+                    </div>
+                    <div class="mb-1">
+                        <select class="form-select form-select-sm eos-brand-stone" style="max-width: 280px;">
+                            <option value="">(no stone: remove brands)</option>
+                            ${cat.stones.map(b => `<option value="${b.id}" title="${b.desc.replace(/"/g, '&quot;')}">${b.name}</option>`).join('')}
+                        </select>
+                    </div>`;
+                for (let i = 0; i < 3; i++) el.append(lineRow());
+                list.append(el);
+                // Start from what was sent before (after an error) or the weapon's current brands.
+                const lines = init?.lines ?? (now ?? []).map(decode).filter(Boolean).map(d => ({ type: d.stat.type, value: d.value }));
+                const stoneId = init ? init.stone : (now?.length && decode(now[0]) ? decode(now[0]).stone.id : '');
+                el.querySelector('.eos-brand-stone').value = stoneId || '';
+                fillStats(el);
+                const b = stones[stoneId];
+                el.querySelectorAll('.eos-brand-line').forEach((r, i) => {
+                    const ln = lines[i], st = ln && b?.stats.find(x => x.type === ln.type);
+                    setLine(r, st, ln?.value);
+                });
+                refresh(el);
+                return el;
+            }
+            function collect() {
+                return [...list.querySelectorAll('.eos-brand-card')].map(el => ({
+                    weaponId: Number(el.dataset.weapon),
+                    stone: Number(el.querySelector('.eos-brand-stone').value) || 0,
+                    lines: [...el.querySelectorAll('.eos-brand-line')].map(r => lineStat(el, r)).filter(Boolean).map(x => ({ type: x.st.type, value: x.value })),
+                }));
+            }
+
+            list.addEventListener('click', e => {
+                const el = e.target.closest('.eos-brand-card');
+                if (!el) return;
+                if (e.target.classList.contains('eos-brand-remove')) { el.remove(); empty.hidden = list.children.length > 0; }
+                if (e.target.classList.contains('eos-brand-max')) maxCard(el);
+            });
+            list.addEventListener('change', e => {
+                const el = e.target.closest('.eos-brand-card');
+                if (!el) return;
+                if (e.target.classList.contains('eos-brand-stone')) {
+                    fillStats(el);
+                    // A newly picked stone starts maxed on its own stats.
+                    if (stoneOf(el)) { el.querySelectorAll('.eos-brand-stat').forEach(s => s.value = ''); maxCard(el); }
+                }
+                if (e.target.classList.contains('eos-brand-stat')) e.target.closest('.eos-brand-line').querySelector('.eos-brand-val').value = '';
+                refresh(el);
+            });
+            list.addEventListener('input', e => { const el = e.target.closest('.eos-brand-card'); if (el) refresh(el); });
+            document.getElementById('eos-brand-add').addEventListener('click', () => { if (pick.value) card(Number(pick.value)); });
+            document.getElementById('eos-brand-add-shown').addEventListener('click', () => {
+                [...pick.options].filter(o => o.value && !o.hidden).forEach(o => card(Number(o.value)));
+            });
+            document.getElementById('eos-brand-clear').addEventListener('click', () => { list.innerHTML = ''; empty.hidden = false; });
+            document.getElementById('eos-brand-bulk-max').addEventListener('click', () => {
+                const id = document.getElementById('eos-brand-bulk-stone').value;
+                list.querySelectorAll('.eos-brand-card').forEach(el => {
+                    el.querySelector('.eos-brand-stone').value = id;
+                    fillStats(el);
+                    el.querySelectorAll('.eos-brand-stat').forEach(s => s.value = '');
+                    maxCard(el);
+                });
+            });
+            filter.addEventListener('input', () => {
+                const q = filter.value.trim().toLowerCase();
+                let first = null;
+                [...pick.options].forEach(o => { o.hidden = !!q && !o.textContent.toLowerCase().includes(q); if (!o.hidden && !first) first = o; });
+                if (first && pick.selectedOptions[0]?.hidden) pick.value = first.value;
+            });
+            document.getElementById('eos-brand-form').addEventListener('submit', () => {
+                document.getElementById('eos-brand-json').value = JSON.stringify(collect());
+            });
+            // After an error, rebuild the list that was sent.
+            try { JSON.parse(document.getElementById('eos-brand-json').value || '[]').forEach(r => card(r.weaponId, r)); } catch { }
+            empty.hidden = list.children.length > 0;
+
+            ncPrefill(document.getElementById('BrandAccountFile'), document.getElementById('eos-brand-status'), tables => {
+                owned = {};
+                for (const hex of Object.values(tables['231622239'] ?? {})) {
+                    const f = ncDecodeRow(hex);
+                    owned[Number(f[2] ?? 0n)] = [16, 17, 18].map(n => f[n]).filter(v => v).map(String);
+                }
+                const ids = Object.keys(owned).map(Number).sort((a, b) => wName(a).localeCompare(wName(b)));
+                pick.innerHTML = ids.map(id => `<option value="${id}">${wName(id)} – ${owned[id].length ? owned[id].length + ' brand(s)' : 'no brands'}</option>`).join('');
+                pick.disabled = false;
+                document.getElementById('eos-brand-add').disabled = document.getElementById('eos-brand-add-shown').disabled = false;
+                // Cards already in the list show the account's current brands.
+                list.querySelectorAll('.eos-brand-card').forEach(el => {
+                    const now = owned[el.dataset.weapon];
+                    el.querySelector('.eos-brand-now').textContent = now ? 'now: ' + describe(now) : 'not owned by this account';
+                });
+                const branded = ids.filter(id => owned[id].length).length;
+                return `Loaded: ${ids.length} weapons, ${branded} with brands. Pick weapons to brand, then download.`;
+            });
+        })();
+
         // Escalation: show the account's current cleared stages.
         ncPrefill(document.getElementById('EscalationAccountFile'), (() => {
             const el = document.createElement('div');
@@ -1763,6 +3137,240 @@
                     cell.textContent = `Level ${lvl} / ${level(r).dataset.max}`;
                 });
                 return `Loaded: the account owns ${n} of ${rows.length} memoria. Enter levels for the ones to add or change, then download.`;
+            });
+        })();
+
+        // Materia: build a list of 5★ materia with chosen stats; the list is sent as JSON.
+        (function () {
+            const box = document.getElementById('eos-materia-edit');
+            const catEl = document.getElementById('eos-mat-catalog');
+            if (!box || !catEl) return;
+            const catalog = JSON.parse(catEl.textContent);
+            const byKey = Object.fromEntries(catalog.map(m => [m.key, m]));
+            const list = document.getElementById('eos-mat-list');
+            const empty = document.getElementById('eos-mat-empty');
+            const pick = document.getElementById('eos-mat-pick');
+            const sigilNames = { 0: 'No sigil', 1: '⬤ Circle', 2: '▲ Triangle', 3: '✖ Cross' };
+            const boostsAt = (m, lvl) => m.boosts.filter(l => l <= lvl).length;
+            const lo = (s, n) => s.i0 + n * s.e0, hi = (s, n) => s.i1 + n * s.e1;
+            const show = (s, v) => s.pct ? (v / 10).toFixed(1) + '%' : String(v);
+            const toRaw = (s, text) => Math.round(parseFloat(text) * (s.pct ? 10 : 1));
+            const toText = (s, v) => s.pct ? (v / 10).toFixed(1) : String(v);
+
+            // Best four stats for a "maxed" materia: element potency and attack of the materia's kind first.
+            function bestStats(m) {
+                const kind = /blow/i.test(m.name) || m.stats.some(s => /^Phys\./.test(s.label)) ? 'P'
+                    : /cure|regen|heal|esuna|life/i.test(m.name + m.skill) ? 'H' : 'M';
+                const rank = s => {
+                    const l = s.label;
+                    if (kind === 'P' && /^Phys\./.test(l)) return 0;
+                    if (kind === 'M' && /^Mag\./.test(l)) return 0;
+                    if (l === { P: 'PATK %', M: 'MATK %', H: 'HEAL %' }[kind]) return 1;
+                    if (l === { P: 'PATK', M: 'MATK', H: 'HEAL' }[kind]) return 2;
+                    if (l === 'HP %') return 3;
+                    if (l === 'HP') return 4;
+                    if (/Pot\./.test(l)) return 9;
+                    return 5;
+                };
+                return [...m.stats].sort((a, b) => rank(a) - rank(b)).slice(0, 4);
+            }
+
+            function card(m, init) {
+                const el = document.createElement('div');
+                el.className = 'border rounded p-2 small eos-mat-card';
+                el.dataset.key = m.key;
+                const sigilOpts = m.sigils.map(n => `<option value="${n}">${sigilNames[n]}</option>`).join('');
+                el.innerHTML = `
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <strong class="me-auto"></strong>
+                        <label class="mb-0">Sigil <select class="form-select form-select-sm d-inline-block w-auto eos-mat-sigil" ${m.sigils.length > 1 ? '' : 'disabled'}>${sigilOpts}</select></label>
+                        <label class="mb-0">Level <input type="number" class="form-control form-control-sm d-inline-block eos-mat-level" style="width: 4.5rem;" min="1" max="${m.max}" ${m.max === 1 ? 'disabled' : ''} /> / ${m.max}</label>
+                        <span class="text-muted eos-mat-boosts"></span>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0 eos-mat-max">Max</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger py-0 eos-mat-remove" title="Remove">×</button>
+                    </div>
+                    <div class="eos-mat-stats d-flex flex-column gap-1"></div>`;
+                el.querySelector('strong').textContent = m.name + (m.skill && !m.refined ? ` – ${m.skill}` : '');
+                el.querySelector('.eos-mat-sigil').value = init.notes ?? m.notes;
+                el.querySelector('.eos-mat-level').value = init.level ?? m.max;
+                const statsBox = el.querySelector('.eos-mat-stats');
+                for (let i = 0; i < (m.refined ? m.stats.length : 4); i++) {
+                    const row = document.createElement('div');
+                    row.className = 'd-flex flex-wrap align-items-center gap-2 eos-mat-stat';
+                    const opts = (m.refined ? '' : '<option value="">(none)</option>') +
+                        m.stats.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+                    row.innerHTML = `
+                        <select class="form-select form-select-sm w-auto eos-mat-sid" ${m.refined ? 'disabled' : ''}>${opts}</select>
+                        <label class="mb-0" title="The stat when the materia is crafted">crafted roll <input type="number" class="form-control form-control-sm d-inline-block eos-mat-sbase" style="width: 5.5rem;" ${m.refined ? 'disabled' : ''} /></label>
+                        <span class="text-muted eos-mat-brange" style="min-width: 6.5rem;"></span>
+                        <label class="mb-0">+ boosts <input type="number" class="form-control form-control-sm d-inline-block eos-mat-sboost" style="width: 4rem;" min="0" ${m.refined ? 'disabled' : ''} /></label>
+                        <label class="mb-0 eos-mat-perwrap">× <input type="number" class="form-control form-control-sm d-inline-block eos-mat-sper" style="width: 5rem;" title="Added by each boost" /> <span class="text-muted eos-mat-prange"></span></label>
+                        <span class="ms-1">= <strong class="eos-mat-final"></strong></span>`;
+                    const st = init.stats?.[i];
+                    const s = st ? m.stats.find(x => x.id === st.id) : (m.refined ? m.stats[i] : null);
+                    row.querySelector('.eos-mat-sid').value = s ? s.id : '';
+                    if (st && s) {
+                        // Rebuild the roll from what was sent.
+                        const b = st.boosts || 0;
+                        const per = st.per ?? s.e1;
+                        setStat(row, s, st.base ?? Math.min(s.i1, Math.max(s.i0, st.value - b * per)), b, per);
+                    } else if (s) setStat(row, s, s.i1, 0, s.e1);
+                    statsBox.append(row);
+                }
+                list.append(el);
+                refresh(el);
+                return el;
+            }
+
+            function setStat(row, s, base, boosts, per) {
+                row.querySelector('.eos-mat-sbase').value = s ? toText(s, base) : '';
+                row.querySelector('.eos-mat-sboost').value = s ? boosts : 0;
+                row.querySelector('.eos-mat-sper').value = s ? toText(s, per) : '';
+            }
+            // The stat a row describes, in raw units; null when no stat is picked.
+            function rowStat(m, r) {
+                const s = m.stats.find(x => String(x.id) === r.querySelector('.eos-mat-sid').value);
+                if (!s) return null;
+                const base = toRaw(s, r.querySelector('.eos-mat-sbase').value) || 0;
+                const boosts = parseInt(r.querySelector('.eos-mat-sboost').value) || 0;
+                const per = toRaw(s, r.querySelector('.eos-mat-sper').value) || 0;
+                return { s, base, boosts, per, value: base + boosts * per };
+            }
+
+            function setMax(el) {
+                const m = byKey[el.dataset.key];
+                const free = document.getElementById('MateriaIgnoreBoostCap').checked;
+                el.querySelector('.eos-mat-level').value = m.max;
+                if (m.refined) return refresh(el);
+                const best = bestStats(m), n = boostsAt(m, m.max);
+                el.querySelectorAll('.eos-mat-stat').forEach((row, i) => {
+                    const s = best[i];
+                    row.querySelector('.eos-mat-sid').value = s ? s.id : '';
+                    if (s) setStat(row, s, s.i1, free || i === 0 ? n : 0, s.e1); else setStat(row, null);
+                });
+                refresh(el);
+            }
+
+            // Keeps each stat's boosts within what the level gives. Unless every stat may use all of them,
+            // the stats share the level's boosts: the row being edited gives way first, then rows from the bottom up.
+            function capBoosts(m, rows, n, editedRow) {
+                const free = document.getElementById('MateriaIgnoreBoostCap').checked;
+                const inputs = rows.map(r => r.querySelector('.eos-mat-sboost'));
+                const val = i => Math.max(0, parseInt(inputs[i].value) || 0);
+                inputs.forEach((b, i) => { if (b.value !== '' && val(i) !== +b.value) b.value = val(i); if (val(i) > n) b.value = n; });
+                if (!free) {
+                    let over = inputs.reduce((t, _, i) => t + val(i), 0) - n;
+                    const order = [...inputs.keys()].reverse();
+                    const e = rows.indexOf(editedRow);
+                    if (e >= 0) order.unshift(...order.splice(order.indexOf(e), 1));
+                    for (const i of order) {
+                        if (over <= 0) break;
+                        const cut = Math.min(over, val(i));
+                        inputs[i].value = val(i) - cut;
+                        over -= cut;
+                    }
+                }
+                const total = inputs.reduce((t, _, i) => t + val(i), 0);
+                inputs.forEach((b, i) => b.max = free ? n : n - total + val(i));
+            }
+
+            // Updates the boost counter, ranges, and which stats each row may still pick.
+            function refresh(el, edited) {
+                const m = byKey[el.dataset.key];
+                const lvl = Math.min(m.max, Math.max(1, parseInt(el.querySelector('.eos-mat-level').value) || 1));
+                const rows = [...el.querySelectorAll('.eos-mat-stat')];
+                capBoosts(m, rows, boostsAt(m, lvl), edited?.closest('.eos-mat-stat'));
+                const chosen = rows.map(r => r.querySelector('.eos-mat-sid').value);
+                let used = 0;
+                rows.forEach((r, i) => {
+                    [...r.querySelector('.eos-mat-sid').options].forEach(o => o.disabled = !!o.value && chosen.some((c, j) => j !== i && c === o.value));
+                    const x = rowStat(m, r);
+                    const bad = (input, ok) => input.classList.toggle('is-invalid', !ok);
+                    r.querySelector('.eos-mat-perwrap').hidden = !x || x.boosts === 0;
+                    if (x) {
+                        const s = x.s;
+                        used += x.boosts;
+                        r.querySelector('.eos-mat-sbase').step = r.querySelector('.eos-mat-sper').step = s.pct ? '0.1' : '1';
+                        r.querySelector('.eos-mat-brange').textContent = s.i0 === s.i1 ? '(fixed)' : `(${show(s, s.i0)}–${show(s, s.i1)})`;
+                        r.querySelector('.eos-mat-prange').textContent = s.e0 === s.e1 ? '' : `(${show(s, s.e0)}–${show(s, s.e1)})`;
+                        r.querySelector('.eos-mat-final').textContent = show(s, x.value);
+                        bad(r.querySelector('.eos-mat-sbase'), x.base >= s.i0 && x.base <= s.i1);
+                        bad(r.querySelector('.eos-mat-sper'), x.boosts === 0 || (x.per >= s.e0 && x.per <= s.e1));
+                    } else {
+                        r.querySelector('.eos-mat-brange').textContent = r.querySelector('.eos-mat-final').textContent = '';
+                    }
+                });
+                const n = boostsAt(m, lvl);
+                const label = el.querySelector('.eos-mat-boosts');
+                const free = document.getElementById('MateriaIgnoreBoostCap').checked;
+                label.textContent = m.refined ? 'Fixed stats' : free ? `${used} boosts used (up to ${n} per stat)` : `${used} of ${n} boosts used`;
+                label.className = used > n && !free ? 'text-danger eos-mat-boosts' : 'text-muted eos-mat-boosts';
+                empty.hidden = list.children.length > 0;
+            }
+
+            function collect() {
+                return [...list.querySelectorAll('.eos-mat-card')].map(el => {
+                    const m = byKey[el.dataset.key];
+                    return {
+                        key: m.key,
+                        level: parseInt(el.querySelector('.eos-mat-level').value) || 1,
+                        notes: parseInt(el.querySelector('.eos-mat-sigil').value) || 0,
+                        stats: [...el.querySelectorAll('.eos-mat-stat')].map(r => {
+                            const x = rowStat(m, r);
+                            return x ? { id: x.s.id, boosts: x.boosts, value: x.value, base: x.base, per: x.per } : null;
+                        }).filter(Boolean),
+                    };
+                });
+            }
+
+            const count = () => Math.min(50, Math.max(1, parseInt(document.getElementById('eos-mat-count').value) || 1));
+            document.getElementById('eos-mat-add-max').addEventListener('click', () => {
+                const m = byKey[pick.value];
+                if (m) for (let i = 0; i < count(); i++) setMax(card(m, {}));
+            });
+            document.getElementById('eos-mat-add').addEventListener('click', () => {
+                const m = byKey[pick.value];
+                if (m) for (let i = 0; i < count(); i++) card(m, { level: m.max });
+            });
+            document.getElementById('MateriaIgnoreBoostCap').addEventListener('change', () => list.querySelectorAll('.eos-mat-card').forEach(el => refresh(el)));
+            document.getElementById('eos-mat-clear').addEventListener('click', () => { list.innerHTML = ''; empty.hidden = false; });
+            list.addEventListener('click', e => {
+                const el = e.target.closest('.eos-mat-card');
+                if (!el) return;
+                if (e.target.classList.contains('eos-mat-remove')) { el.remove(); empty.hidden = list.children.length > 0; }
+                if (e.target.classList.contains('eos-mat-max')) setMax(el);
+            });
+            list.addEventListener('input', e => { const el = e.target.closest('.eos-mat-card'); if (el) refresh(el, e.target); });
+            list.addEventListener('change', e => {
+                const el = e.target.closest('.eos-mat-card');
+                if (el && e.target.classList.contains('eos-mat-sid')) {
+                    // A newly picked stat starts at its best roll, keeping the row's boosts.
+                    const m = byKey[el.dataset.key], row = e.target.closest('.eos-mat-stat');
+                    const s = m.stats.find(x => String(x.id) === e.target.value);
+                    setStat(row, s, s?.i1, parseInt(row.querySelector('.eos-mat-sboost').value) || 0, s?.e1);
+                    refresh(el, e.target);
+                }
+            });
+            const filter = document.getElementById('eos-mat-filter');
+            filter.addEventListener('input', () => {
+                const q = filter.value.trim().toLowerCase();
+                let first = null;
+                [...pick.options].forEach(o => { o.hidden = q && !o.textContent.toLowerCase().includes(q); if (!o.hidden && !first) first = o; });
+                if (first && pick.selectedOptions[0]?.hidden) pick.value = first.value;
+            });
+            document.getElementById('eos-mat-form').addEventListener('submit', () => {
+                document.getElementById('eos-mat-json').value = JSON.stringify(collect());
+            });
+            // After an error, rebuild the list that was sent.
+            try {
+                const previous = JSON.parse(document.getElementById('eos-mat-json').value || '[]');
+                previous.forEach(r => byKey[r.key] && card(byKey[r.key], r));
+            } catch { }
+            empty.hidden = list.children.length > 0;
+
+            ncPrefill(document.getElementById('MateriaAccountFile'), document.getElementById('eos-mat-status'), tables => {
+                const owned = Object.keys(tables['19548514'] ?? {}).length;
+                return `Loaded: the account has ${owned} materia. Add materia to the list, then download.`;
             });
         })();
 

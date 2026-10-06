@@ -510,6 +510,554 @@ public static class NeverCrisisAccountConverter
         return new MemoriaResult(Encoding.UTF8.GetBytes(json), changed);
     }
 
+    public sealed record MateriaResult(byte[] Json, List<string> Changed);
+
+    // Adds 5★ materia to a NeverCrisis account.json.
+    // UserMateriaList: UserId(1), UserMateriaId(2), MateriaId(3), QualityType(4), EvolveCount(5), NotesSetId(6), Exp(7), IsLock(8),
+    //   GetDatetime(9), ParameterOpenCount(10), ParameterId0-3(11-14), ParameterValue0-3(15-18).
+    // UserMateriaCollectionList (per evolve step): UserId(1), MateriaEvolveId(2), Quality1-5ObtainCount(3-7), ..., MaxLevel(14).
+    public static MateriaResult SetMateria(Stream accountStream, IEnumerable<MateriaAddRequest> requests)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        JsonObject Table(string name)
+        {
+            var tid = TableIds[name].ToString();
+            if (tables[tid] is not JsonObject rows) tables[tid] = rows = new JsonObject();
+            return rows;
+        }
+        static string Encode(IEnumerable<(int No, ulong Value)> fields)
+        {
+            var buf = new List<byte>();
+            foreach (var (no, v) in fields)
+                if (v != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, v); }
+            return System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+        }
+
+        var materiaRows = Table("UserMateriaList");
+        var collectionRows = Table("UserMateriaCollectionList");
+        ulong nextId = 0;
+        foreach (var (_, value) in materiaRows)
+            if (value is JsonValue v && v.TryGetValue(out string? hex))
+                nextId = Math.Max(nextId, DecodeVarints(System.Convert.FromHexString(hex)).GetValueOrDefault(2));
+        nextId = nextId == 0 ? (ulong)Random.Shared.NextInt64(1L << 58, 1L << 59) : nextId + 1;
+
+        var now = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var changed = new List<string>();
+        foreach (var req in requests)
+        {
+            var m = req.Materia;
+            var evolve = m.EvolveAt(req.Level);
+            var fields = new List<(int, ulong)>
+            {
+                (1, (ulong)uid), (2, nextId), (3, (ulong)m.MateriaId), (4, 5), (5, (ulong)evolve), (6, (ulong)req.Notes),
+                (7, (ulong)m.ExpByLevel[req.Level - 1]), (9, now), (10, (ulong)req.Stats.Count),
+            };
+            for (var i = 0; i < req.Stats.Count; i++) fields.Add((11 + i, (ulong)req.Stats[i].Id));
+            for (var i = 0; i < req.Stats.Count; i++) fields.Add((15 + i, (ulong)req.Stats[i].Value));
+            materiaRows[$"1:{uid}|2:{nextId}"] = Encode(fields);
+            nextId++;
+
+            // The materia list (collection) records each evolve step reached and its highest level.
+            for (var e = 0; e <= evolve; e++)
+            {
+                var evolveId = m.EvolveIds[e];
+                var key = $"1:{uid}|2:{evolveId}";
+                var f = collectionRows[key] is JsonValue cv && cv.TryGetValue(out string? chex)
+                    ? DecodeVarints(System.Convert.FromHexString(chex))
+                    : new Dictionary<int, ulong>();
+                f[1] = (ulong)uid;
+                f[2] = (ulong)evolveId;
+                if (e == evolve) f[7] = f.GetValueOrDefault(7) + 1;
+                f[14] = Math.Max(f.GetValueOrDefault(14), (ulong)Math.Min(req.Level, m.Caps[e]));
+                collectionRows[key] = Encode(f.OrderBy(kv => kv.Key).Select(kv => (kv.Key, kv.Value)));
+            }
+
+            var sigil = req.Notes switch { 1 => " ⬤", 2 => " ▲", 3 => " ✖", _ => string.Empty };
+            changed.Add(m.Refined ? $"{m.Name}{sigil}" : $"{m.Name} Lv {req.Level}");
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new MateriaResult(Encoding.UTF8.GetBytes(json), changed);
+    }
+
+    public sealed record BrandResult(byte[] Json, List<string> Changed);
+
+    // Writes brand lines onto owned weapons in a NeverCrisis account.json. UserWeaponList rows keep
+    // WeaponAttachmentEffectId0-2 in fields 16-18; an empty slot is left out (zero).
+    public static BrandResult SetBrands(Stream accountStream, IEnumerable<WeaponBrandRequest> requests)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long _))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var weaponRows = tables[TableIds["UserWeaponList"].ToString()] as JsonObject ?? new JsonObject();
+        var rowsById = new Dictionary<ulong, (string Key, Dictionary<int, ulong> Fields)>();
+        foreach (var (key, value) in weaponRows)
+            if (value is JsonValue v && v.TryGetValue(out string? hex))
+            {
+                var f = DecodeVarints(System.Convert.FromHexString(hex));
+                rowsById[f.GetValueOrDefault(2)] = (key, f);
+            }
+
+        var changed = new List<string>();
+        foreach (var req in requests)
+        {
+            if (!rowsById.TryGetValue((ulong)req.WeaponId, out var row))
+                throw new InvalidDataException($"The account doesn't own {req.WeaponName}, so it can't be branded. Add the weapon first.");
+            var f = row.Fields;
+            var before = (f.GetValueOrDefault(16), f.GetValueOrDefault(17), f.GetValueOrDefault(18));
+            for (var i = 0; i < 3; i++)
+            {
+                if (i < req.EffectIds.Count) f[16 + i] = (ulong)req.EffectIds[i];
+                else f.Remove(16 + i);
+            }
+            if (before == (f.GetValueOrDefault(16), f.GetValueOrDefault(17), f.GetValueOrDefault(18))) continue;
+            var buf = new List<byte>();
+            foreach (var (no, val) in f.OrderBy(kv => kv.Key))
+                if (val != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, val); }
+            weaponRows[row.Key] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed.Add(req.WeaponName);
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new BrandResult(Encoding.UTF8.GetBytes(json), changed);
+    }
+
+    public sealed record RankResult(byte[] Json, long OldExp, long NewExp, ulong OldStamina, ulong NewStamina);
+
+    // Sets the player's rank in a NeverCrisis account.json. UserStatusList: UserId(1), Exp(2), StaminaCount(3),
+    // StaminaLastRecoveredDatetime(4); the rank follows from Exp. A stamina value fills stamina to that amount.
+    public static RankResult SetPlayerRank(Stream accountStream, long exp, int? stamina)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var tid = TableIds["UserStatusList"].ToString();
+        if (tables[tid] is not JsonObject rows) tables[tid] = rows = new JsonObject();
+        var key = $"1:{uid}";
+        var f = rows[key] is JsonValue v && v.TryGetValue(out string? hex)
+            ? DecodeVarints(System.Convert.FromHexString(hex))
+            : new Dictionary<int, ulong>();
+        var oldExp = (long)f.GetValueOrDefault(2);
+        var oldStamina = f.GetValueOrDefault(3);
+        f[1] = (ulong)uid;
+        f[2] = (ulong)exp;
+        if (stamina is int s) f[3] = (ulong)s;
+        if (f.GetValueOrDefault(4) == 0) f[4] = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var buf = new List<byte>();
+        foreach (var (no, val) in f.OrderBy(kv => kv.Key))
+            if (val != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, val); }
+        rows[key] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new RankResult(Encoding.UTF8.GetBytes(json), oldExp, exp, oldStamina, f.GetValueOrDefault(3));
+    }
+
+    public sealed record WeaponProgressResult(byte[] Json, List<string> Changed);
+
+    // Sets rarity, level cap, level and overboost on owned weapons in a NeverCrisis account.json.
+    // UserWeaponList: RarityType(3), WeaponUpgradeType(4), UpgradeCount(5), ReleaseCount(6), Exp(7), RarityUpCount(13).
+    public static WeaponProgressResult SetWeaponProgress(Stream accountStream, IEnumerable<WeaponProgressRequest> requests)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long _))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var weaponRows = tables[TableIds["UserWeaponList"].ToString()] as JsonObject ?? new JsonObject();
+        var rowsById = new Dictionary<ulong, (string Key, Dictionary<int, ulong> Fields)>();
+        foreach (var (key, value) in weaponRows)
+            if (value is JsonValue v && v.TryGetValue(out string? hex))
+            {
+                var f = DecodeVarints(System.Convert.FromHexString(hex));
+                rowsById[f.GetValueOrDefault(2)] = (key, f);
+            }
+
+        var changed = new List<string>();
+        foreach (var req in requests)
+        {
+            if (!rowsById.TryGetValue((ulong)req.WeaponId, out var row))
+                throw new InvalidDataException($"The account doesn't own {req.WeaponName}. Add the weapon first.");
+            var f = row.Fields;
+            var before = (f.GetValueOrDefault(3), f.GetValueOrDefault(4), f.GetValueOrDefault(5), f.GetValueOrDefault(6), f.GetValueOrDefault(7));
+            // RarityUpCount(13) records how many times the weapon's rarity was raised, as the game does when stars are added.
+            var oldRarity = (long)f.GetValueOrDefault(3);
+            if (oldRarity is >= 1 and <= 3 && req.Rarity is >= 1 and <= 3 && req.Rarity != oldRarity)
+                f[13] = (ulong)Math.Max(0, (long)f.GetValueOrDefault(13) + req.Rarity - oldRarity);
+            f[3] = (ulong)req.Rarity;
+            f[4] = (ulong)req.UpgradeType;
+            f[5] = (ulong)req.UpgradeCount;
+            f[6] = (ulong)req.ReleaseCount;
+            f[7] = (ulong)req.Exp;
+            if (before == (f.GetValueOrDefault(3), f.GetValueOrDefault(4), f.GetValueOrDefault(5), f.GetValueOrDefault(6), f.GetValueOrDefault(7))) continue;
+            var buf = new List<byte>();
+            foreach (var (no, val) in f.OrderBy(kv => kv.Key))
+                if (val != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, val); }
+            weaponRows[row.Key] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed.Add(req.WeaponName);
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new WeaponProgressResult(Encoding.UTF8.GetBytes(json), changed);
+    }
+
+    public sealed record ChocoboResult(byte[] Json, int Added, bool RanchSetUp);
+
+    // Adds chocobos to a NeverCrisis account.json.
+    // UserChocoboList: UserId(1), UserChocoboId(2), ChocoboId(3), ChocoboRankGroupId(4), ChocoboExpeditionParameterGroupId(5),
+    //   RankType(6), LimitRankType(7), AreaTypeFlags(8), ChocoboType(9), SexType(10), Name(11, string), Speed/Stamina/
+    //   Intelligence/AdaptabilityWeight(12-15), current stats and rank-up totals (16-27, 0 on a new bird), feeding (28-30),
+    //   IsLock(31), GetDatetime(32).
+    public static ChocoboResult AddChocobos(Stream accountStream, IEnumerable<ChocoboAddRequest> requests)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var tableKey = TableIds["UserChocoboList"].ToString();
+        if (tables[tableKey] is not JsonObject rows) tables[tableKey] = rows = new JsonObject();
+        ulong nextId = 0;
+        foreach (var (_, value) in rows)
+            if (value is JsonValue v && v.TryGetValue(out string? hex))
+                nextId = Math.Max(nextId, DecodeVarints(System.Convert.FromHexString(hex)).GetValueOrDefault(2));
+        nextId = nextId == 0 ? (ulong)Random.Shared.NextInt64(1L << 58, 1L << 59) : nextId + 1;
+
+        var now = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var ranchSetUp = EnsureChocoboRanch(tables, uid, now);
+        var added = 0;
+        foreach (var req in requests)
+        {
+            var c = req.Chocobo;
+            var fields = new List<(int No, ulong Value)>
+            {
+                (1, (ulong)uid), (2, nextId), (3, (ulong)c.Id), (4, (ulong)c.RankGroup), (5, (ulong)c.ExpeditionGroup),
+                (6, (ulong)c.Rank), (7, (ulong)c.LimitRank), (8, (ulong)c.Area), (9, (ulong)c.Type), (10, (ulong)c.Sex),
+            };
+            for (var i = 0; i < 4; i++) fields.Add((12 + i, (ulong)req.Weights[i]));
+            fields.Add((32, now));
+            var buf = new List<byte>();
+            foreach (var (no, val) in fields)
+                if (val != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, val); }
+            rows[$"1:{uid}|2:{nextId}"] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            nextId++;
+            added++;
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new ChocoboResult(Encoding.UTF8.GetBytes(json), added, ranchSetUp);
+    }
+
+    public sealed record StoryResult(byte[] Json, int Chapters, int Episodes);
+
+    // Marks story chapters cleared. Main story episodes go in UserEpisodeList (UserId 1, StoryEpisodeId 2,
+    // StoryPartyModeClearDatetime 3, FreePartyModeClearDatetime 4) with their battles in UserEpisodeBattleList
+    // (UserId, StoryEpisodeId, StoryBattleId). Character story episodes go in UserCharacterStoryEpisodeList
+    // (UserId, CharacterStoryEpisodeId) and UserCharacterStoryEpisodeBattleList (UserId, CharacterStoryEpisodeId, BattleId).
+    // Episodes already cleared are left as they are. First-clear rewards are not granted.
+    public static StoryResult SetStoryProgress(Stream accountStream, IEnumerable<StoryChapterOption> chapters)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        JsonObject Table(string name)
+        {
+            var key = TableIds[name].ToString();
+            if (tables[key] is not JsonObject rows) tables[key] = rows = new JsonObject();
+            return rows;
+        }
+        string Encode(params ulong[] values)
+        {
+            var buf = new List<byte>();
+            for (var i = 0; i < values.Length; i++)
+                if (values[i] != 0) { WriteVarint(buf, (ulong)((i + 1) << 3)); WriteVarint(buf, values[i]); }
+            return System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+        }
+
+        var mainEpisodes = Table("UserEpisodeList");
+        var mainBattles = Table("UserEpisodeBattleList");
+        var charEpisodes = Table("UserCharacterStoryEpisodeList");
+        var charBattles = Table("UserCharacterStoryEpisodeBattleList");
+        var time = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var done = 0;
+        var count = 0;
+        foreach (var chapter in chapters.DistinctBy(c => c.Key))
+        {
+            var (episodes, battles) = chapter.Kind == 1 ? (mainEpisodes, mainBattles) : (charEpisodes, charBattles);
+            for (var i = 0; i < chapter.Episodes.Length; i++)
+            {
+                var ep = (ulong)chapter.Episodes[i];
+                var key = $"1:{uid}|2:{ep}";
+                if (episodes[key] is null)
+                {
+                    episodes[key] = chapter.Kind == 1 ? Encode((ulong)uid, ep, time++) : Encode((ulong)uid, ep);
+                    count++;
+                }
+                foreach (var b in chapter.Battles[i])
+                    battles[$"1:{uid}|2:{ep}|3:{b}"] ??= Encode((ulong)uid, ep, (ulong)b);
+            }
+            done++;
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new StoryResult(Encoding.UTF8.GetBytes(json), done, count);
+    }
+
+    // A converted account carries the ranch records the live game created when the player first opened the chocobo
+    // farm; an account started on the offline server can lack them, and the farm screen then never finishes loading.
+    // Adds the farm record (UserChocoboFarmList: UserId, LastOpenTreasureDatetime) and the three expedition team slots
+    // (UserChocoboExpeditionDeckList: UserId, ChocoboExpeditionDeckId, rest empty) and the expedition area groups when
+    // they're missing.
+    private static bool EnsureChocoboRanch(JsonObject tables, long uid, ulong now)
+    {
+        var changed = false;
+        var farmKey = TableIds["UserChocoboFarmList"].ToString();
+        if (tables[farmKey] is not JsonObject farm) tables[farmKey] = farm = new JsonObject();
+        if (farm.Count == 0)
+        {
+            var buf = new List<byte>();
+            WriteVarint(buf, 1 << 3); WriteVarint(buf, (ulong)uid);
+            WriteVarint(buf, 2 << 3); WriteVarint(buf, now);
+            farm[$"1:{uid}|2:{now}"] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed = true;
+        }
+        var deckKey = TableIds["UserChocoboExpeditionDeckList"].ToString();
+        if (tables[deckKey] is not JsonObject decks) tables[deckKey] = decks = new JsonObject();
+        for (ulong deck = 1; deck <= 3; deck++)
+        {
+            var key = $"1:{uid}|2:{deck}";
+            if (decks[key] is not null) continue;
+            var buf = new List<byte>();
+            WriteVarint(buf, 1 << 3); WriteVarint(buf, (ulong)uid);
+            WriteVarint(buf, 2 << 3); WriteVarint(buf, deck);
+            decks[key] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed = true;
+        }
+        // One record per expedition area group (UserChocoboExpeditionGroupList: UserId, ChocoboExpeditionGroupId,
+        // progress flags left empty). Without them the server drops the chocobos and the farm never loads.
+        // Groups 1-23 are the ones the live game created; confirmed in game 2026-10-08.
+        var groupKey = TableIds["UserChocoboExpeditionGroupList"].ToString();
+        if (tables[groupKey] is not JsonObject groups) tables[groupKey] = groups = new JsonObject();
+        for (ulong group = 1; group <= 23; group++)
+        {
+            var key = $"1:{uid}|2:{group}";
+            if (groups[key] is not null) continue;
+            var buf = new List<byte>();
+            WriteVarint(buf, 1 << 3); WriteVarint(buf, (ulong)uid);
+            WriteVarint(buf, 2 << 3); WriteVarint(buf, group);
+            groups[key] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed = true;
+        }
+        return changed;
+    }
+
+    public sealed record TutorialResult(byte[] Json, int Changed);
+
+    // Marks every tutorial finished: UserTutorialStepList (UserId 1, TutorialStepType 2, CurrentStep 3) gets each
+    // step type at its last step. A converted account has them all finished; an account started on the offline server
+    // only has the ones played, and an unplayed tutorial can stop a screen (such as the chocobo farm) from loading.
+    public static TutorialResult CompleteTutorials(Stream accountStream, IReadOnlyDictionary<int, int> lastSteps)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var tableKey = TableIds["UserTutorialStepList"].ToString();
+        if (tables[tableKey] is not JsonObject rows) tables[tableKey] = rows = new JsonObject();
+        var current = new Dictionary<ulong, (string Key, ulong Step)>();
+        foreach (var (key, value) in rows)
+            if (value is JsonValue v && v.TryGetValue(out string? hex))
+            {
+                var f = DecodeVarints(System.Convert.FromHexString(hex));
+                current[f.GetValueOrDefault(2)] = (key, f.GetValueOrDefault(3));
+            }
+        var changed = 0;
+        foreach (var (type, step) in lastSteps)
+        {
+            var t = (ulong)type;
+            if (current.TryGetValue(t, out var have) && have.Step >= (ulong)step) continue;
+            var buf = new List<byte>();
+            WriteVarint(buf, 1 << 3); WriteVarint(buf, (ulong)uid);
+            WriteVarint(buf, 2 << 3); WriteVarint(buf, t);
+            WriteVarint(buf, 3 << 3); WriteVarint(buf, (ulong)step);
+            rows[have.Key ?? $"1:{uid}|2:{t}"] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed++;
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new TutorialResult(Encoding.UTF8.GetBytes(json), changed);
+    }
+
+    public sealed record MateriaDeleteResult(byte[] Json, int Deleted, List<string> Skipped, long GilAdded);
+
+    // Removes materia rows from UserMateriaList. Locked materia and materia equipped in a party
+    // (UserPartyMemberList ActiveMateriaId0-2 = fields 7-9) are left alone. The materia list
+    // (UserMateriaCollectionList) keeps its history. When saleGil is given, the Gil the game pays for
+    // each deleted materia is added to the Gil item, up to gilMax.
+    public static MateriaDeleteResult DeleteMateria(Stream accountStream, IEnumerable<ulong> userMateriaIds,
+        Func<IReadOnlyDictionary<int, ulong>, long>? saleGil = null, long gilItemId = 0, long gilMax = long.MaxValue)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+
+        var equipped = new HashSet<ulong>();
+        if (tables[TableIds["UserPartyMemberList"].ToString()] is JsonObject partyRows)
+            foreach (var (_, value) in partyRows)
+                if (value is JsonValue v && v.TryGetValue(out string? hex))
+                {
+                    var f = DecodeVarints(System.Convert.FromHexString(hex));
+                    for (var no = 7; no <= 9; no++)
+                        if (f.GetValueOrDefault(no) is var id and > 0) equipped.Add(id);
+                }
+
+        var wanted = userMateriaIds.ToHashSet();
+        var skipped = new List<string>();
+        var deleted = 0;
+        long gil = 0;
+        if (tables[TableIds["UserMateriaList"].ToString()] is JsonObject materiaRows)
+            foreach (var (key, value) in materiaRows.ToList())
+            {
+                if (value is not JsonValue v || !v.TryGetValue(out string? hex)) continue;
+                var f = DecodeVarints(System.Convert.FromHexString(hex));
+                var id = f.GetValueOrDefault(2);
+                if (!wanted.Remove(id)) continue;
+                if (f.GetValueOrDefault(8) != 0) { skipped.Add($"{id}: locked"); continue; }
+                if (equipped.Contains(id)) { skipped.Add($"{id}: equipped in a party"); continue; }
+                materiaRows.Remove(key);
+                deleted++;
+                if (saleGil != null) gil += Math.Max(0, saleGil(f));
+            }
+        skipped.AddRange(wanted.Select(id => $"{id}: not in this account"));
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        var bytes = Encoding.UTF8.GetBytes(json);
+
+        long added = 0;
+        if (gil > 0 && gilItemId > 0)
+        {
+            long current = 0;
+            if (tables[TableIds["UserItemList"].ToString()] is JsonObject itemRows)
+                foreach (var (_, value) in itemRows)
+                    if (value is JsonValue v && v.TryGetValue(out string? hex))
+                    {
+                        var f = DecodeVarints(System.Convert.FromHexString(hex));
+                        if (f.GetValueOrDefault(2) == (ulong)gilItemId) current = (long)f.GetValueOrDefault(3);
+                    }
+            var target = Math.Min(gilMax, current + gil);
+            added = Math.Max(0, target - current);
+            if (added > 0)
+                bytes = SetItemCounts(new MemoryStream(bytes), new[] { new ItemCountRequest(gilItemId, "Gil", target) }).Json;
+        }
+        return new MateriaDeleteResult(bytes, deleted, skipped, added);
+    }
+
+    public sealed record ItemCountResult(byte[] Json, List<string> Changed);
+
+    // Sets item counts in a NeverCrisis account.json, adding rows for items it doesn't have yet.
+    // UserItemList: UserId(1), ItemId(2), Count(3), ObtainedTotal(5), UsedTotal(8), FirstGot(10), Updated(11).
+    public static ItemCountResult SetItemCounts(Stream accountStream, IEnumerable<ItemCountRequest> requests)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long userId))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var tableKey = TableIds["UserItemList"].ToString();
+        if (tables[tableKey] is not JsonObject itemRows)
+            tables[tableKey] = itemRows = new JsonObject();
+        var rowsById = new Dictionary<ulong, (string Key, Dictionary<int, ulong> Fields)>();
+        foreach (var (key, value) in itemRows)
+            if (value is JsonValue v && v.TryGetValue(out string? hex))
+            {
+                var f = DecodeVarints(System.Convert.FromHexString(hex));
+                rowsById[f.GetValueOrDefault(2)] = (key, f);
+            }
+
+        var now = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var changed = new List<string>();
+        foreach (var req in requests)
+        {
+            var count = (ulong)Math.Max(0, req.Count);
+            if (!rowsById.TryGetValue((ulong)req.ItemId, out var row))
+            {
+                if (count == 0) continue;
+                row = ($"1:{userId}|2:{req.ItemId}", new Dictionary<int, ulong> { [1] = (ulong)userId, [2] = (ulong)req.ItemId, [10] = now });
+            }
+            var f = row.Fields;
+            var old = f.GetValueOrDefault(3);
+            if (old == count && itemRows.ContainsKey(row.Key)) continue;
+            // The obtained total only grows; a lower count is treated as items used.
+            if (count > old) f[5] = f.GetValueOrDefault(5) + count - old;
+            else f[8] = f.GetValueOrDefault(8) + old - count;
+            f[3] = count;
+            // The server's clock can run ahead of this one; never move the update time backwards.
+            f[11] = Math.Max(now, Math.Max(f.GetValueOrDefault(10), f.GetValueOrDefault(11)));
+            var buf = new List<byte>();
+            foreach (var (no, val) in f.OrderBy(kv => kv.Key))
+                if (val != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, val); }
+            itemRows[row.Key] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            changed.Add(req.Name);
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new ItemCountResult(Encoding.UTF8.GetBytes(json), changed);
+    }
+
     // Decodes a protobuf message whose fields are all varints (field number -> value).
     private static Dictionary<int, ulong> DecodeVarints(byte[] data)
     {
