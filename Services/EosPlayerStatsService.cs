@@ -45,6 +45,44 @@ public sealed class EosPlayerStatsService
         _master = new Lazy<MasterData>(() => MasterData.Load(basePath, _logger));
     }
 
+    private IReadOnlyList<GearOption>? _gear;
+
+    /// <summary>Every obtainable outfit and weapon, for adding gear to a NeverCrisis account.</summary>
+    public IReadOnlyList<GearOption> GearCatalog() => _gear ??= BuildGearCatalog(_master.Value);
+
+    private IReadOnlyList<EscalationOption>? _escalation;
+
+    /// <summary>Every Escalation Challenge with its highest stage, for marking clears in a NeverCrisis account.</summary>
+    public IReadOnlyList<EscalationOption> EscalationCatalog() => _escalation ??= _master.Value.BossChallenges
+        .Where(b => b.Value.MaxLevel > 0)
+        .Select(b => new EscalationOption(b.Key, string.IsNullOrEmpty(b.Value.Name) ? $"Escalation Challenge #{b.Key}" : b.Value.Name, b.Value.MaxLevel))
+        .OrderBy(b => b.Id)
+        .ToList();
+
+    private static IReadOnlyList<GearOption> BuildGearCatalog(MasterData m)
+    {
+        string CharName(long id) => m.Characters.TryGetValue(id, out var c) ? c.Name : string.Empty;
+        int CharOrder(long id) => m.Characters.TryGetValue(id, out var c) ? c.Order : int.MaxValue;
+
+        var outfits = m.CostumeNames
+            .Where(c => !string.IsNullOrEmpty(c.Value))
+            .Select(c => new GearOption(GearType.Outfit, c.Key, c.Value, CharName(m.CostumeCharacter.GetValueOrDefault(c.Key)), 0,
+                CharOrder(m.CostumeCharacter.GetValueOrDefault(c.Key))));
+        var weapons = m.WeaponCharacter
+            .Where(w => m.Weapons.TryGetValue(w.Key, out var info) && !string.IsNullOrEmpty(info.Name))
+            .Select(w =>
+            {
+                // A freshly obtained weapon sits at the top rarity of its rarity group
+                // (5★ = 3 for regular weapons, 101 for Ultimate weapons).
+                var group = m.WeaponGrowth.TryGetValue(w.Key, out var g) ? g.RarityGroup : 1;
+                var rarity = m.WeaponMaxRelease.Keys.Where(k => k.Group == group).Select(k => k.Rarity).DefaultIfEmpty(3).Max();
+                return new GearOption(GearType.Weapon, w.Key, m.Weapons[w.Key].Name, CharName(w.Value), rarity, CharOrder(w.Value));
+            });
+        return outfits.Concat(weapons)
+            .OrderBy(o => o.CharacterOrder).ThenBy(o => o.Type).ThenBy(o => o.Id)
+            .ToList();
+    }
+
     public EosPlayerStats Parse(Stream json, bool includePurchases = false)
     {
         using var doc = JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = true });

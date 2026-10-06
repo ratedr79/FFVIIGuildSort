@@ -150,6 +150,139 @@
         <div class="alert alert-danger mt-3">@Model.ErrorMessage</div>
     }
 
+    <details class="mt-2" @(Model.ConvertErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-file-export"></i> Export to a NeverCrisis offline server</summary>
+        <div class="card card-body mt-2" style="max-width: 760px;">
+            <p class="small mb-2">
+                Builds an <code>account.json</code> for the NeverCrisis offline server from your EOS export.
+                Start the server once so it creates <code>data\account.json</code> in its folder, then upload that file here together with your export.
+                Back up the server's <code>account.json</code> first, then replace it with the downloaded file while the server is stopped.
+            </p>
+            <p class="small text-muted mb-2">
+                Your characters, weapons, materia, items, progress and stones carry over. Gifts, friends and guild data aren't imported.
+                Both files are read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="NeverCrisis">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small mb-1" for="ConvertSourceFile">EOS export (.json)</label>
+                        <input type="file" id="ConvertSourceFile" name="ConvertSourceFile" accept=".json,application/json" class="form-control form-control-sm" required />
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small mb-1" for="ServerAccountFile">Server's account.json</label>
+                        <input type="file" id="ServerAccountFile" name="ServerAccountFile" accept=".json,application/json" class="form-control form-control-sm" required />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-sm btn-success w-100"><i class="fas fa-download"></i> Build</button>
+                    </div>
+                </div>
+            </form>
+            @if (Model.ConvertErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.ConvertErrorMessage</div>
+            }
+        </div>
+    </details>
+
+    <details class="mt-2" id="eos-gear" @(Model.GearErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-shirt"></i> Add outfits &amp; weapons to a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 760px;">
+            <p class="small mb-2">
+                Upload the server's <code>data\account.json</code>, tick what you want, and download the updated file.
+                Weapons arrive as a new 5★ copy (level 1, no overboost), like a fresh pull. Anything you already own is skipped.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="AddGear">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="GearAccountFile">Server's account.json</label>
+                    <input type="file" id="GearAccountFile" name="GearAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" id="eos-gear-filter" class="form-control form-control-sm" style="max-width: 260px;" placeholder="Search name or character…" />
+                    <select id="eos-gear-type" class="form-select form-select-sm" style="width: auto;">
+                        <option value="">Outfits &amp; weapons</option>
+                        <option value="Outfit">Outfits</option>
+                        <option value="Weapon">Weapons</option>
+                    </select>
+                    <label class="form-check-label small"><input type="checkbox" id="eos-gear-only-selected" class="form-check-input" /> Only ticked</label>
+                    <span class="small text-muted ms-auto"><span id="eos-gear-count">0</span> ticked</span>
+                </div>
+                <div class="border rounded" style="max-height: 320px; overflow-y: auto;">
+                    <table class="table table-sm table-hover small mb-0">
+                        <tbody>
+                            @foreach (var g in Model.Gear)
+                            {
+                                var key = (g.Type == FFVIIEverCrisisAnalyzer.Models.GearType.Outfit ? "o:" : "w:") + g.Id;
+                                <tr class="eos-gear-row" data-type="@g.Type" data-search="@($"{g.Name} {g.Character}".ToLowerInvariant())">
+                                    <td style="width: 2rem;"><input type="checkbox" class="form-check-input" name="AddGearIds" value="@key" id="gear-@key.Replace(":", "-")" @(Model.AddGearIds.Contains(key) ? "checked" : "") /></td>
+                                    <td><label for="gear-@key.Replace(":", "-")" class="mb-0">@g.Name</label></td>
+                                    <td class="text-muted">@g.Character</td>
+                                    <td class="text-muted">@(g.Type == FFVIIEverCrisisAnalyzer.Models.GearType.Outfit ? "Outfit" : g.RarityType == 101 ? "Ultimate weapon" : "Weapon")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-sm btn-success mt-2"><i class="fas fa-download"></i> Add and download</button>
+            </form>
+            @if (Model.GearErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.GearErrorMessage</div>
+            }
+        </div>
+    </details>
+
+    <details class="mt-2" id="eos-escalation" @(Model.EscalationErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-stairs"></i> Mark Escalation Challenge stages cleared in a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 760px;">
+            <p class="small mb-2">
+                For when the offline server doesn't unlock the next stages. Upload the server's <code>data\account.json</code>,
+                enter the highest stage you've cleared for each challenge, and download the updated file.
+                Clearing 10 unlocks 11–15, 15 unlocks 16–20, 20 unlocks 21–25, and 25 unlocks 26 and up.
+            </p>
+            <p class="small text-muted mb-2">
+                Leave a challenge blank to keep it as it is. First-clear rewards for stages you skip this way aren't granted.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetEscalation">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="EscalationAccountFile">Server's account.json</label>
+                    <input type="file" id="EscalationAccountFile" name="EscalationAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                </div>
+                <div class="border rounded" style="max-height: 320px; overflow-y: auto;">
+                    <table class="table table-sm table-hover small mb-0 align-middle">
+                        <thead class="table-light" style="position: sticky; top: 0;">
+                            <tr>
+                                <th>Challenge</th>
+                                <th class="text-end">Stages</th>
+                                <th style="width: 9rem;">Cleared up to</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var b in Model.Escalations)
+                            {
+                                <tr>
+                                    <td><label for="esc-@b.Id" class="mb-0">@b.Name</label></td>
+                                    <td class="text-end text-muted">@b.MaxLevel</td>
+                                    <td><input type="number" min="0" max="@b.MaxLevel" step="1" class="form-control form-control-sm eos-esc-level" id="esc-@b.Id" name="EscalationLevels[@b.Id]" data-max="@b.MaxLevel" value="@Model.EscalationLevels.GetValueOrDefault(b.Id)" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Update and download</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-esc-all-max">Fill every challenge with its last stage</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-esc-clear">Clear the form</button>
+                </div>
+            </form>
+            @if (Model.EscalationErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.EscalationErrorMessage</div>
+            }
+        </div>
+    </details>
+
     @if (s is not null)
     {
         // Shareable summary: the headline numbers, rendered client-side as text and as an image.
@@ -1345,6 +1478,39 @@
 
 @section Scripts {
     <script>
+        // Outfit & weapon picker: filter by text, type, or ticked; keep a running count.
+        (function () {
+            const box = document.getElementById('eos-gear');
+            if (!box) return;
+            const rows = [...box.querySelectorAll('.eos-gear-row')];
+            const text = document.getElementById('eos-gear-filter');
+            const type = document.getElementById('eos-gear-type');
+            const only = document.getElementById('eos-gear-only-selected');
+            const count = document.getElementById('eos-gear-count');
+            function apply() {
+                const q = text.value.trim().toLowerCase();
+                let ticked = 0;
+                for (const r of rows) {
+                    const on = r.querySelector('input').checked;
+                    if (on) ticked++;
+                    r.hidden = (q && !r.dataset.search.includes(q)) || (type.value && r.dataset.type !== type.value) || (only.checked && !on);
+                }
+                count.textContent = ticked;
+            }
+            text.addEventListener('input', apply);
+            type.addEventListener('change', apply);
+            only.addEventListener('change', apply);
+            box.addEventListener('change', e => { if (e.target.name === 'AddGearIds') apply(); });
+            apply();
+        })();
+
+        // Escalation picker: quick fill / clear of every stage box.
+        (function () {
+            const inputs = [...document.querySelectorAll('.eos-esc-level')];
+            document.getElementById('eos-esc-all-max')?.addEventListener('click', () => inputs.forEach(i => i.value = i.dataset.max));
+            document.getElementById('eos-esc-clear')?.addEventListener('click', () => inputs.forEach(i => i.value = ''));
+        })();
+
         (function () {
             if (typeof DataTable === 'undefined' || !document.getElementById('eos-draws-table')) return;
             // Formatted numbers ("1,234") sort as numbers via the num-fmt type.

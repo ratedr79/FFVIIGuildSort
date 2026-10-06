@@ -660,3 +660,10 @@ public sealed class EosAreaBattles
     public int Battles { get; set; }
     public long HighScore { get; set; }
 }
+
+public enum GearType { Outfit, Weapon }
+
+/// <summary>An outfit or weapon that can be added to a NeverCrisis account. RarityType is the starting rarity for weapons.</summary>
+public sealed record GearOption(GearType Type, long Id, string Name, string Character, int RarityType, int CharacterOrder);
+
+public sealed record EscalationOption(long Id, string Name, int MaxLevel);
