@@ -930,6 +930,104 @@
     <script id="eos-story-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
         Model.StoryChapters.Select(c => new object[] { c.Key, c.Group, c.Name, c.Kind, c.Episodes }),
         new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+    <details class="mt-2" id="eos-growth-edit" @(Model.GrowthErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-seedling"></i> Character and summon growth on a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 1100px;">
+            <p class="small mb-2">
+                Set character levels, fill growth boards, unlock limit breaks and overaccel, and unlock summons with their abilities,
+                then download the updated file. Upload the server's <code>data\account.json</code> first to see where each one is.
+            </p>
+            <p class="small text-muted mb-2">
+                Only characters already on the account are changed. "Boards" fills every panel of the character's or summon's growth
+                boards. "Limit breaks" and "Abilities" unlock every skill from the master data, including the ones the board panels give.
+                Nothing is taken away; the level is set to the number you enter. Stop the server and back up
+                <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="SetGrowth" id="eos-growth-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="GrowthAccountFile">Server's account.json</label>
+                    <input type="file" id="GrowthAccountFile" name="GrowthAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-growth-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="eos-growth-max">Max everything</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-growth-clear">Clear</button>
+                    <span class="small text-muted">or set every character to level</span>
+                    <input type="number" min="1" max="100" class="form-control form-control-sm" style="width: 80px;" id="eos-growth-alllevel" />
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-growth-alllevel-go">Apply</button>
+                </div>
+                <h6 class="small fw-bold mt-2">Characters</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm small align-middle mb-2" id="eos-growth-chars"></table>
+                </div>
+                <h6 class="small fw-bold mt-2">Summons</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm small align-middle mb-2" id="eos-growth-summons"></table>
+                </div>
+                <input type="hidden" name="GrowthRequestsJson" id="eos-growth-json" value="@Model.GrowthRequestsJson" />
+                <div class="d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Apply and download</button>
+                    <span class="small" id="eos-growth-summary">Nothing picked yet.</span>
+                </div>
+            </form>
+            @if (Model.GrowthErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.GrowthErrorMessage</div>
+            }
+        </div>
+    </details>
+    <script id="eos-growth-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.GrowthTargets.Where(t => t.Boards.Length > 0 || t.Specials.Length > 0)
+            .Select(t => new object[] { t.Kind, t.Id, t.Name, t.LevelExp,
+                t.Boards.Select(b => new object[] { b.GroupId, b.Flags0.ToString(), b.Flags1.ToString() }),
+                t.Specials, t.OveraccelSkillId,
+                t.OveraccelBoards.Select(b => new object[] { b.GroupId, b.Flags0.ToString(), b.Flags1.ToString() }) }),
+        new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
+    <details class="mt-2" id="eos-wall-edit" @(Model.WallpaperErrorMessage is not null ? "open" : "")>
+        <summary class="small"><i class="fas fa-image"></i> Unlock wallpapers on a NeverCrisis account</summary>
+        <div class="card card-body mt-2" style="max-width: 1100px;">
+            <p class="small mb-2">
+                Tick the home screen wallpapers to unlock, then download the updated file.
+                Upload the server's <code>data\account.json</code> first to see which ones the account already has.
+            </p>
+            <p class="small text-muted mb-2">
+                Wallpapers marked "limited" were only offered for a while; the game may hide or drop some of those (it can say
+                "This wallpaper is no longer available"). Your wallpaper rotation isn't changed; pick them in game under Wallpaper Settings.
+                Stop the server and back up <code>account.json</code> before replacing it. The file is read in memory and never saved.
+            </p>
+            <form method="post" enctype="multipart/form-data" asp-page-handler="AddWallpapers" id="eos-wall-form">
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="WallpaperAccountFile">Server's account.json</label>
+                    <input type="file" id="WallpaperAccountFile" name="WallpaperAccountFile" accept=".json,application/json" class="form-control form-control-sm" style="max-width: 420px;" required />
+                    <div class="small mt-1" id="eos-wall-status"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <input type="search" class="form-control form-control-sm" style="max-width: 240px;" id="eos-wall-search" placeholder="Search wallpapers" />
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-wall-all">Tick all missing</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="eos-wall-none">Untick everything</button>
+                    <div class="form-check small mb-0">
+                        <input class="form-check-input" type="checkbox" id="eos-wall-hideowned" />
+                        <label class="form-check-label" for="eos-wall-hideowned">Hide ones already owned</label>
+                    </div>
+                </div>
+                <div class="border rounded p-2 mb-2" style="max-height: 420px; overflow-y: auto;">
+                    <div class="row g-1" id="eos-wall-list"></div>
+                </div>
+                <input type="hidden" name="WallpaperIdsJson" id="eos-wall-json" value="@Model.WallpaperIdsJson" />
+                <div class="d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-download"></i> Unlock and download</button>
+                    <span class="small" id="eos-wall-summary">Nothing ticked yet.</span>
+                </div>
+            </form>
+            @if (Model.WallpaperErrorMessage is not null)
+            {
+                <div class="alert alert-danger mt-2 mb-0 small">@Model.WallpaperErrorMessage</div>
+            }
+        </div>
+    </details>
+    <script id="eos-wall-catalog" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.Wallpapers.Select(w => new object[] { w.Id, w.Name, w.Rarity, w.Limited }),
+        new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Default }))</script>
 
     @if (s is not null)
     {
@@ -2849,6 +2947,188 @@
                 }
                 update();
                 return `Loaded: ${done} of ${all.length} chapters are already complete.`;
+            });
+        })();
+        // Character and summon growth: levels, growth boards, limit breaks / abilities, overaccel, summon unlocks.
+        (function () {
+            const catEl = document.getElementById('eos-growth-catalog');
+            if (!catEl) return;
+            // [kind (1 character, 2 summon), id, name, [exp per level], [[board, flags0, flags1]], [skill ids], overaccel skill, [[overaccel board, ...]]]
+            const all = JSON.parse(catEl.textContent).map(([kind, id, name, exp, boards, specials, oa, oaBoards]) =>
+                ({ kind, id, name, exp, boards, specials, oa, oaBoards, key: kind + ':' + id }));
+            const chars = all.filter(t => t.kind === 1), summons = all.filter(t => t.kind === 2);
+            const byKey = new Map(all.map(t => [t.key, t]));
+            const esc = t => String(t).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
+            const charTable = document.getElementById('eos-growth-chars');
+            const summonTable = document.getElementById('eos-growth-summons');
+            const summary = document.getElementById('eos-growth-summary');
+            const head = cols => `<thead><tr>${cols.map(([label, col]) => col
+                ? `<th>${label}<br><button type="button" class="btn btn-link btn-sm p-0" data-col="${col}">tick all</button></th>`
+                : `<th>${label}</th>`).join('')}</tr></thead>`;
+            const box = (t, col, show = true) => show
+                ? `<td><input class="form-check-input" type="checkbox" data-key="${t.key}" data-f="${col}" /></td>` : '<td class="text-muted">—</td>';
+            charTable.innerHTML = head([['Character'], ['Now'], ['Level'], ['Boards', 'boards'], ['Limit breaks', 'specials'], ['Overaccel', 'overaccel']]) + '<tbody>' +
+                chars.map(t => `<tr data-row="${t.key}"><td>${esc(t.name)}</td><td class="text-muted" data-now="${t.key}"></td>
+                    <td><input type="number" min="1" max="${t.exp.length}" class="form-control form-control-sm" style="width: 80px;" data-key="${t.key}" data-f="level" placeholder="—" ${t.exp.length ? '' : 'disabled'} /></td>
+                    ${box(t, 'boards', t.boards.length)}${box(t, 'specials', t.specials.length)}${box(t, 'overaccel', t.oa > 0)}</tr>`).join('') + '</tbody>';
+            summonTable.innerHTML = head([['Summon'], ['Now'], ['Unlock', 'unlock'], ['Boards', 'boards'], ['Abilities', 'specials']]) + '<tbody>' +
+                summons.map(t => `<tr data-row="${t.key}"><td>${esc(t.name)}</td><td class="text-muted" data-now="${t.key}"></td>
+                    ${box(t, 'unlock')}${box(t, 'boards', t.boards.length)}${box(t, 'specials', t.specials.length)}</tr>`).join('') + '</tbody>';
+            const inputs = [...document.querySelectorAll('#eos-growth-form [data-f]')];
+            const usable = el => !el.disabled;
+
+            function requests() {
+                const reqs = new Map();
+                for (const el of inputs) {
+                    if (!usable(el)) continue;
+                    const v = el.type === 'checkbox' ? el.checked : (el.value ? Number(el.value) : null);
+                    if (!v) continue;
+                    const t = byKey.get(el.dataset.key);
+                    const r = reqs.get(t.key) ?? { kind: t.kind, id: t.id, level: null, boards: false, specials: false, overaccel: false, unlock: false };
+                    r[el.dataset.f] = v;
+                    reqs.set(t.key, r);
+                }
+                return [...reqs.values()];
+            }
+            function update() {
+                const r = requests();
+                summary.textContent = r.length ? `${r.length} character${r.length === 1 ? '' : 's'}/summon${r.length === 1 ? '' : 's'} to change.` : 'Nothing picked yet.';
+            }
+            const form = document.getElementById('eos-growth-form');
+            form.addEventListener('change', update);
+            form.addEventListener('input', update);
+            form.addEventListener('click', e => {
+                const b = e.target.closest('[data-col]'); if (!b) return;
+                const table = b.closest('table');
+                const mine = [...table.querySelectorAll(`input[type=checkbox][data-f="${b.dataset.col}"]`)].filter(usable);
+                const on = !mine.every(x => x.checked);
+                mine.forEach(x => x.checked = on);
+                update();
+            });
+            document.getElementById('eos-growth-max').addEventListener('click', () => {
+                for (const el of inputs.filter(usable)) {
+                    if (el.type === 'checkbox') el.checked = true;
+                    else el.value = byKey.get(el.dataset.key).exp.length;
+                }
+                update();
+            });
+            document.getElementById('eos-growth-clear').addEventListener('click', () => {
+                for (const el of inputs) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; }
+                update();
+            });
+            document.getElementById('eos-growth-alllevel-go').addEventListener('click', () => {
+                const lv = Number(document.getElementById('eos-growth-alllevel').value);
+                if (!lv) return;
+                for (const el of inputs.filter(x => usable(x) && x.dataset.f === 'level'))
+                    el.value = Math.min(lv, byKey.get(el.dataset.key).exp.length);
+                update();
+            });
+            form.addEventListener('submit', () => {
+                document.getElementById('eos-growth-json').value = JSON.stringify(requests());
+            });
+            try {
+                for (const r of JSON.parse(document.getElementById('eos-growth-json').value || '[]'))
+                    for (const el of inputs.filter(x => x.dataset.key === r.kind + ':' + r.id)) {
+                        const v = r[el.dataset.f];
+                        if (el.type === 'checkbox') el.checked = !!v; else el.value = v ?? '';
+                    }
+            } catch { }
+            update();
+
+            ncPrefill(document.getElementById('GrowthAccountFile'), document.getElementById('eos-growth-status'), tables => {
+                const rows = id => Object.values(tables[id] ?? {}).map(ncDecodeRow);
+                const owned = new Map(rows('470504869').map(f => [Number(f[2] ?? 0n), f[3] ?? 0n]));
+                const boards = new Map(rows('482350451').map(f => [Number(f[2] ?? 0n), [f[3] ?? 0n, f[4] ?? 0n]]));
+                const specials = new Set(rows('164726483').map(f => Number(f[2] ?? 0n)));
+                const oas = new Set(rows('415505131').map(f => Number(f[2] ?? 0n)));
+                const summonSet = new Set(rows('417328171').map(f => Number(f[2] ?? 0n)));
+                const full = list => list.filter(([g, f0, f1]) => { const b = boards.get(g); return b && b[0] === BigInt(f0) && b[1] === BigInt(f1); }).length;
+                const parts = t => {
+                    const p = [];
+                    if (t.boards.length) p.push(`boards ${full(t.boards)}/${t.boards.length}`);
+                    if (t.specials.length) p.push(`${t.kind === 1 ? 'LB' : 'abilities'} ${t.specials.filter(s => specials.has(s)).length}/${t.specials.length}`);
+                    return p;
+                };
+                let have = 0;
+                for (const t of chars) {
+                    const row = charTable.querySelector(`[data-row="${t.key}"]`);
+                    const exp = owned.get(t.id);
+                    const mine = exp !== undefined;
+                    row.classList.toggle('text-muted', !mine);
+                    row.querySelectorAll('[data-f]').forEach(el => el.disabled = !mine || (el.dataset.f === 'level' && !t.exp.length));
+                    if (!mine) { row.querySelector('[data-now]').textContent = 'not on this account'; continue; }
+                    have++;
+                    const level = t.exp.filter(e => BigInt(e) <= exp).length || 1;
+                    const p = [`Lv ${level}`, ...parts(t)];
+                    if (t.oa > 0) p.push(oas.has(t.oa) ? `OA ✓ ${full(t.oaBoards)}/${t.oaBoards.length}` : 'OA ✗');
+                    row.querySelector('[data-now]').textContent = p.join(', ');
+                }
+                for (const t of summons) {
+                    const p = [summonSet.has(t.id) ? 'unlocked' : 'locked', ...parts(t)];
+                    summonTable.querySelector(`[data-now="${t.key}"]`).textContent = p.join(', ');
+                }
+                update();
+                return `Loaded: ${have} characters and ${summons.filter(t => summonSet.has(t.id)).length} of ${summons.length} summons on this account.`;
+            });
+        })();
+        // Wallpapers: tick HomeBackground ids to unlock; owned ones are read from the uploaded file.
+        (function () {
+            const catEl = document.getElementById('eos-wall-catalog');
+            if (!catEl) return;
+            // [id, name, rarity, limited]
+            const all = JSON.parse(catEl.textContent).map(([id, name, rarity, limited]) => ({ id, name, rarity, limited }));
+            const list = document.getElementById('eos-wall-list');
+            const summary = document.getElementById('eos-wall-summary');
+            const search = document.getElementById('eos-wall-search');
+            const hideOwned = document.getElementById('eos-wall-hideowned');
+            const esc = t => String(t).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
+            let owned = null;
+            list.innerHTML = all.map(w => `
+                <div class="col-md-6 col-xl-4" data-wall="${w.id}"><div class="form-check small mb-0">
+                    <input class="form-check-input" type="checkbox" id="eos-wall-${w.id}" data-id="${w.id}" />
+                    <label class="form-check-label" for="eos-wall-${w.id}">${esc(w.name || ('Wallpaper #' + w.id))}
+                        <span class="text-muted">${'★'.repeat(Math.max(0, w.rarity))}</span>
+                        ${w.limited ? '<span class="badge bg-secondary">limited</span>' : ''}
+                        <span data-owned="${w.id}"></span></label>
+                </div></div>`).join('');
+            const boxes = [...list.querySelectorAll('[data-id]')];
+            const isOwned = b => owned?.has(Number(b.dataset.id));
+            function filter() {
+                const q = search.value.trim().toLowerCase();
+                for (const w of all) {
+                    const el = list.querySelector(`[data-wall="${w.id}"]`);
+                    el.hidden = (q && !w.name.toLowerCase().includes(q)) || (hideOwned.checked && owned?.has(w.id));
+                }
+            }
+            function update() {
+                const n = boxes.filter(b => b.checked && !isOwned(b)).length;
+                summary.textContent = n ? `${n} wallpaper${n === 1 ? '' : 's'} to unlock.` : 'Nothing ticked yet.';
+            }
+            list.addEventListener('change', update);
+            search.addEventListener('input', filter);
+            hideOwned.addEventListener('change', filter);
+            document.getElementById('eos-wall-all').addEventListener('click', () => { boxes.forEach(b => { if (!b.disabled) b.checked = true; }); update(); });
+            document.getElementById('eos-wall-none').addEventListener('click', () => { boxes.forEach(b => { if (!b.disabled) b.checked = false; }); update(); });
+            document.getElementById('eos-wall-form').addEventListener('submit', () => {
+                document.getElementById('eos-wall-json').value = JSON.stringify(boxes.filter(b => b.checked && !isOwned(b)).map(b => Number(b.dataset.id)));
+            });
+            try {
+                const keep = new Set(JSON.parse(document.getElementById('eos-wall-json').value || '[]'));
+                boxes.forEach(b => b.checked = keep.has(Number(b.dataset.id)));
+            } catch { }
+            update();
+
+            ncPrefill(document.getElementById('WallpaperAccountFile'), document.getElementById('eos-wall-status'), tables => {
+                owned = new Set(Object.values(tables['182461828'] ?? {}).map(h => Number(ncDecodeRow(h)[2] ?? 0n)));
+                for (const b of boxes) {
+                    const mine = isOwned(b);
+                    b.disabled = mine;
+                    if (mine) b.checked = true;
+                    list.querySelector(`[data-owned="${b.dataset.id}"]`).innerHTML = mine ? '<span class="badge bg-success">Owned</span>' : '';
+                }
+                filter(); update();
+                const have = all.filter(w => owned.has(w.id)).length;
+                return `Loaded: the account has ${have} of ${all.length} wallpapers.`;
             });
         })();
 

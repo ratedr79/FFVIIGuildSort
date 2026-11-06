@@ -1,0 +1,51 @@
+@page
+@model ReawakenedDownloadsModel
+@{
+    ViewData["Title"] = "Reawakened Downloads";
+}
+
+<div class="container py-4">
+    <h1 class="mb-3"><i class="fas fa-download"></i> Reawakened Downloads</h1>
+
+    @if (!Model.Groups.Any())
+    {
+        <div class="alert alert-secondary">There are no downloads yet. Check back soon.</div>
+    }
+
+    @foreach (var group in Model.Groups)
+    {
+        <div class="card mb-3">
+            @if (!string.IsNullOrEmpty(group.Key))
+            {
+                <div class="card-header fw-semibold"><i class="fas fa-folder"></i> @group.Key</div>
+            }
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th class="text-end">Size</th>
+                            <th>Updated</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var file in group)
+                        {
+                            <tr>
+                                <td class="text-break">@file.Name</td>
+                                <td class="text-end text-nowrap">@ReawakenedDownloadsModel.FormatSize(file.Size)</td>
+                                <td class="text-nowrap">@file.ModifiedUtc.ToString("MMM d, yyyy")</td>
+                                <td class="text-end">
+                                    <a class="btn btn-primary btn-sm text-nowrap" asp-page-handler="Download" asp-route-file="@file.RelativePath">
+                                        <i class="fas fa-download"></i> Download
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

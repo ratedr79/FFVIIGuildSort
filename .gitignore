@@ -134,3 +134,6 @@ $RECYCLE.BIN/
 .DS_Store
 
 _NCrunch*
+
+# Reawakened Downloads page: files are put here on each machine
+data/downloads/

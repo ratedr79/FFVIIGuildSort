@@ -842,6 +842,152 @@ public static class NeverCrisisAccountConverter
         return new StoryResult(Encoding.UTF8.GetBytes(json), done, count);
     }
 
+    public sealed record WallpaperResult(byte[] Json, int Added);
+
+    // Unlocks wallpapers: one UserHomeBackgroundList row (UserId, HomeBackgroundId) per wallpaper owned.
+    // The wallpaper rotation (UserHomeBackgroundSettingList) is left as it is.
+    public static WallpaperResult AddWallpapers(Stream accountStream, IEnumerable<long> wallpaperIds)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        var key = TableIds["UserHomeBackgroundList"].ToString();
+        if (tables[key] is not JsonObject rows) tables[key] = rows = new JsonObject();
+        var added = 0;
+        foreach (var id in wallpaperIds.Distinct())
+        {
+            var rowKey = $"1:{uid}|2:{id}";
+            if (rows[rowKey] is not null) continue;
+            var buf = new List<byte>();
+            WriteVarint(buf, 1 << 3); WriteVarint(buf, (ulong)uid);
+            WriteVarint(buf, 2 << 3); WriteVarint(buf, (ulong)id);
+            rows[rowKey] = System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+            added++;
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new WallpaperResult(Encoding.UTF8.GetBytes(json), added);
+    }
+
+    public sealed record GrowthRequest(GrowthTargetOption Target, int? Level, bool Boards, bool Specials, bool Overaccel, bool Unlock);
+    public sealed record GrowthResult(byte[] Json, List<string> Changed, List<string> Skipped);
+
+    // Character and summon growth. Characters: level = Exp (field 3) in UserCharacterList, only for characters
+    // the account owns. Growth boards: UserGrowthBoardGroupList (UserId, GrowthBoardGroupId, GroupIdxFlags0/1)
+    // with every node bit set. Limit breaks / summon abilities: UserSkillSpecialList (UserId, SpecialSkillId).
+    // Overaccel: UserSkillOveraccelList (UserId, OveraccelSkillId) plus its boards. Summons: UserSummonList
+    // (UserId, SummonId). Matches what a fully grown converted account holds. Nothing is removed or lowered
+    // except the level, which is set to the requested value.
+    public static GrowthResult SetGrowth(Stream accountStream, IEnumerable<GrowthRequest> requests)
+    {
+        var account = ParseNode(accountStream);
+        if (account["tables"] is not JsonObject tables)
+            throw new InvalidDataException("The account.json file doesn't look like a NeverCrisis account (no \"tables\"). Use the data\\account.json from the server.");
+        if (account["user_id"] is not JsonValue uidValue || !uidValue.TryGetValue(out long uid))
+            throw new InvalidDataException("The account.json file has no user_id. Use the data\\account.json from the server.");
+
+        JsonObject Table(string name)
+        {
+            var key = TableIds[name].ToString();
+            if (tables[key] is not JsonObject rows) tables[key] = rows = new JsonObject();
+            return rows;
+        }
+        static string Encode(Dictionary<int, ulong> f)
+        {
+            var buf = new List<byte>();
+            foreach (var (no, val) in f.OrderBy(kv => kv.Key))
+                if (val != 0) { WriteVarint(buf, (ulong)(no << 3)); WriteVarint(buf, val); }
+            return System.Convert.ToHexString(buf.ToArray()).ToLowerInvariant();
+        }
+        bool AddRow(JsonObject rows, ulong id)
+        {
+            var key = $"1:{uid}|2:{id}";
+            if (rows[key] is not null) return false;
+            rows[key] = Encode(new() { [1] = (ulong)uid, [2] = id });
+            return true;
+        }
+
+        var chars = Table("UserCharacterList");
+        var boardRows = Table("UserGrowthBoardGroupList");
+        var specialRows = Table("UserSkillSpecialList");
+        var overaccelRows = Table("UserSkillOveraccelList");
+        var summonRows = Table("UserSummonList");
+        var changed = new List<string>();
+        var skipped = new List<string>();
+
+        int FillBoards(IEnumerable<GrowthBoardFill> boards)
+        {
+            var n = 0;
+            foreach (var b in boards)
+            {
+                var key = $"1:{uid}|2:{b.GroupId}";
+                var f = boardRows[key] is JsonValue v && v.TryGetValue(out string? hex)
+                    ? DecodeVarints(System.Convert.FromHexString(hex)) : new Dictionary<int, ulong>();
+                var f0 = f.GetValueOrDefault(3) | b.Flags0;
+                var f1 = f.GetValueOrDefault(4) | b.Flags1;
+                if (boardRows[key] is not null && f0 == f.GetValueOrDefault(3) && f1 == f.GetValueOrDefault(4)) continue;
+                f[1] = (ulong)uid; f[2] = (ulong)b.GroupId; f[3] = f0; f[4] = f1;
+                boardRows[key] = Encode(f);
+                n++;
+            }
+            return n;
+        }
+
+        foreach (var r in requests.DistinctBy(r => (r.Target.Kind, r.Target.Id)))
+        {
+            var t = r.Target;
+            var parts = new List<string>();
+            if (t.Kind == 1)
+            {
+                var key = $"1:{uid}|2:{t.Id}";
+                if (chars[key] is not JsonValue cv || !cv.TryGetValue(out string? chex))
+                {
+                    skipped.Add($"{t.Name} (not on this account)");
+                    continue;
+                }
+                if (r.Level is int level && level >= 1 && level <= t.LevelExp.Length)
+                {
+                    var f = DecodeVarints(System.Convert.FromHexString(chex));
+                    var exp = (ulong)t.LevelExp[level - 1];
+                    if (f.GetValueOrDefault(3) != exp)
+                    {
+                        f[3] = exp;
+                        chars[key] = Encode(f);
+                        parts.Add($"level {level}");
+                    }
+                }
+            }
+            else if (r.Unlock && AddRow(summonRows, (ulong)t.Id)) parts.Add("unlocked");
+
+            if (r.Boards && FillBoards(t.Boards) is var nb && nb > 0) parts.Add($"{nb} board{(nb == 1 ? "" : "s")} filled");
+            if (r.Specials)
+            {
+                var ns = t.Specials.Count(s => AddRow(specialRows, (ulong)s));
+                if (ns > 0) parts.Add($"{ns} {(t.Kind == 1 ? "limit break" : "abilit")}{(t.Kind == 1 ? (ns == 1 ? "" : "s") : (ns == 1 ? "y" : "ies"))}");
+            }
+            if (r.Overaccel && t.Kind == 1 && t.OveraccelSkillId > 0)
+            {
+                if (AddRow(overaccelRows, (ulong)t.OveraccelSkillId)) parts.Add("overaccel unlocked");
+                if (FillBoards(t.OveraccelBoards) is var no && no > 0) parts.Add($"{no} overaccel board{(no == 1 ? "" : "s")} filled");
+            }
+            if (parts.Count > 0) changed.Add($"{t.Name}: {string.Join(", ", parts)}");
+        }
+
+        var json = account.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        }).Replace("\r\n", "\n") + "\n";
+        return new GrowthResult(Encoding.UTF8.GetBytes(json), changed, skipped);
+    }
+
     // A converted account carries the ranch records the live game created when the player first opened the chocobo
     // farm; an account started on the offline server can lack them, and the farm screen then never finishes loading.
     // Adds the farm record (UserChocoboFarmList: UserId, LastOpenTreasureDatetime) and the three expedition team slots

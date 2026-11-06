@@ -1,7 +1,7 @@
 @page
 @model FFVIIEverCrisisAnalyzer.Pages.GearSearchModel
 @{
-    ViewData["Title"] = "Gear Search";
+    ViewData["Title"] = Model.IsEcr ? "Gear Search (ECR Rebalancing)" : "Gear Search";
 
     string? GetElementIconPath(string? element)
     {
@@ -1015,6 +1015,39 @@
 
     .element-stack-value {
         letter-spacing: 0;
+    }
+
+    .ecr-badge {
+        display: inline-block;
+        padding: 0.05rem 0.4rem;
+        border-radius: 0.3rem;
+        background: #ffc107;
+        color: #212529;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        cursor: help;
+        vertical-align: middle;
+    }
+
+    .ecr-change-list li + li {
+        margin-top: 0.15rem;
+    }
+
+    .materia-slot-list {
+        list-style: none;
+        margin: 0.35rem 0 0;
+        padding: 0;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+
+    .materia-slot-list li::before {
+        content: "C6";
+        font-size: 0.6rem;
+        margin-right: 0.3rem;
+        color: var(--bs-secondary-color, #6c757d);
     }
 
     .sigil-badges {
@@ -2314,8 +2347,12 @@
 <div class="container py-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-            <h1 class="mb-3"><i class="fas fa-search"></i> Gear Search</h1>
+            <h1 class="mb-3"><i class="fas fa-search"></i> Gear Search@(Model.IsEcr ? " (ECR Rebalancing)" : "")</h1>
             <p class="text-muted mb-0">Browse all weapons with passive skills and advanced filters.</p>
+            <div class="btn-group btn-group-sm mt-2" role="group" aria-label="Game data">
+                <a class="btn @(Model.IsEcr ? "btn-outline-secondary" : "btn-secondary")" href="/GearSearch">Stock game data</a>
+                <a class="btn @(Model.IsEcr ? "btn-warning" : "btn-outline-warning")" href="/GearSearch?data=ecr">ECR Rebalancing (Reawakened)</a>
+            </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#buffDebuffNotesModal">
@@ -2326,6 +2363,50 @@
             </a>
         </div>
     </div>
+
+    @if (Model.IsEcr)
+    {
+        var ecr = Model.EcrService.Overlay;
+        <div class="alert alert-warning border mb-3 ecr-info">
+            @if (!ecr.Available)
+            {
+                <strong>No ECR Rebalancing data found.</strong>
+                <span>Build it with <code>C:\FF7EC\ECR\python\python.exe -I tools\build_ecr_overlay.py</code>.</span>
+            }
+            else
+            {
+                <div>
+                    <strong>ECR Rebalancing data:</strong> all @ecr.Changes.Count changes from the ECR launcher, every group on
+                    (Starlight Phone uses its default stat). Gear it changes has an <span class="ecr-badge">ECR</span> tag.
+                    <span class="text-muted small">Built @(DateTimeOffset.TryParse(ecr.GeneratedUtc, out var built) ? built.ToLocalTime().ToString("MMM d, yyyy h:mm tt") : ecr.GeneratedUtc); it rebuilds itself when the launcher's changes are edited.</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(ecr.LastError))
+            {
+                <div class="text-danger small mt-1">@ecr.LastError</div>
+            }
+            @if (ecr.Warnings.Any())
+            {
+                <div class="text-danger small mt-1">@ecr.Warnings.Count edits didn't match this game data: @string.Join("; ", ecr.Warnings.Take(5))</div>
+            }
+            @if (ecr.Available)
+            {
+                <details class="mt-2">
+                    <summary>All changes</summary>
+                    @foreach (var group in ecr.Changes.GroupBy(c => c.Group))
+                    {
+                        <div class="fw-semibold mt-2">@group.Key</div>
+                        <ul class="small mb-1 ecr-change-list">
+                            @foreach (var change in group)
+                            {
+                                <li><strong>@change.Name:</strong> @change.Text</li>
+                            }
+                        </ul>
+                    }
+                </details>
+            }
+        </div>
+    }
 
     <div class="card mb-3 sticky-gear-controls" id="gearSearchToolbarCard">
         <div class="card-body gear-search-toolbar-body">
@@ -2381,6 +2462,13 @@
                                 <input class="character-chip-input" type="checkbox" id="ownedItemsOnlyFilter" />
                                 <label class="character-chip-label rail-toggle-label" for="ownedItemsOnlyFilter">Only Owned</label>
                             </div>
+                            @if (Model.IsEcr)
+                            {
+                                <div class="character-chip-option">
+                                    <input class="character-chip-input" type="checkbox" id="ecrChangedOnlyFilter" />
+                                    <label class="character-chip-label rail-toggle-label" for="ecrChangedOnlyFilter">Only ECR Changes</label>
+                                </div>
+                            }
                             <div class="character-chip-option">
                                 <input class="character-chip-input" type="checkbox" id="hasCustomizationsFilter" />
                                 <label class="character-chip-label rail-toggle-label" for="hasCustomizationsFilter">Has Customizations</label>
@@ -2638,7 +2726,7 @@
                             <th>Type</th>
                             <th>Effects</th>
                             <th>R. Abilities</th>
-                            <th>Sigils</th>
+                            <th>Sigils &amp; Materia</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2660,7 +2748,10 @@
                         var displayElement = costumeNoAbility ? "N/A" : weapon.Element;
                         var displayElementIconPath = GetElementIconPath(displayElement);
                         var displayAbilityType = costumeNoAbility ? "N/A" : weapon.AbilityType;
-                        <tr data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-item-image-url="@weapon.ImageUrl" data-item-preview-image-url="@weapon.PreviewImageUrl" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
+                        var ecrChangeText = Model.EcrChangesByGearId.TryGetValue(weapon.Id, out var ecrChanges)
+                            ? string.Join("\n", ecrChanges.Select(c => c.Name + ": " + c.Text))
+                            : null;
+                        <tr data-ecr-changes="@ecrChangeText" data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-item-image-url="@weapon.ImageUrl" data-item-preview-image-url="@weapon.PreviewImageUrl" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
                             <td class="d-none">@weapon.Name</td>
                             <td>
                                 @if (!string.IsNullOrWhiteSpace(displayElementIconPath))
@@ -2854,6 +2945,20 @@
                                 else
                                 {
                                     <span class="text-muted">&mdash;</span>
+                                }
+                                @{
+                                    var materiaSlots = new[] { weapon.MateriaSupport0, weapon.MateriaSupport1, weapon.MateriaSupport2 }
+                                        .Where(m => !string.IsNullOrWhiteSpace(m))
+                                        .ToList();
+                                }
+                                @if (materiaSlots.Any())
+                                {
+                                    <ul class="materia-slot-list" title="Materia slots">
+                                        @foreach (var slot in materiaSlots)
+                                        {
+                                            <li>@slot</li>
+                                        }
+                                    </ul>
                                 }
                             </td>
                         </tr>
@@ -3141,6 +3246,14 @@
 
 @section Scripts {
     <script>
+        // The ECR Gear Search (?data=ecr) asks for ECR data in its snapshot requests too, and tags changed gear.
+        const gearDataQuery = @Html.Raw(Model.IsEcr ? "'&data=ecr'" : "''");
+        const buildEcrBadgeHtml = (rowNode) => {
+            const text = rowNode?.getAttribute('data-ecr-changes');
+            if (!text) return '';
+            const safe = text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<span class="ecr-badge" tabindex="0" title="${safe}">ECR</span>`;
+        };
         document.addEventListener('DOMContentLoaded', function () {
             const tableElement = document.getElementById('gearTable');
             const gearTableWrap = document.querySelector('.gear-table-wrap');
@@ -3259,7 +3372,9 @@
                     ? ownedInventoryState.ownedCostumeIds.has(rowItemId)
                     : ownedInventoryState.ownedWeaponIds.has(rowItemId)));
 
-                return characterMatch && equipmentMatch && quickElementAbilityMatch && sigilMatch && subRMatch && ownedMatch;
+                const ecrMatch = ecrChangedOnlyCheckbox?.checked !== true || rowNode.getAttribute('data-ecr-changes');
+
+                return characterMatch && equipmentMatch && quickElementAbilityMatch && sigilMatch && subRMatch && ownedMatch && ecrMatch;
             });
 
             const searchBox = document.getElementById('searchBox');
@@ -3278,6 +3393,8 @@
             const mobileClearFiltersBtn = document.getElementById('mobileClearFiltersBtn');
             const mobileApplyFiltersBtn = document.getElementById('mobileApplyFiltersBtn');
             const ownedItemsOnlyCheckbox = document.getElementById('ownedItemsOnlyFilter');
+            const ecrChangedOnlyCheckbox = document.getElementById('ecrChangedOnlyFilter');
+            ecrChangedOnlyCheckbox?.addEventListener('change', () => table.draw());
             const ownedInventoryGuidance = document.getElementById('ownedInventoryGuidance');
             const inventoryStorageKey = 'player-inventory-state-v1';
             const defaultMobileEmptyMessage = gearMobileResultsEmpty?.innerHTML ?? 'No matching gear found.';
@@ -3579,7 +3696,7 @@
                     return ownedWeaponSnapshotRequestCache.get(snapshotKey);
                 }
 
-                const url = `/GearSearch?handler=WeaponSnapshot&weaponId=${encodeURIComponent(weaponId)}&overboost=${encodeURIComponent(ownedRecord.overboost)}&level=${encodeURIComponent(ownedRecord.level)}`;
+                const url = `/GearSearch?handler=WeaponSnapshot&weaponId=${encodeURIComponent(weaponId)}&overboost=${encodeURIComponent(ownedRecord.overboost)}&level=${encodeURIComponent(ownedRecord.level)}${gearDataQuery}`;
                 const request = fetch(url)
                     .then(response => {
                         if (!response.ok) {
@@ -3703,6 +3820,8 @@
             const getCharacterTheme = (character) => characterThemes[String(character ?? '').trim()] ?? defaultCharacterTheme;
 
             const elementThemes = Object.freeze({
+                'dark': { accent: '#6b4a9e', soft: 'rgba(107, 74, 158, 0.2)', faint: 'rgba(107, 74, 158, 0.08)', border: 'rgba(107, 74, 158, 0.34)', glow: 'rgba(107, 74, 158, 0.15)' },
+                'holy': { accent: '#e6c65c', soft: 'rgba(230, 198, 92, 0.22)', faint: 'rgba(230, 198, 92, 0.1)', border: 'rgba(230, 198, 92, 0.34)', glow: 'rgba(230, 198, 92, 0.16)' },
                 'earth': { accent: '#b89052', soft: 'rgba(184, 144, 82, 0.2)', faint: 'rgba(184, 144, 82, 0.08)', border: 'rgba(184, 144, 82, 0.34)', glow: 'rgba(184, 144, 82, 0.14)' },
                 'fire': { accent: '#ff5a5a', soft: 'rgba(255, 90, 90, 0.2)', faint: 'rgba(255, 90, 90, 0.08)', border: 'rgba(255, 90, 90, 0.34)', glow: 'rgba(255, 90, 90, 0.15)' },
                 'heal': { accent: '#72d9b8', soft: 'rgba(114, 217, 184, 0.2)', faint: 'rgba(114, 217, 184, 0.08)', border: 'rgba(114, 217, 184, 0.32)', glow: 'rgba(114, 217, 184, 0.14)' },
@@ -4407,6 +4526,8 @@
                 // Sigils
                 const sigilBadges = cells[7]?.querySelector('.sigil-badges');
                 const sigilsHtml = sigilBadges ? sigilBadges.outerHTML : '<span class="text-muted">&mdash;</span>';
+                const materiaList = cells[7]?.querySelector('.materia-slot-list');
+                const materiaHtml = materiaList ? materiaList.outerHTML : '<span class="text-muted">&mdash;</span>';
 
                 // Ability text from template
                 const abilityTemplate = cells[6]?.querySelector('.ability-template');
@@ -4416,7 +4537,7 @@
                 const custTemplate = cells[6]?.querySelector('.customization-template');
                 const customizationsHtml = custTemplate ? custTemplate.innerHTML.trim() : '<span class="text-muted">None</span>';
 
-                return { name, character, equipment, imageUrl, previewImageUrl, element, potPercent, statsHtml, range, abilityType, effects, rAbilitiesHtml, sigilsHtml, abilityText, customizationsHtml };
+                return { name, character, equipment, imageUrl, previewImageUrl, element, potPercent, statsHtml, range, abilityType, effects, rAbilitiesHtml, sigilsHtml, materiaHtml, abilityText, customizationsHtml };
             };
 
             const updateComparePanel = () => {
@@ -4446,6 +4567,7 @@
                     ['Effects', d => d.effects],
                     ['R. Abilities', d => d.rAbilitiesHtml],
                     ['Sigils', d => d.sigilsHtml],
+                    ['Materia Slots', d => d.materiaHtml],
                     ['Ability', d => d.abilityText],
                     ['Customizations', d => d.customizationsHtml]
                 ];
@@ -4572,7 +4694,7 @@
                                         <span class="weapon-banner-character-value">${escapeHtml(character)}</span>
                                     </span>
                                     ${weaponNameHtml}
-                                    ${pillsHtml ? `<div class="weapon-banner-pills">${pillsHtml}</div>` : ''}
+                                    ${pillsHtml || rowNode.getAttribute('data-ecr-changes') ? `<div class="weapon-banner-pills">${pillsHtml}${buildEcrBadgeHtml(rowNode)}</div>` : ''}
                                 </div>
                             </div>
                             <div class="weapon-banner-actions">
@@ -4682,6 +4804,7 @@
                     const rAbilitiesHtml = `${rAbilityMain}${rAbilityCust}`;
 
                     const sigilsHtml = cells[7]?.querySelector('.sigil-badges')?.outerHTML ?? '<span class="text-muted">&mdash;</span>';
+                    const mobileMateriaHtml = cells[7]?.querySelector('.materia-slot-list')?.outerHTML ?? '';
                     const sigilsText = cells[7]?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
                     const abilityHtml = cells[6]?.querySelector('.ability-template')?.innerHTML?.trim() ?? '';
                     const customizationHtml = cells[6]?.querySelector('.customization-template')?.innerHTML?.trim() ?? '';
@@ -4710,6 +4833,10 @@
 
                     if (!isCostume || hasSigilsValue) {
                         mobileSummaryRows.push(buildMobileCardRow('Sigils', sigilsHtml));
+                    }
+
+                    if (mobileMateriaHtml) {
+                        mobileSummaryRows.push(buildMobileCardRow('Materia', mobileMateriaHtml));
                     }
 
                     const inCompare = compareItems.has(weaponId);
@@ -5156,7 +5283,7 @@
 
                 const overboost = snapshotOverboost.value;
                 const level = snapshotLevel.value;
-                const url = `/GearSearch?handler=WeaponSnapshot&weaponId=${encodeURIComponent(currentWeaponId)}&overboost=${overboost}&level=${level}`;
+                const url = `/GearSearch?handler=WeaponSnapshot&weaponId=${encodeURIComponent(currentWeaponId)}&overboost=${overboost}&level=${level}${gearDataQuery}`;
 
                 setSnapshotLoading(true);
                 showSnapshotError(false);

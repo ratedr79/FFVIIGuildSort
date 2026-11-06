@@ -5,17 +5,36 @@ using FFVIIEverCrisisAnalyzer.Models;
 using FFVIIEverCrisisAnalyzer.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FFVIIEverCrisisAnalyzer.Pages
 {
     public class GearSearchModel : PageModel
     {
-        private readonly WeaponSearchDataService _weaponSearchService;
+        private readonly WeaponSearchDataService _stockService;
+        private readonly IServiceProvider _services;
+        private EcrWeaponSearchDataService? _ecrService;
 
-        public GearSearchModel(WeaponSearchDataService weaponSearchService)
+        public GearSearchModel(WeaponSearchDataService weaponSearchService, IServiceProvider services)
         {
-            _weaponSearchService = weaponSearchService;
+            _stockService = weaponSearchService;
+            _services = services;
         }
+
+        /// <summary>"ecr" shows the ECR (Reawakened) Rebalancing data instead of the stock game data.</summary>
+        [BindProperty(SupportsGet = true)]
+        public string? Data { get; set; }
+
+        public bool IsEcr => string.Equals(Data, "ecr", StringComparison.OrdinalIgnoreCase);
+
+        // The ECR data is only loaded the first time someone opens the ECR Gear Search.
+        public EcrWeaponSearchDataService EcrService => _ecrService ??= _services.GetRequiredService<EcrWeaponSearchDataService>();
+
+        private WeaponSearchDataService _weaponSearchService => IsEcr ? EcrService : _stockService;
+
+        /// <summary>Gear Search item id -> the ECR changes that touch it (ECR view only).</summary>
+        public IReadOnlyDictionary<string, IReadOnlyList<EcrOverlayStore.Change>> EcrChangesByGearId =>
+            IsEcr ? EcrService.Overlay.ChangesByGearId : new Dictionary<string, IReadOnlyList<EcrOverlayStore.Change>>();
 
         [BindProperty(SupportsGet = true)]
         public string? CharacterFilter { get; set; }
@@ -53,6 +72,9 @@ namespace FFVIIEverCrisisAnalyzer.Pages
             // Validate page size selection even though DataTables handles pagination client-side
             if (!AvailablePageSizes.Contains(PageSize))
                 PageSize = 50;
+
+            if (IsEcr)
+                EcrService.RefreshFromRecipe();
 
             var allWeapons = _weaponSearchService.SearchWeapons(SearchText ?? string.Empty, CharacterFilter);
             TotalItems = allWeapons.Count;

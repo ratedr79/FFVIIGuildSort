@@ -73,6 +73,10 @@ public sealed class EosPlayerStatsService
     /// <summary>Each tutorial step type with its last step, for marking every tutorial finished.</summary>
     public IReadOnlyDictionary<int, int> TutorialLastSteps() => _master.Value.TutorialLastSteps;
 
+    public IReadOnlyList<GrowthTargetOption> GrowthCatalog() => _master.Value.GrowthTargets;
+
+    public IReadOnlyList<WallpaperOption> WallpaperCatalog() => _master.Value.Wallpapers;
+
     public long MateriaSaleGil(long materiaId, int quality, int evolve, long exp) => _master.Value.MateriaSaleGil(materiaId, quality, evolve, exp);
 
     private MateriaListCatalog? _materiaList;
@@ -1444,6 +1448,8 @@ public sealed class EosPlayerStatsService
         public List<ChocoboOption> ChocoboOptions { get; } = new();
         public List<StoryChapterOption> StoryChapters { get; } = new();
         public Dictionary<int, int> TutorialLastSteps { get; } = new();
+        public List<GrowthTargetOption> GrowthTargets { get; } = new();
+        public List<WallpaperOption> Wallpapers { get; } = new();
         public Dictionary<long, WeaponInfo> Weapons { get; } = new();
         public Dictionary<long, string> FeaturedWeapons { get; } = new();
         public Dictionary<long, string> RecipeNames { get; } = new();
@@ -1760,6 +1766,58 @@ public sealed class EosPlayerStatsService
                         eps.Select(e => Long(e, "BattleId") > 0 ? new[] { Long(e, "BattleId") } : Array.Empty<long>()).ToArray()));
                 }
             }
+
+            // Characters and summons for the growth editor. A finished growth board has one bit per GrowthBoardNode
+            // (GrowthBoardGroupIdx) set in GroupIdxFlags0/1. Board types: 1 = character panels, 5 = character overaccel,
+            // 4 = summon (TargetId = Summon.Id). Nodes can grant special skills (limit breaks / summon abilities).
+            {
+                var nodes = Rows(master, "GrowthBoardNode", logger).GroupBy(n => Long(n, "GrowthBoardGroupId")).ToDictionary(g => g.Key, g => g.ToList());
+                GrowthBoardFill Fill(long group)
+                {
+                    ulong f0 = 0, f1 = 0;
+                    foreach (var n in nodes.GetValueOrDefault(group) ?? new())
+                    {
+                        var idx = (int)Long(n, "GrowthBoardGroupIdx");
+                        if (idx < 64) f0 |= 1UL << idx; else f1 |= 1UL << (idx - 64);
+                    }
+                    return new GrowthBoardFill(group, f0, f1);
+                }
+                var boards = Rows(master, "GrowthBoardGroup", logger)
+                    .GroupBy(b => (Type: Long(b, "GrowthBoardType"), Target: Long(b, "TargetId")))
+                    .ToDictionary(g => g.Key, g => g.OrderBy(b => Long(b, "OrderNo")).ThenBy(b => Long(b, "Id")).Select(b => Long(b, "Id")).ToList());
+                long[] NodeSkills(IEnumerable<long> groups) => groups.SelectMany(g => nodes.GetValueOrDefault(g) ?? new())
+                    .Select(n => Long(n, "SkillSpecialId")).Where(s => s > 0).ToArray();
+                var specials = Rows(master, "SkillSpecial", logger).ToList();
+                long[] Specials(int type, long content) => specials
+                    .Where(s => Long(s, "SkillSpecialType") == type && Long(s, "ContentId") == content).Select(s => Long(s, "Id")).ToArray();
+                var charLevels = Rows(master, "CharacterLevel", logger).GroupBy(r => Long(r, "CharacterId"))
+                    .ToDictionary(g => g.Key, g => g.OrderBy(r => Long(r, "Level")).Select(r => Long(r, "Exp")).ToArray());
+                var overaccel = Rows(master, "SkillOveraccel", logger).GroupBy(o => Long(o, "CharacterId")).ToDictionary(g => g.Key, g => Long(g.First(), "Id"));
+                foreach (var c in Rows(master, "Character", logger).OrderBy(c => Long(c, "OrderNo")))
+                {
+                    var id = Long(c, "Id");
+                    var panel = boards.GetValueOrDefault((1, id)) ?? new();
+                    var oa = boards.GetValueOrDefault((5, id)) ?? new();
+                    data.GrowthTargets.Add(new GrowthTargetOption(1, id, characters.GetValueOrDefault(id) ?? $"Character #{id}",
+                        charLevels.GetValueOrDefault(id) ?? Array.Empty<long>(), panel.Select(Fill).ToArray(),
+                        Specials(1, id).Concat(NodeSkills(panel)).Distinct().ToArray(),
+                        overaccel.GetValueOrDefault(id), oa.Select(Fill).ToArray()));
+                }
+                foreach (var s in Rows(master, "Summon", logger).OrderBy(s => Long(s, "OrderNo")).ThenBy(s => Long(s, "Id")))
+                {
+                    var id = Long(s, "Id");
+                    var board = boards.GetValueOrDefault((4, id)) ?? new();
+                    data.GrowthTargets.Add(new GrowthTargetOption(2, id, Name(s, "NameLanguageId"), Array.Empty<long>(),
+                        board.Select(Fill).ToArray(),
+                        Specials(2, id).Concat(NodeSkills(board)).Append(Long(s, "DefaultSkillSpecialId")).Where(x => x > 0).Distinct().ToArray(),
+                        0, Array.Empty<GrowthBoardFill>()));
+                }
+            }
+
+            // Wallpapers (HomeBackground). DisplayConditionSetId != 0 marks ones that were only offered for a while.
+            foreach (var w in Rows(master, "HomeBackground", logger).OrderBy(w => Long(w, "Id")))
+                data.Wallpapers.Add(new WallpaperOption(Long(w, "Id"), Name(w, "NameLanguageId"),
+                    (int)Long(w, "ItemRarityType"), Long(w, "DisplayConditionSetId") != 0));
 
             // Materia names come from recipe titles, e.g. "Ruin (⬤Circle) Recipe".
             var shapes = new Dictionary<long, string> { [1] = "⬤Circle", [2] = "▲Triangle", [3] = "✖Cross" };

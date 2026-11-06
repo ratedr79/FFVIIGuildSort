@@ -954,6 +954,107 @@ public class EosPlayerStatsModel : PageModel
         return Page();
     }
 
+    public IReadOnlyList<WallpaperOption> Wallpapers => _service.WallpaperCatalog();
+
+    [BindProperty]
+    public IFormFile? WallpaperAccountFile { get; set; }
+
+    // JSON list of HomeBackground ids to unlock.
+    [BindProperty]
+    public string? WallpaperIdsJson { get; set; }
+
+    public string? WallpaperErrorMessage { get; private set; }
+
+    public IActionResult OnPostAddWallpapers()
+    {
+        if (WallpaperAccountFile is null || WallpaperAccountFile.Length == 0)
+        {
+            WallpaperErrorMessage = "Choose the account.json from your NeverCrisis server's data folder.";
+            return Page();
+        }
+        List<long>? ids;
+        try { ids = JsonSerializer.Deserialize<List<long>>(WallpaperIdsJson ?? "[]"); }
+        catch (JsonException) { ids = null; }
+        var known = Wallpapers.Select(w => w.Id).ToHashSet();
+        var picked = (ids ?? new()).Where(known.Contains).Distinct().ToList();
+        if (picked.Count == 0)
+        {
+            WallpaperErrorMessage = "Tick at least one wallpaper to unlock.";
+            return Page();
+        }
+
+        try
+        {
+            using var account = WallpaperAccountFile.OpenReadStream();
+            var result = NeverCrisisAccountConverter.AddWallpapers(account, picked);
+            _logger.LogInformation("NeverCrisis wallpapers: {Added} added", result.Added);
+            return File(result.Json, "application/json", "account.json");
+        }
+        catch (InvalidDataException ex)
+        {
+            WallpaperErrorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Adding wallpapers to a NeverCrisis account failed");
+            WallpaperErrorMessage = "Something went wrong updating the account file.";
+        }
+        return Page();
+    }
+
+    public IReadOnlyList<GrowthTargetOption> GrowthTargets => _service.GrowthCatalog();
+
+    [BindProperty]
+    public IFormFile? GrowthAccountFile { get; set; }
+
+    // JSON list of {kind, id, level, boards, specials, overaccel, unlock}; kind 1 = character, 2 = summon.
+    [BindProperty]
+    public string? GrowthRequestsJson { get; set; }
+
+    public string? GrowthErrorMessage { get; private set; }
+
+    private sealed record GrowthPost(int Kind, long Id, int? Level, bool Boards, bool Specials, bool Overaccel, bool Unlock);
+
+    public IActionResult OnPostSetGrowth()
+    {
+        if (GrowthAccountFile is null || GrowthAccountFile.Length == 0)
+        {
+            GrowthErrorMessage = "Choose the account.json from your NeverCrisis server's data folder.";
+            return Page();
+        }
+        List<GrowthPost>? posts;
+        try { posts = JsonSerializer.Deserialize<List<GrowthPost>>(GrowthRequestsJson ?? "[]", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+        catch (JsonException) { posts = null; }
+        var catalog = GrowthTargets.ToDictionary(t => (t.Kind, t.Id));
+        var requests = (posts ?? new())
+            .Where(p => catalog.ContainsKey((p.Kind, p.Id)) && (p.Level is not null || p.Boards || p.Specials || p.Overaccel || p.Unlock))
+            .Select(p => new NeverCrisisAccountConverter.GrowthRequest(catalog[(p.Kind, p.Id)], p.Level, p.Boards, p.Specials, p.Overaccel, p.Unlock))
+            .ToList();
+        if (requests.Count == 0)
+        {
+            GrowthErrorMessage = "Pick at least one change (a level or a ticked box).";
+            return Page();
+        }
+
+        try
+        {
+            using var account = GrowthAccountFile.OpenReadStream();
+            var result = NeverCrisisAccountConverter.SetGrowth(account, requests);
+            _logger.LogInformation("NeverCrisis growth: {Changed} changed, {Skipped} skipped", result.Changed.Count, result.Skipped.Count);
+            return File(result.Json, "application/json", "account.json");
+        }
+        catch (InvalidDataException ex)
+        {
+            GrowthErrorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Setting growth on a NeverCrisis account failed");
+            GrowthErrorMessage = "Something went wrong updating the account file.";
+        }
+        return Page();
+    }
+
     public IReadOnlyList<EscalationOption> Escalations => _service.EscalationCatalog();
 
     [BindProperty]

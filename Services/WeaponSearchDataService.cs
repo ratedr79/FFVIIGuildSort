@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using FFVIIEverCrisisAnalyzer.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FFVIIEverCrisisAnalyzer.Services
 {
-    public sealed class WeaponSearchDataService
+    public class WeaponSearchDataService
     {
         private const int DefaultMaxWeaponLevel = 140;
         private const int MinCustomizationUnlockLevel = 80;
@@ -96,11 +97,20 @@ namespace FFVIIEverCrisisAnalyzer.Services
         public int ReloadCount { get; private set; }
         public int MaxWeaponLevel { get; private set; } = DefaultMaxWeaponLevel;
 
+        // Rows laid over the MasterData (the ECR Rebalancing data); null for the stock game data.
+        private readonly EcrOverlayStore? _overlay;
+
         public WeaponSearchDataService(ILogger<WeaponSearchDataService> logger, IWebHostEnvironment environment, GearImageCatalog? gearImageCatalog = null)
+            : this(logger, environment, gearImageCatalog, null)
+        {
+        }
+
+        protected WeaponSearchDataService(ILogger<WeaponSearchDataService> logger, IWebHostEnvironment environment, GearImageCatalog? gearImageCatalog, EcrOverlayStore? overlay)
         {
             _logger = logger;
             _environment = environment;
             _gearImageCatalog = gearImageCatalog;
+            _overlay = overlay;
             ReloadData();
         }
 
@@ -540,7 +550,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 }
             }
 
-            var customizations = BuildCustomizationsAtLevel(weapon, level, upgradeCount, damagePercent, snapshotPassiveProgress);
+            var customizations = BuildCustomizationsAtLevel(weapon, level, upgradeCount, damagePercent, abilityText, snapshotPassiveProgress);
 
             return new WeaponSnapshotResult
             {
@@ -579,7 +589,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             var characters = LoadList<CharacterRaw>(Path.Combine(masterPath, "Character.json"))
                 .ToDictionary(c => c.Id, c => StripMarkup(localization.Get(c.NameLanguageId)));
             var materiaSupports = LoadList<MateriaSupportRaw>(Path.Combine(masterPath, "MateriaSupport.json"))
-                .ToDictionary(m => m.Id, m => localization.Get(m.NameLanguageId));
+                .ToDictionary(m => m.Id, m => MateriaSlotName(m.Id, localization.Get(m.NameLanguageId)));
             var upgradeSkills = LoadList<WeaponUpgradeSkillRaw>(Path.Combine(masterPath, "WeaponUpgradeSkill.json"));
             var upgradesByWeapon = upgradeSkills
                 .GroupBy(u => u.WeaponId)
@@ -922,7 +932,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     statusChangeGroups,
                     skillPassives,
                     localization,
-                    abilityDetails.DamagePercent);
+                    abilityDetails.DamagePercent,
+                    abilityDetails.Text);
 
                 var customizationEffectTags = ExtractCustomizationEffectTags(
                     weapon,
@@ -1282,6 +1293,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
                         dict[id] = kvp.Value;
                     }
                 }
+                if (_overlay != null)
+                {
+                    foreach (var (id, text) in _overlay.Texts)
+                        dict[id] = text;
+                }
                 return new LocalizationStore(dict);
             }
             catch (System.Exception ex)
@@ -1557,6 +1573,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
             int targetLevel,
             int targetUpgradeCount,
             double baseDamagePercent,
+            string? baseAbilityText,
             double snapshotPassiveProgressHint = 1.0)
         {
             var results = new List<WeaponCustomization>();
@@ -1584,7 +1601,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                     switch (effect.WeaponEvolveEffectType)
                     {
                         case 1:
-                            description = BuildEvolveAbilityAtLevel(effect, targetUpgradeCount, baseDamagePercent);
+                            description = BuildEvolveAbilityAtLevel(effect, targetUpgradeCount, baseDamagePercent, baseAbilityText);
                             break;
                         case 3:
                         {
@@ -1631,7 +1648,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
         private string? BuildEvolveAbilityAtLevel(
             WeaponEvolveEffectRaw effect,
             int targetUpgradeCount,
-            double baseDamagePercent)
+            double baseDamagePercent,
+            string? baseAbilityText)
         {
             var skillGroupId = _weaponEvolveWeaponSkills.ContainsKey(effect.TargetId)
                 ? effect.TargetId : effect.WeaponEvolveId;
@@ -1679,12 +1697,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 _skillTriggerConditionHp, _buffDebuffGroups, _statusConditionGroups,
                 _statusChangeGroups, _locStore!, abilityType, element);
 
-            if (abilityDetails.DamagePercent > 0 && baseDamagePercent > 0)
-            {
-                var diff = abilityDetails.DamagePercent - baseDamagePercent;
-                if (diff > 0.1)
-                    return $"Damage Potency +{diff:0.#}% (new {abilityDetails.DamagePercent:0.#}%)";
-            }
+            var damageOnly = DamageOnlyUpgradeText(abilityDetails.Text, abilityDetails.DamagePercent, baseAbilityText, baseDamagePercent);
+            if (damageOnly != null) return damageOnly;
 
             var abilityText = abilityDetails.Text.Replace("\n", " ").Trim();
             if (!string.IsNullOrWhiteSpace(abilityText)) return abilityText;
@@ -1692,6 +1706,34 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 return $"Sets damage potency to {abilityDetails.DamagePercent:0.#}%";
 
             return null;
+        }
+
+        /// <summary>
+        /// "Damage Potency +X% (new Y%)" for a customization that only raises the C. Ability's damage (a Heart),
+        /// or null when it also changes other effects (an ECR Club replacing the effects), which then show in full.
+        /// </summary>
+        private static string? DamageOnlyUpgradeText(string customText, double customDamage, string? baseText, double baseDamage)
+        {
+            var diff = customDamage - baseDamage;
+            if (customDamage <= 0 || baseDamage <= 0 || diff <= 0.1)
+            {
+                return null;
+            }
+
+            if (baseText != null && !string.Equals(
+                    WithoutPotency(customText, customDamage), WithoutPotency(baseText, baseDamage), StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return $"Damage Potency +{diff:0.#}% (new {customDamage:0.#}%)";
+        }
+
+        private static string WithoutPotency(string text, double potency)
+        {
+            var value = $"{potency:0.#}%";
+            var at = text.IndexOf(value, StringComparison.Ordinal);
+            return (at < 0 ? text : text.Remove(at, value.Length)).Replace("\n", " ").Trim();
         }
 
         private string ResolveGearImageUrl(string itemName, string characterName, string equipmentType)
@@ -1739,7 +1781,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             Dictionary<long, List<int>> statusChangeGroups,
             Dictionary<int, SkillPassiveRaw> skillPassives,
             LocalizationStore localization,
-            double baseDamagePercent)
+            double baseDamagePercent,
+            string? baseAbilityText)
         {
             var results = new List<WeaponCustomization>();
 
@@ -1807,7 +1850,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
                                 statusConditionGroups,
                                 statusChangeGroups,
                                 localization,
-                                baseDamagePercent);
+                                baseDamagePercent,
+                                baseAbilityText);
                             break;
                         case 3:
                         {
@@ -1933,7 +1977,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             Dictionary<long, List<int>> statusConditionGroups,
             Dictionary<long, List<int>> statusChangeGroups,
             LocalizationStore localization,
-            double baseDamagePercent)
+            double baseDamagePercent,
+            string? baseAbilityText)
         {
             var skillGroupId = weaponEvolveWeaponSkills.ContainsKey(effect.TargetId)
                 ? effect.TargetId
@@ -2014,13 +2059,10 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 abilityType,
                 element);
 
-            if (abilityDetails.DamagePercent > 0 && baseDamagePercent > 0)
+            var damageOnly = DamageOnlyUpgradeText(abilityDetails.Text, abilityDetails.DamagePercent, baseAbilityText, baseDamagePercent);
+            if (damageOnly != null)
             {
-                var diff = abilityDetails.DamagePercent - baseDamagePercent;
-                if (diff > 0.1)
-                {
-                    return $"Damage Potency +{diff:0.#}% (new {abilityDetails.DamagePercent:0.#}%)";
-                }
+                return damageOnly;
             }
 
             var abilityText = abilityDetails.Text.Replace("\n", " ").Trim();
@@ -2480,6 +2522,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
                             abilityPotency = damage.MaxDamageCoefficient / 10.0;
                             primaryBaseText = $"Deal {abilityPotency.Value:0.#}% {abilityType} {element} damage [Rng.: {range}]";
                         }
+                        primaryBaseText = AppendTriggerChance(primaryBaseText, effect);
                     }
                     else
                     {
@@ -2583,7 +2626,7 @@ namespace FFVIIEverCrisisAnalyzer.Services
 
                 if (parts.Count > 0)
                 {
-                    var baseText = string.Join(" ", parts);
+                    var baseText = AppendTriggerChance(string.Join(" ", parts), effect);
                     return FormatEffectWithCondition(baseText, conditionPrefix, isPrimaryEffect);
                 }
             }
@@ -2609,7 +2652,21 @@ namespace FFVIIEverCrisisAnalyzer.Services
                 effectText = BuildFallbackEffect(effect);
             }
 
-            return FormatEffectWithCondition(effectText, conditionPrefix, isPrimaryEffect);
+            return FormatEffectWithCondition(AppendTriggerChance(effectText, effect), conditionPrefix, isPrimaryEffect);
+        }
+
+        /// <summary>Adds "[Chance: X%]" when the effect doesn't always trigger (trigger rate below 100%).</summary>
+        private static string AppendTriggerChance(string text, SkillEffectRaw effect)
+        {
+            if (string.IsNullOrWhiteSpace(text) || effect.MaxTriggerPermil <= 0 || effect.MaxTriggerPermil >= 1000)
+            {
+                return text;
+            }
+
+            var chance = effect.MinTriggerPermil == effect.MaxTriggerPermil || effect.MinTriggerPermil <= 0
+                ? $"{effect.MaxTriggerPermil / 10.0:0.#}%"
+                : $"{effect.MinTriggerPermil / 10.0:0.#}-{effect.MaxTriggerPermil / 10.0:0.#}%";
+            return $"{text} [Chance: {chance}]";
         }
 
         private string BuildStatusConditionEffect(
@@ -2734,12 +2791,16 @@ namespace FFVIIEverCrisisAnalyzer.Services
             {
                 6 => $"[Pot: +{value / 10.0:0.#}% of target's max HP]",
                 10 => $"[When triggered: restores {value / 10.0:0.#}% of target's max HP]",
-                12 or 13 or 14 or 15 or 16 or 17 or 18 => $"[Damage +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
+                12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 => $"[Damage +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
+                22 => $"[C./UC. Ability: Critical Rate x{1 + value / 1000.0:0.#} up to {change.EffectCount} time(s)]",
                 23 => $"[Healing +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
                 44 => $"[Phys Weapon/Gear ATB Cost: -{value}]",
                 45 => $"[Mag Weapon/Gear ATB Cost: -{value}]",
                 47 => $"[Ice Weapon/Gear ATB Cost: -{value}]",
+                48 => $"[Lightning Weapon/Gear ATB Cost: -{value}]",
                 49 => $"[Earth Weapon/Gear ATB Cost: -{value}]",
+                53 => $"[LB: Damage +{value / 10.0:0.#}% during effect duration; also hits target's weakness]",
+                54 => $"[LB: Damage +{value / 10.0:0.#}% up to {change.EffectCount} time(s)]",
                 _ when value != 0 => $"[Pot: {value / 10.0:0.#}%]",
                 _ => string.Empty
             };
@@ -2996,6 +3057,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             try
             {
                 using var stream = File.OpenRead(path);
+                if (_overlay != null)
+                {
+                    var rows = JsonNode.Parse(stream)?.AsArray() ?? new JsonArray();
+                    return _overlay.Apply(Path.GetFileName(path), rows).Deserialize<List<T>>(_jsonOptions) ?? new List<T>();
+                }
                 return JsonSerializer.Deserialize<List<T>>(stream, _jsonOptions) ?? new List<T>();
             }
             catch (System.Exception ex)
@@ -3116,7 +3182,9 @@ namespace FFVIIEverCrisisAnalyzer.Services
             "Lightning",
             "Earth",
             "Water",
-            "Wind"
+            "Wind",
+            "Holy",   // Only ECR Rebalancing gear uses these two
+            "Dark"
         };
 
         private static readonly string[] TargetTypes =
@@ -3258,6 +3326,8 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 16, "Amp. Lightning Abilities" },
             { 17, "Amp. Earth Abilities" },
             { 18, "Amp. Water Abilities" },
+            { 19, "Amp. Wind Abilities" },
+            { 22, "Amp. Critical Rate" },
             { 23, "Amp. Healing Abilities" },
             { 24, "Phys. Damage Bonus" },
             { 25, "Mag. Damage Bonus" },
@@ -3278,8 +3348,11 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 44, "Phys. ATB Conservation Effect" },
             { 45, "Mag. ATB Conservation Effect" },
             { 47, "Ice ATB Conservation Effect" },
+            { 48, "Lightning ATB Conservation Effect" },
             { 49, "Earth ATB Conservation Effect" },
-            { 52, "Enliven" }
+            { 52, "Enliven" },
+            { 53, "LB Ultimate" },
+            { 54, "LB Amp." }
         };
 
         private static readonly Dictionary<int, string> SkillNotesSigils = new()
@@ -3299,6 +3372,15 @@ namespace FFVIIEverCrisisAnalyzer.Services
             { 50901, ("Triangle", "△", 1) },
             { 50902, ("Triangle", "△", 2) },
         };
+
+        // A materia slot's display name. Sigil Boost names start with a sprite tag for the sigil icon, so those
+        // are spelled out ("Triangle Sigil Boost II").
+        private static string MateriaSlotName(int materiaSupportId, string name)
+        {
+            if (MateriaSupportSigilIds.TryGetValue(materiaSupportId, out var sigil))
+                return $"{sigil.Type} Sigil Boost {(sigil.Level == 2 ? "II" : "I")}";
+            return StripMarkup(name).Trim();
+        }
 
         private static List<SigilInfo> BuildSigils(string commandSigil, int materiaId0, int materiaId1, int materiaId2)
         {

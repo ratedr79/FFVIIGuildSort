@@ -11,6 +11,7 @@
     <Compile Remove="doc-build-artifacts\**" />
     <Content Remove="artifacts\**" />
     <Content Remove="doc-build-artifacts\**" />
+    <Content Remove="data\downloads\**" />
     <EmbeddedResource Remove="artifacts\**" />
     <EmbeddedResource Remove="doc-build-artifacts\**" />
     <None Remove="artifacts\**" />

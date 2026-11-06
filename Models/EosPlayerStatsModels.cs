@@ -751,6 +751,16 @@ public sealed record ChocoboAddRequest(ChocoboOption Chocobo, int[] Weights);
 /// story battles episode i records when cleared.
 /// </summary>
 public sealed record StoryChapterOption(string Key, string Group, string Name, int Kind, long[] Episodes, long[][] Battles);
+/// <summary>
+/// A character (Kind 1) or summon (Kind 2) for the growth editor. LevelExp[i] is the Exp for level i+1.
+/// Boards are the finished bit masks of each growth board. Specials are limit breaks (characters) or
+/// summon abilities, including the skills granted by board nodes.
+/// </summary>
+public sealed record GrowthTargetOption(int Kind, long Id, string Name, long[] LevelExp, GrowthBoardFill[] Boards,
+    long[] Specials, long OveraccelSkillId, GrowthBoardFill[] OveraccelBoards);
+/// <summary>A home screen wallpaper (HomeBackground). Limited = only offered for a while (has a display condition).</summary>
+public sealed record WallpaperOption(long Id, string Name, int Rarity, bool Limited);
+public sealed record GrowthBoardFill(long GroupId, ulong Flags0, ulong Flags1);
 public sealed record MateriaListEntry(string Name, Dictionary<string, List<long[]>> Steps);
 public sealed record MateriaStatLabel(string Label, bool Percent, int Order);
 public sealed record MateriaListCatalog(Dictionary<long, MateriaListEntry> Materia, Dictionary<long, MateriaStatLabel> Stats, long GilItemId, long GilMax);

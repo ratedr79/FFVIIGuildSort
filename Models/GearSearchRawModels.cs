@@ -195,6 +195,8 @@ namespace FFVIIEverCrisisAnalyzer.Models
         public int SkillEffectType { get; set; }
         public long SkillEffectDetailId { get; set; }
         public long SkillEffectDescriptionGroupId { get; set; }
+        public int MinTriggerPermil { get; set; } = 1000;
+        public int MaxTriggerPermil { get; set; } = 1000;
         public int TriggerType { get; set; }
         public long TriggerConditionId { get; set; }
     }
