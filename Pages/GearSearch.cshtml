@@ -930,6 +930,23 @@
         flex: 1 1 auto;
     }
 
+    .rail-facet-minpts {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
+    }
+
+    .rail-facet-minpts label {
+        flex: 1 1 auto;
+        margin: 0;
+    }
+
+    .rail-facet-minpts .form-control {
+        width: 5.5rem;
+        flex: 0 0 auto;
+    }
+
     .rail-facet-search .btn {
         flex: 0 0 auto;
     }
@@ -2582,6 +2599,10 @@
                             <input type="text" class="form-control form-control-sm" id="rabilityFilterSearch" placeholder="Search R Abilities..." autocomplete="off" />
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="clearRabilityFilterSearch">Clear</button>
                         </div>
+                        <div id="rabilityMinPointsWrap" class="rail-facet-minpts d-none">
+                            <label for="rabilityMinPoints" class="small text-muted" title="Total points at max level and OB10, counting a customization that adds the same R Ability">Min. points (OB10)</label>
+                            <input type="number" min="0" step="1" inputmode="numeric" class="form-control form-control-sm" id="rabilityMinPoints" placeholder="Any" autocomplete="off" />
+                        </div>
                         <div class="rail-facet-scroll">
                             <div class="row row-cols-1 g-1">
                                 @foreach (var passive in rAbilityOptions)
@@ -2751,7 +2772,19 @@
                         var ecrChangeText = Model.EcrChangesByGearId.TryGetValue(weapon.Id, out var ecrChanges)
                             ? string.Join("\n", ecrChanges.Select(c => c.Name + ": " + c.Text))
                             : null;
-                        <tr data-ecr-changes="@ecrChangeText" data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-item-image-url="@weapon.ImageUrl" data-item-preview-image-url="@weapon.PreviewImageUrl" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
+                        var rAbilityPointsAttr = string.Join("|", weapon.MaxPassiveSkills
+                            .Select(p => (Name: p.SkillName, Points: p.TotalPoints))
+                            .Concat(weapon.Customizations
+                                .Where(c => c.Kind == "R Ability")
+                                .Select(c => (Name: !string.IsNullOrWhiteSpace(c.PassiveSkillName)
+                                    ? c.PassiveSkillName!
+                                    : (c.Description.StartsWith(custRAbilityPrefix)
+                                        ? c.Description.Substring(custRAbilityPrefix.Length)
+                                        : c.Description), Points: c.PassiveSkillPoints)))
+                            .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                            .GroupBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                            .Select(g => $"{g.Key}={g.Sum(x => x.Points)}"));
+                        <tr data-rability-points="@rAbilityPointsAttr" data-ecr-changes="@ecrChangeText" data-weapon-id="@weapon.Id" data-character="@weapon.Character" data-equipment="@weapon.EquipmentType" data-weapon="@weapon.Name" data-element="@displayElement" data-ability-type="@displayAbilityType" data-item-image-url="@weapon.ImageUrl" data-item-preview-image-url="@weapon.PreviewImageUrl" data-has-customizations="@weapon.Customizations.Any().ToString().ToLowerInvariant()" data-has-details="@((!string.IsNullOrWhiteSpace(weapon.AbilityText) || weapon.Customizations.Any()).ToString().ToLowerInvariant())" data-sigils="@string.Join(" ", weapon.Sigils.Select(s => s.SigilType).Distinct())" data-subr="@string.Join(" ", weapon.SubRAbilityTags.Select(t => t.Key).Distinct(StringComparer.OrdinalIgnoreCase))">
                             <td class="d-none">@weapon.Name</td>
                             <td>
                                 @if (!string.IsNullOrWhiteSpace(displayElementIconPath))
@@ -3384,6 +3417,15 @@
             const activeFiltersWrap = document.getElementById('activeFiltersWrap');
             const activeFilterChips = document.getElementById('activeFilterChips');
             const clearAllFiltersBtn = document.getElementById('clearAllFiltersBtn');
+            const rabilityMinPointsInput = document.getElementById('rabilityMinPoints');
+            const getRabilityMinPoints = () => {
+                const value = rabilityMinPointsInput?.value.trim();
+                if (!value) {
+                    return null;
+                }
+                const number = Number(value);
+                return Number.isFinite(number) && number > 0 ? number : null;
+            };
             const quickEquipmentButtons = Array.from(document.querySelectorAll('[data-quick-equipment]'));
             const quickElementAbilityButtons = Array.from(document.querySelectorAll('[data-quick-element][data-quick-ability]'));
             const quickSigilButtons = Array.from(document.querySelectorAll('[data-quick-sigil]'));
@@ -4127,6 +4169,11 @@
                     entries.push({ selector: '.rability-filter', value: cb.value, label: `R Ability: ${cb.value}` });
                 });
 
+                const rabilityMin = getRabilityMinPoints();
+                if (rabilityMin !== null && document.querySelector('.rability-filter:checked')) {
+                    entries.push({ kind: 'rabilityMinPoints', label: `R Ability: ${rabilityMin}+ pts` });
+                }
+
                 document.querySelectorAll('.effect-filter:checked').forEach(cb => {
                     entries.push({ selector: '.effect-filter', value: cb.value, label: `Effect: ${cb.value}` });
                 });
@@ -4176,6 +4223,13 @@
                 activeFiltersWrap.classList.toggle('d-none', entries.length === 0);
             };
 
+            const syncRabilityMinPoints = () => {
+                const wrap = document.getElementById('rabilityMinPointsWrap');
+                if (wrap) {
+                    wrap.classList.toggle('d-none', !document.querySelector('.rability-filter:checked'));
+                }
+            };
+
             const applyAdvancedFilter = (selector, columnIndex) => {
                 const selected = Array.from(document.querySelectorAll(`${selector}:checked`)).map(cb => cb.value);
                 if (selected.length === 0) {
@@ -4191,6 +4245,7 @@
             };
 
             const syncFilterUi = () => {
+                syncRabilityMinPoints();
                 updateFilterCountBadges();
                 renderActiveFilterChips();
                 updateResultsSummary();
@@ -4980,6 +5035,34 @@
                 table.draw();
             });
 
+            // R Ability minimum points: a row passes when one of the checked R Abilities reaches the minimum.
+            $.fn.dataTable.ext.search.push(function (settings, rowData, dataIndex) {
+                if (settings.nTable !== table.table().node()) {
+                    return true;
+                }
+
+                const min = getRabilityMinPoints();
+                if (min === null) {
+                    return true;
+                }
+
+                const selected = Array.from(document.querySelectorAll('.rability-filter:checked')).map(cb => cb.value.toLowerCase());
+                if (selected.length === 0) {
+                    return true;
+                }
+
+                const raw = table.row(dataIndex).node()?.getAttribute('data-rability-points') ?? '';
+                return raw.split('|').some(entry => {
+                    const at = entry.lastIndexOf('=');
+                    if (at < 0) {
+                        return false;
+                    }
+                    return selected.includes(entry.slice(0, at).toLowerCase()) && Number(entry.slice(at + 1)) >= min;
+                });
+            });
+
+            rabilityMinPointsInput?.addEventListener('input', () => table.draw());
+
             if (ownedItemsOnlyCheckbox) {
                 ownedItemsOnlyCheckbox.addEventListener('change', () => {
                     refreshOwnedInventoryState();
@@ -5055,6 +5138,12 @@
                     return;
                 }
 
+                if (kind === 'rabilityMinPoints') {
+                    rabilityMinPointsInput.value = '';
+                    table.draw();
+                    return;
+                }
+
                 if (kind === 'ownedOnly') {
                     ownedItemsOnlyCheckbox.checked = false;
                     table.draw();
@@ -5113,6 +5202,9 @@
 
                 ownedItemsOnlyCheckbox.checked = false;
                 customizationFilterCheckbox.checked = false;
+                if (rabilityMinPointsInput) {
+                    rabilityMinPointsInput.value = '';
+                }
 
                 selectedCharacters.clear();
                 selectedEquipmentTypes.clear();
